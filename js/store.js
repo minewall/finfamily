@@ -516,6 +516,29 @@ const Store = (function () {
     persist();
   }
 
+  function getRecebimentosFuturos() {
+    return _data.recebimentosFuturos || [];
+  }
+
+  function realizarRecebimentoFuturo(id) {
+    const rf = (_data.recebimentosFuturos || []).find(r => r.id === id);
+    if (!rf) return null;
+    const date = rf.data || `${rf.ano}-${String(rf.mes).padStart(2,'0')}-05`;
+    const d = new Date(date + 'T12:00:00');
+    const receita = addReceita({
+      desc: rf.descricao || rf.desc || 'Recebimento',
+      amount: rf.valor || rf.amount || 0,
+      date,
+      category: 'receita',
+      person: rf.responsavel || rf.person || 'Roberto',
+      type: rf.type || 'outros',
+      month: d.getMonth() + 1,
+      year: d.getFullYear(),
+    });
+    deleteRecebimentoFuturo(id);
+    return receita;
+  }
+
   function descSuggestions() {
     const seen = new Map();
     [..._data.despesas].reverse().forEach(d => {
@@ -832,7 +855,12 @@ const Store = (function () {
   function snapshotReserva(metaId) {
     const m = _data.metas.find(x => x.id === metaId);
     if (!m || m.type !== 'reserva') return;
-    m.lastSnapshot = totalAtivos();
+    const value = totalAtivos();
+    m.lastSnapshot = value;
+    if (!Array.isArray(m.history)) m.history = [];
+    m.history.push({ at: new Date().toISOString(), value });
+    // Mantém até 24 pontos (2 anos mensais)
+    if (m.history.length > 24) m.history = m.history.slice(-24);
     persist();
   }
 
@@ -873,6 +901,23 @@ const Store = (function () {
     return _data;
   }
 
+  function getProximasParcelas(daysAhead = 30) {
+    _ensureContratos();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const limit = new Date(today); limit.setDate(limit.getDate() + daysAhead);
+    const all = [
+      ..._data.despesas.filter(d => d.contratoId).map(d => ({...d, kind:'despesa'})),
+      ..._data.receitas.filter(r => r.contratoId).map(r => ({...r, kind:'receita'})),
+    ];
+    return all
+      .filter(p => p.paid !== true)
+      .filter(p => {
+        const d = new Date(p.date + 'T12:00:00');
+        return d >= today && d <= limit;
+      })
+      .sort((a,b) => a.date.localeCompare(b.date));
+  }
+
   function regenAllContratos() {
     _ensureContratos();
     _data.contratos.forEach(c => _generateContratoLancamentos(c));
@@ -888,7 +933,7 @@ const Store = (function () {
     addCartao, deleteCartao,
     updateMeta, deleteMeta,
     addReserva, updateReserva, deleteReserva,
-    addRecebimentoFuturo, deleteRecebimentoFuturo,
+    addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
     updateSettings,
     receitasByMonth, despesasByMonth,
@@ -900,5 +945,6 @@ const Store = (function () {
     addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData,
+    getProximasParcelas,
   };
 })();

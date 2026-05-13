@@ -301,10 +301,18 @@ ${alerts.map(a => `
   </div>
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Últimos Lançamentos</span>
+      <span class="card-title">Próximas Parcelas (30 dias)</span>
+      <span class="badge badge-accent">contratos</span>
     </div>
-    ${renderRecentTransactions(month, year)}
+    ${renderProximasParcelas()}
   </div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Últimos Lançamentos</span>
+  </div>
+  ${renderRecentTransactions(month, year)}
 </div>
     `;
 
@@ -378,6 +386,27 @@ ${alerts.map(a => `
         </div>
       </div>
     `).join('') || '<div class="empty-state" style="padding:20px"><p>Sem receitas neste mês</p></div>';
+  }
+
+  function renderProximasParcelas() {
+    const rows = Store.getProximasParcelas(30).slice(0, 6);
+    if (!rows.length) return '<div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Sem parcelas previstas para os próximos 30 dias</p></div>';
+    const today = new Date(); today.setHours(0,0,0,0);
+    return rows.map(p => {
+      const c = Store.getContratoById(p.contratoId);
+      const d = new Date(p.date+'T12:00:00');
+      const dias = Math.round((d - today) / (1000*60*60*24));
+      const isRec = p.kind === 'receita';
+      const urgent = dias <= 3;
+      return `
+      <div class="stat-row">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-1)">📑 ${p.desc}</div>
+          <div style="font-size:11px;color:var(--text-3)">${c?.label || '—'} · ${d.toLocaleDateString('pt-BR')} <span style="color:var(--${urgent?'red':'text-4'})">(${dias===0?'hoje':dias===1?'amanhã':`em ${dias}d`})</span></div>
+        </div>
+        <div class="stat-row-value ${isRec?'green':'red'}">${Utils.currency(p.amount)}</div>
+      </div>`;
+    }).join('');
   }
 
   function renderRecentTransactions(month, year) {
@@ -743,6 +772,37 @@ ${filtered.map(r => {
       </tbody>
     </table>
   </div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Recebimentos Futuros</span>
+    <button class="btn-xs" id="btnAddRf">+ Novo</button>
+  </div>
+  ${(() => {
+    const rfs = Store.getRecebimentosFuturos().slice().sort((a,b) => {
+      const da = a.data || `${a.ano}-${String(a.mes).padStart(2,'0')}-01`;
+      const db = b.data || `${b.ano}-${String(b.mes).padStart(2,'0')}-01`;
+      return da.localeCompare(db);
+    });
+    if (!rfs.length) return '<div class="empty-state" style="padding:24px;text-align:center;color:var(--text-4);font-size:12px">Nenhum recebimento futuro cadastrado. Use para planejar entradas previstas (PLR, reembolsos, vendas, etc).</div>';
+    return rfs.map(rf => {
+      const data = rf.data || `${rf.ano}-${String(rf.mes).padStart(2,'0')}-05`;
+      const d = new Date(data + 'T12:00:00');
+      return `
+      <div class="stat-row">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-1)">${rf.descricao || rf.desc}</div>
+          <div style="font-size:11px;color:var(--text-3)">${d.toLocaleDateString('pt-BR')} · ${rf.responsavel || rf.person || '—'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="stat-row-value green">${Utils.currency(rf.valor || rf.amount)}</div>
+          <button class="btn-xs btn-green" data-realizar-rf="${rf.id}" title="Realizar (vira receita)">✓</button>
+          <button class="btn-xs btn-red" data-del-rf="${rf.id}" title="Excluir">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  })()}
 </div>`;
 
 
@@ -758,6 +818,54 @@ ${filtered.map(r => {
     });
 
     document.getElementById('btnAddRec')?.addEventListener('click', () => openAddReceita(container));
+
+    document.getElementById('btnAddRf')?.addEventListener('click', () => openRfModal(container));
+    container.querySelectorAll('[data-del-rf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Excluir este recebimento futuro?')) return;
+        Store.deleteRecebimentoFuturo(btn.dataset.delRf);
+        renderReceitas(container);
+        toast('Recebimento futuro removido', 'success');
+      });
+    });
+    container.querySelectorAll('[data-realizar-rf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Store.realizarRecebimentoFuturo(btn.dataset.realizarRf);
+        renderReceitas(container);
+        toast('Recebimento convertido em receita', 'success');
+      });
+    });
+  }
+
+  function openRfModal(container) {
+    const today = new Date().toISOString().slice(0,10);
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fRfDesc" placeholder="Ex: PLR, Reembolso, Venda Y"/></div>
+      <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fRfAmt" type="number" step="0.01"/></div>
+      <div class="form-group"><label class="form-label">Data prevista</label><input class="form-input" id="fRfDate" type="date" value="${today}"/></div>
+      <div class="form-group"><label class="form-label">Responsável</label><select class="form-select" id="fRfPerson">${Store.PESSOAS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="fRfType">
+        <option value="salario">Salário</option><option value="contrato">Contrato</option>
+        <option value="pensao">Pensão</option><option value="emprestimo">Empréstimo</option>
+        <option value="outros" selected>Outros</option>
+      </select></div>
+    </div>`;
+    Modal.open('Novo Recebimento Futuro', html, () => {
+      const desc = document.getElementById('fRfDesc').value.trim();
+      const valor = parseFloat(document.getElementById('fRfAmt').value);
+      const data = document.getElementById('fRfDate').value;
+      const responsavel = document.getElementById('fRfPerson').value;
+      const type = document.getElementById('fRfType').value;
+      if (!desc || !valor || !data) return toast('Preencha descrição, valor e data', 'error');
+      const d = new Date(data + 'T12:00:00');
+      Store.addRecebimentoFuturo({
+        descricao: desc, valor, data, responsavel, type,
+        mes: d.getMonth() + 1, ano: d.getFullYear(), status: 'pendente',
+      });
+      Modal.close();
+      renderReceitas(container);
+      toast('Recebimento futuro cadastrado', 'success');
+    });
   }
 
   function openAddReceita(refreshContainer) {
@@ -1138,7 +1246,34 @@ ${indicadores.length === 0 ? '' : `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;padding-top:8px;border-top:1px solid var(--border)">
           <div><div style="color:var(--text-4)">vs snapshot</div><div style="font-weight:700;color:var(--${perf.delta>=0?'green':'red'})">${perf.delta>=0?'▲':'▼'} ${Utils.currency(perf.delta||0)}</div></div>
           <div><div style="color:var(--text-4)">Falta</div><div style="font-weight:700;font-family:var(--mono)">${Utils.currency(Math.max(0,perf.target-perf.current))}</div></div>
-        </div>` : ''}
+        </div>
+        ${(() => {
+          const h = m.history || [];
+          if (h.length < 2) return `<div style="font-size:10px;color:var(--text-4);margin-top:8px">Histórico: ${h.length} snapshot${h.length===1?'':'s'} — registre mais para ver tendência</div>`;
+          const values = h.map(p => p.value);
+          const min = Math.min(...values), max = Math.max(...values);
+          const range = max - min || 1;
+          const W = 240, H = 36;
+          const pts = values.map((v, i) => {
+            const x = (i / (values.length - 1)) * W;
+            const y = H - ((v - min) / range) * H;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          }).join(' ');
+          const last = values[values.length-1], first = values[0];
+          const trend = last >= first ? 'green' : 'red';
+          return `
+          <div style="margin-top:10px">
+            <div style="font-size:10px;color:var(--text-4);margin-bottom:2px">Evolução · ${h.length} snapshots</div>
+            <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block">
+              <polyline fill="none" stroke="var(--${trend})" stroke-width="1.5" points="${pts}"/>
+              ${values.map((v,i) => {
+                const x = (i / (values.length - 1)) * W;
+                const y = H - ((v - min) / range) * H;
+                return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8" fill="var(--${trend})"/>`;
+              }).join('')}
+            </svg>
+          </div>`;
+        })()}` : ''}
     </div>`;
   }).join('')}
 </div>`}
