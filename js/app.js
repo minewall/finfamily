@@ -442,7 +442,10 @@ ${filtered.map(d => `<tr>
   <td class="muted">${d.sub||''}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
-  <td><button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button></td>
+  <td style="white-space:nowrap">
+    <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-desp="${d.id}">✏</button>
+    <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button>
+  </td>
 </tr>`).join('')}
 </tbody>
 <tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
@@ -465,7 +468,10 @@ ${filtered.map(r => `<tr>
   <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
   <td class="muted">${r.type||''}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
-  <td><button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-rec="${r.id}">✕</button></td>
+  <td style="white-space:nowrap">
+    <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-rec="${r.id}">✏</button>
+    <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-rec="${r.id}">✕</button>
+  </td>
 </tr>`).join('')}
 </tbody>
 <tfoot><tr><td colspan="4" class="fw-700">Total</td><td class="num positive fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
@@ -497,6 +503,12 @@ ${filtered.map(r => `<tr>
           refilter();
           toast('Receita removida', 'success');
         });
+      });
+      container.querySelectorAll('[data-edit-desp]').forEach(btn => {
+        btn.addEventListener('click', () => openEditDespesa(btn.dataset.editDesp, refilter));
+      });
+      container.querySelectorAll('[data-edit-rec]').forEach(btn => {
+        btn.addEventListener('click', () => openEditReceita(btn.dataset.editRec, refilter));
       });
     }
 
@@ -598,7 +610,10 @@ ${filtered.map(r => `<tr>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
           <td class="muted">${r.type||''}</td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
-          <td><button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-rec="${r.id}">✕</button></td>
+          <td style="white-space:nowrap">
+            <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-rec="${r.id}">✏</button>
+            <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-rec="${r.id}">✕</button>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -612,6 +627,9 @@ ${filtered.map(r => `<tr>
         renderReceitas(container);
         toast('Receita removida', 'success');
       });
+    });
+    container.querySelectorAll('[data-edit-rec]').forEach(btn => {
+      btn.addEventListener('click', () => openEditReceita(btn.dataset.editRec, () => renderReceitas(container)));
     });
 
     document.getElementById('btnAddRec')?.addEventListener('click', () => openAddReceita(container));
@@ -745,7 +763,10 @@ ${filtered.map(r => `<tr>
   <td class="muted">${d.sub||''}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
-  <td><button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button></td>
+  <td style="white-space:nowrap">
+    <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-desp="${d.id}">✏</button>
+    <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button>
+  </td>
 </tr>`).join('')}</tbody>
 <tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td><td></td></tr></tfoot>
 </table>`;
@@ -787,6 +808,9 @@ ${filtered.map(r => `<tr>
           renderDespesas(container);
           toast('Despesa removida', 'success');
         });
+      });
+      container.querySelectorAll('[data-edit-desp]').forEach(btn => {
+        btn.addEventListener('click', () => openEditDespesa(btn.dataset.editDesp, () => renderDespesas(container)));
       });
     }
     attachDespDeleteHandlers();
@@ -2177,6 +2201,151 @@ ${futuros.length === 0 ? `<div class="card" style="text-align:center;padding:32p
       Store.addRecebimentoFuturo({ descricao, valor, mes, ano, status: 'pendente' });
       toast('Recebimento futuro adicionado!', 'success');
       Modal.close(); renderReserva(container);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // EDIT MODALS — Despesa & Receita
+  // ══════════════════════════════════════════════════════════════
+  function openEditDespesa(id, onSaved) {
+    const d = Store.get().despesas.find(d => d.id === id);
+    if (!d) return;
+    const cats = Object.entries(Store.CATEGORIES).filter(([k]) => k !== 'receita');
+    const html = `<div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">Descrição</label>
+        <input class="form-input" id="eDDesc" value="${d.desc.replace(/"/g,'&quot;')}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input class="form-input" id="eDAmt" type="number" step="0.01" value="${d.amount}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input class="form-input" id="eDDate" type="date" value="${d.date}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-select" id="eDCat">
+          ${cats.map(([k,v]) => `<option value="${k}"${k===d.category?' selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sub-categoria</label>
+        <select class="form-select" id="eDSub">
+          ${(Store.SUBCATEGORIES[d.category]||[]).map(s => `<option${s===d.sub?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pagamento</label>
+        <select class="form-select" id="eDPay">
+          ${Store.PAYMENT_METHODS.map(m => `<option${m===d.pay?' selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:2px 0">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="eDDesconto" style="width:16px;height:16px;accent-color:var(--green)"${d.desconto?' checked':''}>
+          <span class="form-label" style="margin:0">Houve desconto?</span>
+        </label>
+      </div>
+      <div id="eDDescontoOpts" style="display:${d.desconto?'block':'none'};grid-column:1/-1" class="form-group">
+        <label class="form-label">Valor Original (R$)</label>
+        <input class="form-input" id="eDValorOriginal" type="number" step="0.01" value="${d.valorOriginal||''}"/>
+        <div style="font-size:11px;color:var(--green);margin-top:4px" id="eDEconomia">${d.economia?'💰 Economia: '+Utils.currency(d.economia):''}</div>
+      </div>
+    </div>`;
+
+    Modal.open('Editar Despesa', html, () => {
+      const desc   = document.getElementById('eDDesc').value.trim();
+      const amount = parseFloat(document.getElementById('eDAmt').value);
+      const date   = document.getElementById('eDDate').value;
+      const cat    = document.getElementById('eDCat').value;
+      const sub    = document.getElementById('eDSub').value;
+      const pay    = document.getElementById('eDPay').value;
+      const temDesc = document.getElementById('eDDesconto').checked;
+      const valorOrig = temDesc ? parseFloat(document.getElementById('eDValorOriginal').value||'0') : 0;
+      const economia  = temDesc && valorOrig > amount ? valorOrig - amount : 0;
+      if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
+      const dt = new Date(date);
+      Store.updateDespesa(id, {
+        desc, amount, date, category: cat, sub, pay,
+        month: dt.getMonth() + 1, year: dt.getFullYear(),
+        desconto: temDesc && economia > 0, valorOriginal: valorOrig, economia,
+      });
+      Modal.close();
+      toast('Despesa atualizada!', 'success');
+      if (onSaved) onSaved();
+    });
+
+    setTimeout(() => {
+      document.getElementById('eDCat')?.addEventListener('change', () => {
+        const cat = document.getElementById('eDCat').value;
+        const sel = document.getElementById('eDSub');
+        if (sel) sel.innerHTML = (Store.SUBCATEGORIES[cat]||[]).map(s=>`<option>${s}</option>`).join('');
+      });
+      document.getElementById('eDDesconto')?.addEventListener('change', e => {
+        document.getElementById('eDDescontoOpts').style.display = e.target.checked ? 'block' : 'none';
+      });
+      function updateEd() {
+        const amt  = parseFloat(document.getElementById('eDAmt')?.value) || 0;
+        const orig = parseFloat(document.getElementById('eDValorOriginal')?.value) || 0;
+        const el   = document.getElementById('eDEconomia');
+        if (el) el.textContent = orig > amt ? `💰 Economia: ${Utils.currency(orig - amt)}` : '';
+      }
+      document.getElementById('eDValorOriginal')?.addEventListener('input', updateEd);
+      document.getElementById('eDAmt')?.addEventListener('input', updateEd);
+    }, 50);
+  }
+
+  function openEditReceita(id, onSaved) {
+    const r = Store.get().receitas.find(r => r.id === id);
+    if (!r) return;
+    const html = `<div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">Descrição</label>
+        <input class="form-input" id="eRDesc" value="${r.desc.replace(/"/g,'&quot;')}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input class="form-input" id="eRAmt" type="number" step="0.01" value="${r.amount}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input class="form-input" id="eRDate" type="date" value="${r.date}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pessoa</label>
+        <select class="form-select" id="eRPerson">
+          ${Store.PESSOAS.map(p => `<option${p===r.person?' selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="eRType">
+          <option value="salario"${r.type==='salario'?' selected':''}>Salário</option>
+          <option value="contrato"${r.type==='contrato'?' selected':''}>Contrato</option>
+          <option value="pensao"${r.type==='pensao'?' selected':''}>Pensão</option>
+          <option value="emprestimo"${r.type==='emprestimo'?' selected':''}>Empréstimo</option>
+          <option value="outros"${r.type==='outros'?' selected':''}>Outros</option>
+        </select>
+      </div>
+    </div>`;
+
+    Modal.open('Editar Receita', html, () => {
+      const desc   = document.getElementById('eRDesc').value.trim();
+      const amount = parseFloat(document.getElementById('eRAmt').value);
+      const date   = document.getElementById('eRDate').value;
+      const person = document.getElementById('eRPerson').value;
+      const type   = document.getElementById('eRType').value;
+      if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
+      const dt = new Date(date);
+      Store.updateReceita(id, {
+        desc, amount, date, person, type,
+        month: dt.getMonth() + 1, year: dt.getFullYear(),
+      });
+      Modal.close();
+      toast('Receita atualizada!', 'success');
+      if (onSaved) onSaved();
     });
   }
 

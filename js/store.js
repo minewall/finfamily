@@ -428,9 +428,19 @@ const Store = (function () {
     persist();
   }
 
+  function updateReceita(id, patch) {
+    const r = _data.receitas.find(r => r.id === id);
+    if (r) { Object.assign(r, patch); persist(); }
+  }
+
   function deleteDespesa(id) {
     _data.despesas = _data.despesas.filter(d => d.id !== id);
     persist();
+  }
+
+  function updateDespesa(id, patch) {
+    const d = _data.despesas.find(d => d.id === id);
+    if (d) { Object.assign(d, patch); persist(); }
   }
 
   function updateSettings(patch) {
@@ -613,7 +623,7 @@ const Store = (function () {
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
-    addReceita, addDespesa, deleteReceita, deleteDespesa,
+    addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada,
     addConta, deleteConta, updateConta,
     addCartao, deleteCartao,
