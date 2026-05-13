@@ -213,13 +213,26 @@
     window.location.replace('index.html');
   }
 
-  document.getElementById('loginForm').addEventListener('submit', function(e) {
+  // SHA-256 do par "<usuario>:<senha>" — comparado abaixo.
+  // Para trocar a senha, gere com: printf 'usuario:senha' | shasum -a 256
+  const FF_CREDENTIALS_HASH = '1dc7c1b6bfb072f6b957888d9a974cc477a5e059ae92b1552c956dc246399da2';
+
+  async function sha256Hex(str) {
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const user = document.getElementById('fUser').value.trim();
     const pass = document.getElementById('fPass').value;
     const err  = document.getElementById('errorMsg');
 
-    if (user === 'mmr' && pass === '271712') {
+    const digest = await sha256Hex(`${user}:${pass}`);
+    if (digest === FF_CREDENTIALS_HASH) {
       sessionStorage.setItem('ff_auth', '1');
       window.location.replace('index.html');
     } else {
