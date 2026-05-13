@@ -615,8 +615,7 @@ ${filtered.map(r => `<tr>
     });
 
     // ── initial render ────────────────────────────────────────────
-    refilter();
-    attachDeleteHandlers();
+    refilter(); // already calls attachDeleteHandlers() internally
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -2533,8 +2532,14 @@ ${futuros.length === 0 ? `<div class="card" style="text-align:center;padding:32p
   // ── INIT ───────────────────────────────────────────────────────
   function init() {
     Store.init();
-    // Remove any legacy despesas categorized as 'patrimonio' (not a valid category)
-    Store.cleanDespesasByCategory(['patrimonio', 'patrimônio', 'Patrimônio', 'Patrimonio']);
+    // Remove legacy despesas with invalid/unknown categories (e.g. 'patrimônio')
+    const validCats = Object.keys(Store.CATEGORIES);
+    const invalidCats = [...new Set(
+      Store.get().despesas
+        .map(d => d.category)
+        .filter(c => c && !validCats.includes(c))
+    )];
+    if (invalidCats.length) Store.cleanDespesasByCategory(invalidCats);
     Modal.init();
 
     // Register pages

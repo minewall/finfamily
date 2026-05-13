@@ -601,9 +601,14 @@ const Store = (function () {
   }
 
   function cleanDespesasByCategory(cats) {
+    // Case-insensitive match; also strips any entry whose category has no label in CATEGORIES
+    const lower = cats.map(c => c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
     const before = _data.despesas.length;
-    _data.despesas = _data.despesas.filter(d => !cats.includes(d.category));
-    if (_data.despesas.length !== before) persist();
+    _data.despesas = _data.despesas.filter(d => {
+      const norm = (d.category || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      return !lower.includes(norm);
+    });
+    if (_data.despesas.length !== before) { persist(); }
     return before - _data.despesas.length;
   }
 
