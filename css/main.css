@@ -1013,38 +1013,6 @@ td.muted    { color: var(--text-3); }
 .asset-qty   { font-size: 12px; color: var(--text-3); text-align: right; }
 .asset-value { font-size: 14px; font-weight: 700; font-family: var(--mono); text-align: right; }
 
-/* ── SAMBAR SPECIAL ─────────────────────────────────────────────── */
-.sambar-header {
-  background: linear-gradient(135deg, #1C1006, #0F1A0A);
-  border: 1px solid rgba(245,158,11,.2);
-  border-radius: var(--radius-xl);
-  padding: 28px;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-.sambar-header::before {
-  content: 'SAMBAR';
-  position: absolute;
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 100px;
-  font-weight: 900;
-  color: rgba(245,158,11,.04);
-  letter-spacing: -4px;
-  user-select: none;
-}
-.sambar-title {
-  font-size: 24px;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #F59E0B, #FCD34D);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 /* ── SIDEBAR OVERLAY (mobile backdrop) ─────────────────────────── */
 .sidebar-overlay {
