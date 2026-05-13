@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor Financeiro Familiar - Mine Wall</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: light dark;
+  --brand: oklch(0.62 0.18 255);
+  --brand-strong: oklch(0.52 0.20 258);
+  --brand-soft: oklch(0.74 0.13 252);
+  --brand-glow: oklch(0.62 0.18 255 / .18);
+
+  --surface: oklch(0.99 0.005 250);
+  --surface-elevated: oklch(1 0 0);
+  --surface-sunken: oklch(0.97 0.008 250);
+  --surface-hover: oklch(0.95 0.012 252);
+
+  --text: oklch(0.24 0.02 260);
+  --text-muted: oklch(0.46 0.015 260);
+  --text-subtle: oklch(0.60 0.012 260);
+  --text-onbrand: oklch(0.99 0 0);
+
+  --border-subtle: oklch(0.91 0.008 255);
+  --border-strong: oklch(0.84 0.012 255);
+
+  --ok: oklch(0.66 0.16 150);
+  --warn: oklch(0.78 0.14 90);
+  --danger: oklch(0.58 0.20 27);
+
+  --font-title: 'Inter', 'Helvetica Neue', sans-serif;
+  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px oklch(0.40 0.04 258 / .06), 0 1px 1px oklch(0.40 0.04 258 / .04);
+  --shadow-md: 0 4px 10px oklch(0.40 0.04 258 / .07), 0 2px 4px oklch(0.40 0.04 258 / .05);
+  --shadow-brand: 0 8px 24px var(--brand-glow);
+
+  --dur: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+body[data-theme="dark"] {
+  --surface: oklch(0.18 0.012 260);
+  --surface-elevated: oklch(0.22 0.014 260);
+  --surface-sunken: oklch(0.15 0.010 260);
+  --surface-hover: oklch(0.26 0.018 260);
+
+  --text: oklch(0.95 0.01 250);
+  --text-muted: oklch(0.80 0.015 250);
+  --text-subtle: oklch(0.66 0.018 250);
+  --text-onbrand: oklch(0.16 0.02 260);
+
+  --border-subtle: oklch(1 0 0 / .08);
+  --border-strong: oklch(1 0 0 / .14);
+
+  --brand: oklch(0.78 0.14 252);
+  --brand-strong: oklch(0.86 0.12 252);
+  --brand-soft: oklch(0.70 0.13 252);
+  --brand-glow: oklch(0.78 0.14 252 / .22);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  background:
+    radial-gradient(1200px 400px at 80% -10%, var(--brand-glow), transparent 70%),
+    var(--surface);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: color-mix(in oklab, var(--surface-elevated) 78%, transparent);
+  backdrop-filter: saturate(140%) blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--text-onbrand);
+  background: linear-gradient(135deg, var(--brand), var(--brand-soft));
+  box-shadow: var(--shadow-brand);
+}
+
+.brand-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+.btn {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-elevated);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+}
+
+.btn:hover { background: var(--surface-hover); }
+
+.btn-primary {
+  background: var(--brand);
+  color: var(--text-onbrand);
+  border: none;
+}
+
+.btn-primary:hover { background: var(--brand-strong); }
+
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 8px 12px;
+  cursor: pointer;
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+}
+
+.tab.active {
+  background: color-mix(in oklab, var(--brand) 15%, var(--surface-elevated));
+  color: var(--text);
+  border-color: color-mix(in oklab, var(--brand) 40%, var(--border-subtle));
+}
+
+.panel {
+  display: none;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.panel.active { display: grid; }
+
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+.grid.kpis {
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+}
+
+.card {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+}
+
+.kpi-title { font-size: 12px; color: var(--text-muted); }
+.kpi-value {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.value-ok { color: var(--ok); }
+.value-bad { color: var(--danger); }
+.value-warn { color: var(--warn); }
+
+.forms {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.field input, .field select {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 8px;
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.c3 { grid-column: span 3; }
+.c2 { grid-column: span 2; }
+.c4 { grid-column: span 4; }
+.c6 { grid-column: span 6; }
+.c12 { grid-column: span 12; }
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th, .table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+}
+
+.progress {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-soft));
+}
+
+.inline-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+}
+
+@media (max-width: 980px) {
+  .toolbar { grid-template-columns: 1fr 1fr; }
+  .grid.kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .c6, .c4, .c3, .c2 { grid-column: span 12; }
+}
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-badge">M</div>
+      <div>
+        <div class="brand-title">Gestor Financeiro Familiar</div>
+        <div class="inline-note">Mine Wall Brand</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="themeBtn">Tema</button>
+      <button class="btn" id="exportBtn">Exportar</button>
+      <button class="btn" id="importBtn">Importar</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="btn btn-primary" id="resetBtn">Reset</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="toolbar card">
+      <div class="field">
+        <label for="monthRef">Mes de referencia</label>
+        <input id="monthRef" type="month">
+      </div>
+      <div class="field">
+        <label for="saldoCCInicial">Saldo inicial conta</label>
+        <input id="saldoCCInicial" type="number" step="0.01">
+      </div>
+      <div class="field">
+        <label for="saldoCashInicial">Saldo inicial dinheiro</label>
+        <input id="saldoCashInicial" type="number" step="0.01">
+      </div>
+      <div class="field">
+        <label for="faturaInicial">Fatura cartao anterior</label>
+        <input id="faturaInicial" type="number" step="0.01">
+      </div>
+    </section>
+
+    <section class="tab-row">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="lancamentos">Lancamentos</button>
+      <button class="tab" data-tab="metas">Metas</button>
+      <button class="tab" data-tab="parcelas">Parcelas</button>
+      <button class="tab" data-tab="investimentos">Investimentos</button>
+      <button class="tab" data-tab="comparativo">Comparativo</button>
+      <button class="tab" data-tab="plano">Plano Web</button>
+    </section>
+
+    <section id="dashboard" class="panel active">
+      <div class="grid kpis" id="kpiGrid"></div>
+      <div class="card">
+        <div class="kpi-title">Distribuicao das despesas por grupo</div>
+        <div id="groupBars" class="grid" style="margin-top:10px;"></div>
+      </div>
+      <div class="card">
+        <div class="kpi-title">Saldos por meio de pagamento</div>
+        <div class="pills" id="paymentPills" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <section id="lancamentos" class="panel">
+      <div class="card">
+        <div class="forms" id="entryForm">
+          <div class="field c2"><label>Data</label><input id="eData" type="date"></div>
+          <div class="field c2"><label>Tipo</label><select id="eTipo"><option value="receita">Receita</option><option value="despesa">Despesa</option></select></div>
+          <div class="field c2"><label>Grupo</label><select id="eGrupo"></select></div>
+          <div class="field c2"><label>Subgrupo</label><input id="eSubgrupo" type="text" placeholder="Ex.: Supermercado"></div>
+          <div class="field c2"><label>Descricao</label><input id="eDesc" type="text" placeholder="Fornecedor/observacao"></div>
+          <div class="field c2"><label>Valor</label><input id="eValor" type="number" step="0.01"></div>
+          <div class="field c2"><label>Meio de pagamento</label><select id="eMetodo"><option value="conta">Conta Corrente</option><option value="dinheiro">Dinheiro</option><option value="credito">Cartao Credito</option></select></div>
+          <div class="field c2"><label>Pessoa</label><select id="ePessoa"><option>Familia</option><option>Roberto</option><option>Mariana</option><option>Manuela</option></select></div>
+          <div class="field c4" style="align-self:end;"><button class="btn btn-primary" id="addEntryBtn">Adicionar lancamento</button></div>
+        </div>
+      </div>
+      <div class="card table-wrap">
+        <table class="table" id="entriesTable">
+          <thead><tr><th>Data</th><th>Tipo</th><th>Grupo</th><th>Subgrupo</th><th>Descricao</th><th>Metodo</th><th>Pessoa</th><th>Valor</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="metas" class="panel">
+      <div class="card forms">
+        <div class="field c3"><label>Receita minima mensal</label><input id="metaReceita" type="number" step="0.01"></div>
+        <div class="field c3"><label>% maximo de despesa</label><input id="metaPct" type="number" step="1"></div>
+        <div class="field c3"><label>Meta reserva familiar</label><input id="metaReserva" type="number" step="0.01"></div>
+        <div class="field c3"><label>Custo mensal referencia</label><input id="metaCustoMes" type="number" step="0.01"></div>
+      </div>
+      <div class="card">
+        <div class="kpi-title">Status das metas</div>
+        <div id="goalStatus" class="grid" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <section id="parcelas" class="panel">
+      <div class="card forms">
+        <div class="field c3"><label>Descricao</label><input id="pDesc" type="text"></div>
+        <div class="field c2"><label>Valor total</label><input id="pTotal" type="number" step="0.01"></div>
+        <div class="field c2"><label>Parcelas</label><input id="pQt" type="number" step="1"></div>
+        <div class="field c2"><label>Inicio</label><input id="pInicio" type="month"></div>
+        <div class="field c2"><label>Grupo</label><input id="pGrupo" type="text" placeholder="Cartoes & Wallets"></div>
+        <div class="field c1" style="align-self:end;"><button class="btn btn-primary" id="addParcelaBtn">Adicionar</button></div>
+      </div>
+      <div class="card table-wrap">
+        <table class="table" id="parcelasTable">
+          <thead><tr><th>Descricao</th><th>Total</th><th>Parcelas</th><th>Valor parcela</th><th>Inicio</th><th>Fim</th><th>Restantes</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="investimentos" class="panel">
+      <div class="card forms">
+        <div class="field c2"><label>Data</label><input id="iData" type="date"></div>
+        <div class="field c2"><label>Tipo</label><select id="iTipo"><option>Crypto</option><option>FIAT EUR</option><option>FIAT BR</option><option>Titulos</option><option>Poupanca</option></select></div>
+        <div class="field c4"><label>Ativo / Plataforma</label><input id="iNome" type="text" placeholder="Ex.: Reserva Millennium"></div>
+        <div class="field c2"><label>Saldo atual (EUR)</label><input id="iValor" type="number" step="0.01"></div>
+        <div class="field c2" style="align-self:end;"><button class="btn btn-primary" id="addInvBtn">Adicionar</button></div>
+      </div>
+      <div class="card" id="invKpis"></div>
+      <div class="card table-wrap">
+        <table class="table" id="investTable">
+          <thead><tr><th>Data</th><th>Tipo</th><th>Ativo</th><th>Saldo EUR</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="comparativo" class="panel">
+      <div class="card forms">
+        <div class="field c4"><label>Grupo para previsao</label><input id="cGrupo" type="text" placeholder="Ex.: Moradia"></div>
+        <div class="field c3"><label>Valor previsto no mes</label><input id="cValor" type="number" step="0.01"></div>
+        <div class="field c2" style="align-self:end;"><button class="btn btn-primary" id="savePrevBtn">Salvar previsto</button></div>
+      </div>
+      <div class="card table-wrap">
+        <table class="table" id="compTable">
+          <thead><tr><th>Grupo</th><th>Real</th><th>Previsto</th><th>Diferenca</th><th>% da receita</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="plano" class="panel">
+      <div class="card">
+        <h3 style="margin-top:0;">Plano para evolucao da planilha para produto web</h3>
+        <div class="grid">
+          <div>
+            <strong>1. Escopo funcional inicial (MVP fiel ao Excel)</strong>
+            <div class="inline-note">Lancamentos mensais, consolidado de receitas e despesas, movimentacao por meio de pagamento, metas de receita/despesa, comparativo real x previsto, controle de parcelas e aplicacoes.</div>
+          </div>
+          <div>
+            <strong>2. Estrutura de dados</strong>
+            <div class="inline-note">Entidades: lancamentos, metas, parcelas, investimentos, previsoes por grupo e saldos iniciais por mes.</div>
+          </div>
+          <div>
+            <strong>3. Camada analitica</strong>
+            <div class="inline-note">KPIs de P&L mensal, percentual utilizado da receita, performance contra limite de despesa e cobertura de meses pela reserva.</div>
+          </div>
+          <div>
+            <strong>4. Persistencia e seguranca</strong>
+            <div class="inline-note">LocalStorage no prototipo e evolucao para backend com login familiar, perfis e trilha de auditoria.</div>
+          </div>
+          <div>
+            <strong>5. Roadmap sugerido (funcionalidades novas)</strong>
+            <div class="inline-note">Alertas automáticos de estouro de meta, importacao OFX/CSV bancario, conciliacao por IA, simulador de cenarios e metas por objetivo (casa, viagem, educacao).</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+const STORAGE_KEY = "gestor-financeiro-familiar-v1";
+
+const monthRefInput = document.getElementById("monthRef");
+const saldoCCInicial = document.getElementById("saldoCCInicial");
+const saldoCashInicial = document.getElementById("saldoCashInicial");
+const faturaInicial = document.getElementById("faturaInicial");
+
+const defaultState = {
+  theme: "light",
+  monthRef: new Date().toISOString().slice(0, 7),
+  initialBalances: {},
+  goals: {
+    minIncome: 20000,
+    maxExpensePct: 70,
+    reserveTarget: 10500,
+    monthlyCostRef: 3500
+  },
+  plannedByMonthGroup: {},
+  entries: [
+    { id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), type: "receita", group: "Entradas Familia", subgroup: "Receita principal", description: "Receita base", paymentMethod: "conta", person: "Familia", amount: 20000 },
+    { id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), type: "despesa", group: "Moradia", subgroup: "Aluguel", description: "Moradia", paymentMethod: "dinheiro", person: "Familia", amount: 3500 }
+  ],
+  installments: [],
+  investments: [
+    { id: crypto.randomUUID(), date: "2023-11-20", kind: "Crypto", name: "Stake BTC", amountEur: 4400 },
+    { id: crypto.randomUUID(), date: "2023-11-20", kind: "FIAT EUR", name: "Reserva Millennium", amountEur: 12200 }
+  ]
+};
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return structuredClone(defaultState);
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      ...structuredClone(defaultState),
+      ...parsed,
+      goals: { ...defaultState.goals, ...(parsed.goals || {}) }
+    };
+  } catch {
+    return structuredClone(defaultState);
+  }
+}
+
+let state = loadState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+}
+
+function formatEur(value) {
+  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(Number(value || 0));
+}
+
+function currentMonthEntries() {
+  return state.entries.filter(e => (e.date || "").startsWith(state.monthRef));
+}
+
+function computeSummary() {
+  const entries = currentMonthEntries();
+  const income = entries.filter(e => e.type === "receita").reduce((s, e) => s + Number(e.amount || 0), 0);
+  const expense = entries.filter(e => e.type === "despesa").reduce((s, e) => s + Number(e.amount || 0), 0);
+  const balance = income - expense;
+
+  const ib = state.initialBalances[state.monthRef] || { conta: 0, dinheiro: 0, credito: 0 };
+  let conta = Number(ib.conta || 0);
+  let dinheiro = Number(ib.dinheiro || 0);
+  let credito = Number(ib.credito || 0);
+
+  for (const e of entries) {
+    const val = Number(e.amount || 0);
+    if (e.type === "receita") {
+      if (e.paymentMethod === "conta") conta += val;
+      if (e.paymentMethod === "dinheiro") dinheiro += val;
+    } else {
+      if (e.paymentMethod === "conta") conta -= val;
+      if (e.paymentMethod === "dinheiro") dinheiro -= val;
+      if (e.paymentMethod === "credito") credito += val;
+    }
+  }
+
+  const limit = income * (Number(state.goals.maxExpensePct || 0) / 100);
+  const usedPct = income > 0 ? (expense / income) * 100 : 0;
+
+  return { income, expense, balance, limit, usedPct, conta, dinheiro, credito };
+}
+
+function groupExpenses() {
+  const out = {};
+  for (const e of currentMonthEntries()) {
+    if (e.type !== "despesa") continue;
+    out[e.group] = (out[e.group] || 0) + Number(e.amount || 0);
+  }
+  return out;
+}
+
+function computeComparative() {
+  const real = groupExpenses();
+  const map = state.plannedByMonthGroup[state.monthRef] || {};
+  const groups = new Set([...Object.keys(real), ...Object.keys(map)]);
+  const summary = computeSummary();
+
+  return [...groups].sort().map(group => {
+    const r = Number(real[group] || 0);
+    const p = Number(map[group] || 0);
+    return {
+      group,
+      real: r,
+      planned: p,
+      diff: p - r,
+      pctIncome: summary.income > 0 ? (r / summary.income) * 100 : 0
+    };
+  });
+}
+
+function parcelasAtivas() {
+  const [y, m] = state.monthRef.split("-").map(Number);
+  const refIndex = y * 12 + (m - 1);
+  return state.installments.map(p => {
+    const [sy, sm] = p.startMonth.split("-").map(Number);
+    const start = sy * 12 + (sm - 1);
+    const end = start + Number(p.parcels || 0) - 1;
+    const remaining = Math.max(0, end - refIndex + 1);
+    return {
+      ...p,
+      parcela: Number(p.total || 0) / Number(p.parcels || 1),
+      endMonth: `${Math.floor(end / 12)}-${String((end % 12) + 1).padStart(2, "0")}`,
+      remaining,
+      activeNow: refIndex >= start && refIndex <= end
+    };
+  });
+}
+
+function renderKpis() {
+  const s = computeSummary();
+  const utilClass = s.usedPct > Number(state.goals.maxExpensePct) ? "value-bad" : "value-ok";
+  const perf = s.limit - s.expense;
+
+  const cards = [
+    ["Receitas", formatMoney(s.income), ""],
+    ["Despesas", formatMoney(s.expense), s.expense > s.limit ? "value-bad" : ""],
+    ["Saldo", formatMoney(s.balance), s.balance < 0 ? "value-bad" : "value-ok"],
+    ["% Utilizado", `${s.usedPct.toFixed(1)}%`, utilClass],
+    ["Performance", formatMoney(perf), perf < 0 ? "value-bad" : "value-ok"]
+  ];
+
+  document.getElementById("kpiGrid").innerHTML = cards.map(([t, v, cls]) => `
+    <article class="card">
+      <div class="kpi-title">${t}</div>
+      <div class="kpi-value ${cls}">${v}</div>
+    </article>
+  `).join("");
+
+  const bars = groupExpenses();
+  const total = Object.values(bars).reduce((a, b) => a + b, 0);
+  const groupBars = document.getElementById("groupBars");
+  if (!total) {
+    groupBars.innerHTML = '<div class="inline-note">Sem despesas no mes selecionado.</div>';
+  } else {
+    groupBars.innerHTML = Object.entries(bars).sort((a, b) => b[1] - a[1]).map(([g, v]) => {
+      const pct = (v / total) * 100;
+      return `
+      <div>
+        <div style="display:flex;justify-content:space-between;gap:8px;"><span>${g}</span><span class="inline-note">${formatMoney(v)} (${pct.toFixed(1)}%)</span></div>
+        <div class="progress"><span style="width:${pct}%;"></span></div>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("paymentPills").innerHTML = `
+    <span class="pill">Conta corrente: ${formatMoney(s.conta)}</span>
+    <span class="pill">Dinheiro: ${formatMoney(s.dinheiro)}</span>
+    <span class="pill">Fatura cartao: ${formatMoney(s.credito)}</span>
+  `;
+}
+
+function renderEntries() {
+  const tbody = document.querySelector("#entriesTable tbody");
+  const list = currentMonthEntries().sort((a, b) => a.date.localeCompare(b.date));
+  tbody.innerHTML = list.map(e => `
+    <tr>
+      <td>${e.date}</td>
+      <td>${e.type}</td>
+      <td>${e.group}</td>
+      <td>${e.subgroup || ""}</td>
+      <td>${e.description || ""}</td>
+      <td>${e.paymentMethod}</td>
+      <td>${e.person || ""}</td>
+      <td>${formatMoney(e.amount)}</td>
+      <td><button class="btn" data-del-entry="${e.id}">Excluir</button></td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("[data-del-entry]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.entries = state.entries.filter(e => e.id !== btn.dataset.delEntry);
+      saveState();
+      rerender();
+    });
+  });
+}
+
+function renderGoals() {
+  document.getElementById("metaReceita").value = state.goals.minIncome;
+  document.getElementById("metaPct").value = state.goals.maxExpensePct;
+  document.getElementById("metaReserva").value = state.goals.reserveTarget;
+  document.getElementById("metaCustoMes").value = state.goals.monthlyCostRef;
+
+  const s = computeSummary();
+  const reserve = state.investments.reduce((acc, it) => acc + Number(it.amountEur || 0), 0);
+  const months = Number(state.goals.monthlyCostRef || 1) > 0 ? reserve / Number(state.goals.monthlyCostRef || 1) : 0;
+
+  document.getElementById("goalStatus").innerHTML = `
+    <div class="pill">Meta receita: ${formatMoney(state.goals.minIncome)} | Atual: ${formatMoney(s.income)}</div>
+    <div class="pill">Limite despesa: ${formatMoney(s.limit)} | Atual: ${formatMoney(s.expense)}</div>
+    <div class="pill">Reserva alvo: ${formatEur(state.goals.reserveTarget)} | Atual: ${formatEur(reserve)}</div>
+    <div class="pill">Cobertura estimada: ${months.toFixed(1)} meses</div>
+  `;
+}
+
+function renderParcelas() {
+  const tbody = document.querySelector("#parcelasTable tbody");
+  tbody.innerHTML = parcelasAtivas().map(p => `
+    <tr>
+      <td>${p.description}</td>
+      <td>${formatMoney(p.total)}</td>
+      <td>${p.parcels}</td>
+      <td>${formatMoney(p.parcela)}</td>
+      <td>${p.startMonth}</td>
+      <td>${p.endMonth}</td>
+      <td>${p.remaining}</td>
+      <td><button class="btn" data-del-parcela="${p.id}">Excluir</button></td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("[data-del-parcela]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.installments = state.installments.filter(p => p.id !== btn.dataset.delParcela);
+      saveState();
+      rerender();
+    });
+  });
+}
+
+function renderInvestments() {
+  const total = state.investments.reduce((acc, it) => acc + Number(it.amountEur || 0), 0);
+  const byType = state.investments.reduce((acc, it) => {
+    acc[it.kind] = (acc[it.kind] || 0) + Number(it.amountEur || 0);
+    return acc;
+  }, {});
+
+  document.getElementById("invKpis").innerHTML = `
+    <div class="kpi-title">Resumo de investimentos</div>
+    <div class="kpi-value">${formatEur(total)}</div>
+    <div class="pills" style="margin-top:10px;">
+      ${Object.entries(byType).map(([k, v]) => `<span class="pill">${k}: ${formatEur(v)}</span>`).join("")}
+    </div>
+  `;
+
+  const tbody = document.querySelector("#investTable tbody");
+  tbody.innerHTML = state.investments.map(it => `
+    <tr>
+      <td>${it.date}</td>
+      <td>${it.kind}</td>
+      <td>${it.name}</td>
+      <td>${formatEur(it.amountEur)}</td>
+      <td><button class="btn" data-del-inv="${it.id}">Excluir</button></td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("[data-del-inv]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.investments = state.investments.filter(i => i.id !== btn.dataset.delInv);
+      saveState();
+      rerender();
+    });
+  });
+}
+
+function renderComparative() {
+  const tbody = document.querySelector("#compTable tbody");
+  tbody.innerHTML = computeComparative().map(c => `
+    <tr>
+      <td>${c.group}</td>
+      <td>${formatMoney(c.real)}</td>
+      <td>${formatMoney(c.planned)}</td>
+      <td class="${c.diff < 0 ? "value-bad" : "value-ok"}">${formatMoney(c.diff)}</td>
+      <td>${c.pctIncome.toFixed(1)}%</td>
+    </tr>
+  `).join("");
+}
+
+function renderMonthControls() {
+  monthRefInput.value = state.monthRef;
+  const ib = state.initialBalances[state.monthRef] || { conta: 0, dinheiro: 0, credito: 0 };
+  saldoCCInicial.value = ib.conta;
+  saldoCashInicial.value = ib.dinheiro;
+  faturaInicial.value = ib.credito;
+}
+
+function rerender() {
+  renderMonthControls();
+  renderKpis();
+  renderEntries();
+  renderGoals();
+  renderParcelas();
+  renderInvestments();
+  renderComparative();
+}
+
+function syncInitialBalance() {
+  state.initialBalances[state.monthRef] = {
+    conta: Number(saldoCCInicial.value || 0),
+    dinheiro: Number(saldoCashInicial.value || 0),
+    credito: Number(faturaInicial.value || 0)
+  };
+  saveState();
+  rerender();
+}
+
+monthRefInput.addEventListener("change", () => {
+  state.monthRef = monthRefInput.value;
+  saveState();
+  rerender();
+});
+
+[saldoCCInicial, saldoCashInicial, faturaInicial].forEach(el => {
+  el.addEventListener("change", syncInitialBalance);
+});
+
+const expenseGroups = [
+  "Moradia", "Alimentacao", "Transporte", "Saude", "Pessoal", "Dogs", "Lazer", "Despesas Financeiras", "Cartoes & Wallets", "Diversos"
+];
+const incomeGroups = ["Entradas Familia", "Entradas Roberto", "Entradas Mariana", "Entradas Manuela", "Nao Programadas"];
+
+function loadGroups() {
+  const sel = document.getElementById("eGrupo");
+  const tipo = document.getElementById("eTipo").value;
+  const list = tipo === "receita" ? incomeGroups : expenseGroups;
+  sel.innerHTML = list.map(g => `<option>${g}</option>`).join("");
+}
+
+document.getElementById("eTipo").addEventListener("change", loadGroups);
+
+function parseNumber(id) {
+  return Number(document.getElementById(id).value || 0);
+}
+
+function addEntry() {
+  const e = {
+    id: crypto.randomUUID(),
+    date: document.getElementById("eData").value || `${state.monthRef}-01`,
+    type: document.getElementById("eTipo").value,
+    group: document.getElementById("eGrupo").value,
+    subgroup: document.getElementById("eSubgrupo").value,
+    description: document.getElementById("eDesc").value,
+    paymentMethod: document.getElementById("eMetodo").value,
+    person: document.getElementById("ePessoa").value,
+    amount: parseNumber("eValor")
+  };
+  if (!e.amount || !e.group) return;
+  state.entries.push(e);
+  saveState();
+  rerender();
+}
+
+document.getElementById("addEntryBtn").addEventListener("click", addEntry);
+
+document.getElementById("addParcelaBtn").addEventListener("click", () => {
+  const p = {
+    id: crypto.randomUUID(),
+    description: document.getElementById("pDesc").value,
+    total: parseNumber("pTotal"),
+    parcels: parseNumber("pQt"),
+    startMonth: document.getElementById("pInicio").value || state.monthRef,
+    group: document.getElementById("pGrupo").value || "Cartoes & Wallets"
+  };
+  if (!p.description || !p.total || !p.parcels) return;
+  state.installments.push(p);
+  saveState();
+  rerender();
+});
+
+document.getElementById("addInvBtn").addEventListener("click", () => {
+  const inv = {
+    id: crypto.randomUUID(),
+    date: document.getElementById("iData").value || new Date().toISOString().slice(0, 10),
+    kind: document.getElementById("iTipo").value,
+    name: document.getElementById("iNome").value,
+    amountEur: parseNumber("iValor")
+  };
+  if (!inv.name || !inv.amountEur) return;
+  state.investments.push(inv);
+  saveState();
+  rerender();
+});
+
+document.getElementById("savePrevBtn").addEventListener("click", () => {
+  const group = document.getElementById("cGrupo").value.trim();
+  const value = parseNumber("cValor");
+  if (!group) return;
+  state.plannedByMonthGroup[state.monthRef] = state.plannedByMonthGroup[state.monthRef] || {};
+  state.plannedByMonthGroup[state.monthRef][group] = value;
+  saveState();
+  rerender();
+});
+
+["metaReceita", "metaPct", "metaReserva", "metaCustoMes"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    state.goals.minIncome = parseNumber("metaReceita");
+    state.goals.maxExpensePct = parseNumber("metaPct");
+    state.goals.reserveTarget = parseNumber("metaReserva");
+    state.goals.monthlyCostRef = parseNumber("metaCustoMes");
+    saveState();
+    rerender();
+  });
+});
+
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const next = (state.theme === "dark") ? "light" : "dark";
+  state.theme = next;
+  document.body.dataset.theme = next;
+  saveState();
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `gestor-financeiro-${state.monthRef}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("importBtn").addEventListener("click", () => {
+  document.getElementById("importFile").click();
+});
+
+document.getElementById("importFile").addEventListener("change", ev => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      state = JSON.parse(String(reader.result || "{}"));
+      saveState();
+      init();
+    } catch {
+      alert("Arquivo invalido.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  state = structuredClone(defaultState);
+  saveState();
+  init();
+});
+
+function init() {
+  document.body.dataset.theme = state.theme || "light";
+  loadGroups();
+  document.getElementById("eData").value = `${state.monthRef}-01`;
+  document.getElementById("pInicio").value = state.monthRef;
+  rerender();
+}
+
+init();
+</script>
+</body>
+</html>
