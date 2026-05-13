@@ -600,6 +600,13 @@ const Store = (function () {
     if (a) { Object.assign(a, patch); persist(); }
   }
 
+  function cleanDespesasByCategory(cats) {
+    const before = _data.despesas.length;
+    _data.despesas = _data.despesas.filter(d => !cats.includes(d.category));
+    if (_data.despesas.length !== before) persist();
+    return before - _data.despesas.length;
+  }
+
   function totalAtivos() {
     const { usdBrl = 5.85, eurBrl = 6.40 } = _data.settings;
     const fromAtivos = _data.ativos.reduce((sum, a) => {
@@ -630,6 +637,7 @@ const Store = (function () {
     sumReceitas, sumDespesas,
     despesasByCategory, yearlyMonthly,
     totalAtivos,
+    cleanDespesasByCategory,
     descSuggestions, receitaSuggestions,
   };
 })();

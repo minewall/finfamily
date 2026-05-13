@@ -397,42 +397,58 @@ ${alerts.map(a => `
   // ══════════════════════════════════════════════════════════════
   function renderLancamentos(container) {
     const month = getMonth(), year = getYear();
-    const despesas = [...Store.despesasByMonth(month, year)].sort((a,b) => a.date.localeCompare(b.date));
-    const receitas = [...Store.receitasByMonth(month, year)].sort((a,b) => a.date.localeCompare(b.date));
+    const despesas = [...Store.despesasByMonth(month, year)];
+    const receitas = [...Store.receitasByMonth(month, year)];
+
+    let sortDir = 'asc'; // 'asc' | 'desc'
 
     container.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Lançamentos — ${Utils.monthsFull[month-1]} ${year}</div>
   <div class="section-sub">${despesas.length + receitas.length} registros · ${despesas.length} despesas · ${receitas.length} receitas</div></div>
   <div class="flex gap-2">
-    <button class="btn-secondary" id="btnTabDesp">Despesas</button>
+    <button class="btn-secondary active" id="btnTabDesp">Despesas</button>
     <button class="btn-secondary" id="btnTabRec">Receitas</button>
   </div>
 </div>
-<div class="filter-bar">
+<div class="filter-bar" id="filterBar">
   <div class="search-box">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
     <input type="text" id="searchInput" placeholder="Buscar por descrição…" />
   </div>
-  <select class="form-select" id="filterCat" style="width:180px">
+  <select class="form-select" id="filterCat" style="width:175px">
     <option value="">Todas as categorias</option>
     ${Object.entries(Store.CATEGORIES).filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
+  </select>
+  <select class="form-select" id="filterSub" style="width:170px">
+    <option value="">Todas as sub-categorias</option>
   </select>
   <select class="form-select" id="filterPay" style="width:140px">
     <option value="">Todos os pagamentos</option>
     ${Store.PAYMENT_METHODS.map(m => `<option value="${m}">${m}</option>`).join('')}
   </select>
+  <button class="btn-secondary" id="btnSort" title="Ordenar por data" style="white-space:nowrap;padding:6px 10px;font-size:12px">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Data ↑
+  </button>
 </div>
-<div class="table-wrap" id="lancTable">
-  ${buildLancTable(despesas)}
-</div>`;
+<div class="table-wrap" id="lancTable"></div>`;
+
+    // ── helpers ────────────────────────────────────────────────────
+    function sortRows(rows) {
+      return [...rows].sort((a, b) =>
+        sortDir === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)
+      );
+    }
 
     function buildLancTable(rows, filter = {}) {
-      let filtered = rows;
+      let filtered = sortRows(rows);
       if (filter.search) filtered = filtered.filter(d => d.desc.toLowerCase().includes(filter.search.toLowerCase()));
       if (filter.cat)    filtered = filtered.filter(d => d.category === filter.cat);
+      if (filter.sub)    filtered = filtered.filter(d => d.sub === filter.sub);
       if (filter.pay)    filtered = filtered.filter(d => d.pay === filter.pay);
-      const total = filtered.reduce((a,d) => a+d.amount, 0);
+      const total = filtered.reduce((a, d) => a + d.amount, 0);
+      if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
 <thead><tr>
   <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th class="num">Valor</th><th></th>
@@ -440,9 +456,9 @@ ${alerts.map(a => `
 <tbody>
 ${filtered.map(d => `<tr>
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
-  <td>${d.desc}</td>
+  <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
-  <td class="muted">${d.sub||''}</td>
+  <td class="muted">${d.sub || '—'}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td style="white-space:nowrap">
@@ -451,15 +467,20 @@ ${filtered.map(d => `<tr>
   </td>
 </tr>`).join('')}
 </tbody>
-<tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
+<tfoot><tr>
+  <td colspan="5" class="fw-700">Total (${filtered.length} lançamentos)</td>
+  <td class="num negative fw-700">${Utils.currency(total)}</td>
+  <td></td>
+</tr></tfoot>
 </table>`;
     }
 
     function buildRecTable(rows, filter = {}) {
-      let filtered = rows;
+      let filtered = sortRows(rows);
       if (filter.search) filtered = filtered.filter(r => r.desc.toLowerCase().includes(filter.search.toLowerCase()));
       if (filter.cat)    filtered = filtered.filter(r => r.person === filter.cat);
-      const total = filtered.reduce((a,r) => a+r.amount, 0);
+      const total = filtered.reduce((a, r) => a + r.amount, 0);
+      if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado.</div>';
       return `<table class="data-table">
 <thead><tr>
   <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th>
@@ -477,18 +498,54 @@ ${filtered.map(r => `<tr>
   </td>
 </tr>`).join('')}
 </tbody>
-<tfoot><tr><td colspan="4" class="fw-700">Total</td><td class="num positive fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
+<tfoot><tr><td colspan="4" class="fw-700">Total (${filtered.length})</td><td class="num positive fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
 </table>`;
     }
 
+    // ── tab state ─────────────────────────────────────────────────
     let activeTab = 'desp';
+
+    function getFilters() {
+      return {
+        search: document.getElementById('searchInput')?.value || '',
+        cat:    document.getElementById('filterCat')?.value  || '',
+        sub:    document.getElementById('filterSub')?.value  || '',
+        pay:    document.getElementById('filterPay')?.value  || '',
+      };
+    }
+
+    function updateSubFilter(cat) {
+      const subSel = document.getElementById('filterSub');
+      if (!subSel) return;
+      const subs = (cat && Store.SUBCATEGORIES[cat]) || [];
+      subSel.innerHTML = `<option value="">Todas as sub-categorias</option>` +
+        subs.map(s => `<option value="${s}">${s}</option>`).join('');
+      subSel.disabled = subs.length === 0;
+    }
+
+    function updateSortBtn() {
+      const btn = document.getElementById('btnSort');
+      if (btn) btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Data ${sortDir === 'asc' ? '↑' : '↓'}`;
+    }
+
+    function showDespFilters(show) {
+      const sub = document.getElementById('filterSub');
+      const pay = document.getElementById('filterPay');
+      const sort = document.getElementById('btnSort');
+      if (sub)  sub.style.display  = show ? '' : 'none';
+      if (pay)  pay.style.display  = show ? '' : 'none';
+      if (sort) sort.style.display = show ? '' : 'none';
+    }
+
     function refilter() {
-      const s = document.getElementById('searchInput')?.value || '';
-      const c = document.getElementById('filterCat')?.value  || '';
-      const p = document.getElementById('filterPay')?.value  || '';
-      document.getElementById('lancTable').innerHTML = activeTab === 'desp'
-        ? buildLancTable(despesas, { search: s, cat: c, pay: p })
-        : buildRecTable(receitas, { search: s });
+      const f = getFilters();
+      const tbl = document.getElementById('lancTable');
+      if (!tbl) return;
+      if (activeTab === 'desp') {
+        tbl.innerHTML = buildLancTable(despesas, f);
+      } else {
+        tbl.innerHTML = buildRecTable(receitas, f);
+      }
       attachDeleteHandlers();
     }
 
@@ -515,19 +572,50 @@ ${filtered.map(r => `<tr>
       });
     }
 
-    container.getElementById = id => container.querySelector('#' + id);
+    // ── wire up tabs & filters ────────────────────────────────────
     document.getElementById('btnTabDesp').addEventListener('click', () => {
       activeTab = 'desp';
+      document.getElementById('btnTabDesp').classList.add('active');
+      document.getElementById('btnTabRec').classList.remove('active');
+      // Restore desp category options
+      document.getElementById('filterCat').innerHTML =
+        `<option value="">Todas as categorias</option>` +
+        Object.entries(Store.CATEGORIES).filter(([k]) => k !== 'receita')
+          .map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
+      updateSubFilter('');
+      showDespFilters(true);
       refilter();
     });
+
     document.getElementById('btnTabRec').addEventListener('click', () => {
       activeTab = 'rec';
-      document.getElementById('filterCat').innerHTML = `<option value="">Todas as pessoas</option>${Store.PESSOAS.map(p=>`<option value="${p}">${p}</option>`).join('')}`;
+      document.getElementById('btnTabRec').classList.add('active');
+      document.getElementById('btnTabDesp').classList.remove('active');
+      document.getElementById('filterCat').innerHTML =
+        `<option value="">Todas as pessoas</option>` +
+        Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('');
+      showDespFilters(false);
       refilter();
     });
+
     document.getElementById('searchInput').addEventListener('input', refilter);
-    document.getElementById('filterCat').addEventListener('change', refilter);
+
+    document.getElementById('filterCat').addEventListener('change', () => {
+      if (activeTab === 'desp') updateSubFilter(document.getElementById('filterCat').value);
+      refilter();
+    });
+
+    document.getElementById('filterSub').addEventListener('change', refilter);
     document.getElementById('filterPay').addEventListener('change', refilter);
+
+    document.getElementById('btnSort').addEventListener('click', () => {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      updateSortBtn();
+      refilter();
+    });
+
+    // ── initial render ────────────────────────────────────────────
+    refilter();
     attachDeleteHandlers();
   }
 
@@ -1476,14 +1564,25 @@ ${filtered.map(r => `<tr>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
     <div class="kpi-header"><span class="kpi-label">Patrimônio Total</span><span class="kpi-icon">💎</span></div>
     <div class="kpi-value accent">${Utils.currency(total)}</div>
-    <div class="card-sub">Convertido para BRL</div>
+    <div class="card-sub">Ativos + Reservas convertidos em BRL</div>
   </div>
-  ${Object.entries(byType).map(([type, val]) => `
-  <div class="kpi-card">
-    <div class="kpi-header"><span class="kpi-label">${type}</span></div>
-    <div class="kpi-value" style="font-size:18px">${Utils.currency(val)}</div>
-    <div class="card-sub">${((val/total)*100).toFixed(1)}% do total</div>
-  </div>`).join('')}
+  ${Object.entries(byType).map(([type, val]) => {
+    const typeColors3 = { 'Crypto':'#F59E0B','Token':'#7C6EF8','FIAT BR':'#22C55E','FIAT EUR':'#3B82F6','Reserva':'#14B8A6' };
+    const color = typeColors3[type] || '#7C6EF8';
+    // For Reserva, show threshold vs meta de emergência
+    const metaRes = (Store.get().metas || []).find(m => m.type === 'reserva');
+    const threshold = type === 'Reserva' && metaRes ? metaRes.target : null;
+    const pctMeta   = threshold ? Math.min((val / threshold) * 100, 100).toFixed(0) : null;
+    return `
+  <div class="kpi-card" style="--kpi-color:${color};--kpi-bg:${color}18">
+    <div class="kpi-header"><span class="kpi-label">${type}</span><span style="font-size:11px;color:var(--text-3)">${((val/total)*100).toFixed(1)}%</span></div>
+    <div class="kpi-value" style="font-size:18px;color:${color}">${Utils.currency(val)}</div>
+    ${threshold
+      ? `<div class="card-sub">Meta: ${Utils.currency(threshold)} · <span style="color:${pctMeta>=100?'var(--green)':'var(--amber)'}">⬤ ${pctMeta}% atingido</span></div>`
+      : `<div class="card-sub">${((val/total)*100).toFixed(1)}% do portfólio</div>`
+    }
+  </div>`;
+  }).join('')}
 </div>
 
 <div class="chart-grid mb-6" style="grid-template-columns:1fr 1.6fr">
@@ -2434,6 +2533,8 @@ ${futuros.length === 0 ? `<div class="card" style="text-align:center;padding:32p
   // ── INIT ───────────────────────────────────────────────────────
   function init() {
     Store.init();
+    // Remove any legacy despesas categorized as 'patrimonio' (not a valid category)
+    Store.cleanDespesasByCategory(['patrimonio', 'patrimônio', 'Patrimônio', 'Patrimonio']);
     Modal.init();
 
     // Register pages
