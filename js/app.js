@@ -1181,7 +1181,7 @@ ${filtered.map(r => {
       objetivo:    { icon: '🎯', label: 'Objetivo' },
     };
     const STATUS_CLASS = { ok: 'green', warn: 'amber', over: 'red', neutral: 'accent' };
-    const STATUS_BADGE = { ok: '✓ No alvo', warn: '⚠ Atenção', over: '✗ Crítico', neutral: '—' };
+    const STATUS_BADGE = { ok: '✓ No alvo', warn: '⚠ Atenção', over: '✗ Crítico', neutral: '○ Sem dados' };
 
     const objetivos = metas.filter(m => m.type === 'objetivo');
     const indicadores = metas.filter(m => m.type !== 'objetivo');

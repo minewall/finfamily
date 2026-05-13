@@ -806,11 +806,13 @@ const Store = (function () {
         mediaMensal = current / Math.max(1, refMonth);
         projecaoAnual = mediaMensal * 12;
         const pct = target > 0 ? projecaoAnual / target : 0;
-        status = pct < 0.8 ? 'ok' : pct < 1 ? 'warn' : 'over';
+        if (current === 0) status = 'neutral';
+        else status = pct < 0.8 ? 'ok' : pct < 1 ? 'warn' : 'over';
       } else {
         current = byMonth[refMonth - 1] || 0;
         const pct = target > 0 ? current / target : 0;
-        status = pct < 0.8 ? 'ok' : pct < 1 ? 'warn' : 'over';
+        if (current === 0) status = 'neutral';
+        else status = pct < 0.8 ? 'ok' : pct < 1 ? 'warn' : 'over';
       }
     } else if (m.type === 'min_receita') {
       if (m.period === 'anual') {
@@ -818,11 +820,13 @@ const Store = (function () {
         mediaMensal = current / Math.max(1, refMonth);
         projecaoAnual = mediaMensal * 12;
         const pct = target > 0 ? projecaoAnual / target : 0;
-        status = pct >= 1 ? 'ok' : pct >= 0.8 ? 'warn' : 'over';
+        if (current === 0) status = 'neutral';
+        else status = pct >= 1 ? 'ok' : pct >= 0.8 ? 'warn' : 'over';
       } else {
         current = byMonth[refMonth - 1] || 0;
         const pct = target > 0 ? current / target : 0;
-        status = pct >= 1 ? 'ok' : pct >= 0.8 ? 'warn' : 'over';
+        if (current === 0) status = 'neutral';
+        else status = pct >= 1 ? 'ok' : pct >= 0.8 ? 'warn' : 'over';
       }
     } else if (m.type === 'reserva') {
       current = totalAtivos();
