@@ -535,7 +535,7 @@ ${filtered.map(r => `<tr>
   // PAGE: RECEITAS
   // ══════════════════════════════════════════════════════════════
   function renderReceitas(container) {
-    const year = getYear();
+    const year = getYear(), month = getMonth();
     const yrRec = Store.yearlyMonthly(year, 'receita');
     const totalAno = yrRec.reduce((a,b) => a+b, 0);
     const media = totalAno / 12;
@@ -600,15 +600,15 @@ ${filtered.map(r => `<tr>
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Todos os Registros de Receita</span>
+    <span class="card-title">Receitas — ${Utils.monthsFull[month-1]} ${year}</span>
     <button class="btn-primary" id="btnAddRec">+ Nova Receita</button>
   </div>
   <div class="table-wrap">
     <table class="data-table">
       <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th></tr></thead>
       <tbody>
-        ${Store.get().receitas.filter(r=>r.year===year).sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<tr>
-          <td class="muted">${r.date.slice(5)}</td>
+        ${Store.get().receitas.filter(r=>r.year===year && r.month===month).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr>
+          <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
           <td>${r.desc}</td>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
           <td class="muted">${r.type||''}</td>
