@@ -1315,7 +1315,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 <div class="card">
   <div class="card-header"><span class="card-title">Performance por mês — ${year}</span></div>
   <div style="overflow-x:auto">
-    <table class="table" style="width:100%;font-size:12px">
+    <table class="table" style="width:100%;min-width:720px;font-size:12px">
       <thead><tr>
         <th style="text-align:left">Meta</th>
         ${Utils.months.map(m => `<th style="text-align:right">${m}</th>`).join('')}
@@ -2398,6 +2398,15 @@ ${futuros.length === 0
     const totalSaldo = totalRec - totalDesp;
     const mediaRec  = totalRec  / 12;
     const mediaDesp = totalDesp / 12;
+
+    if (totalRec === 0 && totalDesp === 0) {
+      container.innerHTML = `
+<div class="empty-state">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 14l4-4 4 4 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <p><strong>Sem dados para ${year}</strong><br/>Cadastre receitas e despesas para ver o comparativo anual.</p>
+</div>`;
+      return;
+    }
 
     container.innerHTML = `
 <div class="kpi-grid mb-6">
