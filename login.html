@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinFamily — Acesso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0d0f14;
+      --bg-card:      #13161e;
+      --bg-elevated:  #1a1d27;
+      --border:       #1f2330;
+      --text-1:       #f1f3f9;
+      --text-2:       #a0a8c0;
+      --text-3:       #6b7494;
+      --accent:       #7C6EF8;
+      --accent-dim:   #7c6ef815;
+      --green:        #22C55E;
+      --red:          #EF4444;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent)40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .brand-name {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-1);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-3);
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: -2px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-1);
+      margin-bottom: 6px;
+    }
+
+    .card-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-1);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+    }
+
+    .form-input::placeholder { color: var(--text-3); }
+
+    .btn-login {
+      width: 100%;
+      margin-top: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn-login:hover  { opacity: .9; }
+    .btn-login:active { transform: scale(.98); }
+
+    .error-msg {
+      display: none;
+      background: #ef444418;
+      border: 1px solid #ef444440;
+      border-radius: 8px;
+      color: var(--red);
+      font-size: 13px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .error-msg.visible { display: block; }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">FinFamily</div>
+      <div class="brand-sub">Gestão Financeira · 2026</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Bem-vindo de volta</div>
+    <div class="card-sub">Acesso restrito — identifique-se para continuar</div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="fUser">Usuário</label>
+        <input class="form-input" id="fUser" type="text" placeholder="Usuário" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fPass">Senha</label>
+        <input class="form-input" id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-login" type="submit">Entrar</button>
+      <div class="error-msg" id="errorMsg">Usuário ou senha incorretos.</div>
+    </form>
+  </div>
+
+  <div class="footer-note">FinFamily © 2026 · Acesso privado</div>
+
+</div>
+
+<script>
+  // Redirect if already authenticated
+  if (sessionStorage.getItem('ff_auth') === '1') {
+    window.location.replace('index.html');
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const user = document.getElementById('fUser').value.trim();
+    const pass = document.getElementById('fPass').value;
+    const err  = document.getElementById('errorMsg');
+
+    if (user === 'mmr' && pass === '271712') {
+      sessionStorage.setItem('ff_auth', '1');
+      window.location.replace('index.html');
+    } else {
+      err.classList.add('visible');
+      document.getElementById('fPass').value = '';
+      document.getElementById('fPass').focus();
+    }
+  });
+
+  // Hide error on input change
+  ['fUser','fPass'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      document.getElementById('errorMsg').classList.remove('visible');
+    });
+  });
+</script>
+
+</body>
+</html>

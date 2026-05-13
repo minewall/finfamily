@@ -10,6 +10,12 @@
   <link rel="stylesheet" href="css/main.css" />
 </head>
 <body>
+<script>
+  // Auth guard — redirect to login if not authenticated
+  if (sessionStorage.getItem('ff_auth') !== '1') {
+    window.location.replace('login.html');
+  }
+</script>
 
 <!-- ═══════════════════════════════════════════════════ LAYOUT ══ -->
 <div class="layout" id="app">
