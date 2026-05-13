@@ -234,14 +234,14 @@ body { background: var(--bg-base); color: var(--text-1); }
 
 /* Sidebar footer */
 .sidebar-footer {
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
+  flex-shrink: 0;
 }
-
-.month-selector { flex: 1; }
 
 .month-label {
   display: block;
@@ -1046,32 +1046,110 @@ td.muted    { color: var(--text-3); }
 }
 
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
+/* ── SIDEBAR OVERLAY (mobile backdrop) ─────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+}
+.sidebar-overlay.open { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Prevent body scroll when sidebar is open on mobile */
+body.sidebar-open { overflow: hidden; }
+
+/* ── RESPONSIVE — TABLET (≤ 900px) ────────────────────────────── */
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
     position: relative;
   }
+
+  /* Sidebar: slides in from left */
   .sidebar {
     position: fixed;
     top: 0;
-    left: -240px;
+    left: -260px;
     height: 100%;
-    width: 240px;
-    transition: left var(--t);
+    width: 260px;
+    z-index: 100;
+    transition: left 0.25s cubic-bezier(.4,0,.2,1);
     box-shadow: var(--shadow-lg);
+    overflow-y: auto;
   }
   .sidebar.open { left: 0; }
   .sidebar-toggle { display: flex; }
-  .chart-grid { grid-template-columns: 1fr; }
+
+  /* Layouts */
+  .chart-grid   { grid-template-columns: 1fr; }
   .chart-grid-3 { grid-template-columns: 1fr; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .form-grid { grid-template-columns: 1fr; }
+  .kpi-grid     { grid-template-columns: repeat(2, 1fr); }
+  .form-grid    { grid-template-columns: 1fr; }
+
+  /* Filter bar: wraps on tablet */
+  .filter-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-bar .form-select { flex: 1 1 140px; width: auto !important; }
+
+  /* Tables: horizontal scroll */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table { min-width: 580px; }
+
+  /* Section header: stack on narrow */
+  .section-header { flex-wrap: wrap; gap: 8px; }
+
+  /* Topbar: tighter */
+  .topbar { padding: 0 16px; gap: 8px; }
+  .topbar-title { font-size: 14px; }
 }
 
-@media (max-width: 480px) {
-  .page-container { padding: 16px; }
-  .kpi-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 0 16px; }
+/* ── RESPONSIVE — MOBILE (≤ 600px) ────────────────────────────── */
+@media (max-width: 600px) {
+  .page-container { padding: 12px; }
+  .kpi-grid       { grid-template-columns: 1fr; }
+
+  /* Topbar: hide button label, keep icon */
+  .btn-primary span,
+  .btn-primary > svg ~ * { display: none; }
+  #btnNovaEntrada { padding: 8px 10px; min-width: 36px; }
+
+  /* Cards: tighter */
+  .card { padding: 14px; }
+
+  /* Asset rows: stack */
+  .asset-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Modal: full width */
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-overlay { align-items: flex-end; }
 }
 
 /* ── SCROLLBAR STYLE ────────────────────────────────────────────── */

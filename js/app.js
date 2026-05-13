@@ -2518,9 +2518,26 @@ ${(() => {
     // New entry button
     document.getElementById('btnNovaEntrada').addEventListener('click', openNovaEntrada);
 
-    // Sidebar toggle (mobile)
-    document.getElementById('sidebarToggle').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.toggle('open');
+    // Sidebar toggle (mobile) + overlay + auto-close
+    function sidebarClose() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+      document.body.classList.remove('sidebar-open');
+    }
+    function sidebarToggle() {
+      const isOpen = document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open', isOpen);
+      document.body.classList.toggle('sidebar-open', isOpen);
+    }
+
+    document.getElementById('sidebarToggle').addEventListener('click', sidebarToggle);
+    document.getElementById('sidebarOverlay').addEventListener('click', sidebarClose);
+
+    // Close sidebar when a nav item is clicked on mobile
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth <= 900) sidebarClose();
+      });
     });
 
     // Apply saved theme

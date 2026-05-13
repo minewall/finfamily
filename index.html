@@ -85,27 +85,8 @@
       </div>
 
       <div class="nav-section">
-        <span class="nav-label">Patrimônio</span>
-        <a href="#reserva" class="nav-item" data-page="reserva">
-          <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </span>
-          <span class="nav-text">Reserva & Patrimônio</span>
-        </a>
-        <a href="#comparativo" class="nav-item" data-page="comparativo">
-          <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          </span>
-          <span class="nav-text">Comparativo</span>
-        </a>
-      </div>
-
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="month-selector">
-        <label class="month-label">Período</label>
-        <div style="display:flex;gap:6px">
+        <span class="nav-label">Período</span>
+        <div style="padding:0 8px;display:flex;gap:6px">
           <select class="month-select" id="globalYear" style="width:76px;flex-shrink:0">
             <option value="2024">2024</option>
             <option value="2025">2025</option>
@@ -129,10 +110,31 @@
           </select>
         </div>
       </div>
+
+      <div class="nav-section">
+        <span class="nav-label">Patrimônio</span>
+        <a href="#reserva" class="nav-item" data-page="reserva">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Reserva & Patrimônio</span>
+        </a>
+        <a href="#comparativo" class="nav-item" data-page="comparativo">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Comparativo</span>
+        </a>
+      </div>
+
+    </nav>
+
+    <div class="sidebar-footer">
       <button class="theme-btn" id="themeToggle" title="Alternar tema">
         <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2"/></svg>
       </button>
+      <span style="font-size:11px;color:var(--text-4)">FinFamily 2026</span>
     </div>
   </aside>
 
@@ -172,13 +174,16 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════ SIDEBAR OVERLAY ══ -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- ═══════════════════════════════════════════════════ TOAST ══ -->
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
 <!-- Scripts -->
-<script src="js/store.js?v=12"></script>
-<script src="js/charts.js?v=12"></script>
-<script src="js/app.js?v=12"></script>
+<script src="js/store.js?v=13"></script>
+<script src="js/charts.js?v=13"></script>
+<script src="js/app.js?v=13"></script>
 
 </body>
 </html>
