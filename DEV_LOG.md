@@ -131,3 +131,28 @@ Reserva        🟡     ✅     ✅     ⬇️    auto-updated
 ---
 
 *Gerado automaticamente ao final da sessão de desenvolvimento.*
+
+---
+
+## Sessão 2026-05-13 — Contratos + Metas v2
+
+### ✅ Contratos (nova aba)
+- Schema em `Store.contratos`: id, label, kind (receita|despesa), category, sub, responsavel, dataInicio, dataFim, valorParcela, parcelas, entrada, diaVencimento, pay, active, notes.
+- `addContrato/updateContrato/deleteContrato` gera/regenera/remove lançamentos vinculados via `contratoId` + `parcelaNum`.
+- `getContratoPerformance(id)` retorna: valorTotal, valorCumprido/restante, parcelasRestantes, pctValor/pctParcelas/pctTempo, próxima parcela, impactoMensal.
+- UI: cards com 3 thresholds (% valor, parcelas X/N, % tempo), KPIs agregados de impacto no mês.
+- Modal CRUD com tipo (rec/desp), categoria condicional, subcategoria, entrada, dia de vencimento.
+
+### ✅ Metas v2 (redesign)
+- Migração automática (`_migrateMetas`) do schema antigo (`tipo`/`type` legados) para 4 tipos: `limite_desp`, `min_receita`, `reserva`, `objetivo` + `period: mensal|anual|unico`.
+- `getMetaPerformance(id, year, month)` calcula: byMonth[12], current, mediaMensal, projecaoAnual, status (ok/warn/over/neutral), delta (p/ reserva).
+- Reserva: snapshot manual via botão 📸 para detectar quedas (`m.lastSnapshot`).
+- UI nova:
+  - Cards de Indicadores agrupados por tipo, com cor por status, média e projeção anual quando aplicável.
+  - Cards de Objetivos separados.
+  - Tabela mensal performance (Jan→Dez + Total/Projeção + Alvo) com cores OK/Crítico por célula.
+
+### Próximos
+- Coluna "contrato" em Lançamentos para indicar origem.
+- Toggle manual `paid` em parcelas de contrato.
+- Dashboard usar metas do array (em vez de `settings.metaReceita` hardcoded).
