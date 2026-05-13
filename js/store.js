@@ -393,12 +393,6 @@ const Store = (function () {
       _data = buildSeed();
       save(_data);
     }
-    // Purge any data from years other than 2026 (imported from old spreadsheets)
-    const before = _data.receitas.length + _data.despesas.length;
-    _data.receitas = _data.receitas.filter(r => r.year === 2026);
-    _data.despesas = _data.despesas.filter(d => d.year === 2026);
-    const after = _data.receitas.length + _data.despesas.length;
-    if (after !== before) save(_data); // persist cleanup
     return _data;
   }
 

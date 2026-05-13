@@ -156,7 +156,10 @@ const App = (function () {
 
   // ── SHARED month/year state ───────────────────────────────────
   function getMonth() { return parseInt(document.getElementById('globalMonth').value, 10); }
-  function getYear()  { return Store.get().settings.ano; }
+  function getYear()  {
+    const sel = document.getElementById('globalYear');
+    return sel ? parseInt(sel.value, 10) : Store.get().settings.ano;
+  }
 
   // ══════════════════════════════════════════════════════════════
   // PAGE: DASHBOARD
@@ -1497,6 +1500,14 @@ ${filtered.map(r => `<tr>
   </div>
 </div>
 
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Evolução Patrimonial ${Store.get().settings.ano}</span>
+    <span class="badge badge-accent">Estimado</span>
+  </div>
+  <div class="chart-wrap"><canvas id="chartPatEvolucao" class="chart-canvas"></canvas></div>
+</div>
+
 <div class="card">
   <div class="card-header"><span class="card-title">Todos os Ativos</span></div>
   <div>
@@ -1557,6 +1568,32 @@ ${filtered.map(r => `<tr>
         value: a._isReserva ? a._brl : toBRL(a),
         color: typeColors2[a.type] || '#7C6EF8',
       })), { barH: 28, padL: 150, padR: 90, gap: 8 });
+
+      // ── Evolução Patrimonial ─────────────────────────────────────
+      const year = Store.get().settings.ano;
+      const yrRec  = Store.yearlyMonthly(year, 'receita');
+      const yrDesp = Store.yearlyMonthly(year, 'despesa');
+      // Cumulative saldo across all active months
+      const totalAccSaldo = yrRec.reduce((a,r,i) => a + r - yrDesp[i], 0);
+      // Estimated baseline = current total – all savings this year
+      const baseline = total - totalAccSaldo;
+      let running = 0;
+      const evolLabels = [], evolValues = [];
+      yrRec.forEach((r, i) => {
+        if (r === 0 && yrDesp[i] === 0) return;
+        running += r - yrDesp[i];
+        evolLabels.push(Utils.months[i]);
+        evolValues.push(Math.max(0, baseline + running));
+      });
+      if (evolLabels.length > 1) {
+        Charts.Line(document.getElementById('chartPatEvolucao'), {
+          labels: evolLabels,
+          datasets: [{ label: 'Patrimônio', values: evolValues, color: '#7C6EF8' }],
+        }, { height: 200 });
+      } else if (document.getElementById('chartPatEvolucao')) {
+        document.getElementById('chartPatEvolucao').parentElement.innerHTML =
+          '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes para traçar evolução (mínimo 2 meses)</div>';
+      }
     });
 
     document.getElementById('btnEditRates')?.addEventListener('click', () => {
@@ -1695,6 +1732,51 @@ ${filtered.map(r => `<tr>
   <div class="card-header"><span class="card-title">Saldo Mensal</span></div>
   <div class="chart-wrap"><canvas id="chartCompSaldo" class="chart-canvas"></canvas></div>
 </div>
+
+${(() => {
+  // Projeção: média dos meses com dados → projeta próximos 3 meses
+  const activeMths = yrRec.map((r,i) => ({ r, d: yrDesp[i] })).filter(m => m.r > 0 || m.d > 0);
+  if (activeMths.length === 0) return '';
+  const avgRec  = activeMths.reduce((a,m) => a + m.r, 0) / activeMths.length;
+  const avgDesp = activeMths.reduce((a,m) => a + m.d, 0) / activeMths.length;
+  const avgSaldo = avgRec - avgDesp;
+  const lastActiveMth = yrRec.reduce((last, r, i) => (r > 0 || yrDesp[i] > 0) ? i : last, -1);
+  const proj = Array.from({length: 3}, (_, k) => {
+    const mIdx = (lastActiveMth + 1 + k) % 12;
+    const yr   = year + Math.floor((lastActiveMth + 1 + k) / 12);
+    return { label: Utils.months[mIdx] + (yr !== year ? ' '+yr : ''), rec: avgRec, desp: avgDesp, saldo: avgSaldo };
+  });
+  const saldoColor = avgSaldo >= 0 ? 'var(--green)' : 'var(--red)';
+  return `
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Projeção — Próximos 3 Meses</span>
+    <span class="badge badge-accent">Baseado na média de ${activeMths.length} mês${activeMths.length>1?'es':''}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:4px 0 8px">
+    ${proj.map(p => `
+    <div style="background:var(--bg-elevated);border-radius:12px;padding:16px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">${p.label}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--text-3)">Receita est.</span>
+          <span style="color:var(--green);font-weight:600">${Utils.currency(p.rec)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--text-3)">Despesa est.</span>
+          <span style="color:var(--red);font-weight:600">${Utils.currency(p.desp)}</span>
+        </div>
+        <div style="height:1px;background:var(--border);margin:4px 0"></div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--text-2);font-weight:600">Saldo est.</span>
+          <span style="color:${saldoColor};font-weight:700">${p.saldo >= 0 ? '' : '-'}${Utils.currency(Math.abs(p.saldo))}</span>
+        </div>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div style="font-size:11px;color:var(--text-4);padding-top:4px">⚠️ Projeção baseada na média histórica dos meses com dados. Valores estimados.</div>
+</div>`;
+})()}
 
 <div class="card">
   <div class="card-header"><span class="card-title">Tabela Mensal ${year}</span></div>
@@ -2373,10 +2455,9 @@ ${futuros.length === 0 ? `<div class="card" style="text-align:center;padding:32p
       Store.updateSettings({ tema: next });
     });
 
-    // Month selector
-    document.getElementById('globalMonth').addEventListener('change', () => {
-      Router.navigate(Router.current);
-    });
+    // Month / Year selectors
+    document.getElementById('globalMonth').addEventListener('change', () => Router.navigate(Router.current));
+    document.getElementById('globalYear')?.addEventListener('change', () => Router.navigate(Router.current));
 
     // New entry button
     document.getElementById('btnNovaEntrada').addEventListener('click', openNovaEntrada);

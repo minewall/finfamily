@@ -111,20 +111,29 @@
     <div class="sidebar-footer">
       <div class="month-selector">
         <label class="month-label">Período</label>
-        <select class="month-select" id="globalMonth">
-          <option value="1">Janeiro 2026</option>
-          <option value="2">Fevereiro 2026</option>
-          <option value="3">Março 2026</option>
-          <option value="4" selected>Abril 2026</option>
-          <option value="5">Maio 2026</option>
-          <option value="6">Junho 2026</option>
-          <option value="7">Julho 2026</option>
-          <option value="8">Agosto 2026</option>
-          <option value="9">Setembro 2026</option>
-          <option value="10">Outubro 2026</option>
-          <option value="11">Novembro 2026</option>
-          <option value="12">Dezembro 2026</option>
-        </select>
+        <div style="display:flex;gap:6px">
+          <select class="month-select" id="globalYear" style="width:76px;flex-shrink:0">
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+          <select class="month-select" id="globalMonth" style="flex:1">
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4" selected>Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+        </div>
       </div>
       <button class="theme-btn" id="themeToggle" title="Alternar tema">
         <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -173,9 +182,9 @@
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
 <!-- Scripts -->
-<script src="js/store.js?v=9"></script>
-<script src="js/charts.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/store.js?v=10"></script>
+<script src="js/charts.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
 
 </body>
 </html>
