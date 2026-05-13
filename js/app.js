@@ -172,7 +172,9 @@ const App = (function () {
     const despesa   = Store.sumDespesas(month, year);
     const saldo     = receita - despesa;
     const util      = receita > 0 ? despesa / receita : 0;
-    const limitePct = data.settings.limiteGasto;
+    const metaReceitaMensal = Store.getActiveMetaReceitaMensal() ?? data.settings.metaReceita;
+    const limiteDespAbs = Store.getActiveLimiteDespMensal();
+    const limitePct = limiteDespAbs && receita > 0 ? (limiteDespAbs / receita) : data.settings.limiteGasto;
     const patrimonio = Store.totalAtivos();
 
     const prevM = month > 1 ? month - 1 : 12;
@@ -189,7 +191,7 @@ const App = (function () {
     const alerts = [];
     if (util > limitePct) alerts.push({ type:'danger',  title:'Limite de gastos ultrapassado!', text:`Você gastou ${Utils.pct(util)} da receita (limite: ${Utils.pct(limitePct)}).` });
     else if (util > limitePct * 0.9) alerts.push({ type:'warning', title:'Próximo do limite de gastos', text:`Você já usou ${Utils.pct(util)} da receita.` });
-    if (receita < data.settings.metaReceita) alerts.push({ type:'info', title:'Meta de receita não atingida', text:`Receita atual: ${Utils.currency(receita)} / Meta: ${Utils.currency(data.settings.metaReceita)}` });
+    if (receita < metaReceitaMensal) alerts.push({ type:'info', title:'Meta de receita não atingida', text:`Receita atual: ${Utils.currency(receita)} / Meta: ${Utils.currency(metaReceitaMensal)}` });
     if (saldo > 0) alerts.push({ type:'success', title:'Saldo positivo este mês', text:`Sobram ${Utils.currency(saldo)} após todas as despesas.` });
 
     const yrReceitas = Store.yearlyMonthly(year, 'receita');
@@ -268,7 +270,7 @@ ${alerts.map(a => `
       <canvas id="chartGauge"></canvas>
       <div style="text-align:center">
         <div class="text-sm text-2">Limite seguro: <strong style="color:var(--green)">${Utils.pct(limitePct)}</strong></div>
-        <div class="text-xs text-3 mt-4">Meta receita mín: <strong>${Utils.currency(data.settings.metaReceita)}</strong></div>
+        <div class="text-xs text-3 mt-4">Meta receita mín: <strong>${Utils.currency(metaReceitaMensal)}</strong></div>
       </div>
     </div>
   </div>
@@ -678,11 +680,11 @@ ${filtered.map(r => {
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
     <div class="kpi-header"><span class="kpi-label">Média Mensal</span><span class="kpi-icon">📈</span></div>
     <div class="kpi-value" style="color:var(--teal)">${Utils.currency(media)}</div>
-    <div class="card-sub">Meta mínima: <strong>${Utils.currency(Store.get().settings.metaReceita)}</strong></div>
+    <div class="card-sub">Meta mínima: <strong>${Utils.currency((Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita))}</strong></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
     <div class="kpi-header"><span class="kpi-label">Meses OK</span><span class="kpi-icon">✅</span></div>
-    <div class="kpi-value accent">${yrRec.filter(v => v >= Store.get().settings.metaReceita).length}/12</div>
+    <div class="kpi-value accent">${yrRec.filter(v => v >= (Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita)).length}/12</div>
     <div class="card-sub">Atingiram a meta mínima</div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim)">
@@ -1425,6 +1427,26 @@ ${contratos.length === 0 ? `
         <span>${perf.cumpridas}/${perf.totalParcelas} parcelas</span>
         <span>${(perf.pctTempo*100).toFixed(0)}% do tempo</span>
       </div>
+
+      ${(() => {
+        const linked = (isRec ? Store.get().receitas : Store.get().despesas)
+          .filter(x => x.contratoId === c.id)
+          .sort((a,b) => a.parcelaNum - b.parcelaNum);
+        const today = new Date();
+        const cells = linked.map(p => {
+          let state, color, title;
+          if (p.paid === true)       { state='paid'; color='var(--green)'; title='Pago'; }
+          else if (p.paid === false) { state='due';  color='var(--red)';   title='Em aberto (marcado)'; }
+          else if (new Date(p.date+'T23:59:59') <= today) { state='auto'; color='var(--amber)'; title='Vencida (considerada paga)'; }
+          else                       { state='future'; color='var(--border)'; title='Futura'; }
+          return `<span title="${title} · ${new Date(p.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(p.amount)}" style="flex:1;min-width:6px;height:8px;border-radius:2px;background:${color}"></span>`;
+        }).join('');
+        return `
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;color:var(--text-4);margin-bottom:4px">Evolução · cada bloco = 1 parcela</div>
+          <div style="display:flex;gap:2px">${cells}</div>
+        </div>`;
+      })()}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;padding-top:10px;border-top:1px solid var(--border)">
         <div>
@@ -2845,6 +2867,41 @@ ${(() => {
       item.addEventListener('click', () => {
         if (window.innerWidth <= 900) sidebarClose();
       });
+    });
+
+    // Export / Import backup
+    document.getElementById('btnExport')?.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(Store.exportData(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `finfamily-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Backup exportado', 'success');
+    });
+    document.getElementById('btnImport')?.addEventListener('click', () => {
+      document.getElementById('fileImport').click();
+    });
+    document.getElementById('fileImport')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (!confirm('Importar este backup vai SUBSTITUIR todos os dados atuais. Continuar?')) {
+        e.target.value = ''; return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const payload = JSON.parse(reader.result);
+          Store.importData(payload);
+          toast('Backup importado — recarregando…', 'success');
+          setTimeout(() => location.reload(), 800);
+        } catch (err) {
+          toast('Erro ao importar: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
     });
 
     // Apply saved theme
