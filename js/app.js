@@ -114,6 +114,7 @@ const App = (function () {
       receitas:    'Receitas',
       despesas:    'Despesas',
       metas:       'Metas & Projetos',
+      contratos:   'Contratos',
       contas:      'Contas & Cartões',
       reserva:     'Reserva & Investimentos',
       patrimonio:  'Patrimônio & Investimentos',
@@ -451,24 +452,29 @@ ${alerts.map(a => `
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th class="num">Valor</th><th></th>
+  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th>Contrato</th><th class="num">Valor</th><th></th>
 </tr></thead>
 <tbody>
-${filtered.map(d => `<tr>
+${filtered.map(d => {
+  const c = d.contratoId ? Store.getContratoById(d.contratoId) : null;
+  const paidState = d.paid === true ? 'on' : d.paid === false ? 'off' : (new Date(d.date+'T23:59:59') <= new Date() ? 'auto' : '');
+  return `<tr>
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
   <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
   <td class="muted">${d.sub || '—'}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
+  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td style="white-space:nowrap">
+    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
     <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-desp="${d.id}">✏</button>
     <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button>
   </td>
-</tr>`).join('')}
+</tr>`;}).join('')}
 </tbody>
 <tfoot><tr>
-  <td colspan="5" class="fw-700">Total (${filtered.length} lançamentos)</td>
+  <td colspan="6" class="fw-700">Total (${filtered.length} lançamentos)</td>
   <td class="num negative fw-700">${Utils.currency(total)}</td>
   <td></td>
 </tr></tfoot>
@@ -483,22 +489,27 @@ ${filtered.map(d => `<tr>
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th>
+  <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th>Contrato</th><th class="num">Valor</th><th></th>
 </tr></thead>
 <tbody>
-${filtered.map(r => `<tr>
+${filtered.map(r => {
+  const c = r.contratoId ? Store.getContratoById(r.contratoId) : null;
+  const paidState = r.paid === true ? 'on' : r.paid === false ? 'off' : (new Date(r.date+'T23:59:59') <= new Date() ? 'auto' : '');
+  return `<tr>
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
   <td>${r.desc}</td>
   <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
   <td class="muted">${r.type||''}</td>
+  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap">
+    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido ✓':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
     <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-rec="${r.id}">✏</button>
     <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-rec="${r.id}">✕</button>
   </td>
-</tr>`).join('')}
+</tr>`;}).join('')}
 </tbody>
-<tfoot><tr><td colspan="4" class="fw-700">Total (${filtered.length})</td><td class="num positive fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
+<tfoot><tr><td colspan="5" class="fw-700">Total (${filtered.length})</td><td class="num positive fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
 </table>`;
     }
 
@@ -569,6 +580,28 @@ ${filtered.map(r => `<tr>
       });
       container.querySelectorAll('[data-edit-rec]').forEach(btn => {
         btn.addEventListener('click', () => openEditReceita(btn.dataset.editRec, refilter));
+      });
+      container.querySelectorAll('[data-paid-desp]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.paidDesp;
+          const d = Store.get().despesas.find(x => x.id === id);
+          if (!d) return;
+          const next = d.paid === true ? false : true;
+          Store.updateDespesa(id, { paid: next });
+          refilter();
+          toast(next ? 'Parcela marcada como paga' : 'Parcela desmarcada', 'success');
+        });
+      });
+      container.querySelectorAll('[data-paid-rec]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.paidRec;
+          const r = Store.get().receitas.find(x => x.id === id);
+          if (!r) return;
+          const next = r.paid === true ? false : true;
+          Store.updateReceita(id, { paid: next });
+          refilter();
+          toast(next ? 'Parcela marcada como recebida' : 'Parcela desmarcada', 'success');
+        });
       });
     }
 
@@ -1028,152 +1061,151 @@ ${filtered.map(r => `<tr>
   // ══════════════════════════════════════════════════════════════
   function renderMetas(container) {
     const year  = getYear();
-    const metas = Store.get().metas;
     const month = getMonth();
-    const receita = Store.sumReceitas(month, year);
-    const despesa = Store.sumDespesas(month, year);
+    const metas = Store.get().metas.filter(m => m.active !== false);
+
+    const TYPE_META = {
+      limite_desp: { icon: '🛑', label: 'Limite de Despesa' },
+      min_receita: { icon: '💰', label: 'Receita Mínima' },
+      reserva:     { icon: '🏦', label: 'Reserva' },
+      objetivo:    { icon: '🎯', label: 'Objetivo' },
+    };
+    const STATUS_CLASS = { ok: 'green', warn: 'amber', over: 'red', neutral: 'accent' };
+    const STATUS_BADGE = { ok: '✓ No alvo', warn: '⚠ Atenção', over: '✗ Crítico', neutral: '—' };
+
+    const objetivos = metas.filter(m => m.type === 'objetivo');
+    const indicadores = metas.filter(m => m.type !== 'objetivo');
 
     container.innerHTML = `
 <div class="section-header mb-6">
-  <div><div class="section-title">Metas & Projetos Futuros</div><div class="section-sub">Indicadores financeiros e planejamento de longo prazo</div></div>
+  <div><div class="section-title">Metas & Projetos</div><div class="section-sub">Limites, mínimos, reservas e objetivos — com performance automática</div></div>
   <button class="btn-primary" id="btnAddMeta">+ Nova Meta</button>
 </div>
 
-<div class="kpi-grid mb-6">
-  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Regra 70%</span><span class="kpi-icon">📏</span></div>
-    <div class="kpi-value ${despesa/receita<=0.7?'green':'red'}">${Utils.pct(despesa/receita||0)}</div>
-    <div class="card-sub">Máximo: <strong>70%</strong> da receita em despesas</div>
-    <div class="progress-bar"><div class="progress-fill ${despesa/receita>0.9?'red':despesa/receita>0.7?'amber':'green'}" style="width:${Math.min(despesa/receita||0,1)*100}%"></div></div>
-  </div>
-  <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim)">
-    <div class="kpi-header"><span class="kpi-label">Indicador de Riqueza</span><span class="kpi-icon">💡</span></div>
-    <div class="kpi-value" style="color:var(--blue)">${Utils.currency(Math.max(0, receita - despesa))}</div>
-    <div class="card-sub">Saldo livre para investir</div>
-  </div>
-  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
-    <div class="kpi-header"><span class="kpi-label">Meta Receita</span><span class="kpi-icon">🎯</span></div>
-    <div class="kpi-value ${receita>=20000?'green':'amber'}">${Utils.currency(Store.get().settings.metaReceita)}</div>
-    <div class="card-sub">Atual: <strong class="${receita>=20000?'green':'red'}">${Utils.currency(receita)}</strong></div>
-  </div>
-</div>
+${indicadores.length === 0 ? '' : `
+<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Indicadores</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:24px">
+  ${indicadores.map(m => {
+    const perf = Store.getMetaPerformance(m.id, year, month);
+    const t = TYPE_META[m.type] || { icon:'📌', label:m.type };
+    const color = STATUS_CLASS[perf.status] || 'accent';
+    const isAnual = m.period === 'anual';
+    return `
+    <div class="card" data-meta-id="${m.id}" style="border-top:3px solid var(--${color})">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${t.icon}</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-1)">${m.label}</div>
+            <div style="font-size:11px;color:var(--text-4)">${t.label} · ${isAnual?'Anual':'Mensal'}${m.category?' · '+(Store.CATEGORIES[m.category]?.label||m.category):''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          ${m.type==='reserva'?`<button class="btn-xs" data-action="snap-meta" data-id="${m.id}" title="Marcar snapshot">📸</button>`:''}
+          <button class="btn-xs" data-action="edit-meta" data-id="${m.id}">✏</button>
+          <button class="btn-xs btn-red" data-action="del-meta" data-id="${m.id}">✕</button>
+        </div>
+      </div>
 
-<div class="section-header mb-4">
-  <div class="section-title">Objetivos & Metas</div>
-</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin:8px 0 6px">
+        <div>
+          <div style="font-size:11px;color:var(--text-3)">Atual${isAnual&&m.type!=='reserva'?' (acum.)':''}</div>
+          <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--${color})">${Utils.currency(perf.current)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text-3)">Meta</div>
+          <div style="font-size:13px;color:var(--text-2);font-family:var(--mono)">${Utils.currency(perf.target)}</div>
+        </div>
+      </div>
 
+      <div class="progress-bar progress-lg" style="margin-bottom:6px">
+        <div class="progress-fill ${color}" style="width:${Math.min(perf.pct,1)*100}%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:8px">
+        <span>${(perf.pct*100).toFixed(0)}% da meta</span>
+        <span class="badge badge-${color}">${STATUS_BADGE[perf.status]}</span>
+      </div>
+
+      ${isAnual && m.type!=='reserva' ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;padding-top:8px;border-top:1px solid var(--border)">
+          <div><div style="color:var(--text-4)">Média/mês</div><div style="font-weight:700;font-family:var(--mono)">${Utils.currency(perf.mediaMensal)}</div></div>
+          <div><div style="color:var(--text-4)">Projeção anual</div><div style="font-weight:700;font-family:var(--mono)">${Utils.currency(perf.projecaoAnual)}</div></div>
+        </div>` : ''}
+
+      ${m.type==='reserva' ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;padding-top:8px;border-top:1px solid var(--border)">
+          <div><div style="color:var(--text-4)">vs snapshot</div><div style="font-weight:700;color:var(--${perf.delta>=0?'green':'red'})">${perf.delta>=0?'▲':'▼'} ${Utils.currency(perf.delta||0)}</div></div>
+          <div><div style="color:var(--text-4)">Falta</div><div style="font-weight:700;font-family:var(--mono)">${Utils.currency(Math.max(0,perf.target-perf.current))}</div></div>
+        </div>` : ''}
+    </div>`;
+  }).join('')}
+</div>`}
+
+${objetivos.length === 0 ? '' : `
+<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Objetivos</div>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
-  ${metas.filter(m => {
-    const t = m.tipo || m.type;
-    return t === 'objetivo' || t === 'projeto';
-  }).map(m => {
-    const cur = m.current || 0;
-    const pct = Math.min(cur / m.target, 1);
-    const remaining = m.target - cur;
+  ${objetivos.map(m => {
+    const perf = Store.getMetaPerformance(m.id, year, month);
+    const pct = Math.min(perf.pct, 1);
     const color = pct >= 1 ? 'green' : pct > 0.5 ? 'accent' : 'amber';
     return `
     <div class="card" data-meta-id="${m.id}">
       <div class="card-header">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:11px;color:var(--text-4)">🎯 Objetivo Único</span>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          ${pct>=1?'<span class="badge badge-green">Concluída!</span>':''}
-          ${pct<1?`<button class="btn-xs btn-green" data-action="atingida" data-id="${m.id}" title="Marcar como atingida">✓</button>`:''}
-          <button class="btn-xs" data-action="edit-meta" data-id="${m.id}" title="Editar">✏</button>
-          <button class="btn-xs btn-red" data-action="del-meta" data-id="${m.id}" title="Excluir">✕</button>
+        <span style="font-size:11px;color:var(--text-4)">🎯 Objetivo</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn-xs" data-action="edit-meta" data-id="${m.id}">✏</button>
+          <button class="btn-xs btn-red" data-action="del-meta" data-id="${m.id}">✕</button>
         </div>
       </div>
       <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:8px">${m.label}</div>
       <div style="margin:4px 0 4px">
-        <span style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--text-1)">${Utils.currency(cur)}</span>
-        <span style="font-size:13px;color:var(--text-3)"> / ${Utils.currency(m.target)}</span>
+        <span style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--text-1)">${Utils.currency(perf.current)}</span>
+        <span style="font-size:13px;color:var(--text-3)"> / ${Utils.currency(perf.target)}</span>
       </div>
-      <div class="progress-bar progress-lg" style="margin-bottom:10px">
+      <div class="progress-bar progress-lg" style="margin-bottom:8px">
         <div class="progress-fill ${color}" style="width:${Math.round(pct*100)}%"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3)">
         <span>${(pct*100).toFixed(0)}% concluído</span>
-        <span>${pct<1?'Faltam '+Utils.currency(remaining):'Meta atingida!'}</span>
+        <span>${pct<1?'Faltam '+Utils.currency(perf.target-perf.current):'✓ Atingida'}</span>
       </div>
-      ${m.deadline?`<div style="font-size:11px;color:var(--text-4);margin-top:8px">⏳ Prazo: ${new Date(m.deadline).toLocaleDateString('pt-BR')}</div>`:''}
+      ${m.deadline?`<div style="font-size:11px;color:var(--text-4);margin-top:8px">⏳ ${new Date(m.deadline+'T12:00:00').toLocaleDateString('pt-BR')}</div>`:''}
     </div>`;
   }).join('')}
+</div>`}
 
-  ${metas.filter(m => m.tipo === 'mensal').map(m => {
-    const pct = receita > 0 ? despesa / receita : 0;
-    const ok  = despesa <= m.target;
-    const color = ok ? 'green' : 'red';
-    return `
-    <div class="card" data-meta-id="${m.id}">
-      <div class="card-header">
-        <span style="font-size:11px;color:var(--text-4)">📅 Meta Mensal</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn-xs" data-action="edit-meta" data-id="${m.id}">✏</button>
-          <button class="btn-xs btn-red" data-action="del-meta" data-id="${m.id}">✕</button>
-        </div>
-      </div>
-      <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:8px">${m.label}</div>
-      <div style="margin:4px 0">
-        <span style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--${color})">${Utils.currency(despesa)}</span>
-        <span style="font-size:13px;color:var(--text-3)"> / ${Utils.currency(m.target)}</span>
-      </div>
-      <div class="progress-bar progress-lg" style="margin-bottom:8px">
-        <div class="progress-fill ${color}" style="width:${Math.min(despesa/m.target,1)*100}%"></div>
-      </div>
-      <span class="badge ${ok?'badge-green':'badge-red'}">${ok?'✓ Dentro do limite':'Limite ultrapassado'}</span>
-    </div>`;
-  }).join('')}
-
-  ${metas.filter(m => m.tipo === 'anual').map(m => {
-    const yrRec  = Store.yearlyMonthly(year, 'receita');
-    const yrDesp = Store.yearlyMonthly(year, 'despesa');
-    const totalAnual = yrDesp.reduce((a,b)=>a+b,0); // example: track total despesas vs annual target
-    const cur = m.current || totalAnual;
-    const pct = Math.min(cur / m.target, 1);
-    const ok  = cur <= m.target;
-    const color = ok ? 'accent' : 'red';
-    return `
-    <div class="card" data-meta-id="${m.id}">
-      <div class="card-header">
-        <span style="font-size:11px;color:var(--text-4)">📆 Meta Anual</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn-xs" data-action="edit-meta" data-id="${m.id}">✏</button>
-          <button class="btn-xs btn-red" data-action="del-meta" data-id="${m.id}">✕</button>
-        </div>
-      </div>
-      <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:8px">${m.label}</div>
-      <div style="margin:4px 0">
-        <span style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--${color})">${Utils.currency(cur)}</span>
-        <span style="font-size:13px;color:var(--text-3)"> / ${Utils.currency(m.target)}</span>
-      </div>
-      <div class="progress-bar progress-lg" style="margin-bottom:8px">
-        <div class="progress-fill ${color}" style="width:${Math.round(pct*100)}%"></div>
-      </div>
-      <span class="badge ${ok?'badge-green':'badge-red'}">${(pct*100).toFixed(0)}% da meta anual</span>
-    </div>`;
-  }).join('')}
-</div>
-
+${indicadores.filter(m => m.type !== 'reserva').length ? `
 <div class="card">
-  <div class="card-header"><span class="card-title">Indicadores Financeiros</span></div>
-  ${metas.filter(m => !['objetivo','projeto','mensal','anual'].includes(m.tipo||m.type)).map(m => `
-    <div class="stat-row">
-      <div>
-        <div class="stat-row-label">${m.label}</div>
-        ${m.type==='gasto_max_pct'?`<div style="font-size:11px;color:var(--text-4)">Limite: ${Utils.pct(m.target)} da receita mensal</div>`:''}
-        ${m.type==='reserva'?`<div style="font-size:11px;color:var(--text-4)">Atual: ${Utils.currency(m.current||0)}</div>`:''}
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        ${m.type==='receita_min'?`<span class="badge ${receita>=m.target?'badge-green':'badge-red'}">${receita>=m.target?'✓ Atingida':'Não atingida'}</span>`:''}
-        ${m.type==='gasto_max_pct'?`<span class="badge ${despesa/receita<=m.target?'badge-green':'badge-red'}">${despesa/receita<=m.target?'✓ Ok':'Ultrapassado'}</span>`:''}
-        ${m.type==='reserva'?`<span class="badge badge-amber">${Utils.pct((m.current||0)/m.target)}</span>`:''}
-        <button class="btn-xs" data-action="edit-meta" data-id="${m.id}" title="Editar">✏</button>
-        <button class="btn-xs btn-red" data-action="del-meta" data-id="${m.id}" title="Excluir">✕</button>
-      </div>
-    </div>
-  `).join('')}
-</div>`;
+  <div class="card-header"><span class="card-title">Performance por mês — ${year}</span></div>
+  <div style="overflow-x:auto">
+    <table class="table" style="width:100%;font-size:12px">
+      <thead><tr>
+        <th style="text-align:left">Meta</th>
+        ${Utils.months.map(m => `<th style="text-align:right">${m}</th>`).join('')}
+        <th style="text-align:right">Total/Proj</th>
+        <th style="text-align:right">Alvo</th>
+      </tr></thead>
+      <tbody>
+      ${indicadores.filter(m => m.type !== 'reserva').map(m => {
+        const perf = Store.getMetaPerformance(m.id, year, month);
+        const isLimit = m.type === 'limite_desp';
+        const valorRef = m.period === 'anual' ? perf.projecaoAnual : perf.target * 12;
+        return `<tr>
+          <td><strong>${m.label}</strong><div style="font-size:10px;color:var(--text-4)">${m.period==='anual'?'Anual':'Mensal'}</div></td>
+          ${perf.byMonth.map((v, i) => {
+            const cmp = m.period === 'mensal' ? perf.target : (perf.target / 12);
+            const okv = isLimit ? v <= cmp : v >= cmp;
+            const cls = v === 0 ? 'var(--text-4)' : (okv ? 'var(--green)' : 'var(--red)');
+            return `<td style="text-align:right;font-family:var(--mono);color:${cls}">${v?Utils.currency(v).replace('R$ ',''):'—'}</td>`;
+          }).join('')}
+          <td style="text-align:right;font-family:var(--mono);font-weight:700">${Utils.currency(m.period==='anual'?perf.projecaoAnual:perf.byMonth.reduce((a,b)=>a+b,0))}</td>
+          <td style="text-align:right;font-family:var(--mono);color:var(--text-3)">${Utils.currency(m.period==='anual'?perf.target:perf.target*12)}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>` : ''}`;
 
     document.getElementById('btnAddMeta')?.addEventListener('click', () => openMetaModal(null, container));
 
@@ -1200,58 +1232,332 @@ ${filtered.map(r => `<tr>
         toast('Meta marcada como atingida!', 'success');
       });
     });
+    _bindMetaSnapshot(container);
   }
 
   function openMetaModal(meta, container) {
     const isEdit = !!meta;
-    const tipo   = meta?.tipo || meta?.type || 'objetivo';
+    const m = meta || {};
+    const cats = Object.entries(Store.CATEGORIES);
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome da Meta</label><input class="form-input" id="fMLabel" placeholder="Ex: Viagem Europa" value="${isEdit ? meta.label : ''}"/></div>
-      <div class="form-group form-full">
-        <label class="form-label">Tipo de Meta</label>
-        <select class="form-select" id="fMTipo">
-          <option value="objetivo" ${(isEdit&&(tipo==='objetivo'||tipo==='projeto'))||!isEdit?'selected':''}>🎯 Objetivo Único (com prazo)</option>
-          <option value="mensal" ${isEdit&&tipo==='mensal'?'selected':''}>📅 Meta Mensal (limite por mês)</option>
-          <option value="anual" ${isEdit&&tipo==='anual'?'selected':''}>📆 Meta Anual (acumulado no ano)</option>
+      <div class="form-group form-full"><label class="form-label">Nome da Meta</label><input class="form-input" id="fMLabel" placeholder="Ex: Limite Lazer, Receita Mín. Mensal" value="${m.label||''}"/></div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="fMType">
+          <option value="limite_desp" ${m.type==='limite_desp'?'selected':''}>🛑 Limite de Despesa</option>
+          <option value="min_receita" ${m.type==='min_receita'?'selected':''}>💰 Receita Mínima</option>
+          <option value="reserva"     ${m.type==='reserva'?'selected':''}>🏦 Reserva (auto)</option>
+          <option value="objetivo"    ${(m.type==='objetivo'||!isEdit)?'selected':''}>🎯 Objetivo Único</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label" id="fMTargetLabel">Valor Alvo (R$)</label><input class="form-input" id="fMTarget" type="number" step="100" value="${isEdit ? meta.target : ''}"/></div>
-      <div class="form-group"><label class="form-label">Valor Atual / Realizado (R$)</label><input class="form-input" id="fMCurrent" type="number" step="100" value="${isEdit ? (meta.current||0) : '0'}"/></div>
-      <div class="form-group" id="fMDeadlineGroup"><label class="form-label">Prazo</label><input class="form-input" id="fMDeadline" type="date" value="${isEdit && meta.deadline ? meta.deadline : ''}"/></div>
+      <div class="form-group" id="fMPeriodGroup">
+        <label class="form-label">Período</label>
+        <select class="form-select" id="fMPeriod">
+          <option value="mensal" ${m.period==='mensal'||!m.period?'selected':''}>📅 Mensal</option>
+          <option value="anual"  ${m.period==='anual'?'selected':''}>📆 Anual</option>
+        </select>
+      </div>
+      <div class="form-group form-full" id="fMCatGroup">
+        <label class="form-label">Categoria (opcional, p/ limites por categoria)</label>
+        <select class="form-select" id="fMCat">
+          <option value="">— Todas —</option>
+          ${cats.filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}" ${m.category===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label" id="fMTargetLabel">Valor Alvo (R$)</label><input class="form-input" id="fMTarget" type="number" step="100" value="${m.target||''}"/></div>
+      <div class="form-group" id="fMCurrentGroup"><label class="form-label">Valor Atual (R$)</label><input class="form-input" id="fMCurrent" type="number" step="100" value="${m.current||0}"/></div>
+      <div class="form-group form-full" id="fMDeadlineGroup"><label class="form-label">Prazo</label><input class="form-input" id="fMDeadline" type="date" value="${m.deadline||''}"/></div>
     </div>`;
-    Modal.open(isEdit ? 'Editar Meta' : 'Nova Meta / Projeto', html, () => {
-      const label    = document.getElementById('fMLabel').value.trim();
-      const target   = parseFloat(document.getElementById('fMTarget').value);
-      const current  = parseFloat(document.getElementById('fMCurrent').value) || 0;
-      const deadline = document.getElementById('fMDeadline').value;
-      const tipoSel  = document.getElementById('fMTipo').value;
-      if (!label || !target) return toast('Preencha nome e valor', 'error');
-      const data = { label, target, current, deadline, tipo: tipoSel, type: tipoSel === 'objetivo' ? 'projeto' : tipoSel, active: true };
+    Modal.open(isEdit ? 'Editar Meta' : 'Nova Meta', html, () => {
+      const type = document.getElementById('fMType').value;
+      const data = {
+        label: document.getElementById('fMLabel').value.trim(),
+        type,
+        period: type === 'objetivo' ? 'unico' : document.getElementById('fMPeriod').value,
+        category: document.getElementById('fMCat').value || null,
+        target: parseFloat(document.getElementById('fMTarget').value),
+        current: parseFloat(document.getElementById('fMCurrent').value) || 0,
+        deadline: document.getElementById('fMDeadline').value || null,
+        active: true,
+      };
+      if (!data.label || !data.target) return toast('Preencha nome e valor alvo', 'error');
       if (isEdit) {
         Store.updateMeta(meta.id, data);
-        toast('Meta atualizada!', 'success');
+        toast('Meta atualizada', 'success');
       } else {
         Store.get().metas.push({ id: '_' + Date.now(), ...data });
         Store.persist();
-        toast('Meta adicionada!', 'success');
+        toast('Meta criada', 'success');
       }
       Modal.close();
       renderMetas(container);
     });
+
     setTimeout(() => {
-      function updateTipoUI() {
-        const t = document.getElementById('fMTipo')?.value;
-        const deadlineG = document.getElementById('fMDeadlineGroup');
-        const targetLbl = document.getElementById('fMTargetLabel');
-        if (deadlineG) deadlineG.style.display = t === 'objetivo' ? '' : 'none';
-        if (targetLbl) {
-          if (t === 'mensal')  targetLbl.textContent = 'Limite Mensal (R$)';
-          else if (t === 'anual') targetLbl.textContent = 'Meta Anual (R$)';
-          else targetLbl.textContent = 'Valor Alvo (R$)';
-        }
+      const typeSel = document.getElementById('fMType');
+      function updateUI() {
+        const t = typeSel.value;
+        document.getElementById('fMPeriodGroup').style.display  = t === 'objetivo' ? 'none' : '';
+        document.getElementById('fMCatGroup').style.display     = (t === 'limite_desp' || t === 'min_receita') ? '' : 'none';
+        document.getElementById('fMDeadlineGroup').style.display= t === 'objetivo' ? '' : 'none';
+        document.getElementById('fMCurrentGroup').style.display = t === 'objetivo' ? '' : 'none';
+        const lbl = document.getElementById('fMTargetLabel');
+        if      (t === 'limite_desp') lbl.textContent = 'Limite máximo (R$)';
+        else if (t === 'min_receita') lbl.textContent = 'Receita mínima (R$)';
+        else if (t === 'reserva')     lbl.textContent = 'Meta de reserva (R$)';
+        else                          lbl.textContent = 'Valor alvo (R$)';
       }
-      document.getElementById('fMTipo')?.addEventListener('change', updateTipoUI);
-      updateTipoUI();
+      typeSel.addEventListener('change', updateUI);
+      updateUI();
+    }, 50);
+  }
+
+  // Handler de snapshot (chamado pelo botão 📸 do card de reserva)
+  function _bindMetaSnapshot(container) {
+    container.querySelectorAll('[data-action="snap-meta"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Store.snapshotReserva(btn.dataset.id);
+        renderMetas(container);
+        toast('Snapshot atualizado', 'success');
+      });
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PAGE: CONTRATOS
+  // ══════════════════════════════════════════════════════════════
+  function renderContratos(container) {
+    const contratos = Store.getContratos();
+    const month = getMonth(), year = getYear();
+
+    // KPIs agregados
+    let totReceitaMes = 0, totDespesaMes = 0, totReceitaContrato = 0, totDespesaContrato = 0;
+    contratos.filter(c => c.active !== false).forEach(c => {
+      const perf = Store.getContratoPerformance(c.id);
+      const mesAtual = (c.kind === 'receita' ? Store.get().receitas : Store.get().despesas)
+        .filter(x => x.contratoId === c.id && x.month === month && x.year === year)
+        .reduce((s, x) => s + x.amount, 0);
+      if (c.kind === 'receita') { totReceitaMes += mesAtual; totReceitaContrato += perf.valorTotal; }
+      else { totDespesaMes += mesAtual; totDespesaContrato += perf.valorTotal; }
+    });
+
+    const receitaMes = Store.sumReceitas(month, year);
+    const despesaMes = Store.sumDespesas(month, year);
+    const impactoRec = receitaMes > 0 ? totReceitaMes / receitaMes : 0;
+    const impactoDesp = despesaMes > 0 ? totDespesaMes / despesaMes : 0;
+
+    container.innerHTML = `
+<div class="section-header mb-6">
+  <div><div class="section-title">Contratos</div><div class="section-sub">Cadastre contratos recorrentes — parcelas alimentam Receitas/Despesas automaticamente</div></div>
+  <button class="btn-primary" id="btnAddContrato">+ Novo Contrato</button>
+</div>
+
+<div class="kpi-grid mb-6">
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+    <div class="kpi-header"><span class="kpi-label">Receita p/ Contratos (mês)</span><span class="kpi-icon">📈</span></div>
+    <div class="kpi-value" style="color:var(--green)">${Utils.currency(totReceitaMes)}</div>
+    <div class="card-sub">${Utils.pct(impactoRec)} da receita do mês</div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+    <div class="kpi-header"><span class="kpi-label">Despesa p/ Contratos (mês)</span><span class="kpi-icon">📉</span></div>
+    <div class="kpi-value" style="color:var(--red)">${Utils.currency(totDespesaMes)}</div>
+    <div class="card-sub">${Utils.pct(impactoDesp)} da despesa do mês</div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
+    <div class="kpi-header"><span class="kpi-label">Contratos ativos</span><span class="kpi-icon">📑</span></div>
+    <div class="kpi-value">${contratos.filter(c=>c.active!==false).length}</div>
+    <div class="card-sub">Total cadastrado: ${contratos.length}</div>
+  </div>
+</div>
+
+${contratos.length === 0 ? `
+  <div class="empty-state" style="padding:48px;text-align:center;border:1px dashed var(--border);border-radius:12px">
+    <div style="font-size:14px;color:var(--text-3);margin-bottom:8px">Nenhum contrato cadastrado</div>
+    <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Contrato" para começar. Cada parcela vira um lançamento automático.</div>
+  </div>
+` : `
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
+  ${contratos.map(c => {
+    const perf = Store.getContratoPerformance(c.id);
+    const isRec = c.kind === 'receita';
+    const cat = Store.CATEGORIES[c.category] || { label: c.category, icon: '📄', color: 'var(--accent)' };
+    const colorBar = perf.pctValor >= 1 ? 'green' : isRec ? 'accent' : (perf.pctValor > 0.8 ? 'amber' : 'accent');
+    const impactoMes = perf.impactoMensal;
+    const base = isRec ? receitaMes : despesaMes;
+    const impactoMesPct = base > 0 ? impactoMes / base : 0;
+    return `
+    <div class="card" data-contrato-id="${c.id}" style="border-top:3px solid var(--${isRec?'green':'red'})">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${cat.icon || '📄'}</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-1)">${c.label}</div>
+            <div style="font-size:11px;color:var(--text-4)">${isRec?'Receita':'Despesa'} · ${cat.label}${c.sub?' / '+c.sub:''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-xs" data-action="edit-contrato" data-id="${c.id}" title="Editar">✏</button>
+          <button class="btn-xs btn-red" data-action="del-contrato" data-id="${c.id}" title="Excluir">✕</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin:8px 0 12px;font-size:11px;color:var(--text-3)">
+        <span>👤 ${c.responsavel || '—'}</span>
+        <span>📅 ${new Date(c.dataInicio+'T12:00:00').toLocaleDateString('pt-BR')} → ${c.dataFim?new Date(c.dataFim+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
+        <div>
+          <div style="font-size:11px;color:var(--text-3)">Cumprido</div>
+          <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:var(--${colorBar})">${Utils.currency(perf.valorCumprido)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text-3)">Total</div>
+          <div style="font-size:13px;color:var(--text-2);font-family:var(--mono)">${Utils.currency(perf.valorTotal)}</div>
+        </div>
+      </div>
+
+      <div class="progress-bar progress-lg" style="margin-bottom:6px">
+        <div class="progress-fill ${colorBar}" style="width:${Math.round(perf.pctValor*100)}%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:10px">
+        <span>${(perf.pctValor*100).toFixed(0)}% do valor</span>
+        <span>${perf.cumpridas}/${perf.totalParcelas} parcelas</span>
+        <span>${(perf.pctTempo*100).toFixed(0)}% do tempo</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;padding-top:10px;border-top:1px solid var(--border)">
+        <div>
+          <div style="color:var(--text-4)">Parcela mensal</div>
+          <div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(perf.impactoMensal)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4)">Restante</div>
+          <div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(perf.valorRestante)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4)">Parc. restantes</div>
+          <div style="font-weight:700;color:var(--text-1)">${perf.parcelasRestantes}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4)">Impacto no mês</div>
+          <div style="font-weight:700;color:var(--${isRec?'green':'red'})">${Utils.pct(impactoMesPct)}</div>
+        </div>
+        ${c.entrada ? `<div style="grid-column:span 2"><div style="color:var(--text-4)">Entrada</div><div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(c.entrada)}</div></div>` : ''}
+        ${perf.proxima ? `<div style="grid-column:span 2"><div style="color:var(--text-4)">Próxima parcela</div><div style="font-weight:700;color:var(--text-1)">${new Date(perf.proxima.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(perf.proxima.amount)}</div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('')}
+</div>`}`;
+
+    document.getElementById('btnAddContrato')?.addEventListener('click', () => openContratoModal(null, container));
+    container.querySelectorAll('[data-action="edit-contrato"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const c = Store.getContratos().find(x => x.id === btn.dataset.id);
+        if (c) openContratoModal(c, container);
+      });
+    });
+    container.querySelectorAll('[data-action="del-contrato"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!confirm('Excluir contrato e todos os lançamentos vinculados?')) return;
+        Store.deleteContrato(btn.dataset.id, true);
+        renderContratos(container);
+        toast('Contrato excluído', 'success');
+      });
+    });
+  }
+
+  function openContratoModal(contrato, container) {
+    const isEdit = !!contrato;
+    const c = contrato || {};
+    const cats = Object.entries(Store.CATEGORIES);
+    const today = new Date().toISOString().slice(0,10);
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Contrato Bridge" value="${c.label||''}"/></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="fCKind">
+          <option value="despesa" ${c.kind==='despesa'||!isEdit?'selected':''}>💸 Despesa</option>
+          <option value="receita" ${c.kind==='receita'?'selected':''}>💰 Receita</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Responsável</label>
+        <select class="form-select" id="fCResp">
+          ${Store.PESSOAS.map(p => `<option ${c.responsavel===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Categoria</label>
+        <select class="form-select" id="fCCat">
+          ${cats.map(([k,v]) => `<option value="${k}" ${c.category===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" id="fCSubGroup"><label class="form-label">Subcategoria</label>
+        <select class="form-select" id="fCSub"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Data de Início</label><input class="form-input" id="fCIni" type="date" value="${c.dataInicio||today}"/></div>
+      <div class="form-group"><label class="form-label">Data de Vigência (fim)</label><input class="form-input" id="fCFim" type="date" value="${c.dataFim||''}"/></div>
+      <div class="form-group"><label class="form-label">Valor da Parcela (R$)</label><input class="form-input" id="fCParcela" type="number" step="0.01" value="${c.valorParcela||''}"/></div>
+      <div class="form-group"><label class="form-label">Nº Parcelas</label><input class="form-input" id="fCQtd" type="number" min="1" value="${c.parcelas||12}"/></div>
+      <div class="form-group"><label class="form-label">Entrada (R$, opcional)</label><input class="form-input" id="fCEntrada" type="number" step="0.01" value="${c.entrada||0}"/></div>
+      <div class="form-group"><label class="form-label">Dia de Vencimento</label><input class="form-input" id="fCDia" type="number" min="1" max="31" value="${c.diaVencimento||5}"/></div>
+      <div class="form-group" id="fCPayGroup"><label class="form-label">Método</label>
+        <select class="form-select" id="fCPay">
+          ${Store.PAYMENT_METHODS.map(p => `<option ${c.pay===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fCNotes" value="${c.notes||''}"/></div>
+    </div>`;
+    Modal.open(isEdit ? 'Editar Contrato' : 'Novo Contrato', html, () => {
+      const data = {
+        label: document.getElementById('fCLabel').value.trim(),
+        kind:  document.getElementById('fCKind').value,
+        responsavel: document.getElementById('fCResp').value,
+        category: document.getElementById('fCCat').value,
+        sub: document.getElementById('fCSub').value,
+        dataInicio: document.getElementById('fCIni').value,
+        dataFim: document.getElementById('fCFim').value,
+        valorParcela: parseFloat(document.getElementById('fCParcela').value),
+        parcelas: parseInt(document.getElementById('fCQtd').value, 10),
+        entrada: parseFloat(document.getElementById('fCEntrada').value) || 0,
+        diaVencimento: parseInt(document.getElementById('fCDia').value, 10) || null,
+        pay: document.getElementById('fCPay').value,
+        notes: document.getElementById('fCNotes').value,
+        active: true,
+      };
+      if (!data.label || !data.valorParcela || !data.parcelas || !data.dataInicio) {
+        return toast('Preencha descrição, início, valor da parcela e quantidade', 'error');
+      }
+      if (isEdit) {
+        Store.updateContrato(contrato.id, data);
+        toast('Contrato atualizado — lançamentos regerados', 'success');
+      } else {
+        Store.addContrato(data);
+        toast('Contrato criado — lançamentos gerados', 'success');
+      }
+      Modal.close();
+      renderContratos(container);
+    });
+
+    setTimeout(() => {
+      const kindSel = document.getElementById('fCKind');
+      const catSel = document.getElementById('fCCat');
+      const subSel = document.getElementById('fCSub');
+      const subGrp = document.getElementById('fCSubGroup');
+      const payGrp = document.getElementById('fCPayGroup');
+
+      function fillSub() {
+        const cat = catSel.value;
+        const subs = Store.SUBCATEGORIES[cat] || [];
+        subSel.innerHTML = subs.map(s => `<option ${c.sub===s?'selected':''}>${s}</option>`).join('') || '<option value="">—</option>';
+      }
+      function updateKindUI() {
+        const isDesp = kindSel.value === 'despesa';
+        subGrp.style.display = isDesp ? '' : 'none';
+        payGrp.style.display = isDesp ? '' : 'none';
+      }
+      catSel.addEventListener('change', fillSub);
+      kindSel.addEventListener('change', updateKindUI);
+      fillSub();
+      updateKindUI();
     }, 50);
   }
 
@@ -2498,6 +2804,7 @@ ${(() => {
     Router.register('receitas',   renderReceitas);
     Router.register('despesas',   renderDespesas);
     Router.register('metas',      renderMetas);
+    Router.register('contratos',  renderContratos);
     Router.register('contas',     renderContas);
     Router.register('reserva',    renderReserva);
     Router.register('patrimonio', renderPatrimonio);

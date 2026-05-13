@@ -368,7 +368,9 @@ const Store = (function () {
       tema: 'dark',
     };
 
-    return { receitas, despesas, metas, cartoes, contas, ativos, settings };
+    const contratos = [];
+
+    return { receitas, despesas, metas, cartoes, contas, ativos, settings, contratos };
   }
 
   // ── PERSISTENCE ────────────────────────────────────────────────
@@ -387,12 +389,46 @@ const Store = (function () {
 
   let _data = null;
 
+  function _migrateMetas() {
+    if (!_data.metas) { _data.metas = []; return; }
+    const seen = new Set();
+    _data.metas = _data.metas.filter(m => {
+      const k = (m.label || '') + '|' + (m.type || m.tipo || '');
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    _data.metas.forEach(m => {
+      const t = m.type || m.tipo;
+      // Mapear schema antigo → novo
+      if (t === 'projeto' || t === 'objetivo') {
+        m.type = 'objetivo'; m.period = m.period || 'unico';
+      } else if (t === 'reserva') {
+        m.type = 'reserva'; m.period = m.period || 'mensal';
+      } else if (t === 'gasto_max_pct') {
+        // converter: target em pct vira limite mensal baseado em metaReceita
+        m.type = 'limite_desp'; m.period = 'mensal';
+        if (m.target < 1) m.target = Math.round((_data.settings?.metaReceita || 20000) * m.target);
+      } else if (t === 'receita_min') {
+        m.type = 'min_receita'; m.period = m.period || 'mensal';
+      } else if (t === 'mensal') {
+        m.type = 'limite_desp'; m.period = 'mensal';
+      } else if (t === 'anual') {
+        m.type = 'limite_desp'; m.period = 'anual';
+      }
+      delete m.tipo;
+      if (m.active === undefined) m.active = true;
+    });
+  }
+
   function init() {
     _data = load();
     if (!_data) {
       _data = buildSeed();
       save(_data);
     }
+    _migrateMetas();
+    save(_data);
     return _data;
   }
 
@@ -626,6 +662,233 @@ const Store = (function () {
     return fromAtivos + fromReserva;
   }
 
+  // ── CONTRATOS ──────────────────────────────────────────────────
+  function _ensureContratos() {
+    if (!_data.contratos) { _data.contratos = []; persist(); }
+  }
+
+  function _removeLancamentosByContrato(contratoId) {
+    _data.receitas = _data.receitas.filter(r => r.contratoId !== contratoId);
+    _data.despesas = _data.despesas.filter(d => d.contratoId !== contratoId);
+  }
+
+  function _generateContratoLancamentos(c) {
+    // Apaga lançamentos vinculados existentes (mantém marcação `paid` se presente)
+    const paidMap = {};
+    [..._data.receitas, ..._data.despesas]
+      .filter(x => x.contratoId === c.id)
+      .forEach(x => { if (x.paid) paidMap[x.parcelaNum] = true; });
+
+    _removeLancamentosByContrato(c.id);
+
+    const base = new Date(c.dataInicio + 'T12:00:00');
+    const entries = [];
+    for (let i = 0; i < c.parcelas; i++) {
+      const dt = new Date(base);
+      dt.setMonth(dt.getMonth() + i);
+      // Aplica diaVencimento se informado
+      if (c.diaVencimento) {
+        const lastDay = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
+        dt.setDate(Math.min(c.diaVencimento, lastDay));
+      }
+      const dateStr = dt.toISOString().slice(0, 10);
+      const entry = {
+        id: newId(),
+        desc: `${c.label} (${i + 1}/${c.parcelas})`,
+        amount: c.valorParcela,
+        date: dateStr,
+        category: c.category,
+        month: dt.getMonth() + 1,
+        year: dt.getFullYear(),
+        contratoId: c.id,
+        parcelaNum: i + 1,
+        paid: !!paidMap[i + 1],
+      };
+      if (c.kind === 'receita') {
+        entry.person = c.responsavel || 'Roberto';
+        entry.type = 'contrato';
+        _data.receitas.push(entry);
+      } else {
+        entry.sub = c.sub || '';
+        entry.pay = c.pay || 'Dinheiro';
+        _data.despesas.push(entry);
+      }
+      entries.push(entry);
+    }
+    return entries;
+  }
+
+  function addContrato(c) {
+    _ensureContratos();
+    c.id = c.id || newId();
+    c.createdAt = c.createdAt || new Date().toISOString();
+    c.active = c.active !== false;
+    _data.contratos.push(c);
+    _generateContratoLancamentos(c);
+    persist();
+    return c;
+  }
+
+  function updateContrato(id, patch) {
+    _ensureContratos();
+    const c = _data.contratos.find(x => x.id === id);
+    if (!c) return;
+    Object.assign(c, patch);
+    _generateContratoLancamentos(c);
+    persist();
+    return c;
+  }
+
+  function deleteContrato(id, alsoLancamentos = true) {
+    _ensureContratos();
+    _data.contratos = _data.contratos.filter(c => c.id !== id);
+    if (alsoLancamentos) _removeLancamentosByContrato(id);
+    persist();
+  }
+
+  function getContratos() {
+    _ensureContratos();
+    return _data.contratos;
+  }
+
+  function getContratoById(id) {
+    _ensureContratos();
+    return _data.contratos.find(c => c.id === id) || null;
+  }
+
+  function getContratoPerformance(id, refDate = null) {
+    _ensureContratos();
+    const c = _data.contratos.find(x => x.id === id);
+    if (!c) return null;
+    const today = refDate ? new Date(refDate) : new Date();
+    const linked = (c.kind === 'receita' ? _data.receitas : _data.despesas)
+      .filter(x => x.contratoId === id)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const totalParcelas = c.parcelas;
+    const valorTotal = (c.entrada || 0) + c.valorParcela * c.parcelas;
+
+    const cumpridas = linked.filter(x => {
+      if (x.paid === true) return true;
+      if (x.paid === false) return false;
+      return new Date(x.date + 'T23:59:59') <= today;
+    }).length;
+    const valorCumprido = (c.entrada || 0) + cumpridas * c.valorParcela;
+    const parcelasRestantes = totalParcelas - cumpridas;
+    const valorRestante = valorTotal - valorCumprido;
+
+    const pctValor = valorTotal > 0 ? valorCumprido / valorTotal : 0;
+    const pctParcelas = totalParcelas > 0 ? cumpridas / totalParcelas : 0;
+
+    // Tempo: dataInicio -> dataFim (ou última parcela)
+    const ini = new Date(c.dataInicio + 'T12:00:00');
+    const fimStr = c.dataFim || (linked[linked.length - 1]?.date);
+    const fim = fimStr ? new Date(fimStr + 'T12:00:00') : ini;
+    const totalMs = Math.max(1, fim - ini);
+    const elapsedMs = Math.max(0, Math.min(today - ini, totalMs));
+    const pctTempo = elapsedMs / totalMs;
+
+    const proxima = linked.find(x => new Date(x.date + 'T23:59:59') > today);
+
+    return {
+      contrato: c, totalParcelas, cumpridas, parcelasRestantes,
+      valorTotal, valorCumprido, valorRestante,
+      pctValor, pctParcelas, pctTempo,
+      impactoMensal: c.valorParcela,
+      proxima,
+    };
+  }
+
+  // ── METAS PERFORMANCE ──────────────────────────────────────────
+  function _sumDespesasYear(year, category = null) {
+    return _data.despesas
+      .filter(d => d.year === year && (!category || d.category === category))
+      .reduce((s, d) => s + d.amount, 0);
+  }
+  function _sumReceitasYear(year) {
+    return _data.receitas.filter(r => r.year === year).reduce((s, r) => s + r.amount, 0);
+  }
+  function _sumDespesasMonth(month, year, category = null) {
+    return _data.despesas
+      .filter(d => d.month === month && d.year === year && (!category || d.category === category))
+      .reduce((s, d) => s + d.amount, 0);
+  }
+  function _sumReceitasMonth(month, year) {
+    return _data.receitas.filter(r => r.month === month && r.year === year).reduce((s, r) => s + r.amount, 0);
+  }
+
+  function getMetaPerformance(metaId, year, month = null) {
+    const m = _data.metas.find(x => x.id === metaId);
+    if (!m) return null;
+    const refMonth = month || _data.settings?.mesAtual || (new Date().getMonth() + 1);
+
+    // Série mensal (1..12) para tabela
+    const byMonth = Array.from({ length: 12 }, (_, i) => {
+      const mm = i + 1;
+      if (m.type === 'limite_desp') return _sumDespesasMonth(mm, year, m.category);
+      if (m.type === 'min_receita') return _sumReceitasMonth(mm, year);
+      if (m.type === 'reserva')     return null; // reserva é snapshot, não acumula por mês
+      return null;
+    });
+
+    let current = 0, target = m.target || 0, status = 'neutral', delta = null;
+    let mediaMensal = 0, projecaoAnual = 0;
+
+    if (m.type === 'limite_desp') {
+      if (m.period === 'anual') {
+        current = byMonth.reduce((a, b) => a + b, 0);
+        mediaMensal = current / Math.max(1, refMonth);
+        projecaoAnual = mediaMensal * 12;
+        const pct = target > 0 ? projecaoAnual / target : 0;
+        status = pct < 0.8 ? 'ok' : pct < 1 ? 'warn' : 'over';
+      } else {
+        current = byMonth[refMonth - 1] || 0;
+        const pct = target > 0 ? current / target : 0;
+        status = pct < 0.8 ? 'ok' : pct < 1 ? 'warn' : 'over';
+      }
+    } else if (m.type === 'min_receita') {
+      if (m.period === 'anual') {
+        current = byMonth.reduce((a, b) => a + b, 0);
+        mediaMensal = current / Math.max(1, refMonth);
+        projecaoAnual = mediaMensal * 12;
+        const pct = target > 0 ? projecaoAnual / target : 0;
+        status = pct >= 1 ? 'ok' : pct >= 0.8 ? 'warn' : 'over';
+      } else {
+        current = byMonth[refMonth - 1] || 0;
+        const pct = target > 0 ? current / target : 0;
+        status = pct >= 1 ? 'ok' : pct >= 0.8 ? 'warn' : 'over';
+      }
+    } else if (m.type === 'reserva') {
+      current = totalAtivos();
+      const prev = m.lastSnapshot || current;
+      delta = current - prev;
+      const pct = target > 0 ? current / target : 0;
+      if (delta < 0) status = 'over';
+      else if (pct >= 1) status = 'ok';
+      else status = 'neutral';
+    } else if (m.type === 'objetivo') {
+      current = m.current || 0;
+      const pct = target > 0 ? current / target : 0;
+      status = pct >= 1 ? 'ok' : 'neutral';
+    }
+
+    const pct = target > 0 ? Math.min(current / target, 9.99) : 0;
+    return { meta: m, current, target, pct, status, delta, byMonth, mediaMensal, projecaoAnual };
+  }
+
+  function snapshotReserva(metaId) {
+    const m = _data.metas.find(x => x.id === metaId);
+    if (!m || m.type !== 'reserva') return;
+    m.lastSnapshot = totalAtivos();
+    persist();
+  }
+
+  function regenAllContratos() {
+    _ensureContratos();
+    _data.contratos.forEach(c => _generateContratoLancamentos(c));
+    persist();
+  }
+
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
@@ -644,5 +907,7 @@ const Store = (function () {
     totalAtivos,
     cleanDespesasByCategory,
     descSuggestions, receitaSuggestions,
+    addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos,
+    getMetaPerformance, snapshotReserva,
   };
 })();
