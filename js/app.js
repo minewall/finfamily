@@ -557,15 +557,6 @@ ${filtered.map(r => `<tr>
   </div>
 </div>
 
-<div class="chart-grid mb-6">
-  <div class="card chart-full" id="cardRecAnual">
-    <div class="card-header">
-      <span class="card-title">Receitas Mensais ${year}</span>
-      <button class="btn-secondary btn-xs" id="btnToggleRecAnual" style="font-size:11px">Ocultar gráfico</button>
-    </div>
-    <div class="chart-wrap" id="wrapRecAnual"><canvas id="chartRecAnual" class="chart-canvas"></canvas></div>
-  </div>
-</div>
 
 <div class="card mb-6">
   <div class="card-header"><span class="card-title">Por Pessoa — ${year}</span></div>
@@ -614,24 +605,6 @@ ${filtered.map(r => `<tr>
   </div>
 </div>`;
 
-    requestAnimationFrame(() => {
-      const dsColors = ['#22C55E','#D946EF','#14B8A6','#7C6EF8'];
-      Charts.Bar(document.getElementById('chartRecAnual'), {
-        labels: Utils.months,
-        datasets: Object.entries(byPerson).map(([p, vals], i) => ({
-          label: p, values: vals, color: dsColors[i] || Charts.PALETTE[i],
-        })),
-      }, { height: 220 });
-
-      // Chart toggle
-      let recAnualVisible = true;
-      document.getElementById('btnToggleRecAnual')?.addEventListener('click', function() {
-        recAnualVisible = !recAnualVisible;
-        const wrap = document.getElementById('wrapRecAnual');
-        if (wrap) wrap.style.display = recAnualVisible ? '' : 'none';
-        this.textContent = recAnualVisible ? 'Ocultar gráfico' : 'Mostrar gráfico';
-      });
-    });
 
     container.querySelectorAll('[data-del-rec]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -724,13 +697,6 @@ ${filtered.map(r => `<tr>
   </div>
 </div>
 
-<div class="card mb-6" id="cardDespAnual">
-  <div class="card-header">
-    <span class="card-title">Evolução Anual por Categoria</span>
-    <button class="btn-secondary btn-xs" id="btnToggleDespAnual" style="font-size:11px">Ocultar gráfico</button>
-  </div>
-  <div class="chart-wrap" id="wrapDespAnual"><canvas id="chartDespAnual" class="chart-canvas"></canvas></div>
-</div>
 
 <div class="card mb-6">
   <div class="card-header"><span class="card-title">Resumo por Categoria — ${Utils.monthsFull[month-1]}</span></div>
@@ -807,24 +773,6 @@ ${filtered.map(r => `<tr>
           <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
         </div>`).join('');
 
-      // Anual line by top 3 categories
-      const top3Cats = catSorted.slice(0,3).map(([cat]) => cat);
-      const datasets = top3Cats.map(cat => {
-        const values = Array.from({length:12},(_,i)=>{
-          return Store.despesasByMonth(i+1,year).filter(d=>d.category===cat).reduce((a,d)=>a+d.amount,0);
-        });
-        return { label: Store.CATEGORIES[cat]?.label||cat, values, color: Store.CATEGORIES[cat]?.color };
-      });
-      Charts.Line(document.getElementById('chartDespAnual'), { labels: Utils.months, datasets }, { height: 200, area: false });
-
-      // Chart toggle
-      let despAnualVisible = true;
-      document.getElementById('btnToggleDespAnual')?.addEventListener('click', function() {
-        despAnualVisible = !despAnualVisible;
-        const wrap = document.getElementById('wrapDespAnual');
-        if (wrap) wrap.style.display = despAnualVisible ? '' : 'none';
-        this.textContent = despAnualVisible ? 'Ocultar gráfico' : 'Mostrar gráfico';
-      });
     });
 
     document.getElementById('despCatFilter').addEventListener('change', e => {
