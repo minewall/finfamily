@@ -46,7 +46,7 @@ const Charts = (function () {
       data: { labels: string[], datasets: [{ label, values: number[], color? }] }
       opts: { height?, title?, yLabel?, stacked?, compact? }
     */
-    canvasEl.height = opts.height || 220;
+    canvasEl.height = opts.height || 175;
     const { ctx, w, h } = setupCanvas(canvasEl);
 
     const padL = 54, padR = 16, padT = 24, padB = 36;
@@ -134,7 +134,7 @@ const Charts = (function () {
 
   // ── LINE / AREA CHART ──────────────────────────────────────────
   function Line(canvasEl, data, opts = {}) {
-    canvasEl.height = opts.height || 220;
+    canvasEl.height = opts.height || 160;
     const { ctx, w, h } = setupCanvas(canvasEl);
 
     const padL = 54, padR = 20, padT = 24, padB = 36;

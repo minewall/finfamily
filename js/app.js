@@ -314,7 +314,7 @@ ${alerts.map(a => `
           { label: 'Receitas', values: yrReceitas, color: '#22C55E' },
           { label: 'Despesas', values: yrDespesas, color: '#EF4444' },
         ]
-      }, { height: 200 });
+      }, { height: 165 });
 
       // Donut
       const donutData = topCats.map(([cat, val], i) => ({
@@ -346,7 +346,7 @@ ${alerts.map(a => `
         label: Store.CATEGORIES[cat]?.label || cat,
         value: val,
         color: Store.CATEGORIES[cat]?.color,
-      })), { barH: 32, padL: 140, padR: 90, gap: 10 });
+      })), { barH: 24, padL: 140, padR: 90, gap: 7 });
 
       // Saldo acumulado line
       let acc = 0;
@@ -354,7 +354,7 @@ ${alerts.map(a => `
       Charts.Line(document.getElementById('chartSaldo'), {
         labels: Utils.months,
         datasets: [{ label: 'Saldo', values: saldoAcc, color: '#7C6EF8' }],
-      }, { height: 180 });
+      }, { height: 150 });
     });
   }
 
@@ -865,7 +865,7 @@ ${filtered.map(r => `<tr>
     requestAnimationFrame(() => {
       Charts.HBar(document.getElementById('chartDespCat'), catSorted.slice(0,6).map(([cat,val])=>({
         label: Store.CATEGORIES[cat]?.label||cat, value: val, color: Store.CATEGORIES[cat]?.color,
-      })), { barH: 28, padL: 150, padR: 90, gap: 10 });
+      })), { barH: 22, padL: 150, padR: 90, gap: 6 });
 
       const donutData = catSorted.slice(0,6).map(([cat,val]) => ({
         label: Store.CATEGORIES[cat]?.label||cat, value: val,
@@ -1595,7 +1595,7 @@ ${filtered.map(r => `<tr>
 <div class="chart-grid mb-6" style="grid-template-columns:1fr 1.6fr">
   <div class="card">
     <div class="card-header"><span class="card-title">Distribuição do Portfólio</span></div>
-    <div class="chart-with-legend" style="flex-direction:column;justify-items:center">
+    <div class="chart-with-legend">
       <canvas id="chartPatDonut"></canvas>
       <div class="donut-legend" id="patLegend" style="width:100%;margin-top:8px"></div>
     </div>
@@ -1750,7 +1750,7 @@ ${futuros.length === 0
           Charts.Line(evoEl, {
             labels: evolLabels,
             datasets: [{ label: 'Patrimônio', values: evolValues, color: '#14B8A6' }],
-          }, { height: 200 });
+          }, { height: 165 });
         } else {
           evoEl.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes (mínimo 2 meses com lançamentos)</div>';
         }
@@ -2045,11 +2045,11 @@ ${(() => {
           { label:'Receitas', values:yrRec,  color:'#22C55E' },
           { label:'Despesas', values:yrDesp, color:'#EF4444' },
         ],
-      }, { height: 240 });
+      }, { height: 170 });
       Charts.Line(document.getElementById('chartCompSaldo'), {
         labels: Utils.months,
         datasets: [{ label:'Saldo', values:yrSaldo, color:'#7C6EF8' }],
-      }, { height: 180 });
+      }, { height: 150 });
     });
   }
 
@@ -2144,14 +2144,14 @@ ${(() => {
           { label:'Receita', values: months.map(m=>monthly[m].receita), color:'#F59E0B' },
           { label:'Despesa', values: months.map(m=>monthly[m].despesa), color:'#EF4444' },
         ],
-      }, { height: 200 });
+      }, { height: 165 });
 
       const catDesp = {};
       despesas.forEach(d => { catDesp[d.cat] = (catDesp[d.cat]||0)+d.amount; });
       const catColors2 = { 'Infraestrutura':'#3B82F6','Alimentos':'#22C55E','Bebidas':'#F59E0B','Eventos':'#EC4899','Outros':'#7C6EF8' };
       Charts.HBar(document.getElementById('chartSamDesp'), Object.entries(catDesp).map(([cat,val])=>({
         label: cat, value: val, color: catColors2[cat]||'#7C6EF8',
-      })), { barH: 28, padL: 130, padR: 70, gap: 8, prefix: '€ ' });
+      })), { barH: 22, padL: 130, padR: 70, gap: 6, prefix: '€ ' });
 
       const entLabels = receitas.slice(0,12).map(r=>r.date.slice(5));
       Charts.Bar(document.getElementById('chartSamEntradas'), {
@@ -2160,7 +2160,7 @@ ${(() => {
           { label:'Caixa',      values: receitas.slice(0,12).map(r=>r.cash), color:'#F59E0B' },
           { label:'Multibanco', values: receitas.slice(0,12).map(r=>r.card), color:'#22C55E' },
         ],
-      }, { height: 180 });
+      }, { height: 150 });
     });
   }
 
