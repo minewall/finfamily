@@ -876,11 +876,58 @@ const Store = (function () {
     return { meta: m, current, target, pct, status, delta, byMonth, mediaMensal, projecaoAnual };
   }
 
+  function getActiveMetaReceitaMensal() {
+    const m = (_data.metas || []).find(x => x.active !== false && x.type === 'min_receita' && x.period === 'mensal' && !x.category);
+    return m ? m.target : null;
+  }
+
+  function getActiveLimiteDespMensal() {
+    const m = (_data.metas || []).find(x => x.active !== false && x.type === 'limite_desp' && x.period === 'mensal' && !x.category);
+    return m ? m.target : null;
+  }
+
   function snapshotReserva(metaId) {
     const m = _data.metas.find(x => x.id === metaId);
     if (!m || m.type !== 'reserva') return;
     m.lastSnapshot = totalAtivos();
     persist();
+  }
+
+  function exportData() {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data: _data,
+    };
+  }
+
+  function importData(payload, { replace = true } = {}) {
+    if (!payload || typeof payload !== 'object') throw new Error('Payload inválido');
+    const incoming = payload.data || payload;
+    if (!incoming.despesas || !incoming.receitas) throw new Error('Estrutura não reconhecida (faltam despesas/receitas)');
+    if (replace) {
+      _data = incoming;
+    } else {
+      // merge (não usado por padrão)
+      Object.keys(incoming).forEach(k => {
+        if (Array.isArray(incoming[k]) && Array.isArray(_data[k])) {
+          const ids = new Set(_data[k].map(x => x.id));
+          incoming[k].forEach(x => { if (!ids.has(x.id)) _data[k].push(x); });
+        } else if (typeof incoming[k] === 'object') {
+          _data[k] = { ..._data[k], ...incoming[k] };
+        }
+      });
+    }
+    _migrateMetas();
+    persist();
+    return _data;
+  }
+
+  function resetData() {
+    _data = buildSeed();
+    _migrateMetas();
+    persist();
+    return _data;
   }
 
   function regenAllContratos() {
@@ -908,6 +955,7 @@ const Store = (function () {
     cleanDespesasByCategory,
     descSuggestions, receitaSuggestions,
     addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos,
-    getMetaPerformance, snapshotReserva,
+    getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
+    exportData, importData, resetData,
   };
 })();
