@@ -1509,13 +1509,19 @@ ${filtered.map(r => `<tr>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // PAGE: PATRIMÔNIO
+  // PAGE: RESERVA & PATRIMÔNIO (merged)
   // ══════════════════════════════════════════════════════════════
-  function renderPatrimonio(container) {
-    const ativos   = Store.get().ativos;
-    const reservas = Store.get().reserva || [];
+  const RESERVA_TIPOS = ['Renda Fixa - CDB','Renda Fixa - LCI/LCA','Renda Fixa - Tesouro Selic','Renda Fixa - Poupança','Renda Variável - Ações/FII','Renda Variável - ETF','Reserva em Dinheiro','Outros'];
+  const IMPOSTO_OPTS  = [{ label:'Isento (LCI/LCA/Poupança)', val:0 },{ label:'15% (acima de 720 dias)', val:0.15 },{ label:'17,5% (361–720 dias)', val:0.175 },{ label:'20% (até 360 dias)', val:0.20 }];
+  const MESES_LABEL   = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  function renderReservaPatrimonio(container) {
+    // ── data ────────────────────────────────────────────────────
+    const investimentos = Store.get().reservas || [];
+    const futuros       = Store.get().recebimentosFuturos || [];
+    const ativos        = Store.get().ativos;
     const { usdBrl = 5.85, eurBrl = 6.40 } = Store.get().settings;
-    const total = Store.totalAtivos();
+    const total = Store.totalAtivos(); // now correctly sums reservas+ativos
 
     function toBRL(a) {
       const val = a.qty * a.unitPrice;
@@ -1524,156 +1530,211 @@ ${filtered.map(r => `<tr>
       return val;
     }
 
-    // Build combined list: ativos + reservas (as virtual ativos)
-    const reservaAsAtivo = reservas.map(r => ({
-      _isReserva : true,
-      id         : r.id,
-      platform   : r.nome,
-      type       : 'Reserva',
-      currency   : 'BRL',
-      qty        : 1,
-      unitPrice  : r.valorAtual || r.valorInvestido || 0,
-      updated    : '',
-      _brl       : r.valorAtual || r.valorInvestido || 0,
-    }));
-
-    const byType = {};
-    ativos.forEach(a => {
-      byType[a.type] = (byType[a.type] || 0) + toBRL(a);
-    });
-    if (reservaAsAtivo.length) {
-      byType['Reserva'] = reservaAsAtivo.reduce((s, r) => s + r._brl, 0);
+    function yieldLiq(r) {
+      if (!r.rendimento || (r.tipo||'').includes('Dinheiro')) return 0;
+      return (r.valorInvestido || 0) * (r.rendimento / 100) * (1 - (r.imposto || 0));
     }
 
-    const allItems = [...ativos, ...reservaAsAtivo];
-    const sorted = allItems.sort((a, b) => {
-      const bA = a._isReserva ? a._brl : toBRL(a);
-      const bB = b._isReserva ? b._brl : toBRL(b);
-      return bB - bA;
-    });
+    const totalInv   = investimentos.reduce((s, r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
+    const totalAtiv  = ativos.reduce((s, a) => s + toBRL(a), 0);
+    const totalFutPend = futuros.filter(f => f.status !== 'recebido').reduce((s, f) => s + f.valor, 0);
+    const rendimento = investimentos.reduce((s, r) => s + yieldLiq(r), 0);
+
+    const byType = {};
+    ativos.forEach(a => { byType[a.type] = (byType[a.type] || 0) + toBRL(a); });
+    if (totalInv > 0) byType['Reserva'] = totalInv;
+
+    const TYPE_COLORS = { 'Crypto':'#F59E0B','Token':'#7C6EF8','FIAT BR':'#22C55E','FIAT EUR':'#3B82F6','Reserva':'#14B8A6' };
+    const metaRes  = (Store.get().metas || []).find(m => m.type === 'reserva');
+    const pctMeta  = metaRes ? Math.min((totalInv / metaRes.target) * 100, 100).toFixed(0) : null;
 
     container.innerHTML = `
 <div class="section-header mb-6">
-  <div><div class="section-title">Patrimônio & Investimentos</div>
-  <div class="section-sub">Cotações: 1 USD = R$ ${usdBrl} · 1 EUR = R$ ${eurBrl}</div></div>
-  <button class="btn-secondary" id="btnEditRates">✏️ Atualizar Cotações</button>
+  <div>
+    <div class="section-title">Reserva & Patrimônio</div>
+    <div class="section-sub">Cotações: 1 USD = R$ ${usdBrl} · 1 EUR = R$ ${eurBrl}</div>
+  </div>
+  <div class="flex gap-2">
+    <button class="btn-secondary" id="btnEditRates">✏️ Cotações</button>
+    <button class="btn-secondary" id="btnAddFuturo">+ Recebimento Futuro</button>
+    <button class="btn-primary"   id="btnAddInv">+ Novo Investimento</button>
+  </div>
 </div>
 
+<!-- KPIs -->
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
     <div class="kpi-header"><span class="kpi-label">Patrimônio Total</span><span class="kpi-icon">💎</span></div>
     <div class="kpi-value accent">${Utils.currency(total)}</div>
-    <div class="card-sub">Ativos + Reservas convertidos em BRL</div>
+    <div class="card-sub">Reservas + Outros Ativos (BRL)</div>
   </div>
-  ${Object.entries(byType).map(([type, val]) => {
-    const typeColors3 = { 'Crypto':'#F59E0B','Token':'#7C6EF8','FIAT BR':'#22C55E','FIAT EUR':'#3B82F6','Reserva':'#14B8A6' };
-    const color = typeColors3[type] || '#7C6EF8';
-    // For Reserva, show threshold vs meta de emergência
-    const metaRes = (Store.get().metas || []).find(m => m.type === 'reserva');
-    const threshold = type === 'Reserva' && metaRes ? metaRes.target : null;
-    const pctMeta   = threshold ? Math.min((val / threshold) * 100, 100).toFixed(0) : null;
-    return `
-  <div class="kpi-card" style="--kpi-color:${color};--kpi-bg:${color}18">
-    <div class="kpi-header"><span class="kpi-label">${type}</span><span style="font-size:11px;color:var(--text-3)">${((val/total)*100).toFixed(1)}%</span></div>
-    <div class="kpi-value" style="font-size:18px;color:${color}">${Utils.currency(val)}</div>
-    ${threshold
-      ? `<div class="card-sub">Meta: ${Utils.currency(threshold)} · <span style="color:${pctMeta>=100?'var(--green)':'var(--amber)'}">⬤ ${pctMeta}% atingido</span></div>`
-      : `<div class="card-sub">${((val/total)*100).toFixed(1)}% do portfólio</div>`
-    }
-  </div>`;
-  }).join('')}
+  <div class="kpi-card" style="--kpi-color:#14B8A6;--kpi-bg:#14B8A618">
+    <div class="kpi-header"><span class="kpi-label">Total em Reservas</span><span class="kpi-icon">🏦</span></div>
+    <div class="kpi-value" style="color:#14B8A6">${Utils.currency(totalInv)}</div>
+    <div class="card-sub">${metaRes ? `Meta: ${Utils.currency(metaRes.target)} · <span style="color:${pctMeta>=100?'var(--green)':'var(--amber)'}">⬤ ${pctMeta}% atingido</span>` : `${investimentos.length} investimento${investimentos.length!==1?'s':''}`}</div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+    <div class="kpi-header"><span class="kpi-label">Rendimento Est./ano</span><span class="kpi-icon">📈</span></div>
+    <div class="kpi-value green">${Utils.currency(rendimento)}</div>
+    <div class="card-sub">Projeção anual líquida após IR</div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim)">
+    <div class="kpi-header"><span class="kpi-label">Outros Ativos</span><span class="kpi-icon">📊</span></div>
+    <div class="kpi-value" style="color:var(--blue)">${Utils.currency(totalAtiv)}</div>
+    <div class="card-sub">${ativos.length} ativo${ativos.length!==1?'s':''} (Crypto, FIAT…)</div>
+  </div>
+  ${totalFutPend > 0 ? `
+  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim,#F59E0B18)">
+    <div class="kpi-header"><span class="kpi-label">Recebimentos Futuros</span><span class="kpi-icon">📅</span></div>
+    <div class="kpi-value" style="color:var(--amber)">${Utils.currency(totalFutPend)}</div>
+    <div class="card-sub">${futuros.filter(f=>f.status!=='recebido').length} pendente${futuros.filter(f=>f.status!=='recebido').length!==1?'s':''}</div>
+  </div>` : ''}
 </div>
 
+<!-- Charts -->
 <div class="chart-grid mb-6" style="grid-template-columns:1fr 1.6fr">
   <div class="card">
-    <div class="card-header"><span class="card-title">Distribuição por Tipo</span></div>
-    <div class="chart-with-legend" style="flex-direction:column;grid-template-columns:1fr;justify-items:center">
+    <div class="card-header"><span class="card-title">Distribuição do Portfólio</span></div>
+    <div class="chart-with-legend" style="flex-direction:column;justify-items:center">
       <canvas id="chartPatDonut"></canvas>
       <div class="donut-legend" id="patLegend" style="width:100%;margin-top:8px"></div>
     </div>
   </div>
   <div class="card">
-    <div class="card-header"><span class="card-title">Top Ativos</span></div>
-    <div class="chart-wrap"><canvas id="chartPatBar" class="chart-canvas"></canvas></div>
+    <div class="card-header">
+      <span class="card-title">Evolução Patrimonial ${getYear()}</span>
+      <span class="badge badge-accent">Estimado</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chartPatEvolucao" class="chart-canvas"></canvas></div>
   </div>
 </div>
 
+<!-- Investimentos & Reservas -->
+<div class="section-header mb-4">
+  <div class="section-title">Investimentos & Reservas</div>
+</div>
+${investimentos.length === 0
+  ? `<div class="card mb-6" style="text-align:center;padding:40px;color:var(--text-4)">Nenhum investimento cadastrado — clique em <strong>+ Novo Investimento</strong> para começar.</div>`
+  : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px">
+  ${investimentos.map(r => {
+    const liq = yieldLiq(r);
+    const tagColor = (r.tipo||'').includes('Dinheiro') ? 'var(--text-3)' : (r.tipo||'').includes('Variável') ? 'var(--blue)' : 'var(--green)';
+    const valAtual = r.valorAtual || r.valorInvestido || 0;
+    const ganho = valAtual - (r.valorInvestido || 0);
+    return `
+  <div class="card" style="border-top:3px solid ${tagColor}">
+    <div class="card-header">
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-1)">${r.nome}</div>
+        <div style="font-size:11px;color:var(--text-4);margin-top:2px">${r.tipo||''}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" data-action="edit-inv" data-id="${r.id}">✏</button>
+        <button class="btn-xs btn-red" data-action="del-inv" data-id="${r.id}">✕</button>
+      </div>
+    </div>
+    <div style="margin:12px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+      <div><div style="color:var(--text-4)">Investido</div><div style="font-weight:700">${Utils.currency(r.valorInvestido||0)}</div></div>
+      <div><div style="color:var(--text-4)">Valor Atual</div><div style="font-weight:700;color:var(--green)">${Utils.currency(valAtual)}</div></div>
+      ${r.rendimento ? `<div><div style="color:var(--text-4)">Rendimento</div><div style="font-weight:600;color:var(--accent)">${r.rendimento}% a.a.</div></div>` : ''}
+      ${ganho !== 0 ? `<div><div style="color:var(--text-4)">Ganho</div><div style="font-weight:600;color:${ganho>=0?'var(--green)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div></div>` : ''}
+      ${liq ? `<div style="grid-column:1/-1"><div style="color:var(--text-4)">Rend. Líq. Est./ano</div><div style="font-weight:700;color:var(--green)">${Utils.currency(liq)}</div></div>` : ''}
+    </div>
+    ${r.carencia ? `<div style="font-size:11px;color:var(--text-4);margin-top:4px">🔒 Carência: ${new Date(r.carencia+'T12:00:00').toLocaleDateString('pt-BR')}</div>` : ''}
+  </div>`;
+  }).join('')}
+</div>`}
+
+<!-- Outros Ativos -->
+${ativos.length > 0 ? `
+<div class="section-header mb-4"><div class="section-title">Outros Ativos</div></div>
 <div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Evolução Patrimonial ${Store.get().settings.ano}</span>
-    <span class="badge badge-accent">Estimado</span>
+  <div class="card-header"><span class="card-title">Crypto, FIAT & Tokens</span>
+    <button class="btn-xs" id="btnAddAtivo">+ Ativo</button>
   </div>
-  <div class="chart-wrap"><canvas id="chartPatEvolucao" class="chart-canvas"></canvas></div>
-</div>
-
-<div class="card">
-  <div class="card-header"><span class="card-title">Todos os Ativos</span></div>
   <div>
-    ${sorted.map(a => {
-      const brl = a._isReserva ? a._brl : toBRL(a);
+    ${ativos.sort((a,b)=>toBRL(b)-toBRL(a)).map(a => {
+      const brl = toBRL(a);
       const pct = ((brl/total)*100).toFixed(1);
-      const typeColors = { 'Crypto':'#F59E0B', 'Token':'#7C6EF8', 'FIAT BR':'#22C55E', 'FIAT EUR':'#3B82F6', 'Reserva':'#14B8A6' };
-      const col = typeColors[a.type] || '#7C6EF8';
-      const editAction = a._isReserva ? 'edit-reserva' : 'edit-ativo';
-      const delAction  = a._isReserva ? 'del-reserva'  : 'del-ativo';
-      const subLine    = a._isReserva ? 'Reserva / Investimento' : `${a.type} · Atualiz: ${a.updated}`;
-      const qtyLine    = a._isReserva ? `Valor atual: ${Utils.currency(a._brl)}` : `${a.qty.toLocaleString('pt-BR')} @ ${a.unitPrice} ${a.currency}`;
-      const valLine2   = a._isReserva ? '' : `<div style="font-size:11px;color:var(--text-3);text-align:right">${a.qty * a.unitPrice} ${a.currency}</div>`;
+      const col = TYPE_COLORS[a.type] || '#7C6EF8';
       return `
       <div class="asset-row">
         <div class="asset-logo" style="border-color:${col}20;color:${col}">${a.platform.slice(0,3).toUpperCase()}</div>
         <div>
           <div class="asset-name">${a.platform}</div>
-          <div class="asset-type">${subLine}</div>
+          <div class="asset-type">${a.type} · Atualiz: ${a.updated}</div>
         </div>
         <div>
-          <div class="asset-qty">${qtyLine}</div>
+          <div class="asset-qty">${a.qty.toLocaleString('pt-BR')} @ ${a.unitPrice} ${a.currency}</div>
           <div class="asset-qty">${pct}% do portfólio</div>
         </div>
         <div>
           <div class="asset-value">${Utils.currency(brl)}</div>
-          ${valLine2}
+          <div style="font-size:11px;color:var(--text-3);text-align:right">${a.qty * a.unitPrice} ${a.currency}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
-          <button class="btn-xs" data-action="${editAction}" data-id="${a.id}" title="Editar">✏</button>
-          <button class="btn-xs btn-red" data-action="${delAction}" data-id="${a.id}" title="Excluir">×</button>
+          <button class="btn-xs" data-action="edit-ativo" data-id="${a.id}">✏</button>
+          <button class="btn-xs btn-red" data-action="del-ativo" data-id="${a.id}">×</button>
         </div>
       </div>`;
     }).join('')}
   </div>
-</div>`;
+</div>` : `
+<div class="section-header mb-4"><div class="section-title">Outros Ativos</div></div>
+<div class="card mb-6" style="text-align:center;padding:32px;color:var(--text-4)">
+  Nenhum outro ativo cadastrado.
+  <button class="btn-xs" id="btnAddAtivo" style="margin-left:12px">+ Ativo</button>
+</div>`}
 
+<!-- Recebimentos Futuros -->
+<div class="section-header mb-4"><div class="section-title">Recebimentos Futuros Previstos</div></div>
+${futuros.length === 0
+  ? `<div class="card" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum recebimento futuro cadastrado.</div>`
+  : `<div class="card">
+  ${futuros.map(f => {
+    const mes = `${MESES_LABEL[(f.mes||1)-1]} ${f.ano||''}`;
+    return `
+  <div class="stat-row">
+    <div>
+      <div class="stat-row-label">${f.descricao}</div>
+      <div style="font-size:11px;color:var(--text-4)">Previsto: ${mes}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-weight:700;font-size:14px;color:${f.status==='recebido'?'var(--green)':'var(--text-1)'}">${Utils.currency(f.valor)}</span>
+      ${f.status!=='recebido'
+        ? `<button class="btn-xs btn-green" data-action="rec-recebido" data-id="${f.id}">✓</button>`
+        : `<span class="badge badge-green">Recebido</span>`}
+      <button class="btn-xs btn-red" data-action="del-futuro" data-id="${f.id}">✕</button>
+    </div>
+  </div>`;
+  }).join('')}
+</div>`}`;
+
+    // ── Charts ────────────────────────────────────────────────────
     requestAnimationFrame(() => {
-      const typeColors2 = { 'Crypto':'#F59E0B', 'Token':'#7C6EF8', 'FIAT BR':'#22C55E', 'FIAT EUR':'#3B82F6', 'Reserva':'#14B8A6' };
-      const donutData = Object.entries(byType).map(([type,val]) => ({
-        label: type, value: val, color: typeColors2[type] || '#7C6EF8',
+      const donutData = Object.entries(byType).map(([type, val]) => ({
+        label: type, value: val, color: TYPE_COLORS[type] || '#7C6EF8',
       }));
-      Charts.Donut(document.getElementById('chartPatDonut'), donutData, {
-        size: 200, centerLabel: Charts.fmt(total/1e6,true)+'M', centerSub: 'BRL',
-      });
-      const legend = document.getElementById('patLegend');
-      const tot2 = donutData.reduce((a,d)=>a+d.value,0)||1;
-      legend.innerHTML = donutData.map(d=>`
-        <div class="donut-legend-item">
-          <div class="donut-legend-dot" style="background:${d.color}"></div>
-          <span class="donut-legend-label">${d.label}</span>
-          <span class="donut-legend-pct">${((d.value/tot2)*100).toFixed(1)}%</span>
-          <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
-        </div>`).join('');
+      if (donutData.length) {
+        Charts.Donut(document.getElementById('chartPatDonut'), donutData, {
+          size: 200, centerLabel: Charts.fmt(total/1e6,true)+'M', centerSub: 'BRL',
+        });
+        const legend = document.getElementById('patLegend');
+        const tot2 = donutData.reduce((a,d)=>a+d.value,0)||1;
+        legend.innerHTML = donutData.map(d=>`
+          <div class="donut-legend-item">
+            <div class="donut-legend-dot" style="background:${d.color}"></div>
+            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-pct">${((d.value/tot2)*100).toFixed(1)}%</span>
+            <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
+          </div>`).join('');
+      }
 
-      Charts.HBar(document.getElementById('chartPatBar'), sorted.slice(0,8).map(a=>({
-        label: a.platform.length > 20 ? a.platform.slice(0,20)+'…' : a.platform,
-        value: a._isReserva ? a._brl : toBRL(a),
-        color: typeColors2[a.type] || '#7C6EF8',
-      })), { barH: 28, padL: 150, padR: 90, gap: 8 });
-
-      // ── Evolução Patrimonial ─────────────────────────────────────
-      const year = Store.get().settings.ano;
-      const yrRec  = Store.yearlyMonthly(year, 'receita');
-      const yrDesp = Store.yearlyMonthly(year, 'despesa');
-      // Cumulative saldo across all active months
+      // Evolution chart
+      const yr = getYear();
+      const yrRec  = Store.yearlyMonthly(yr, 'receita');
+      const yrDesp = Store.yearlyMonthly(yr, 'despesa');
       const totalAccSaldo = yrRec.reduce((a,r,i) => a + r - yrDesp[i], 0);
-      // Estimated baseline = current total – all savings this year
       const baseline = total - totalAccSaldo;
       let running = 0;
       const evolLabels = [], evolValues = [];
@@ -1683,17 +1744,25 @@ ${filtered.map(r => `<tr>
         evolLabels.push(Utils.months[i]);
         evolValues.push(Math.max(0, baseline + running));
       });
-      if (evolLabels.length > 1) {
-        Charts.Line(document.getElementById('chartPatEvolucao'), {
-          labels: evolLabels,
-          datasets: [{ label: 'Patrimônio', values: evolValues, color: '#7C6EF8' }],
-        }, { height: 200 });
-      } else if (document.getElementById('chartPatEvolucao')) {
-        document.getElementById('chartPatEvolucao').parentElement.innerHTML =
-          '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes para traçar evolução (mínimo 2 meses)</div>';
+      const evoEl = document.getElementById('chartPatEvolucao');
+      if (evoEl) {
+        if (evolLabels.length > 1) {
+          Charts.Line(evoEl, {
+            labels: evolLabels,
+            datasets: [{ label: 'Patrimônio', values: evolValues, color: '#14B8A6' }],
+          }, { height: 200 });
+        } else {
+          evoEl.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes (mínimo 2 meses com lançamentos)</div>';
+        }
       }
     });
 
+    // ── event handlers ────────────────────────────────────────────
+    const re = () => renderReservaPatrimonio(container);
+
+    document.getElementById('btnAddInv')?.addEventListener('click', () => openInvModal(null, re));
+    document.getElementById('btnAddFuturo')?.addEventListener('click', () => openFuturoModal2(re));
+    document.getElementById('btnAddAtivo')?.addEventListener('click', () => openAtivoModal(null, re));
     document.getElementById('btnEditRates')?.addEventListener('click', () => {
       const html = `<div class="form-grid">
         <div class="form-group"><label class="form-label">USD → BRL</label><input class="form-input" id="fUSD" type="number" step="0.01" value="${usdBrl}"/></div>
@@ -1701,91 +1770,156 @@ ${filtered.map(r => `<tr>
       </div>`;
       Modal.open('Atualizar Cotações', html, () => {
         Store.updateSettings({ usdBrl: parseFloat(document.getElementById('fUSD').value), eurBrl: parseFloat(document.getElementById('fEUR').value) });
-        Modal.close();
-        renderPatrimonio(container);
-        toast('Cotações atualizadas!', 'success');
+        Modal.close(); re(); toast('Cotações atualizadas!', 'success');
       });
     });
 
-    // ── Edit / Delete ativos ──────────────────────────────────────
     container.addEventListener('click', e => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
-      const id  = btn.dataset.id;
-      const action = btn.dataset.action;
+      const { action, id } = btn.dataset;
 
+      if (action === 'del-inv') {
+        if (!confirm('Excluir este investimento?')) return;
+        Store.deleteReserva(id); re(); toast('Removido!', 'success');
+      }
+      if (action === 'edit-inv') {
+        const r = investimentos.find(r => r.id === id);
+        if (r) openInvModal(r, re);
+      }
       if (action === 'del-ativo') {
-        if (!confirm('Excluir este ativo do portfólio?')) return;
-        Store.deleteAtivo(id);
-        renderPatrimonio(container);
-        toast('Ativo excluído!', 'success');
+        if (!confirm('Excluir este ativo?')) return;
+        Store.deleteAtivo(id); re(); toast('Ativo excluído!', 'success');
       }
-
       if (action === 'edit-ativo') {
-        const ativo = Store.get().ativos.find(a => a.id === id);
-        if (!ativo) return;
-        const TYPES = ['Crypto','Token','FIAT BR','FIAT EUR'];
-        const CURRENCIES = ['BRL','USD','EUR'];
-        const html = `
-<div class="form-grid">
-  <div class="form-group" style="grid-column:1/-1">
-    <label class="form-label">Nome / Plataforma</label>
-    <input class="form-input" id="fAP" value="${ativo.platform}"/>
-  </div>
-  <div class="form-group">
-    <label class="form-label">Tipo</label>
-    <select class="form-select" id="fAT">
-      ${TYPES.map(t=>`<option${t===ativo.type?' selected':''}>${t}</option>`).join('')}
-    </select>
-  </div>
-  <div class="form-group">
-    <label class="form-label">Moeda</label>
-    <select class="form-select" id="fACur">
-      ${CURRENCIES.map(c=>`<option${c===ativo.currency?' selected':''}>${c}</option>`).join('')}
-    </select>
-  </div>
-  <div class="form-group">
-    <label class="form-label">Quantidade</label>
-    <input class="form-input" id="fAQ" type="number" step="any" value="${ativo.qty}"/>
-  </div>
-  <div class="form-group">
-    <label class="form-label">Preço unitário</label>
-    <input class="form-input" id="fAU" type="number" step="any" value="${ativo.unitPrice}"/>
-  </div>
-  <div class="form-group">
-    <label class="form-label">Data atualização</label>
-    <input class="form-input" id="fAD" type="date" value="${ativo.updated}"/>
-  </div>
-</div>`;
-        Modal.open('Editar Ativo', html, () => {
-          Store.updateAtivo(id, {
-            platform : document.getElementById('fAP').value.trim(),
-            type     : document.getElementById('fAT').value,
-            currency : document.getElementById('fACur').value,
-            qty      : parseFloat(document.getElementById('fAQ').value) || 0,
-            unitPrice: parseFloat(document.getElementById('fAU').value) || 0,
-            updated  : document.getElementById('fAD').value || ativo.updated,
-          });
-          Modal.close();
-          renderPatrimonio(container);
-          toast('Ativo atualizado!', 'success');
-        });
+        const a = Store.get().ativos.find(a => a.id === id);
+        if (a) openAtivoModal(a, re);
       }
-
-      if (action === 'del-reserva') {
-        if (!confirm('Remover este investimento do patrimônio?')) return;
-        Store.deleteReserva(id);
-        renderPatrimonio(container);
-        toast('Investimento removido!', 'success');
+      if (action === 'del-futuro') {
+        if (!confirm('Excluir?')) return;
+        Store.deleteRecebimentoFuturo(id); re();
       }
-
-      if (action === 'edit-reserva') {
-        // Redirect user to Reserva page for full editing
-        window.location.hash = '#reserva';
-        toast('Edite o investimento na aba Reserva.', 'info');
+      if (action === 'rec-recebido') {
+        const f = (Store.get().recebimentosFuturos||[]).find(f => f.id === id);
+        if (f) { f.status = 'recebido'; Store.persist(); re(); toast('Marcado como recebido!', 'success'); }
       }
     });
   }
+
+  // Alias para compatibilidade com rotas existentes
+  function renderReserva(container)   { renderReservaPatrimonio(container); }
+  function renderPatrimonio(container){ renderReservaPatrimonio(container); }
+
+  // ── Modal: Investimento (ex-openReservaModal) ─────────────────
+  function openInvModal(res, onSaved) {
+    const isEdit = !!res;
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome / Descrição</label><input class="form-input" id="fRNome" placeholder="Ex: CDB Nubank 110% CDI" value="${isEdit?res.nome:''}"/></div>
+      <div class="form-group form-full"><label class="form-label">Tipo de Produto</label>
+        <select class="form-select" id="fRTipo">${RESERVA_TIPOS.map(t=>`<option value="${t}" ${isEdit&&res.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label class="form-label">Valor Investido (R$)</label><input class="form-input" id="fRInv" type="number" step="100" placeholder="0" value="${isEdit?res.valorInvestido:''}"/></div>
+      <div class="form-group"><label class="form-label">Valor Atual (R$)</label><input class="form-input" id="fRAtual" type="number" step="100" placeholder="0" value="${isEdit&&res.valorAtual?res.valorAtual:''}"/></div>
+      <div class="form-group"><label class="form-label">Rendimento (% a.a.)</label><input class="form-input" id="fRRend" type="number" step="0.1" placeholder="Ex: 12.5" value="${isEdit&&res.rendimento?res.rendimento:''}"/></div>
+      <div class="form-group"><label class="form-label">Imposto de Renda</label>
+        <select class="form-select" id="fRImp">${IMPOSTO_OPTS.map(o=>`<option value="${o.val}" ${isEdit&&res.imposto===o.val?'selected':''}>${o.label}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label class="form-label">Carência (data)</label><input class="form-input" id="fRCarencia" type="date" value="${isEdit&&res.carencia?res.carencia:''}"/></div>
+    </div>`;
+    Modal.open(isEdit ? 'Editar Investimento' : 'Novo Investimento', html, () => {
+      const nome = document.getElementById('fRNome').value.trim();
+      const tipo = document.getElementById('fRTipo').value;
+      const valorInvestido = parseFloat(document.getElementById('fRInv').value) || 0;
+      const valorAtual     = parseFloat(document.getElementById('fRAtual').value) || valorInvestido;
+      const rendimento     = parseFloat(document.getElementById('fRRend').value) || 0;
+      const imposto        = parseFloat(document.getElementById('fRImp').value) || 0;
+      const carencia       = document.getElementById('fRCarencia').value;
+      if (!nome) return toast('Preencha o nome', 'error');
+      if (isEdit) {
+        Store.updateReserva(res.id, { nome, tipo, valorInvestido, valorAtual, rendimento, imposto, carencia });
+        toast('Atualizado!', 'success');
+      } else {
+        Store.addReserva({ nome, tipo, valorInvestido, valorAtual, rendimento, imposto, carencia });
+        toast('Investimento adicionado!', 'success');
+      }
+      Modal.close(); if (onSaved) onSaved();
+    });
+  }
+
+  // ── Modal: Ativo (crypto/FIAT) ────────────────────────────────
+  function openAtivoModal(ativo, onSaved) {
+    const isEdit = !!ativo;
+    const TYPES = ['Crypto','Token','FIAT BR','FIAT EUR'];
+    const CURRENCIES = ['BRL','USD','EUR'];
+    const html = `
+<div class="form-grid">
+  <div class="form-group" style="grid-column:1/-1">
+    <label class="form-label">Nome / Plataforma</label>
+    <input class="form-input" id="fAP" placeholder="Ex: Bitcoin, Wise" value="${isEdit?ativo.platform:''}"/>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Tipo</label>
+    <select class="form-select" id="fAT">${TYPES.map(t=>`<option${isEdit&&t===ativo.type?' selected':''}>${t}</option>`).join('')}</select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Moeda</label>
+    <select class="form-select" id="fACur">${CURRENCIES.map(c=>`<option${isEdit&&c===ativo.currency?' selected':''}>${c}</option>`).join('')}</select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Quantidade</label>
+    <input class="form-input" id="fAQ" type="number" step="any" value="${isEdit?ativo.qty:1}"/>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Preço unitário</label>
+    <input class="form-input" id="fAU" type="number" step="any" value="${isEdit?ativo.unitPrice:0}"/>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Data atualização</label>
+    <input class="form-input" id="fAD" type="date" value="${isEdit?ativo.updated:''}"/>
+  </div>
+</div>`;
+    Modal.open(isEdit ? 'Editar Ativo' : 'Novo Ativo', html, () => {
+      const patch = {
+        platform : document.getElementById('fAP').value.trim(),
+        type     : document.getElementById('fAT').value,
+        currency : document.getElementById('fACur').value,
+        qty      : parseFloat(document.getElementById('fAQ').value) || 0,
+        unitPrice: parseFloat(document.getElementById('fAU').value) || 0,
+        updated  : document.getElementById('fAD').value,
+      };
+      if (!patch.platform) return toast('Preencha o nome/plataforma', 'error');
+      if (isEdit) { Store.updateAtivo(ativo.id, patch); toast('Ativo atualizado!', 'success'); }
+      else {
+        const newAtivo = { id: 'a'+Date.now(), ...patch };
+        Store.get().ativos.push(newAtivo); Store.persist(); toast('Ativo adicionado!', 'success');
+      }
+      Modal.close(); if (onSaved) onSaved();
+    });
+  }
+
+  // ── Modal: Recebimento Futuro (renamed to avoid conflict) ─────
+  function openFuturoModal2(onSaved) {
+    const thisYear = new Date().getFullYear();
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fFDesc" placeholder="Ex: Rescisão, Dividendos…"/></div>
+      <div class="form-group"><label class="form-label">Valor Esperado (R$)</label><input class="form-input" id="fFValor" type="number" step="100"/></div>
+      <div class="form-group"><label class="form-label">Mês Previsto</label>
+        <select class="form-select" id="fFMes">${MESES_LABEL.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label class="form-label">Ano</label><input class="form-input" id="fFAno" type="number" value="${thisYear}" min="${thisYear}"/></div>
+    </div>`;
+    Modal.open('Recebimento Futuro Previsto', html, () => {
+      const descricao = document.getElementById('fFDesc').value.trim();
+      const valor     = parseFloat(document.getElementById('fFValor').value) || 0;
+      const mes       = parseInt(document.getElementById('fFMes').value);
+      const ano       = parseInt(document.getElementById('fFAno').value) || thisYear;
+      if (!descricao || !valor) return toast('Preencha descrição e valor', 'error');
+      Store.addRecebimentoFuturo({ descricao, valor, mes, ano, status: 'pendente' });
+      toast('Adicionado!', 'success');
+      Modal.close(); if (onSaved) onSaved();
+    });
+  }
+
 
   // ══════════════════════════════════════════════════════════════
   // PAGE: COMPARATIVO
@@ -2198,190 +2332,6 @@ ${(() => {
         document.getElementById('tabDesp').classList.remove('active');
       });
     }, 50);
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // PAGE: RESERVA (Investimentos & Recebimentos Futuros)
-  // ══════════════════════════════════════════════════════════════
-  const RESERVA_TIPOS = ['Renda Fixa - CDB','Renda Fixa - LCI/LCA','Renda Fixa - Tesouro Selic','Renda Fixa - Poupança','Renda Variável - Ações/FII','Renda Variável - ETF','Reserva em Dinheiro','Outros'];
-  const IMPOSTO_OPTS  = [{ label:'Isento (LCI/LCA/Poupança)', val:0 },{ label:'15% (acima de 720 dias)', val:0.15 },{ label:'17,5% (361–720 dias)', val:0.175 },{ label:'20% (até 360 dias)', val:0.20 }];
-  const MESES_LABEL   = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-  function renderReserva(container) {
-    const reservas  = Store.get().reservas  || [];
-    const futuros   = Store.get().recebimentosFuturos || [];
-    const totalInv  = reservas.reduce((s,r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
-    const totalFut  = futuros.filter(f=>f.status!=='recebido').reduce((s,f) => s + f.valor, 0);
-
-    function yieldLiq(r) {
-      if (!r.rendimento || r.tipo.includes('Dinheiro')) return 0;
-      const bruto = (r.valorInvestido || 0) * (r.rendimento / 100);
-      return bruto * (1 - (r.imposto || 0));
-    }
-
-    container.innerHTML = `
-<div class="section-header mb-6">
-  <div><div class="section-title">Reserva & Investimentos</div>
-  <div class="section-sub">Controle de investimentos, reservas e entradas futuras previstas</div></div>
-  <div class="flex gap-2">
-    <button class="btn-secondary" id="btnAddFuturo">+ Recebimento Futuro</button>
-    <button class="btn-primary"   id="btnAddReserva">+ Novo Investimento</button>
-  </div>
-</div>
-
-<div class="kpi-grid mb-6">
-  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-header"><span class="kpi-label">Total Investido</span><span class="kpi-icon">🏦</span></div>
-    <div class="kpi-value" style="color:var(--accent)">${Utils.currency(totalInv)}</div>
-    <div class="card-sub">${reservas.length} ativo${reservas.length!==1?'s':''} cadastrado${reservas.length!==1?'s':''}</div>
-  </div>
-  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Rendimento Líquido Est.</span><span class="kpi-icon">📈</span></div>
-    <div class="kpi-value green">${Utils.currency(reservas.reduce((s,r)=>s+yieldLiq(r),0))}</div>
-    <div class="card-sub">Projeção anual após IR</div>
-  </div>
-  <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim)">
-    <div class="kpi-header"><span class="kpi-label">Recebimentos Futuros</span><span class="kpi-icon">📅</span></div>
-    <div class="kpi-value" style="color:var(--blue)">${Utils.currency(totalFut)}</div>
-    <div class="card-sub">${futuros.filter(f=>f.status!=='recebido').length} pendente${futuros.filter(f=>f.status!=='recebido').length!==1?'s':''}</div>
-  </div>
-</div>
-
-<div class="section-header mb-4"><div class="section-title">Investimentos & Reservas</div></div>
-${reservas.length === 0 ? `<div class="card" style="text-align:center;padding:40px;color:var(--text-4)">Nenhum investimento cadastrado</div>` : `
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px">
-  ${reservas.map(r => {
-    const liq = yieldLiq(r);
-    const tagColor = r.tipo.includes('Dinheiro') ? 'var(--text-3)' : r.tipo.includes('Variável') ? 'var(--blue)' : 'var(--green)';
-    return `
-  <div class="card" style="border-top:3px solid ${tagColor}">
-    <div class="card-header">
-      <div>
-        <div style="font-weight:700;font-size:14px;color:var(--text-1)">${r.nome}</div>
-        <div style="font-size:11px;color:var(--text-4);margin-top:2px">${r.tipo}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-xs" data-action="edit-res" data-id="${r.id}" title="Editar">✏</button>
-        <button class="btn-xs btn-red" data-action="del-res" data-id="${r.id}" title="Excluir">✕</button>
-      </div>
-    </div>
-    <div style="margin:12px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-      <div><div style="color:var(--text-4)">Investido</div><div style="font-weight:700;color:var(--text-1)">${Utils.currency(r.valorInvestido||0)}</div></div>
-      <div><div style="color:var(--text-4)">Valor Atual</div><div style="font-weight:700;color:var(--green)">${Utils.currency(r.valorAtual||r.valorInvestido||0)}</div></div>
-      ${r.rendimento ? `<div><div style="color:var(--text-4)">Rendimento</div><div style="font-weight:600;color:var(--accent)">${r.rendimento}% a.a.</div></div>` : ''}
-      ${r.imposto ? `<div><div style="color:var(--text-4)">IR</div><div style="font-weight:600;color:var(--amber)">${(r.imposto*100).toFixed(1)}%</div></div>` : ''}
-      ${liq ? `<div style="grid-column:1/-1"><div style="color:var(--text-4)">Rend. Líq. Est./ano</div><div style="font-weight:700;color:var(--green)">${Utils.currency(liq)}</div></div>` : ''}
-    </div>
-    ${r.carencia ? `<div style="font-size:11px;color:var(--text-4)">🔒 Carência: ${new Date(r.carencia+'T12:00:00').toLocaleDateString('pt-BR')}</div>` : ''}
-  </div>`;
-  }).join('')}
-</div>`}
-
-<div class="section-header mb-4" style="margin-top:8px"><div class="section-title">Recebimentos Futuros Previstos</div></div>
-${futuros.length === 0 ? `<div class="card" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum recebimento futuro cadastrado</div>` : `
-<div class="card">
-  ${futuros.map(f => {
-    const mes = `${MESES_LABEL[(f.mes||1)-1]} ${f.ano||''}`;
-    return `
-  <div class="stat-row">
-    <div>
-      <div class="stat-row-label">${f.descricao}</div>
-      <div style="font-size:11px;color:var(--text-4)">Previsto: ${mes}</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span style="font-weight:700;font-size:14px;color:${f.status==='recebido'?'var(--green)':'var(--text-1)'}">${Utils.currency(f.valor)}</span>
-      ${f.status!=='recebido'
-        ? `<button class="btn-xs btn-green" data-action="rec-recebido" data-id="${f.id}" title="Marcar como recebido">✓</button>`
-        : `<span class="badge badge-green">Recebido</span>`}
-      <button class="btn-xs btn-red" data-action="del-futuro" data-id="${f.id}" title="Excluir">✕</button>
-    </div>
-  </div>`;
-  }).join('')}
-</div>`}`;
-
-    document.getElementById('btnAddReserva')?.addEventListener('click', () => openReservaModal(null, container));
-    document.getElementById('btnAddFuturo')?.addEventListener('click', () => openFuturoModal(container));
-    container.querySelectorAll('[data-action="edit-res"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const r = (Store.get().reservas||[]).find(r => r.id === btn.dataset.id);
-        if (r) openReservaModal(r, container);
-      });
-    });
-    container.querySelectorAll('[data-action="del-res"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('Excluir este investimento?')) return;
-        Store.deleteReserva(btn.dataset.id); renderReserva(container); toast('Removido!', 'success');
-      });
-    });
-    container.querySelectorAll('[data-action="del-futuro"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('Excluir?')) return;
-        Store.deleteRecebimentoFuturo(btn.dataset.id); renderReserva(container);
-      });
-    });
-    container.querySelectorAll('[data-action="rec-recebido"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const f = (Store.get().recebimentosFuturos||[]).find(f => f.id === btn.dataset.id);
-        if (f) { f.status = 'recebido'; Store.persist(); renderReserva(container); toast('Marcado como recebido!', 'success'); }
-      });
-    });
-  }
-
-  function openReservaModal(res, container) {
-    const isEdit = !!res;
-    const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome / Descrição</label><input class="form-input" id="fRNome" placeholder="Ex: CDB Nubank 110% CDI" value="${isEdit?res.nome:''}"/></div>
-      <div class="form-group form-full"><label class="form-label">Tipo de Produto</label>
-        <select class="form-select" id="fRTipo">${RESERVA_TIPOS.map(t=>`<option value="${t}" ${isEdit&&res.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label class="form-label">Valor Investido (R$)</label><input class="form-input" id="fRInv" type="number" step="100" placeholder="0" value="${isEdit?res.valorInvestido:''}"/></div>
-      <div class="form-group"><label class="form-label">Valor Atual (R$)</label><input class="form-input" id="fRAtual" type="number" step="100" placeholder="0" value="${isEdit&&res.valorAtual?res.valorAtual:''}"/></div>
-      <div class="form-group"><label class="form-label">Rendimento (% a.a.)</label><input class="form-input" id="fRRend" type="number" step="0.1" placeholder="Ex: 12.5" value="${isEdit&&res.rendimento?res.rendimento:''}"/></div>
-      <div class="form-group"><label class="form-label">Imposto de Renda</label>
-        <select class="form-select" id="fRImp">${IMPOSTO_OPTS.map(o=>`<option value="${o.val}" ${isEdit&&res.imposto===o.val?'selected':''}>${o.label}</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label class="form-label">Carência (data)</label><input class="form-input" id="fRCarencia" type="date" value="${isEdit&&res.carencia?res.carencia:''}"/></div>
-    </div>`;
-    Modal.open(isEdit ? 'Editar Investimento' : 'Novo Investimento', html, () => {
-      const nome = document.getElementById('fRNome').value.trim();
-      const tipo = document.getElementById('fRTipo').value;
-      const valorInvestido = parseFloat(document.getElementById('fRInv').value) || 0;
-      const valorAtual     = parseFloat(document.getElementById('fRAtual').value) || valorInvestido;
-      const rendimento     = parseFloat(document.getElementById('fRRend').value) || 0;
-      const imposto        = parseFloat(document.getElementById('fRImp').value) || 0;
-      const carencia       = document.getElementById('fRCarencia').value;
-      if (!nome) return toast('Preencha o nome', 'error');
-      if (isEdit) {
-        Store.updateReserva(res.id, { nome, tipo, valorInvestido, valorAtual, rendimento, imposto, carencia });
-        toast('Atualizado!', 'success');
-      } else {
-        Store.addReserva({ nome, tipo, valorInvestido, valorAtual, rendimento, imposto, carencia });
-        toast('Investimento adicionado!', 'success');
-      }
-      Modal.close(); renderReserva(container);
-    });
-  }
-
-  function openFuturoModal(container) {
-    const thisYear = new Date().getFullYear();
-    const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fFDesc" placeholder="Ex: Rescisão, Dividendos, Herança…"/></div>
-      <div class="form-group"><label class="form-label">Valor Esperado (R$)</label><input class="form-input" id="fFValor" type="number" step="100" placeholder="0"/></div>
-      <div class="form-group"><label class="form-label">Mês Previsto</label>
-        <select class="form-select" id="fFMes">${MESES_LABEL.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label class="form-label">Ano</label><input class="form-input" id="fFAno" type="number" value="${thisYear}" min="${thisYear}"/></div>
-    </div>`;
-    Modal.open('Recebimento Futuro Previsto', html, () => {
-      const descricao = document.getElementById('fFDesc').value.trim();
-      const valor     = parseFloat(document.getElementById('fFValor').value) || 0;
-      const mes       = parseInt(document.getElementById('fFMes').value);
-      const ano       = parseInt(document.getElementById('fFAno').value) || thisYear;
-      if (!descricao || !valor) return toast('Preencha descrição e valor', 'error');
-      Store.addRecebimentoFuturo({ descricao, valor, mes, ano, status: 'pendente' });
-      toast('Recebimento futuro adicionado!', 'success');
-      Modal.close(); renderReserva(container);
-    });
   }
 
   // ══════════════════════════════════════════════════════════════

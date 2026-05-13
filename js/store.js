@@ -620,7 +620,7 @@ const Store = (function () {
       if (a.currency === 'EUR') return sum + val * eurBrl;
       return sum + val;
     }, 0);
-    const fromReserva = (_data.reserva || []).reduce((sum, r) => {
+    const fromReserva = (_data.reservas || []).reduce((sum, r) => {
       return sum + (r.valorAtual || r.valorInvestido || 0);
     }, 0);
     return fromAtivos + fromReserva;
