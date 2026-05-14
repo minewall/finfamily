@@ -20,6 +20,7 @@ const Store = (function () {
     cartoes:     { label: 'Cartões & Wallets',   color: '#8B5CF6', icon: '💳' },
     roberto:     { label: 'Roberto Individual',  color: '#0EA5E9', icon: '👨' },
     mariana:     { label: 'Mariana Individual',  color: '#D946EF', icon: '👩' },
+    manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: '👧' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: '💰' },
   };
 
@@ -29,18 +30,20 @@ const Store = (function () {
     transporte: ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
     saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja'],
-    dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios'],
-    lazer: ['Restaurantes e Passeios','Diversão','Famílias e Amigos','Viagens'],
+    dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios / Brinquedos'],
+    lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
     financeiro: ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     cartoes: ['Itaú Click','Itaú Uniclass','Wise','Santander','Shopee','Mercado Livre','Torra Torra'],
     roberto: ['Melissa Advogada','Assinaturas','Celular','Telegrama'],
     mariana: ['Faculdade UNIP','Livros e Materiais','Mesada','Lanche','OAB'],
+    manuela: ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
   };
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
 
-  // ── CANÔNICO: MORADIA 2026 (Jan-Abr) ─────────────────────────────
-  // Fonte: planilha oficial. Aluguel NÃO está aqui — vem do Contrato.
+  // ── CANÔNICO: DESPESAS 2026 Jan-Abr ──────────────────────────────
+  // Fonte: planilha oficial. Aluguel de Moradia NÃO está aqui — vem do Contrato.
+  // Aplicado via _cleanupDespesas2026Q1.
   const MORADIA_2026_Q1 = [
     // ── JAN ──
     { date:'2026-01-08', desc:'Outras despesas moradia', amount:25.90,  sub:'Outras despesas',         pay:'Cartão',   month:1 },
@@ -88,6 +91,215 @@ const Store = (function () {
     { date:'2026-04-15', desc:'iFood',                   amount:11.90,  sub:'iFood',                   pay:'Cartão',   month:4 },
   ];
 
+  // ── CANÔNICO: outras categorias 2026 Q1 ──────────────────────────
+  const DESPESAS_2026_Q1_OUTRAS = [
+    // ── ALIMENTAÇÃO ──
+    { date:'2026-01-10', desc:'Supermercado',    amount:1856.92, category:'alimentacao', sub:'Supermercado',    pay:'Cartão',   month:1 },
+    { date:'2026-01-10', desc:'Supermercado',    amount:1783.47, category:'alimentacao', sub:'Supermercado',    pay:'Dinheiro', month:1 },
+    { date:'2026-01-20', desc:'Padaria',         amount:30.93,   category:'alimentacao', sub:'Padaria',         pay:'Cartão',   month:1 },
+    { date:'2026-01-20', desc:'Padaria',         amount:45.29,   category:'alimentacao', sub:'Padaria',         pay:'Dinheiro', month:1 },
+    { date:'2026-01-22', desc:'Sorveteria',      amount:91.67,   category:'alimentacao', sub:'Sorveteria',      pay:'Dinheiro', month:1 },
+    { date:'2026-01-18', desc:'Água',            amount:36.00,   category:'alimentacao', sub:'Água',            pay:'Dinheiro', month:1 },
+    { date:'2026-02-10', desc:'Supermercado',    amount:1623.41, category:'alimentacao', sub:'Supermercado',    pay:'Cartão',   month:2 },
+    { date:'2026-02-10', desc:'Supermercado',    amount:164.10,  category:'alimentacao', sub:'Supermercado',    pay:'Dinheiro', month:2 },
+    { date:'2026-02-12', desc:'Feira / Sacolão', amount:393.91,  category:'alimentacao', sub:'Feira / Sacolão', pay:'Dinheiro', month:2 },
+    { date:'2026-02-20', desc:'Padaria',         amount:58.42,   category:'alimentacao', sub:'Padaria',         pay:'Cartão',   month:2 },
+    { date:'2026-02-20', desc:'Padaria',         amount:5.69,    category:'alimentacao', sub:'Padaria',         pay:'Dinheiro', month:2 },
+    { date:'2026-02-20', desc:'Açougue',         amount:121.43,  category:'alimentacao', sub:'Açougue',         pay:'Dinheiro', month:2 },
+    { date:'2026-02-22', desc:'Sorveteria',      amount:155.31,  category:'alimentacao', sub:'Sorveteria',      pay:'Cartão',   month:2 },
+    { date:'2026-02-18', desc:'Água',            amount:18.00,   category:'alimentacao', sub:'Água',            pay:'Cartão',   month:2 },
+    { date:'2026-02-18', desc:'Água',            amount:18.00,   category:'alimentacao', sub:'Água',            pay:'Dinheiro', month:2 },
+    { date:'2026-03-10', desc:'Supermercado',    amount:2349.54, category:'alimentacao', sub:'Supermercado',    pay:'Cartão',   month:3 },
+    { date:'2026-03-10', desc:'Supermercado',    amount:163.65,  category:'alimentacao', sub:'Supermercado',    pay:'Dinheiro', month:3 },
+    { date:'2026-03-12', desc:'Feira / Sacolão', amount:235.01,  category:'alimentacao', sub:'Feira / Sacolão', pay:'Cartão',   month:3 },
+    { date:'2026-03-12', desc:'Feira / Sacolão', amount:312.66,  category:'alimentacao', sub:'Feira / Sacolão', pay:'Dinheiro', month:3 },
+    { date:'2026-03-20', desc:'Padaria',         amount:93.91,   category:'alimentacao', sub:'Padaria',         pay:'Cartão',   month:3 },
+    { date:'2026-03-20', desc:'Padaria',         amount:22.22,   category:'alimentacao', sub:'Padaria',         pay:'Dinheiro', month:3 },
+    { date:'2026-03-20', desc:'Açougue',         amount:210.36,  category:'alimentacao', sub:'Açougue',         pay:'Dinheiro', month:3 },
+    { date:'2026-03-18', desc:'Água',            amount:36.00,   category:'alimentacao', sub:'Água',            pay:'Cartão',   month:3 },
+    { date:'2026-03-18', desc:'Água',            amount:18.00,   category:'alimentacao', sub:'Água',            pay:'Dinheiro', month:3 },
+    { date:'2026-04-10', desc:'Supermercado',    amount:284.43,  category:'alimentacao', sub:'Supermercado',    pay:'Cartão',   month:4 },
+    { date:'2026-04-10', desc:'Supermercado',    amount:1569.20, category:'alimentacao', sub:'Supermercado',    pay:'Dinheiro', month:4 },
+    { date:'2026-04-12', desc:'Feira / Sacolão', amount:818.26,  category:'alimentacao', sub:'Feira / Sacolão', pay:'Dinheiro', month:4 },
+    { date:'2026-04-20', desc:'Padaria',         amount:31.88,   category:'alimentacao', sub:'Padaria',         pay:'Dinheiro', month:4 },
+    { date:'2026-04-20', desc:'Açougue',         amount:98.89,   category:'alimentacao', sub:'Açougue',         pay:'Dinheiro', month:4 },
+    { date:'2026-04-22', desc:'Sorveteria',      amount:49.45,   category:'alimentacao', sub:'Sorveteria',      pay:'Cartão',   month:4 },
+    { date:'2026-04-22', desc:'Sorveteria',      amount:57.20,   category:'alimentacao', sub:'Sorveteria',      pay:'Dinheiro', month:4 },
+    { date:'2026-04-18', desc:'Água',            amount:36.00,   category:'alimentacao', sub:'Água',            pay:'Dinheiro', month:4 },
+
+    // ── TRANSPORTE ──
+    { date:'2026-01-05', desc:'Aluguel Carro',   amount:2439.58, category:'transporte', sub:'Aluguel Carro',   pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Combustível',     amount:194.05,  category:'transporte', sub:'Combustível',     pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Combustível',     amount:245.81,  category:'transporte', sub:'Combustível',     pay:'Dinheiro', month:1 },
+    { date:'2026-01-15', desc:'Manutenção',      amount:1.00,    category:'transporte', sub:'Manutenção',      pay:'Dinheiro', month:1 },
+    { date:'2026-01-20', desc:'Estacionamento',  amount:21.00,   category:'transporte', sub:'Estacionamento',  pay:'Dinheiro', month:1 },
+    { date:'2026-02-05', desc:'Aluguel Carro',   amount:2555.95, category:'transporte', sub:'Aluguel Carro',   pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Combustível',     amount:316.94,  category:'transporte', sub:'Combustível',     pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Combustível',     amount:318.46,  category:'transporte', sub:'Combustível',     pay:'Dinheiro', month:2 },
+    { date:'2026-02-20', desc:'Estacionamento',  amount:12.95,   category:'transporte', sub:'Estacionamento',  pay:'Dinheiro', month:2 },
+    { date:'2026-02-20', desc:'Multas',          amount:68.32,   category:'transporte', sub:'Multas',          pay:'Cartão',   month:2 },
+    { date:'2026-03-05', desc:'Aluguel Carro',   amount:2368.80, category:'transporte', sub:'Aluguel Carro',   pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Combustível',     amount:420.05,  category:'transporte', sub:'Combustível',     pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Combustível',     amount:445.39,  category:'transporte', sub:'Combustível',     pay:'Dinheiro', month:3 },
+    { date:'2026-03-20', desc:'Estacionamento',  amount:20.00,   category:'transporte', sub:'Estacionamento',  pay:'Dinheiro', month:3 },
+    { date:'2026-04-05', desc:'Aluguel Carro',   amount:2281.44, category:'transporte', sub:'Aluguel Carro',   pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Combustível',     amount:287.71,  category:'transporte', sub:'Combustível',     pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Combustível',     amount:363.63,  category:'transporte', sub:'Combustível',     pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Manutenção',      amount:1.00,    category:'transporte', sub:'Manutenção',      pay:'Dinheiro', month:4 },
+    { date:'2026-04-20', desc:'Estacionamento',  amount:40.00,   category:'transporte', sub:'Estacionamento',  pay:'Cartão',   month:4 },
+
+    // ── SAÚDE ──
+    { date:'2026-01-25', desc:'Medicamentos',    amount:50.38,   category:'saude', sub:'Medicamentos',    pay:'Dinheiro', month:1 },
+    { date:'2026-01-10', desc:'Dentista',        amount:481.00,  category:'saude', sub:'Dentista',        pay:'Dinheiro', month:1 },
+    { date:'2026-02-25', desc:'Medicamentos',    amount:21.59,   category:'saude', sub:'Medicamentos',    pay:'Cartão',   month:2 },
+    { date:'2026-02-25', desc:'Medicamentos',    amount:25.58,   category:'saude', sub:'Medicamentos',    pay:'Dinheiro', month:2 },
+    { date:'2026-02-26', desc:'Higiene Pessoal', amount:68.32,   category:'saude', sub:'Higiene Pessoal', pay:'Cartão',   month:2 },
+    { date:'2026-03-25', desc:'Medicamentos',    amount:104.80,  category:'saude', sub:'Medicamentos',    pay:'Cartão',   month:3 },
+    { date:'2026-03-26', desc:'Higiene Pessoal', amount:68.30,   category:'saude', sub:'Higiene Pessoal', pay:'Cartão',   month:3 },
+    { date:'2026-04-25', desc:'Medicamentos',    amount:158.37,  category:'saude', sub:'Medicamentos',    pay:'Cartão',   month:4 },
+    { date:'2026-04-25', desc:'Medicamentos',    amount:34.54,   category:'saude', sub:'Medicamentos',    pay:'Dinheiro', month:4 },
+    { date:'2026-04-26', desc:'Higiene Pessoal', amount:152.28,  category:'saude', sub:'Higiene Pessoal', pay:'Cartão',   month:4 },
+
+    // ── PESSOAL ──
+    { date:'2026-01-28', desc:'Presentes',       amount:244.97,  category:'pessoal', sub:'Presentes', pay:'Cartão',   month:1 },
+    { date:'2026-01-28', desc:'Presentes',       amount:189.97,  category:'pessoal', sub:'Presentes', pay:'Dinheiro', month:1 },
+    { date:'2026-01-20', desc:'Vestuário',       amount:1078.57, category:'pessoal', sub:'Vestuário', pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Cigarro',         amount:164.49,  category:'pessoal', sub:'Cigarro',   pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Cigarro',         amount:588.00,  category:'pessoal', sub:'Cigarro',   pay:'Dinheiro', month:1 },
+    { date:'2026-01-15', desc:'Cerveja',         amount:306.08,  category:'pessoal', sub:'Cerveja',   pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Cerveja',         amount:322.87,  category:'pessoal', sub:'Cerveja',   pay:'Dinheiro', month:1 },
+    { date:'2026-02-15', desc:'Presentes',       amount:125.00,  category:'pessoal', sub:'Presentes', pay:'Cartão',   month:2 },
+    { date:'2026-02-20', desc:'Vestuário',       amount:858.68,  category:'pessoal', sub:'Vestuário', pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Cigarro',         amount:726.27,  category:'pessoal', sub:'Cigarro',   pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Cigarro',         amount:393.50,  category:'pessoal', sub:'Cigarro',   pay:'Dinheiro', month:2 },
+    { date:'2026-02-15', desc:'Cerveja',         amount:464.79,  category:'pessoal', sub:'Cerveja',   pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Cerveja',         amount:110.08,  category:'pessoal', sub:'Cerveja',   pay:'Dinheiro', month:2 },
+    { date:'2026-03-15', desc:'Presentes',       amount:125.00,  category:'pessoal', sub:'Presentes', pay:'Cartão',   month:3 },
+    { date:'2026-03-20', desc:'Vestuário',       amount:251.19,  category:'pessoal', sub:'Vestuário', pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Cigarro',         amount:308.98,  category:'pessoal', sub:'Cigarro',   pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Cigarro',         amount:630.95,  category:'pessoal', sub:'Cigarro',   pay:'Dinheiro', month:3 },
+    { date:'2026-03-15', desc:'Cerveja',         amount:109.57,  category:'pessoal', sub:'Cerveja',   pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Cerveja',         amount:264.60,  category:'pessoal', sub:'Cerveja',   pay:'Dinheiro', month:3 },
+    { date:'2026-04-15', desc:'Salão de Beleza', amount:385.00,  category:'pessoal', sub:'Salão de Beleza', pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Presentes',       amount:268.40,  category:'pessoal', sub:'Presentes', pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Presentes',       amount:133.85,  category:'pessoal', sub:'Presentes', pay:'Dinheiro', month:4 },
+    { date:'2026-04-20', desc:'Vestuário',       amount:550.80,  category:'pessoal', sub:'Vestuário', pay:'Cartão',   month:4 },
+    { date:'2026-04-20', desc:'Vestuário',       amount:2000.00, category:'pessoal', sub:'Vestuário', pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Cigarro',         amount:634.25,  category:'pessoal', sub:'Cigarro',   pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Cigarro',         amount:783.00,  category:'pessoal', sub:'Cigarro',   pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Cerveja',         amount:223.94,  category:'pessoal', sub:'Cerveja',   pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Cerveja',         amount:131.48,  category:'pessoal', sub:'Cerveja',   pay:'Dinheiro', month:4 },
+
+    // ── DOGS ──
+    { date:'2026-01-22', desc:'Banho e Tosa',    amount:205.00,  category:'dogs', sub:'Banho e Tosa',             pay:'Cartão',   month:1 },
+    { date:'2026-01-18', desc:'Assessórios',     amount:84.89,   category:'dogs', sub:'Assessórios / Brinquedos', pay:'Dinheiro', month:1 },
+    { date:'2026-02-22', desc:'Ração',           amount:116.95,  category:'dogs', sub:'Ração',                    pay:'Cartão',   month:2 },
+    { date:'2026-02-22', desc:'Banho e Tosa',    amount:205.00,  category:'dogs', sub:'Banho e Tosa',             pay:'Cartão',   month:2 },
+    { date:'2026-02-18', desc:'Assessórios',     amount:67.90,   category:'dogs', sub:'Assessórios / Brinquedos', pay:'Cartão',   month:2 },
+    { date:'2026-03-22', desc:'Ração',           amount:116.95,  category:'dogs', sub:'Ração',                    pay:'Cartão',   month:3 },
+    { date:'2026-03-22', desc:'Banho e Tosa',    amount:184.50,  category:'dogs', sub:'Banho e Tosa',             pay:'Cartão',   month:3 },
+    { date:'2026-03-20', desc:'Veterinário',     amount:365.00,  category:'dogs', sub:'Veterinário',              pay:'Cartão',   month:3 },
+    { date:'2026-03-18', desc:'Assessórios',     amount:56.80,   category:'dogs', sub:'Assessórios / Brinquedos', pay:'Cartão',   month:3 },
+    { date:'2026-04-22', desc:'Banho e Tosa',    amount:184.50,  category:'dogs', sub:'Banho e Tosa',             pay:'Cartão',   month:4 },
+    { date:'2026-04-20', desc:'Veterinário',     amount:365.00,  category:'dogs', sub:'Veterinário',              pay:'Cartão',   month:4 },
+    { date:'2026-04-18', desc:'Assessórios',     amount:146.79,  category:'dogs', sub:'Assessórios / Brinquedos', pay:'Cartão',   month:4 },
+
+    // ── LAZER ──
+    { date:'2026-01-25', desc:'Restaurantes e Passeios', amount:607.31,  category:'lazer', sub:'Restaurantes e Passeios', pay:'Cartão',   month:1 },
+    { date:'2026-01-25', desc:'Restaurantes e Passeios', amount:467.69,  category:'lazer', sub:'Restaurantes e Passeios', pay:'Dinheiro', month:1 },
+    { date:'2026-01-20', desc:'Diversão Local',          amount:28.00,   category:'lazer', sub:'Diversão Local',          pay:'Cartão',   month:1 },
+    { date:'2026-01-20', desc:'Diversão Local',          amount:20.00,   category:'lazer', sub:'Diversão Local',          pay:'Dinheiro', month:1 },
+    { date:'2026-01-15', desc:'Famílias e Amigos',       amount:121.15,  category:'lazer', sub:'Famílias e Amigos',       pay:'Dinheiro', month:1 },
+    { date:'2026-01-10', desc:'Viagens',                 amount:566.09,  category:'lazer', sub:'Viagens',                 pay:'Cartão',   month:1 },
+    { date:'2026-02-25', desc:'Restaurantes e Passeios', amount:604.01,  category:'lazer', sub:'Restaurantes e Passeios', pay:'Cartão',   month:2 },
+    { date:'2026-02-25', desc:'Restaurantes e Passeios', amount:336.75,  category:'lazer', sub:'Restaurantes e Passeios', pay:'Dinheiro', month:2 },
+    { date:'2026-02-20', desc:'Diversão Local',          amount:98.40,   category:'lazer', sub:'Diversão Local',          pay:'Cartão',   month:2 },
+    { date:'2026-02-18', desc:'Famílias e Amigos',       amount:37.98,   category:'lazer', sub:'Famílias e Amigos',       pay:'Cartão',   month:2 },
+    { date:'2026-03-25', desc:'Restaurantes e Passeios', amount:540.67,  category:'lazer', sub:'Restaurantes e Passeios', pay:'Cartão',   month:3 },
+    { date:'2026-03-25', desc:'Restaurantes e Passeios', amount:173.77,  category:'lazer', sub:'Restaurantes e Passeios', pay:'Dinheiro', month:3 },
+    { date:'2026-03-20', desc:'Diversão Local',          amount:68.40,   category:'lazer', sub:'Diversão Local',          pay:'Cartão',   month:3 },
+    { date:'2026-03-18', desc:'Famílias e Amigos',       amount:72.84,   category:'lazer', sub:'Famílias e Amigos',       pay:'Cartão',   month:3 },
+    { date:'2026-04-25', desc:'Restaurantes e Passeios', amount:1115.23, category:'lazer', sub:'Restaurantes e Passeios', pay:'Cartão',   month:4 },
+    { date:'2026-04-25', desc:'Restaurantes e Passeios', amount:1414.21, category:'lazer', sub:'Restaurantes e Passeios', pay:'Dinheiro', month:4 },
+    { date:'2026-04-20', desc:'Diversão Local',          amount:7.50,    category:'lazer', sub:'Diversão Local',          pay:'Cartão',   month:4 },
+    { date:'2026-04-20', desc:'Diversão Local',          amount:11.90,   category:'lazer', sub:'Diversão Local',          pay:'Dinheiro', month:4 },
+    { date:'2026-04-18', desc:'Famílias e Amigos',       amount:70.80,   category:'lazer', sub:'Famílias e Amigos',       pay:'Dinheiro', month:4 },
+    { date:'2026-04-10', desc:'Viagens',                 amount:18.00,   category:'lazer', sub:'Viagens',                 pay:'Cartão',   month:4 },
+
+    // ── FINANCEIRO ──
+    { date:'2026-01-28', desc:'Taxas Bancárias',  amount:2000.95, category:'financeiro', sub:'Taxas Bancárias',  pay:'Dinheiro', month:1 },
+    { date:'2026-01-28', desc:'Loteria',          amount:124.00,  category:'financeiro', sub:'Loteria',          pay:'Dinheiro', month:1 },
+    { date:'2026-01-28', desc:'Contador',         amount:684.00,  category:'financeiro', sub:'Contador',         pay:'Dinheiro', month:1 },
+    { date:'2026-01-28', desc:'Impostos Empresa', amount:1366.98, category:'financeiro', sub:'Impostos Empresa', pay:'Dinheiro', month:1 },
+    { date:'2026-02-28', desc:'Taxas Bancárias',  amount:79.50,   category:'financeiro', sub:'Taxas Bancárias',  pay:'Dinheiro', month:2 },
+    { date:'2026-02-28', desc:'Saques',           amount:72.78,   category:'financeiro', sub:'Saques',           pay:'Dinheiro', month:2 },
+    { date:'2026-02-28', desc:'Cartório',         amount:12.99,   category:'financeiro', sub:'Cartório',         pay:'Dinheiro', month:2 },
+    { date:'2026-03-28', desc:'Taxas Bancárias',  amount:198.84,  category:'financeiro', sub:'Taxas Bancárias',  pay:'Cartão',   month:3 },
+    { date:'2026-03-28', desc:'Taxas Bancárias',  amount:159.75,  category:'financeiro', sub:'Taxas Bancárias',  pay:'Dinheiro', month:3 },
+    { date:'2026-03-28', desc:'Contador',         amount:260.52,  category:'financeiro', sub:'Contador',         pay:'Dinheiro', month:3 },
+    { date:'2026-03-28', desc:'Impostos Empresa', amount:17.36,   category:'financeiro', sub:'Impostos Empresa', pay:'Cartão',   month:3 },
+    { date:'2026-04-28', desc:'Taxas Bancárias',  amount:141.00,  category:'financeiro', sub:'Taxas Bancárias',  pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Saques (estorno)', amount:-43.32,  category:'financeiro', sub:'Saques',           pay:'Cartão',   month:4 },
+    { date:'2026-04-28', desc:'Saques',           amount:26.50,   category:'financeiro', sub:'Saques',           pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Contador',         amount:1626.82, category:'financeiro', sub:'Contador',         pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Impostos Empresa', amount:2540.15, category:'financeiro', sub:'Impostos Empresa', pay:'Dinheiro', month:4 },
+
+    // ── CARTÕES & WALLETS ──
+    { date:'2026-01-31', desc:'Itaú Click',    amount:4567.01,  category:'cartoes', sub:'Itaú Click',    pay:'Dinheiro', month:1 },
+    { date:'2026-01-31', desc:'Itaú Uniclass', amount:3576.51,  category:'cartoes', sub:'Itaú Uniclass', pay:'Dinheiro', month:1 },
+    { date:'2026-01-31', desc:'Shopee',        amount:63.91,    category:'cartoes', sub:'Shopee',        pay:'Cartão',   month:1 },
+    { date:'2026-01-31', desc:'Shopee',        amount:155.42,   category:'cartoes', sub:'Shopee',        pay:'Dinheiro', month:1 },
+    { date:'2026-01-31', desc:'Mercado Livre', amount:213.74,   category:'cartoes', sub:'Mercado Livre', pay:'Cartão',   month:1 },
+    { date:'2026-01-31', desc:'Mercado Livre', amount:204.81,   category:'cartoes', sub:'Mercado Livre', pay:'Dinheiro', month:1 },
+    { date:'2026-02-28', desc:'Itaú Click (estorno)', amount:-1229.57, category:'cartoes', sub:'Itaú Click', pay:'Cartão',   month:2 },
+    { date:'2026-02-28', desc:'Shopee',        amount:63.91,    category:'cartoes', sub:'Shopee',        pay:'Cartão',   month:2 },
+    { date:'2026-02-28', desc:'Shopee',        amount:125.18,   category:'cartoes', sub:'Shopee',        pay:'Dinheiro', month:2 },
+    { date:'2026-03-28', desc:'Itaú Click',    amount:1229.57,  category:'cartoes', sub:'Itaú Click',    pay:'Cartão',   month:3 },
+    { date:'2026-03-28', desc:'Shopee',        amount:63.90,    category:'cartoes', sub:'Shopee',        pay:'Cartão',   month:3 },
+    { date:'2026-03-28', desc:'Shopee',        amount:77.33,    category:'cartoes', sub:'Shopee',        pay:'Dinheiro', month:3 },
+    { date:'2026-03-28', desc:'Torra Torra',   amount:172.01,   category:'cartoes', sub:'Torra Torra',   pay:'Dinheiro', month:3 },
+    { date:'2026-04-28', desc:'Shopee',        amount:237.52,   category:'cartoes', sub:'Shopee',        pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Mercado Livre', amount:669.27,   category:'cartoes', sub:'Mercado Livre', pay:'Dinheiro', month:4 },
+
+    // ── ROBERTO INDIVIDUAL ──
+    { date:'2026-01-31', desc:'Melissa Advogada', amount:1500.00, category:'roberto', sub:'Melissa Advogada', pay:'Dinheiro', month:1 },
+    { date:'2026-01-31', desc:'Assinaturas',      amount:73.58,   category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:1 },
+    { date:'2026-01-31', desc:'Celular',          amount:179.90,  category:'roberto', sub:'Celular',          pay:'Cartão',   month:1 },
+    { date:'2026-02-28', desc:'Assinaturas',      amount:42.51,   category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:2 },
+    { date:'2026-02-28', desc:'Celular',          amount:179.90,  category:'roberto', sub:'Celular',          pay:'Cartão',   month:2 },
+    { date:'2026-03-28', desc:'Assinaturas',      amount:94.99,   category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:3 },
+    { date:'2026-03-28', desc:'Celular',          amount:179.90,  category:'roberto', sub:'Celular',          pay:'Cartão',   month:3 },
+    { date:'2026-04-28', desc:'Assinaturas',      amount:133.75,  category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:4 },
+    { date:'2026-04-28', desc:'Melissa Advogada', amount:3900.00, category:'roberto', sub:'Melissa Advogada', pay:'Dinheiro', month:4 },
+
+    // ── MARIANA INDIVIDUAL ──
+    { date:'2026-01-28', desc:'Faculdade UNIP',     amount:748.14,  category:'mariana', sub:'Faculdade UNIP',     pay:'Dinheiro', month:1 },
+    { date:'2026-02-28', desc:'Faculdade UNIP',     amount:748.14,  category:'mariana', sub:'Faculdade UNIP',     pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Lanche',             amount:34.00,   category:'mariana', sub:'Lanche',             pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Lanche',             amount:8.50,    category:'mariana', sub:'Lanche',             pay:'Dinheiro', month:2 },
+    { date:'2026-03-15', desc:'Livros e Materiais', amount:138.88,  category:'mariana', sub:'Livros e Materiais', pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Livros e Materiais', amount:28.50,   category:'mariana', sub:'Livros e Materiais', pay:'Dinheiro', month:3 },
+    { date:'2026-03-15', desc:'Mesada',             amount:30.00,   category:'mariana', sub:'Mesada',             pay:'Dinheiro', month:3 },
+    { date:'2026-03-15', desc:'Lanche',             amount:49.00,   category:'mariana', sub:'Lanche',             pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Lanche',             amount:23.50,   category:'mariana', sub:'Lanche',             pay:'Dinheiro', month:3 },
+    { date:'2026-04-28', desc:'Faculdade UNIP',     amount:1835.83, category:'mariana', sub:'Faculdade UNIP',     pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Livros e Materiais', amount:71.98,   category:'mariana', sub:'Livros e Materiais', pay:'Cartão',   month:4 },
+    { date:'2026-04-28', desc:'Livros e Materiais', amount:11.70,   category:'mariana', sub:'Livros e Materiais', pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Mesada',             amount:49.80,   category:'mariana', sub:'Mesada',             pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Lanche',             amount:47.50,   category:'mariana', sub:'Lanche',             pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Lanche',             amount:37.50,   category:'mariana', sub:'Lanche',             pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'OAB',                amount:320.00,  category:'mariana', sub:'OAB',                pay:'Dinheiro', month:4 },
+
+    // ── MANUELA INDIVIDUAL ──
+    { date:'2026-02-15', desc:'Livros e Materiais', amount:72.50,   category:'manuela', sub:'Livros e Materiais', pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Uniforme',           amount:130.50,  category:'manuela', sub:'Uniforme',           pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Passeios',           amount:16.49,   category:'manuela', sub:'Passeios',           pay:'Cartão',   month:2 },
+    { date:'2026-03-15', desc:'Uniforme',           amount:130.50,  category:'manuela', sub:'Uniforme',           pay:'Cartão',   month:3 },
+    { date:'2026-04-15', desc:'Passeios',           amount:39.96,   category:'manuela', sub:'Passeios',           pay:'Cartão',   month:4 },
+    { date:'2026-04-28', desc:'Escola Manuela',     amount:3780.00, category:'manuela', sub:'Escola Manuela',     pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Mesada',             amount:500.00,  category:'manuela', sub:'Mesada',             pay:'Dinheiro', month:4 },
+  ];
+
   const PESSOAS = ['Roberto','Mariana','Manuela','Família'];
 
   const BANKS = ['Itaú','Bradesco','Santander','Nubank','Inter','C6 Bank','Caixa','Banco do Brasil','BTG Pactual','XP','Wise','PicPay','Mercado Pago'];
@@ -114,152 +326,9 @@ const Store = (function () {
       { id: 'r16', date: '2026-04-01', desc: 'Pensão – PLR',           amount: 12125.43,category:'receita', person: 'Manuela', type: 'pensao',     month: 4, year: 2026 },
     ];
 
-    // Despesas — seeded from real spreadsheet values (Despesas 2026)
-    const despesas = [
-      // ── JANEIRO ─────────────────────────────────────
-      // Moradia Jan-Abr 2026: inserido pela migração _cleanupMoradia2026Q1 (canônico da planilha)
-      // Aluguel: vem do Contrato cadastrado.
-      { id:'d11', date:'2026-01-10', desc:'Supermercado',          amount:1856.92,category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:1,year:2026 },
-      { id:'d12', date:'2026-01-10', desc:'Supermercado',          amount:1783.47,category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:1,year:2026 },
-      { id:'d13', date:'2026-01-20', desc:'Padaria',               amount:30.93,  category:'alimentacao',  sub:'Padaria',                pay:'Cartão', month:1,year:2026 },
-      { id:'d14', date:'2026-01-20', desc:'Padaria',               amount:45.29,  category:'alimentacao',  sub:'Padaria',                pay:'Dinheiro',month:1,year:2026 },
-      { id:'d15', date:'2026-01-22', desc:'Sorveteria',            amount:91.67,  category:'alimentacao',  sub:'Sorveteria',             pay:'Dinheiro',month:1,year:2026 },
-      { id:'d16', date:'2026-01-18', desc:'Água',                  amount:36.00,  category:'alimentacao',  sub:'Água',                   pay:'Dinheiro',month:1,year:2026 },
-      { id:'d17', date:'2026-01-05', desc:'Aluguel Carro',         amount:2439.58,category:'transporte',   sub:'Aluguel Carro',          pay:'Cartão', month:1,year:2026 },
-      { id:'d18', date:'2026-01-15', desc:'Combustível',           amount:194.05, category:'transporte',   sub:'Combustível',            pay:'Cartão', month:1,year:2026 },
-      { id:'d19', date:'2026-01-15', desc:'Combustível',           amount:245.81, category:'transporte',   sub:'Combustível',            pay:'Dinheiro',month:1,year:2026 },
-      { id:'d20', date:'2026-01-25', desc:'Medicamentos',          amount:50.38,  category:'saude',        sub:'Medicamentos',           pay:'Dinheiro',month:1,year:2026 },
-      { id:'d21', date:'2026-01-28', desc:'Presentes',             amount:244.97, category:'pessoal',      sub:'Presentes',              pay:'Cartão', month:1,year:2026 },
-      { id:'d22', date:'2026-01-28', desc:'Presentes',             amount:189.97, category:'pessoal',      sub:'Presentes',              pay:'Dinheiro',month:1,year:2026 },
-      { id:'d23', date:'2026-01-20', desc:'Vestuário',             amount:1078.57,category:'pessoal',      sub:'Vestuário',              pay:'Cartão', month:1,year:2026 },
-      { id:'d24', date:'2026-01-15', desc:'Cigarro',               amount:164.49, category:'pessoal',      sub:'Cigarro',                pay:'Cartão', month:1,year:2026 },
-      { id:'d25', date:'2026-01-15', desc:'Cigarro',               amount:588.00, category:'pessoal',      sub:'Cigarro',                pay:'Dinheiro',month:1,year:2026 },
-      { id:'d26', date:'2026-01-15', desc:'Cerveja',               amount:306.08, category:'pessoal',      sub:'Cerveja',                pay:'Cartão', month:1,year:2026 },
-      { id:'d27', date:'2026-01-15', desc:'Cerveja',               amount:322.87, category:'pessoal',      sub:'Cerveja',                pay:'Dinheiro',month:1,year:2026 },
-      { id:'d28', date:'2026-01-22', desc:'Banho e Tosa',          amount:205.00, category:'dogs',         sub:'Banho e Tosa',           pay:'Cartão', month:1,year:2026 },
-      { id:'d29', date:'2026-01-25', desc:'Restaurantes',          amount:607.31, category:'lazer',        sub:'Restaurantes e Passeios',pay:'Cartão', month:1,year:2026 },
-      { id:'d30', date:'2026-01-25', desc:'Restaurantes',          amount:467.69, category:'lazer',        sub:'Restaurantes e Passeios',pay:'Dinheiro',month:1,year:2026 },
-      { id:'d31', date:'2026-01-20', desc:'Diversão',              amount:28.00,  category:'lazer',        sub:'Diversão',               pay:'Cartão', month:1,year:2026 },
-      { id:'d32', date:'2026-01-20', desc:'Diversão',              amount:20.00,  category:'lazer',        sub:'Diversão',               pay:'Dinheiro',month:1,year:2026 },
-      { id:'d33', date:'2026-01-10', desc:'Viagens',               amount:566.09, category:'lazer',        sub:'Viagens',                pay:'Cartão', month:1,year:2026 },
-      { id:'d34', date:'2026-01-31', desc:'Shopee',                amount:63.91,  category:'cartoes',      sub:'Shopee',                 pay:'Cartão', month:1,year:2026 },
-      { id:'d35', date:'2026-01-31', desc:'Mercado Livre',         amount:213.74, category:'cartoes',      sub:'Mercado Livre',          pay:'Cartão', month:1,year:2026 },
-      { id:'d36', date:'2026-01-31', desc:'Melissa Advogada',      amount:0,      category:'roberto',      sub:'Melissa Advogada',       pay:'Dinheiro',month:1,year:2026 },
-      { id:'d37', date:'2026-01-31', desc:'Assinaturas',           amount:73.58,  category:'roberto',      sub:'Assinaturas',            pay:'Cartão', month:1,year:2026 },
-      { id:'d38', date:'2026-01-31', desc:'Celular',               amount:179.90, category:'roberto',      sub:'Celular',                pay:'Cartão', month:1,year:2026 },
-
-      // ── FEVEREIRO ─────────────────────────────────────
-      { id:'d55', date:'2026-02-10', desc:'Supermercado',          amount:1623.41,category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:2,year:2026 },
-      { id:'d56', date:'2026-02-10', desc:'Supermercado',          amount:164.10, category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:2,year:2026 },
-      { id:'d57', date:'2026-02-20', desc:'Padaria',               amount:58.42,  category:'alimentacao',  sub:'Padaria',                pay:'Cartão', month:2,year:2026 },
-      { id:'d58', date:'2026-02-22', desc:'Sorveteria',            amount:155.31, category:'alimentacao',  sub:'Sorveteria',             pay:'Cartão', month:2,year:2026 },
-      { id:'d59', date:'2026-02-18', desc:'Água',                  amount:18.00,  category:'alimentacao',  sub:'Água',                   pay:'Dinheiro',month:2,year:2026 },
-      { id:'d60', date:'2026-02-05', desc:'Aluguel Carro',         amount:2555.95,category:'transporte',   sub:'Aluguel Carro',          pay:'Cartão', month:2,year:2026 },
-      { id:'d61', date:'2026-02-15', desc:'Combustível',           amount:316.94, category:'transporte',   sub:'Combustível',            pay:'Cartão', month:2,year:2026 },
-      { id:'d62', date:'2026-02-15', desc:'Combustível',           amount:318.46, category:'transporte',   sub:'Combustível',            pay:'Dinheiro',month:2,year:2026 },
-      { id:'d63', date:'2026-02-20', desc:'Multas',                amount:68.32,  category:'transporte',   sub:'Multas',                 pay:'Dinheiro',month:2,year:2026 },
-      { id:'d64', date:'2026-02-25', desc:'Medicamentos',          amount:21.59,  category:'saude',        sub:'Medicamentos',           pay:'Cartão', month:2,year:2026 },
-      { id:'d65', date:'2026-02-26', desc:'Higiene Pessoal',       amount:68.32,  category:'saude',        sub:'Higiene Pessoal',        pay:'Cartão', month:2,year:2026 },
-      { id:'d66', date:'2026-02-15', desc:'Presentes',             amount:125.00, category:'pessoal',      sub:'Presentes',              pay:'Cartão', month:2,year:2026 },
-      { id:'d67', date:'2026-02-20', desc:'Vestuário',             amount:858.68, category:'pessoal',      sub:'Vestuário',              pay:'Cartão', month:2,year:2026 },
-      { id:'d68', date:'2026-02-15', desc:'Cigarro',               amount:726.27, category:'pessoal',      sub:'Cigarro',                pay:'Cartão', month:2,year:2026 },
-      { id:'d69', date:'2026-02-15', desc:'Cigarro',               amount:393.50, category:'pessoal',      sub:'Cigarro',                pay:'Dinheiro',month:2,year:2026 },
-      { id:'d70', date:'2026-02-15', desc:'Cerveja',               amount:464.79, category:'pessoal',      sub:'Cerveja',                pay:'Cartão', month:2,year:2026 },
-      { id:'d71', date:'2026-02-15', desc:'Cerveja',               amount:110.08, category:'pessoal',      sub:'Cerveja',                pay:'Dinheiro',month:2,year:2026 },
-      { id:'d72', date:'2026-02-22', desc:'Ração',                 amount:116.95, category:'dogs',         sub:'Ração',                  pay:'Cartão', month:2,year:2026 },
-      { id:'d73', date:'2026-02-22', desc:'Banho e Tosa',          amount:205.00, category:'dogs',         sub:'Banho e Tosa',           pay:'Cartão', month:2,year:2026 },
-      { id:'d74', date:'2026-02-25', desc:'Restaurantes',          amount:604.01, category:'lazer',        sub:'Restaurantes e Passeios',pay:'Cartão', month:2,year:2026 },
-      { id:'d75', date:'2026-02-25', desc:'Restaurantes',          amount:336.75, category:'lazer',        sub:'Restaurantes e Passeios',pay:'Dinheiro',month:2,year:2026 },
-      { id:'d76', date:'2026-02-20', desc:'Diversão',              amount:98.40,  category:'lazer',        sub:'Diversão',               pay:'Cartão', month:2,year:2026 },
-      { id:'d77', date:'2026-02-18', desc:'Famílias e Amigos',     amount:37.98,  category:'lazer',        sub:'Famílias e Amigos',      pay:'Dinheiro',month:2,year:2026 },
-      { id:'d78', date:'2026-02-28', desc:'Shopee',                amount:63.91,  category:'cartoes',      sub:'Shopee',                 pay:'Cartão', month:2,year:2026 },
-      { id:'d79', date:'2026-02-28', desc:'Mercado Livre',         amount:204.81, category:'cartoes',      sub:'Mercado Livre',          pay:'Cartão', month:2,year:2026 },
-      { id:'d80', date:'2026-02-28', desc:'Faculdade UNIP',        amount:748.14, category:'mariana',      sub:'Faculdade UNIP',         pay:'Dinheiro',month:2,year:2026 },
-      { id:'d81', date:'2026-02-28', desc:'Assinaturas',           amount:42.51,  category:'roberto',      sub:'Assinaturas',            pay:'Cartão', month:2,year:2026 },
-      { id:'d82', date:'2026-02-28', desc:'Celular',               amount:179.90, category:'roberto',      sub:'Celular',                pay:'Cartão', month:2,year:2026 },
-
-      // ── MARÇO ─────────────────────────────────────────
-      { id:'d111',date:'2026-03-10', desc:'Supermercado',          amount:2349.54,category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:3,year:2026 },
-      { id:'d112',date:'2026-03-10', desc:'Supermercado',          amount:163.65, category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:3,year:2026 },
-      { id:'d113',date:'2026-03-12', desc:'Feira / Sacolão',       amount:235.01, category:'alimentacao',  sub:'Feira / Sacolão',        pay:'Cartão', month:3,year:2026 },
-      { id:'d114',date:'2026-03-12', desc:'Feira / Sacolão',       amount:312.66, category:'alimentacao',  sub:'Feira / Sacolão',        pay:'Dinheiro',month:3,year:2026 },
-      { id:'d115',date:'2026-03-20', desc:'Padaria',               amount:93.91,  category:'alimentacao',  sub:'Padaria',                pay:'Cartão', month:3,year:2026 },
-      { id:'d116',date:'2026-03-20', desc:'Padaria',               amount:22.22,  category:'alimentacao',  sub:'Padaria',                pay:'Dinheiro',month:3,year:2026 },
-      { id:'d117',date:'2026-03-20', desc:'Açougue',               amount:210.36, category:'alimentacao',  sub:'Açougue',                pay:'Dinheiro',month:3,year:2026 },
-      { id:'d118',date:'2026-03-18', desc:'Água',                  amount:36.00,  category:'alimentacao',  sub:'Água',                   pay:'Dinheiro',month:3,year:2026 },
-      { id:'d119',date:'2026-03-05', desc:'Aluguel Carro',         amount:2368.80,category:'transporte',   sub:'Aluguel Carro',          pay:'Cartão', month:3,year:2026 },
-      { id:'d120',date:'2026-03-15', desc:'Combustível',           amount:420.05, category:'transporte',   sub:'Combustível',            pay:'Cartão', month:3,year:2026 },
-      { id:'d121',date:'2026-03-15', desc:'Combustível',           amount:445.39, category:'transporte',   sub:'Combustível',            pay:'Dinheiro',month:3,year:2026 },
-      { id:'d122',date:'2026-03-20', desc:'Estacionamento',        amount:20.00,  category:'transporte',   sub:'Estacionamento',         pay:'Dinheiro',month:3,year:2026 },
-      { id:'d123',date:'2026-03-25', desc:'Medicamentos',          amount:104.80, category:'saude',        sub:'Medicamentos',           pay:'Cartão', month:3,year:2026 },
-      { id:'d124',date:'2026-03-26', desc:'Higiene Pessoal',       amount:68.30,  category:'saude',        sub:'Higiene Pessoal',        pay:'Cartão', month:3,year:2026 },
-      { id:'d125',date:'2026-03-15', desc:'Presentes',             amount:125.00, category:'pessoal',      sub:'Presentes',              pay:'Cartão', month:3,year:2026 },
-      { id:'d126',date:'2026-03-20', desc:'Vestuário',             amount:251.19, category:'pessoal',      sub:'Vestuário',              pay:'Cartão', month:3,year:2026 },
-      { id:'d127',date:'2026-03-15', desc:'Cigarro',               amount:308.98, category:'pessoal',      sub:'Cigarro',                pay:'Cartão', month:3,year:2026 },
-      { id:'d128',date:'2026-03-15', desc:'Cigarro',               amount:630.95, category:'pessoal',      sub:'Cigarro',                pay:'Dinheiro',month:3,year:2026 },
-      { id:'d129',date:'2026-03-15', desc:'Cerveja',               amount:109.57, category:'pessoal',      sub:'Cerveja',                pay:'Cartão', month:3,year:2026 },
-      { id:'d130',date:'2026-03-15', desc:'Cerveja',               amount:264.60, category:'pessoal',      sub:'Cerveja',                pay:'Dinheiro',month:3,year:2026 },
-      { id:'d131',date:'2026-03-22', desc:'Ração',                 amount:116.95, category:'dogs',         sub:'Ração',                  pay:'Cartão', month:3,year:2026 },
-      { id:'d132',date:'2026-03-22', desc:'Banho e Tosa',          amount:184.50, category:'dogs',         sub:'Banho e Tosa',           pay:'Cartão', month:3,year:2026 },
-      { id:'d133',date:'2026-03-20', desc:'Veterinário',           amount:365.00, category:'dogs',         sub:'Veterinário',            pay:'Dinheiro',month:3,year:2026 },
-      { id:'d134',date:'2026-03-18', desc:'Assessórios dogs',      amount:56.80,  category:'dogs',         sub:'Assessórios',            pay:'Cartão', month:3,year:2026 },
-      { id:'d135',date:'2026-03-25', desc:'Restaurantes',          amount:540.67, category:'lazer',        sub:'Restaurantes e Passeios',pay:'Cartão', month:3,year:2026 },
-      { id:'d136',date:'2026-03-25', desc:'Restaurantes',          amount:173.77, category:'lazer',        sub:'Restaurantes e Passeios',pay:'Dinheiro',month:3,year:2026 },
-      { id:'d137',date:'2026-03-20', desc:'Diversão',              amount:68.40,  category:'lazer',        sub:'Diversão',               pay:'Cartão', month:3,year:2026 },
-      { id:'d138',date:'2026-03-18', desc:'Famílias e Amigos',     amount:72.84,  category:'lazer',        sub:'Famílias e Amigos',      pay:'Dinheiro',month:3,year:2026 },
-      { id:'d139',date:'2026-03-28', desc:'Shopee',                amount:63.90,  category:'cartoes',      sub:'Shopee',                 pay:'Cartão', month:3,year:2026 },
-      { id:'d140',date:'2026-03-28', desc:'Taxas Bancárias',       amount:198.84, category:'financeiro',   sub:'Taxas Bancárias',        pay:'Cartão', month:3,year:2026 },
-      { id:'d141',date:'2026-03-28', desc:'Assinaturas',           amount:94.99,  category:'roberto',      sub:'Assinaturas',            pay:'Cartão', month:3,year:2026 },
-      { id:'d142',date:'2026-03-28', desc:'Celular',               amount:179.90, category:'roberto',      sub:'Celular',                pay:'Cartão', month:3,year:2026 },
-      { id:'d143',date:'2026-03-28', desc:'Faculdade UNIP',        amount:748.14, category:'mariana',      sub:'Faculdade UNIP',         pay:'Dinheiro',month:3,year:2026 },
-      { id:'d144',date:'2026-03-15', desc:'Lanche',                amount:34.00,  category:'mariana',      sub:'Lanche',                 pay:'Dinheiro',month:3,year:2026 },
-
-      // ── ABRIL ─────────────────────────────────────────
-      { id:'d212',date:'2026-04-10', desc:'Supermercado',          amount:284.43, category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:4,year:2026 },
-      { id:'d213',date:'2026-04-10', desc:'Supermercado',          amount:1569.20,category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:4,year:2026 },
-      { id:'d214',date:'2026-04-12', desc:'Feira / Sacolão',       amount:818.26, category:'alimentacao',  sub:'Feira / Sacolão',        pay:'Dinheiro',month:4,year:2026 },
-      { id:'d215',date:'2026-04-20', desc:'Padaria',               amount:31.88,  category:'alimentacao',  sub:'Padaria',                pay:'Cartão', month:4,year:2026 },
-      { id:'d216',date:'2026-04-20', desc:'Açougue',               amount:98.89,  category:'alimentacao',  sub:'Açougue',                pay:'Dinheiro',month:4,year:2026 },
-      { id:'d217',date:'2026-04-22', desc:'Sorveteria',            amount:57.20,  category:'alimentacao',  sub:'Sorveteria',             pay:'Dinheiro',month:4,year:2026 },
-      { id:'d218',date:'2026-04-18', desc:'Água',                  amount:36.00,  category:'alimentacao',  sub:'Água',                   pay:'Dinheiro',month:4,year:2026 },
-      { id:'d219',date:'2026-04-05', desc:'Aluguel Carro',         amount:2281.44,category:'transporte',   sub:'Aluguel Carro',          pay:'Cartão', month:4,year:2026 },
-      { id:'d220',date:'2026-04-15', desc:'Combustível',           amount:287.71, category:'transporte',   sub:'Combustível',            pay:'Cartão', month:4,year:2026 },
-      { id:'d221',date:'2026-04-15', desc:'Combustível',           amount:363.63, category:'transporte',   sub:'Combustível',            pay:'Dinheiro',month:4,year:2026 },
-      { id:'d222',date:'2026-04-20', desc:'Estacionamento',        amount:40.00,  category:'transporte',   sub:'Estacionamento',         pay:'Dinheiro',month:4,year:2026 },
-      { id:'d223',date:'2026-04-25', desc:'Medicamentos',          amount:158.37, category:'saude',        sub:'Medicamentos',           pay:'Dinheiro',month:4,year:2026 },
-      { id:'d224',date:'2026-04-26', desc:'Higiene Pessoal',       amount:152.28, category:'saude',        sub:'Higiene Pessoal',        pay:'Cartão', month:4,year:2026 },
-      { id:'d225',date:'2026-04-10', desc:'Dentista',              amount:481.00, category:'saude',        sub:'Dentista',               pay:'Dinheiro',month:4,year:2026 },
-      { id:'d226',date:'2026-04-15', desc:'Salão de Beleza',       amount:385.00, category:'pessoal',      sub:'Salão de Beleza',        pay:'Dinheiro',month:4,year:2026 },
-      { id:'d227',date:'2026-04-15', desc:'Presentes',             amount:268.40, category:'pessoal',      sub:'Presentes',              pay:'Cartão', month:4,year:2026 },
-      { id:'d228',date:'2026-04-15', desc:'Presentes',             amount:133.85, category:'pessoal',      sub:'Presentes',              pay:'Dinheiro',month:4,year:2026 },
-      { id:'d229',date:'2026-04-20', desc:'Vestuário',             amount:550.80, category:'pessoal',      sub:'Vestuário',              pay:'Cartão', month:4,year:2026 },
-      { id:'d230',date:'2026-04-15', desc:'Cigarro',               amount:634.25, category:'pessoal',      sub:'Cigarro',                pay:'Cartão', month:4,year:2026 },
-      { id:'d231',date:'2026-04-15', desc:'Cigarro',               amount:783.00, category:'pessoal',      sub:'Cigarro',                pay:'Dinheiro',month:4,year:2026 },
-      { id:'d232',date:'2026-04-15', desc:'Cerveja',               amount:223.94, category:'pessoal',      sub:'Cerveja',                pay:'Cartão', month:4,year:2026 },
-      { id:'d233',date:'2026-04-15', desc:'Cerveja',               amount:131.48, category:'pessoal',      sub:'Cerveja',                pay:'Dinheiro',month:4,year:2026 },
-      { id:'d234',date:'2026-04-22', desc:'Banho e Tosa',          amount:184.50, category:'dogs',         sub:'Banho e Tosa',           pay:'Cartão', month:4,year:2026 },
-      { id:'d235',date:'2026-04-20', desc:'Veterinário',           amount:365.00, category:'dogs',         sub:'Veterinário',            pay:'Dinheiro',month:4,year:2026 },
-      { id:'d236',date:'2026-04-18', desc:'Assessórios dogs',      amount:146.79, category:'dogs',         sub:'Assessórios',            pay:'Cartão', month:4,year:2026 },
-      { id:'d237',date:'2026-04-25', desc:'Restaurantes',          amount:1115.23,category:'lazer',        sub:'Restaurantes e Passeios',pay:'Cartão', month:4,year:2026 },
-      { id:'d238',date:'2026-04-25', desc:'Restaurantes',          amount:1414.21,category:'lazer',        sub:'Restaurantes e Passeios',pay:'Dinheiro',month:4,year:2026 },
-      { id:'d239',date:'2026-04-20', desc:'Diversão',              amount:7.50,   category:'lazer',        sub:'Diversão',               pay:'Cartão', month:4,year:2026 },
-      { id:'d240',date:'2026-04-20', desc:'Diversão',              amount:11.90,  category:'lazer',        sub:'Diversão',               pay:'Dinheiro',month:4,year:2026 },
-      { id:'d241',date:'2026-04-18', desc:'Famílias e Amigos',     amount:70.80,  category:'lazer',        sub:'Famílias e Amigos',      pay:'Dinheiro',month:4,year:2026 },
-      { id:'d242',date:'2026-04-10', desc:'Viagens',               amount:18.00,  category:'lazer',        sub:'Viagens',                pay:'Cartão', month:4,year:2026 },
-      { id:'d243',date:'2026-04-28', desc:'Shopee',                amount:237.52, category:'cartoes',      sub:'Shopee',                 pay:'Cartão', month:4,year:2026 },
-      { id:'d244',date:'2026-04-28', desc:'Mercado Livre',         amount:669.27, category:'cartoes',      sub:'Mercado Livre',          pay:'Cartão', month:4,year:2026 },
-      { id:'d245',date:'2026-04-28', desc:'Taxas Bancárias',       amount:141.00, category:'financeiro',   sub:'Taxas Bancárias',        pay:'Dinheiro',month:4,year:2026 },
-      { id:'d246',date:'2026-04-28', desc:'Saques',                amount:26.50,  category:'financeiro',   sub:'Saques',                 pay:'Dinheiro',month:4,year:2026 },
-      { id:'d247',date:'2026-04-28', desc:'Contador',              amount:1626.82,category:'financeiro',   sub:'Contador',               pay:'Dinheiro',month:4,year:2026 },
-      { id:'d248',date:'2026-04-28', desc:'Impostos Empresa',      amount:2540.15,category:'financeiro',   sub:'Impostos Empresa',       pay:'Dinheiro',month:4,year:2026 },
-      { id:'d249',date:'2026-04-28', desc:'Melissa Advogada',      amount:3900.00,category:'roberto',      sub:'Melissa Advogada',       pay:'Dinheiro',month:4,year:2026 },
-      { id:'d250',date:'2026-04-28', desc:'Assinaturas',           amount:133.75, category:'roberto',      sub:'Assinaturas',            pay:'Cartão', month:4,year:2026 },
-      { id:'d251',date:'2026-04-28', desc:'Faculdade UNIP',        amount:1835.83,category:'mariana',      sub:'Faculdade UNIP',         pay:'Dinheiro',month:4,year:2026 },
-      { id:'d252',date:'2026-04-28', desc:'OAB',                   amount:320.00, category:'mariana',      sub:'OAB',                    pay:'Dinheiro',month:4,year:2026 },
-      { id:'d253',date:'2026-04-28', desc:'Livros e Materiais',    amount:71.98,  category:'mariana',      sub:'Livros e Materiais',     pay:'Cartão', month:4,year:2026 },
-      { id:'d254',date:'2026-04-15', desc:'Mesada',                amount:49.80,  category:'mariana',      sub:'Mesada',                 pay:'Dinheiro',month:4,year:2026 },
-      { id:'d255',date:'2026-04-15', desc:'Lanche',                amount:47.50,  category:'mariana',      sub:'Lanche',                 pay:'Dinheiro',month:4,year:2026 },
-    ];
+    // Despesas Jan-Abr 2026: inseridas pela migração _cleanupDespesas2026Q1
+    // (canônico da planilha oficial). Aluguel: vem do Contrato cadastrado.
+    const despesas = [];
 
     const metas = [
       { id: 'm1', label: 'Receita Mínima Mensal', target: 20000, type: 'receita_min', active: true },
@@ -373,26 +442,24 @@ const Store = (function () {
     });
   }
 
-  function _cleanupMoradia2026Q1() {
-    if (_data.__cleanup_moradia2026q1) return;
-    // Remove TODAS as despesas de Moradia Jan-Abr 2026 que NÃO sejam de contrato
-    // (o aluguel do contrato — com contratoId — é preservado)
+  function _cleanupDespesas2026Q1() {
+    if (_data.__cleanup_despesas2026q1) return;
+    // Remove TODAS as despesas Jan-Abr 2026 que NÃO sejam de contrato
+    // (lançamentos com contratoId — ex. Aluguel — são preservados)
     _data.despesas = _data.despesas.filter(d => {
-      if (d.category === 'moradia' && d.year === 2026 && d.month >= 1 && d.month <= 4 && !d.contratoId) {
+      if (d.year === 2026 && d.month >= 1 && d.month <= 4 && !d.contratoId) {
         return false;
       }
       return true;
     });
-    // Insere o canônico da planilha
+    // Insere o canônico da planilha — Moradia + outras categorias
     MORADIA_2026_Q1.forEach(e => {
-      _data.despesas.push({
-        ...e,
-        id: newId(),
-        category: 'moradia',
-        year: 2026,
-      });
+      _data.despesas.push({ ...e, id: newId(), category: 'moradia', year: 2026 });
     });
-    _data.__cleanup_moradia2026q1 = true;
+    DESPESAS_2026_Q1_OUTRAS.forEach(e => {
+      _data.despesas.push({ ...e, id: newId(), year: 2026 });
+    });
+    _data.__cleanup_despesas2026q1 = true;
   }
 
   function _cleanupBadSeed() {
@@ -413,7 +480,7 @@ const Store = (function () {
       save(_data);
     }
     _cleanupBadSeed();
-    _cleanupMoradia2026Q1();
+    _cleanupDespesas2026Q1();
     _migrateMetas();
     save(_data);
     return _data;
