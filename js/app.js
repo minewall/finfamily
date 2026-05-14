@@ -971,6 +971,45 @@ ${filtered.map(r => {
   </div>
 </div>
 
+<div class="card mb-6">
+  <div class="card-header"><span class="card-title">Por Categoria — ${year}</span></div>
+  <div class="table-wrap">
+    <table class="data-table" style="min-width:920px">
+      <thead><tr>
+        <th>Categoria</th>
+        ${Utils.months.map(m=>`<th class="num">${m}</th>`).join('')}
+        <th class="num">Total</th>
+      </tr></thead>
+      <tbody>
+        ${(() => {
+          const byCat = {};
+          Store.get().despesas.filter(d => d.year === year).forEach(d => {
+            byCat[d.category] = byCat[d.category] || Array(12).fill(0);
+            byCat[d.category][d.month - 1] += d.amount;
+          });
+          const ordered = Object.entries(byCat)
+            .filter(([k]) => k !== 'receita')
+            .sort((a,b) => b[1].reduce((x,y)=>x+y,0) - a[1].reduce((x,y)=>x+y,0));
+          return ordered.map(([cat, vals]) => {
+            const info = Store.CATEGORIES[cat] || {};
+            const total = vals.reduce((a,b) => a+b, 0);
+            return `<tr>
+              <td><span class="badge" style="background:${(info.color||'#7C6EF8')+'20'};color:${info.color||'#7C6EF8'}">${info.label||cat}</span></td>
+              ${vals.map(v => `<td class="num ${v>0?'negative':'muted'}">${v>0?Utils.currency(v):'—'}</td>`).join('')}
+              <td class="num negative fw-700">${Utils.currency(total)}</td>
+            </tr>`;
+          }).join('');
+        })()}
+      </tbody>
+      <tfoot><tr>
+        <td class="fw-700">Total</td>
+        ${yrDesp.map(v => `<td class="num negative fw-700">${v>0?Utils.currency(v):'—'}</td>`).join('')}
+        <td class="num negative fw-700">${Utils.currency(yrDesp.reduce((a,b)=>a+b,0))}</td>
+      </tr></tfoot>
+    </table>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">Detalhamento — ${Utils.monthsFull[month-1]}</span>
