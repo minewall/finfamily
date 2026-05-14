@@ -39,6 +39,55 @@ const Store = (function () {
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
 
+  // ── CANÔNICO: MORADIA 2026 (Jan-Abr) ─────────────────────────────
+  // Fonte: planilha oficial. Aluguel NÃO está aqui — vem do Contrato.
+  const MORADIA_2026_Q1 = [
+    // ── JAN ──
+    { date:'2026-01-08', desc:'Outras despesas moradia', amount:25.90,  sub:'Outras despesas',         pay:'Cartão',   month:1 },
+    { date:'2026-01-08', desc:'Outras despesas moradia', amount:48.00,  sub:'Outras despesas',         pay:'Dinheiro', month:1 },
+    { date:'2026-01-10', desc:'Energia Elétrica',        amount:212.43, sub:'Energia Elétrica',        pay:'Dinheiro', month:1 },
+    { date:'2026-01-10', desc:'Água e Saneamento',       amount:273.76, sub:'Água e Saneamento',       pay:'Dinheiro', month:1 },
+    { date:'2026-01-08', desc:'TV / Internet',           amount:295.33, sub:'TV / Internet / Telefone',pay:'Dinheiro', month:1 },
+    { date:'2026-01-12', desc:'Móveis e itens casa',     amount:503.61, sub:'Móveis e itens casa',     pay:'Cartão',   month:1 },
+    { date:'2026-01-12', desc:'Móveis e itens casa',     amount:511.84, sub:'Móveis e itens casa',     pay:'Dinheiro', month:1 },
+    { date:'2026-01-15', desc:'HBO',                     amount:18.90,  sub:'HBO',                     pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Spotify',                 amount:40.90,  sub:'Spotify',                 pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Amazon Prime',            amount:13.90,  sub:'Amazon Prime',            pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'Apple',                   amount:19.90,  sub:'Apple',                   pay:'Cartão',   month:1 },
+    { date:'2026-01-15', desc:'iFood',                   amount:5.95,   sub:'iFood',                   pay:'Cartão',   month:1 },
+    // ── FEV ── (só Aluguel via contrato + subscriptions/Outras/Móveis cartão)
+    { date:'2026-02-15', desc:'Outras despesas moradia', amount:120.00, sub:'Outras despesas',         pay:'Cartão',   month:2 },
+    { date:'2026-02-12', desc:'Móveis e itens casa',     amount:76.23,  sub:'Móveis e itens casa',     pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'HBO',                     amount:18.90,  sub:'HBO',                     pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Spotify',                 amount:40.90,  sub:'Spotify',                 pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Amazon Prime',            amount:13.90,  sub:'Amazon Prime',            pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Apple',                   amount:69.03,  sub:'Apple',                   pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'iFood',                   amount:5.95,   sub:'iFood',                   pay:'Cartão',   month:2 },
+    // ── MAR ──
+    { date:'2026-03-10', desc:'Energia Elétrica',        amount:253.41, sub:'Energia Elétrica',        pay:'Dinheiro', month:3 },
+    { date:'2026-03-10', desc:'Água e Saneamento',       amount:311.72, sub:'Água e Saneamento',       pay:'Dinheiro', month:3 },
+    { date:'2026-03-08', desc:'TV / Internet',           amount:309.00, sub:'TV / Internet / Telefone',pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Móveis e itens casa',     amount:76.14,  sub:'Móveis e itens casa',     pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Móveis e itens casa',     amount:102.96, sub:'Móveis e itens casa',     pay:'Dinheiro', month:3 },
+    { date:'2026-03-15', desc:'Spotify',                 amount:40.90,  sub:'Spotify',                 pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Amazon Prime',            amount:13.90,  sub:'Amazon Prime',            pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Apple',                   amount:92.70,  sub:'Apple',                   pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'iFood',                   amount:5.95,   sub:'iFood',                   pay:'Cartão',   month:3 },
+    // ── ABR ──
+    { date:'2026-04-10', desc:'Energia Elétrica',        amount:509.70, sub:'Energia Elétrica',        pay:'Dinheiro', month:4 },
+    { date:'2026-04-10', desc:'Água e Saneamento',       amount:373.94, sub:'Água e Saneamento',       pay:'Dinheiro', month:4 },
+    { date:'2026-04-08', desc:'TV / Internet',           amount:600.85, sub:'TV / Internet / Telefone',pay:'Dinheiro', month:4 },
+    { date:'2026-04-12', desc:'Reparos e Manutenção',    amount:115.00, sub:'Reparos e Manutenção',    pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Outras despesas moradia', amount:129.11, sub:'Outras despesas',         pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Outras despesas moradia', amount:49.00,  sub:'Outras despesas',         pay:'Dinheiro', month:4 },
+    { date:'2026-04-12', desc:'Móveis e itens casa',     amount:148.13, sub:'Móveis e itens casa',     pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Móveis e itens casa',     amount:540.73, sub:'Móveis e itens casa',     pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Spotify',                 amount:40.90,  sub:'Spotify',                 pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Amazon Prime',            amount:13.90,  sub:'Amazon Prime',            pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Apple',                   amount:88.70,  sub:'Apple',                   pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'iFood',                   amount:11.90,  sub:'iFood',                   pay:'Cartão',   month:4 },
+  ];
+
   const PESSOAS = ['Roberto','Mariana','Manuela','Família'];
 
   const BANKS = ['Itaú','Bradesco','Santander','Nubank','Inter','C6 Bank','Caixa','Banco do Brasil','BTG Pactual','XP','Wise','PicPay','Mercado Pago'];
@@ -68,16 +117,8 @@ const Store = (function () {
     // Despesas — seeded from real spreadsheet values (Despesas 2026)
     const despesas = [
       // ── JANEIRO ─────────────────────────────────────
-      { id:'d1',  date:'2026-01-05', desc:'Aluguel',               amount:3500,    category:'moradia',     sub:'Aluguel',               pay:'Dinheiro',month:1,year:2026 },
-      { id:'d2',  date:'2026-01-12', desc:'Móveis e itens casa',   amount:503.61,  category:'moradia',     sub:'Móveis e itens casa',    pay:'Cartão', month:1,year:2026 },
-      { id:'d3',  date:'2026-01-12', desc:'Móveis e itens casa',   amount:511.84,  category:'moradia',     sub:'Móveis e itens casa',    pay:'Dinheiro',month:1,year:2026 },
-      { id:'d4',  date:'2026-01-08', desc:'Outras despesas moradia',amount:25.90,  category:'moradia',     sub:'Outras despesas',        pay:'Cartão', month:1,year:2026 },
-      { id:'d5',  date:'2026-01-08', desc:'Outras despesas moradia',amount:48.00,  category:'moradia',     sub:'Outras despesas',        pay:'Dinheiro',month:1,year:2026 },
-      { id:'d6',  date:'2026-01-15', desc:'HBO',                   amount:18.90,  category:'moradia',     sub:'HBO',                    pay:'Cartão', month:1,year:2026 },
-      { id:'d7',  date:'2026-01-15', desc:'Spotify',               amount:40.90,  category:'moradia',     sub:'Spotify',                pay:'Cartão', month:1,year:2026 },
-      { id:'d8',  date:'2026-01-15', desc:'Amazon Prime',          amount:13.90,  category:'moradia',     sub:'Amazon Prime',           pay:'Cartão', month:1,year:2026 },
-      { id:'d9',  date:'2026-01-15', desc:'Apple',                 amount:19.90,  category:'moradia',     sub:'Apple',                  pay:'Cartão', month:1,year:2026 },
-      { id:'d10', date:'2026-01-15', desc:'iFood',                 amount:5.95,   category:'moradia',     sub:'iFood',                  pay:'Cartão', month:1,year:2026 },
+      // Moradia Jan-Abr 2026: inserido pela migração _cleanupMoradia2026Q1 (canônico da planilha)
+      // Aluguel: vem do Contrato cadastrado.
       { id:'d11', date:'2026-01-10', desc:'Supermercado',          amount:1856.92,category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:1,year:2026 },
       { id:'d12', date:'2026-01-10', desc:'Supermercado',          amount:1783.47,category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:1,year:2026 },
       { id:'d13', date:'2026-01-20', desc:'Padaria',               amount:30.93,  category:'alimentacao',  sub:'Padaria',                pay:'Cartão', month:1,year:2026 },
@@ -108,11 +149,6 @@ const Store = (function () {
       { id:'d38', date:'2026-01-31', desc:'Celular',               amount:179.90, category:'roberto',      sub:'Celular',                pay:'Cartão', month:1,year:2026 },
 
       // ── FEVEREIRO ─────────────────────────────────────
-      { id:'d50', date:'2026-02-05', desc:'Aluguel',               amount:3500,    category:'moradia',     sub:'Aluguel',               pay:'Dinheiro',month:2,year:2026 },
-      { id:'d51', date:'2026-02-10', desc:'Energia Elétrica',      amount:212.43, category:'moradia',     sub:'Energia Elétrica',      pay:'Dinheiro',month:2,year:2026 },
-      { id:'d52', date:'2026-02-10', desc:'Água',                  amount:273.76, category:'moradia',     sub:'Água e Saneamento',     pay:'Dinheiro',month:2,year:2026 },
-      { id:'d53', date:'2026-02-08', desc:'TV / Internet',         amount:295.33, category:'moradia',     sub:'TV / Internet / Telefone',pay:'Dinheiro',month:2,year:2026 },
-      { id:'d54', date:'2026-02-12', desc:'Móveis e itens casa',   amount:76.23,  category:'moradia',     sub:'Móveis e itens casa',    pay:'Cartão', month:2,year:2026 },
       { id:'d55', date:'2026-02-10', desc:'Supermercado',          amount:1623.41,category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:2,year:2026 },
       { id:'d56', date:'2026-02-10', desc:'Supermercado',          amount:164.10, category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:2,year:2026 },
       { id:'d57', date:'2026-02-20', desc:'Padaria',               amount:58.42,  category:'alimentacao',  sub:'Padaria',                pay:'Cartão', month:2,year:2026 },
@@ -143,17 +179,6 @@ const Store = (function () {
       { id:'d82', date:'2026-02-28', desc:'Celular',               amount:179.90, category:'roberto',      sub:'Celular',                pay:'Cartão', month:2,year:2026 },
 
       // ── MARÇO ─────────────────────────────────────────
-      { id:'d100',date:'2026-03-05', desc:'Aluguel',               amount:3500,    category:'moradia',     sub:'Aluguel',               pay:'Dinheiro',month:3,year:2026 },
-      { id:'d101',date:'2026-03-10', desc:'Energia Elétrica',      amount:253.41, category:'moradia',     sub:'Energia Elétrica',      pay:'Dinheiro',month:3,year:2026 },
-      { id:'d102',date:'2026-03-10', desc:'Água',                  amount:311.72, category:'moradia',     sub:'Água e Saneamento',     pay:'Dinheiro',month:3,year:2026 },
-      { id:'d103',date:'2026-03-08', desc:'TV / Internet',         amount:309.00, category:'moradia',     sub:'TV / Internet / Telefone',pay:'Cartão',month:3,year:2026 },
-      { id:'d104',date:'2026-03-12', desc:'HBO',                   amount:18.90,  category:'moradia',     sub:'HBO',                    pay:'Cartão', month:3,year:2026 },
-      { id:'d105',date:'2026-03-12', desc:'Spotify',               amount:40.90,  category:'moradia',     sub:'Spotify',                pay:'Cartão', month:3,year:2026 },
-      { id:'d106',date:'2026-03-12', desc:'Amazon Prime',          amount:13.90,  category:'moradia',     sub:'Amazon Prime',           pay:'Cartão', month:3,year:2026 },
-      { id:'d107',date:'2026-03-12', desc:'Apple',                 amount:69.03,  category:'moradia',     sub:'Apple',                  pay:'Cartão', month:3,year:2026 },
-      { id:'d108',date:'2026-03-12', desc:'iFood',                 amount:5.95,   category:'moradia',     sub:'iFood',                  pay:'Cartão', month:3,year:2026 },
-      { id:'d109',date:'2026-03-15', desc:'Móveis e itens casa',   amount:76.14,  category:'moradia',     sub:'Móveis e itens casa',    pay:'Cartão', month:3,year:2026 },
-      { id:'d110',date:'2026-03-15', desc:'Outras despesas',       amount:120.00, category:'moradia',     sub:'Outras despesas',        pay:'Cartão', month:3,year:2026 },
       { id:'d111',date:'2026-03-10', desc:'Supermercado',          amount:2349.54,category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:3,year:2026 },
       { id:'d112',date:'2026-03-10', desc:'Supermercado',          amount:163.65, category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:3,year:2026 },
       { id:'d113',date:'2026-03-12', desc:'Feira / Sacolão',       amount:235.01, category:'alimentacao',  sub:'Feira / Sacolão',        pay:'Cartão', month:3,year:2026 },
@@ -190,18 +215,6 @@ const Store = (function () {
       { id:'d144',date:'2026-03-15', desc:'Lanche',                amount:34.00,  category:'mariana',      sub:'Lanche',                 pay:'Dinheiro',month:3,year:2026 },
 
       // ── ABRIL ─────────────────────────────────────────
-      { id:'d200',date:'2026-04-05', desc:'Aluguel',               amount:3500,    category:'moradia',     sub:'Aluguel',               pay:'Dinheiro',month:4,year:2026 },
-      { id:'d201',date:'2026-04-10', desc:'Energia Elétrica',      amount:509.70, category:'moradia',     sub:'Energia Elétrica',      pay:'Dinheiro',month:4,year:2026 },
-      { id:'d202',date:'2026-04-10', desc:'Água',                  amount:373.94, category:'moradia',     sub:'Água e Saneamento',     pay:'Dinheiro',month:4,year:2026 },
-      { id:'d203',date:'2026-04-08', desc:'TV / Internet',         amount:600.85, category:'moradia',     sub:'TV / Internet / Telefone',pay:'Dinheiro',month:4,year:2026 },
-      { id:'d204',date:'2026-04-12', desc:'Móveis e itens casa',   amount:148.13, category:'moradia',     sub:'Móveis e itens casa',    pay:'Cartão', month:4,year:2026 },
-      { id:'d205',date:'2026-04-12', desc:'Spotify',               amount:40.90,  category:'moradia',     sub:'Spotify',                pay:'Cartão', month:4,year:2026 },
-      { id:'d206',date:'2026-04-12', desc:'Amazon Prime',          amount:13.90,  category:'moradia',     sub:'Amazon Prime',           pay:'Cartão', month:4,year:2026 },
-      { id:'d207',date:'2026-04-12', desc:'Apple',                 amount:92.70,  category:'moradia',     sub:'Apple',                  pay:'Cartão', month:4,year:2026 },
-      { id:'d208',date:'2026-04-12', desc:'iFood',                 amount:11.90,  category:'moradia',     sub:'iFood',                  pay:'Cartão', month:4,year:2026 },
-      { id:'d209',date:'2026-04-12', desc:'Reparos e Manutenção',  amount:115.00, category:'moradia',     sub:'Reparos e Manutenção',   pay:'Dinheiro',month:4,year:2026 },
-      { id:'d210',date:'2026-04-15', desc:'Outras despesas',       amount:129.11, category:'moradia',     sub:'Outras despesas',        pay:'Cartão', month:4,year:2026 },
-      { id:'d211',date:'2026-04-15', desc:'Outras despesas',       amount:49.00,  category:'moradia',     sub:'Outras despesas',        pay:'Dinheiro',month:4,year:2026 },
       { id:'d212',date:'2026-04-10', desc:'Supermercado',          amount:284.43, category:'alimentacao',  sub:'Supermercado',           pay:'Cartão', month:4,year:2026 },
       { id:'d213',date:'2026-04-10', desc:'Supermercado',          amount:1569.20,category:'alimentacao',  sub:'Supermercado',           pay:'Dinheiro',month:4,year:2026 },
       { id:'d214',date:'2026-04-12', desc:'Feira / Sacolão',       amount:818.26, category:'alimentacao',  sub:'Feira / Sacolão',        pay:'Dinheiro',month:4,year:2026 },
@@ -246,7 +259,6 @@ const Store = (function () {
       { id:'d253',date:'2026-04-28', desc:'Livros e Materiais',    amount:71.98,  category:'mariana',      sub:'Livros e Materiais',     pay:'Cartão', month:4,year:2026 },
       { id:'d254',date:'2026-04-15', desc:'Mesada',                amount:49.80,  category:'mariana',      sub:'Mesada',                 pay:'Dinheiro',month:4,year:2026 },
       { id:'d255',date:'2026-04-15', desc:'Lanche',                amount:47.50,  category:'mariana',      sub:'Lanche',                 pay:'Dinheiro',month:4,year:2026 },
-      { id:'d256',date:'2026-04-15', desc:'Móveis e itens casa',   amount:540.73, category:'moradia',      sub:'Móveis e itens casa',    pay:'Dinheiro',month:4,year:2026 },
     ];
 
     const metas = [
@@ -361,6 +373,28 @@ const Store = (function () {
     });
   }
 
+  function _cleanupMoradia2026Q1() {
+    if (_data.__cleanup_moradia2026q1) return;
+    // Remove TODAS as despesas de Moradia Jan-Abr 2026 que NÃO sejam de contrato
+    // (o aluguel do contrato — com contratoId — é preservado)
+    _data.despesas = _data.despesas.filter(d => {
+      if (d.category === 'moradia' && d.year === 2026 && d.month >= 1 && d.month <= 4 && !d.contratoId) {
+        return false;
+      }
+      return true;
+    });
+    // Insere o canônico da planilha
+    MORADIA_2026_Q1.forEach(e => {
+      _data.despesas.push({
+        ...e,
+        id: newId(),
+        category: 'moradia',
+        year: 2026,
+      });
+    });
+    _data.__cleanup_moradia2026q1 = true;
+  }
+
   function _cleanupBadSeed() {
     // Limpeza única (v1.0.1): remove entradas r2/r6/r7 do seed inicial
     // — Mastercard Roberto fev/mai/jun que não existiam na planilha.
@@ -379,6 +413,7 @@ const Store = (function () {
       save(_data);
     }
     _cleanupBadSeed();
+    _cleanupMoradia2026Q1();
     _migrateMetas();
     save(_data);
     return _data;
