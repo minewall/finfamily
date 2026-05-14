@@ -163,6 +163,38 @@ const App = (function () {
     return sel ? parseInt(sel.value, 10) : Store.get().settings.ano;
   }
 
+  // ── PERÍODO toggle (compartilhado entre Lançamentos/Receitas/Despesas) ──
+  function periodRangeFor(p, month, year) {
+    if (p === 'ano') return { start: 1, end: 12, label: `${year}` };
+    if (p === 'sem') {
+      const h1 = month <= 6;
+      return { start: h1?1:7, end: h1?6:12, label: `${h1?'H1':'H2'} ${year} (${Utils.months[h1?0:6]}–${Utils.months[h1?5:11]})` };
+    }
+    if (p === 'tri') {
+      const q = Math.ceil(month / 3);
+      const s = (q-1)*3 + 1;
+      return { start: s, end: s+2, label: `Q${q} ${year} (${Utils.months[s-1]}–${Utils.months[s+1]})` };
+    }
+    return { start: month, end: month, label: `${Utils.monthsFull[month-1]} ${year}` };
+  }
+
+  function periodToggleHTML(stateKey, current) {
+    return `<div class="flex gap-2 mb-3" data-period-toggle="${stateKey}">
+      ${[['mes','Mês'],['tri','Trimestre'],['sem','Semestre'],['ano','Ano']].map(([k,l]) =>
+        `<button class="btn-secondary ${current===k?'active':''}" data-period="${k}" style="padding:6px 12px;font-size:12px">${l}</button>`
+      ).join('')}
+    </div>`;
+  }
+
+  function bindPeriodToggle(container, stateKey, onChange) {
+    container.querySelectorAll(`[data-period-toggle="${stateKey}"] [data-period]`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        localStorage.setItem(stateKey, btn.dataset.period);
+        onChange();
+      });
+    });
+  }
+
   // ══════════════════════════════════════════════════════════════
   // PAGE: DASHBOARD
   // ══════════════════════════════════════════════════════════════
@@ -431,21 +463,7 @@ ${alerts.map(a => `
   function renderLancamentos(container) {
     const month = getMonth(), year = getYear();
     const period = localStorage.getItem('ff_lanc_period') || 'mes';
-
-    function rangeFor(p) {
-      if (p === 'ano') return { start: 1, end: 12, label: `${year}` };
-      if (p === 'sem') {
-        const isH1 = month <= 6;
-        return { start: isH1?1:7, end: isH1?6:12, label: `${isH1?'H1':'H2'} ${year} (${Utils.months[isH1?0:6]}–${Utils.months[isH1?5:11]})` };
-      }
-      if (p === 'tri') {
-        const q = Math.ceil(month / 3);
-        const s = (q-1)*3 + 1;
-        return { start: s, end: s+2, label: `Q${q} ${year} (${Utils.months[s-1]}–${Utils.months[s+1]})` };
-      }
-      return { start: month, end: month, label: `${Utils.monthsFull[month-1]} ${year}` };
-    }
-    const { start: mStart, end: mEnd, label: periodLabel } = rangeFor(period);
+    const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
 
     const despesas = Store.get().despesas.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
     const receitas = Store.get().receitas.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
@@ -461,11 +479,7 @@ ${alerts.map(a => `
     <button class="btn-secondary" id="btnTabRec">Receitas</button>
   </div>
 </div>
-<div class="flex gap-2 mb-3" id="periodToggle">
-  ${[['mes','Mês'],['tri','Trimestre'],['sem','Semestre'],['ano','Ano']].map(([k,l]) =>
-    `<button class="btn-secondary ${period===k?'active':''}" data-period="${k}" style="padding:6px 12px;font-size:12px">${l}</button>`
-  ).join('')}
-</div>
+${periodToggleHTML('ff_lanc_period', period)}
 <div class="filter-bar" id="filterBar">
   <div class="search-box">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
@@ -659,13 +673,7 @@ ${filtered.map(r => {
       });
     }
 
-    // ── período toggle ────────────────────────────────────────────
-    container.querySelectorAll('[data-period]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        localStorage.setItem('ff_lanc_period', btn.dataset.period);
-        renderLancamentos(container);
-      });
-    });
+    bindPeriodToggle(container, 'ff_lanc_period', () => renderLancamentos(container));
 
     // ── wire up tabs & filters ────────────────────────────────────
     document.getElementById('btnTabDesp').addEventListener('click', () => {
@@ -718,6 +726,8 @@ ${filtered.map(r => {
   // ══════════════════════════════════════════════════════════════
   function renderReceitas(container) {
     const year = getYear(), month = getMonth();
+    const period = localStorage.getItem('ff_rec_period') || 'mes';
+    const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
     const yrRec = Store.yearlyMonthly(year, 'receita');
     const totalAno = yrRec.reduce((a,b) => a+b, 0);
     const media = totalAno / 12;
@@ -809,14 +819,15 @@ ${filtered.map(r => {
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Receitas — ${Utils.monthsFull[month-1]} ${year}</span>
+    <span class="card-title">Receitas — ${periodLabel}</span>
     <button class="btn-primary" id="btnAddRec">+ Nova Receita</button>
   </div>
+  ${periodToggleHTML('ff_rec_period', period)}
   <div class="table-wrap">
     <table class="data-table">
       <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th></tr></thead>
       <tbody>
-        ${Store.get().receitas.filter(r=>r.year===year && r.month===month).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr>
+        ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr>
           <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
           <td>${r.desc}</td>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
@@ -876,6 +887,7 @@ ${filtered.map(r => {
     });
 
     document.getElementById('btnAddRec')?.addEventListener('click', () => openAddReceita(container));
+    bindPeriodToggle(container, 'ff_rec_period', () => renderReceitas(container));
 
     document.getElementById('btnAddRf')?.addEventListener('click', () => openRfModal(container));
     container.querySelectorAll('[data-del-rf]').forEach(btn => {
@@ -977,8 +989,12 @@ ${filtered.map(r => {
   // ══════════════════════════════════════════════════════════════
   function renderDespesas(container) {
     const month = getMonth(), year = getYear();
-    const despesas = Store.despesasByMonth(month, year);
-    const catMap = Store.despesasByCategory(month, year);
+    const period = localStorage.getItem('ff_desp_period') || 'mes';
+    const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
+
+    const despesas = Store.get().despesas.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
+    const catMap = {};
+    despesas.forEach(d => { catMap[d.category] = (catMap[d.category] || 0) + d.amount; });
     const total = Object.values(catMap).reduce((a,b) => a+b, 0);
 
     const catSorted = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
@@ -987,10 +1003,11 @@ ${filtered.map(r => {
 
     container.innerHTML = `
 <div class="section-header mb-4">
-  <div><div class="section-title">Despesas — ${Utils.monthsFull[month-1]} ${year}</div>
+  <div><div class="section-title">Despesas — ${periodLabel}</div>
   <div class="section-sub">${despesas.length} lançamentos · total: <strong>${Utils.currency(total)}</strong></div></div>
   <button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>
 </div>
+${periodToggleHTML('ff_desp_period', period)}
 
 <div class="chart-grid mb-6">
   <div class="card">
@@ -1146,6 +1163,7 @@ ${filtered.map(r => {
     attachDespDeleteHandlers();
 
     document.getElementById('btnAddDesp')?.addEventListener('click', () => openAddDespesa(container));
+    bindPeriodToggle(container, 'ff_desp_period', () => renderDespesas(container));
   }
 
   function openAddDespesa(refreshContainer) {
@@ -2952,6 +2970,7 @@ ${(() => {
       ['categorias', '🗂', 'Categorias'],
       ['pessoas',    '👥', 'Grupo Familiar'],
       ['cotacoes',   '💱', 'Cotações'],
+      ['aparencia',  '🎨', 'Aparência'],
       ['backup',     '💾', 'Backup & Dados'],
       ['sobre',      'ℹ️',  'Sobre'],
     ].map(([k, ic, l]) => `
@@ -2976,6 +2995,7 @@ ${(() => {
     if      (section === 'categorias') renderConfigCategorias(content);
     else if (section === 'pessoas')    renderConfigPessoas(content);
     else if (section === 'cotacoes')   renderConfigCotacoes(content);
+    else if (section === 'aparencia')  renderConfigAparencia(content);
     else if (section === 'backup')     renderConfigBackup(content);
     else                                renderConfigSobre(content);
   }
@@ -3144,6 +3164,31 @@ ${(() => {
     });
   }
 
+  function _doExportBackup() {
+    const blob = new Blob([JSON.stringify(Store.exportData(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finfamily-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup exportado', 'success');
+  }
+
+  function _doImportBackup(file) {
+    if (!file) return;
+    if (!confirm('Importar este backup vai SUBSTITUIR todos os dados atuais. Continuar?')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        Store.importData(JSON.parse(reader.result));
+        toast('Backup importado — recarregando…', 'success');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) { toast('Erro ao importar: ' + err.message, 'error'); }
+    };
+    reader.readAsText(file);
+  }
+
   function renderConfigBackup(content) {
     const data = Store.get();
     const counts = {
@@ -3168,14 +3213,40 @@ ${(() => {
     <input type="file" id="fileDoImport" accept="application/json" style="display:none"/>
   </div>
 </div>`;
-    document.getElementById('btnDoExport').addEventListener('click', () => document.getElementById('btnExport').click());
-    document.getElementById('btnDoImport').addEventListener('click', () => document.getElementById('btnImport').click());
+    document.getElementById('btnDoExport').addEventListener('click', _doExportBackup);
+    document.getElementById('btnDoImport').addEventListener('click', () => document.getElementById('fileDoImport').click());
+    document.getElementById('fileDoImport').addEventListener('change', e => {
+      _doImportBackup(e.target.files?.[0]);
+      e.target.value = '';
+    });
     document.getElementById('btnDoReset').addEventListener('click', () => {
       if (!confirm('Apagar TODOS os dados e voltar ao seed inicial?')) return;
       Store.resetData();
       toast('Dados resetados — recarregando…', 'success');
       setTimeout(() => location.reload(), 600);
     });
+  }
+
+  function renderConfigAparencia(content) {
+    const tema = Store.get().settings.tema || 'dark';
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div><div class="section-title">Aparência</div>
+  <div class="section-sub">Tema visual da aplicação</div></div>
+</div>
+<div class="card">
+  <div style="display:flex;gap:8px;align-items:center">
+    <span style="flex:1;font-size:14px;color:var(--text-1)">Tema</span>
+    <button class="btn-secondary ${tema==='light'?'active':''}" data-tema="light">☀ Claro</button>
+    <button class="btn-secondary ${tema==='dark'?'active':''}" data-tema="dark">🌙 Escuro</button>
+  </div>
+</div>`;
+    content.querySelectorAll('[data-tema]').forEach(b => b.addEventListener('click', () => {
+      const next = b.dataset.tema;
+      document.documentElement.dataset.theme = next;
+      Store.updateSettings({ tema: next });
+      renderConfigAparencia(content);
+    }));
   }
 
   function renderConfigSobre(content) {
@@ -3221,14 +3292,6 @@ ${(() => {
     Router.register('comparativo',renderComparativo);
     Router.register('config',     renderConfig);
 
-    // Theme toggle
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      const html = document.documentElement;
-      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
-      html.dataset.theme = next;
-      Store.updateSettings({ tema: next });
-    });
-
     // Month / Year selectors
     document.getElementById('globalMonth').addEventListener('change', () => Router.navigate(Router.current));
     document.getElementById('globalYear')?.addEventListener('change', () => Router.navigate(Router.current));
@@ -3256,41 +3319,6 @@ ${(() => {
       item.addEventListener('click', () => {
         if (window.innerWidth <= 900) sidebarClose();
       });
-    });
-
-    // Export / Import backup
-    document.getElementById('btnExport')?.addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify(Store.exportData(), null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `finfamily-backup-${new Date().toISOString().slice(0,10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast('Backup exportado', 'success');
-    });
-    document.getElementById('btnImport')?.addEventListener('click', () => {
-      document.getElementById('fileImport').click();
-    });
-    document.getElementById('fileImport')?.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      if (!confirm('Importar este backup vai SUBSTITUIR todos os dados atuais. Continuar?')) {
-        e.target.value = ''; return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const payload = JSON.parse(reader.result);
-          Store.importData(payload);
-          toast('Backup importado — recarregando…', 'success');
-          setTimeout(() => location.reload(), 800);
-        } catch (err) {
-          toast('Erro ao importar: ' + err.message, 'error');
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
     });
 
     // Apply saved theme

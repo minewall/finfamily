@@ -146,14 +146,10 @@
     </nav>
 
     <div class="sidebar-footer">
-      <button class="theme-btn" id="themeToggle" title="Alternar tema">
-        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2"/></svg>
-      </button>
-      <button class="theme-btn" id="btnExport" title="Exportar backup (JSON)">⬇</button>
-      <button class="theme-btn" id="btnImport" title="Importar backup (JSON)">⬆</button>
-      <input type="file" id="fileImport" accept="application/json" style="display:none"/>
-      <span style="font-size:11px;color:var(--text-4)">FinFamily 2026</span>
+      <a href="#config" class="theme-btn" title="Configurações">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+      </a>
+      <span style="font-size:11px;color:var(--text-4);flex:1;text-align:right">FinFamily 2026</span>
     </div>
   </aside>
 
@@ -200,9 +196,9 @@
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
 <!-- Scripts -->
-<script src="js/store.js?v=30"></script>
-<script src="js/charts.js?v=30"></script>
-<script src="js/app.js?v=30"></script>
+<script src="js/store.js?v=31"></script>
+<script src="js/charts.js?v=31"></script>
+<script src="js/app.js?v=31"></script>
 
 </body>
 </html>
