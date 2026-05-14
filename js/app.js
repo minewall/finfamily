@@ -721,6 +721,23 @@ ${filtered.map(r => {
     const totalAno = yrRec.reduce((a,b) => a+b, 0);
     const media = totalAno / 12;
 
+    // Valor Futuro: soma de Recebimentos Futuros do ano + projeção das parcelas
+    // de contratos de receita ainda não realizadas
+    const today = new Date();
+    const rfPendentes = Store.getRecebimentosFuturos().filter(rf => {
+      const ano = rf.ano || parseInt((rf.data || '').slice(0,4));
+      return ano === year && rf.status !== 'recebido';
+    }).reduce((s, rf) => s + (rf.valor || rf.amount || 0), 0);
+    const contratosFuturas = Store.get().receitas
+      .filter(r => r.contratoId && r.year === year && r.paid !== true)
+      .filter(r => new Date(r.date + 'T23:59:59') > today)
+      .reduce((s, r) => s + r.amount, 0);
+    const valorFuturo = rfPendentes + contratosFuturas;
+    const projecaoAno = totalAno + valorFuturo;
+    const metaAnual = (Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita) * 12;
+    const pctMeta = metaAnual > 0 ? projecaoAno / metaAnual : 0;
+    const statusCol = pctMeta >= 1 ? 'green' : pctMeta >= 0.8 ? 'amber' : 'red';
+
     // Per-person yearly
     const pessoas = Store.PESSOAS;
     const byPerson = {};
@@ -750,6 +767,16 @@ ${filtered.map(r => {
     <div class="kpi-header"><span class="kpi-label">Melhor Mês</span><span class="kpi-icon">🏆</span></div>
     <div class="kpi-value" style="color:var(--blue)">${Utils.currency(Math.max(...yrRec))}</div>
     <div class="card-sub">${Utils.months[yrRec.indexOf(Math.max(...yrRec))]}</div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--${statusCol});--kpi-bg:var(--${statusCol}-dim, #14B8A618)">
+    <div class="kpi-header"><span class="kpi-label">Valor Futuro</span><span class="kpi-icon">🔮</span></div>
+    <div class="kpi-value" style="color:var(--${statusCol})">${Utils.currency(valorFuturo)}</div>
+    <div class="card-sub">Projeção ${year}: <strong>${Utils.currency(projecaoAno)}</strong></div>
+    <div class="progress-bar" style="margin-top:8px"><div class="progress-fill ${statusCol}" style="width:${Math.min(pctMeta,1)*100}%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:4px">
+      <span>${(pctMeta*100).toFixed(0)}% da meta anual</span>
+      <span>${Utils.currency(metaAnual)}</span>
+    </div>
   </div>
 </div>
 
