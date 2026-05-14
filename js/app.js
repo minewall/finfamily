@@ -736,13 +736,13 @@ ${filtered.map(r => {
       <tbody>
         ${Object.entries(byPerson).map(([p, vals]) => `<tr>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(p)}">${Utils.personInitial(p)}</span>${p}</span></td>
-          ${vals.map(v => `<td class="num ${v>0?'positive':'muted'}">${v>0?Charts.fmt(v,true):'—'}</td>`).join('')}
+          ${vals.map(v => `<td class="num ${v>0?'positive':'muted'}">${v>0?Utils.currency(v):'—'}</td>`).join('')}
           <td class="num positive fw-700">${Utils.currency(vals.reduce((a,b)=>a+b,0))}</td>
         </tr>`).join('')}
       </tbody>
       <tfoot><tr>
         <td class="fw-700">Total</td>
-        ${yrRec.map(v => `<td class="num positive fw-700">${Charts.fmt(v,true)}</td>`).join('')}
+        ${yrRec.map(v => `<td class="num positive fw-700">${v>0?Utils.currency(v):'—'}</td>`).join('')}
         <td class="num positive fw-700">${Utils.currency(totalAno)}</td>
       </tr></tfoot>
     </table>
