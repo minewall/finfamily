@@ -49,12 +49,9 @@ const Store = (function () {
     const receitas = [
       // ROBERTO
       { id: 'r1',  date: '2026-01-05', desc: 'Mastercard – Contrato',  amount: 30000,  category: 'receita', person: 'Roberto', type: 'salario',    month: 1, year: 2026 },
-      { id: 'r2',  date: '2026-02-05', desc: 'Mastercard – Contrato',  amount: 30000,  category: 'receita', person: 'Roberto', type: 'salario',    month: 2, year: 2026 },
       { id: 'r3',  date: '2026-03-05', desc: 'Bridge – Contrato I',    amount: 6120,   category: 'receita', person: 'Roberto', type: 'contrato',   month: 3, year: 2026 },
       { id: 'r4',  date: '2026-03-10', desc: 'Empréstimo',             amount: 5000,   category: 'receita', person: 'Roberto', type: 'emprestimo', month: 3, year: 2026 },
       { id: 'r5',  date: '2026-04-05', desc: 'Bridge – Contrato I',    amount: 25704,  category: 'receita', person: 'Roberto', type: 'contrato',   month: 4, year: 2026 },
-      { id: 'r6',  date: '2026-05-05', desc: 'Mastercard – Contrato',  amount: 30000,  category: 'receita', person: 'Roberto', type: 'salario',    month: 5, year: 2026 },
-      { id: 'r7',  date: '2026-06-05', desc: 'Mastercard – Contrato',  amount: 30000,  category: 'receita', person: 'Roberto', type: 'salario',    month: 6, year: 2026 },
       // MARIANA
       { id: 'r8',  date: '2026-01-10', desc: 'Parcelas Filipe',        amount: 1250,   category: 'receita', person: 'Mariana', type: 'outros',     month: 1, year: 2026 },
       { id: 'r9',  date: '2026-02-10', desc: 'Parcelas Filipe',        amount: 1250,   category: 'receita', person: 'Mariana', type: 'outros',     month: 2, year: 2026 },
@@ -364,12 +361,24 @@ const Store = (function () {
     });
   }
 
+  function _cleanupBadSeed() {
+    // Limpeza única (v1.0.1): remove entradas r2/r6/r7 do seed inicial
+    // — Mastercard Roberto fev/mai/jun que não existiam na planilha.
+    if (!_data.__cleanup_v101) {
+      if (Array.isArray(_data.receitas)) {
+        _data.receitas = _data.receitas.filter(r => !['r2','r6','r7'].includes(r.id));
+      }
+      _data.__cleanup_v101 = true;
+    }
+  }
+
   function init() {
     _data = load();
     if (!_data) {
       _data = buildSeed();
       save(_data);
     }
+    _cleanupBadSeed();
     _migrateMetas();
     save(_data);
     return _data;
