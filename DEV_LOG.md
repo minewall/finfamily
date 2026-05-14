@@ -156,3 +156,51 @@ Reserva        🟡     ✅     ✅     ⬇️    auto-updated
 - Coluna "contrato" em Lançamentos para indicar origem.
 - Toggle manual `paid` em parcelas de contrato.
 - Dashboard usar metas do array (em vez de `settings.metaReceita` hardcoded).
+
+---
+
+## Sessão 2026-05-14 — v1.0 fechada, planejamento Fase 2
+
+### ✅ Entregue
+- Validação completa de dados Q1 2026 (Receitas + 11 categorias de Despesas) batendo 100% com a planilha.
+- Toggle de período em Lançamentos (Mês/Tri/Sem/Ano), com preferência persistida.
+- KPI "Valor Futuro" em Receitas (recebimentos futuros + parcelas pendentes de contratos) com threshold vs meta anual.
+- Aba Configurações com 5 seções: Categorias, Grupo Familiar, Cotações, Backup, Sobre.
+- CRUD completo de categorias/subcategorias/pessoas com proteção contra exclusão quando há referências e propagação de renomeio.
+
+### 📋 Roadmap Fase 2 (priorizado)
+
+#### Pendências da Fase 1
+1. **Mover tema/backup do rodapé do sidebar para a aba Configurações** (limpeza)
+2. **Estender toggle de período** (Mês/Tri/Sem/Ano) para Receitas e Despesas
+
+#### Rateio de Despesas (maior valor agregado)
+3. **Rateio em uma despesa** — modelo: `despesa.split = [{person, share, valor}]` (opcional)
+   - UI: seção expansível no modal de despesa, com linhas pessoa+valor OU pessoa+%
+   - Trava em um modo e calcula o outro; validador soma = 100% (ou == amount)
+   - Resto sem rateio fica como "Família"
+4. **Regras default de rateio** por categoria e/ou contrato (parcelas herdam)
+   - Configuração na aba Configurações → seção nova "Regras de rateio"
+   - Aplicada automaticamente a novos lançamentos
+5. **View "Por Pessoa" em Despesas/Dashboard** consumindo os splits
+   - Filtro de pessoa na tabela
+   - Card no Dashboard espelhando o que existe em Receitas
+
+#### Estrutural — Perfil & Auth
+6. **Stub Perfil de Usuário** na Configurações (nome, foto, fuso)
+7. **Trocar senha** (SHA-256 atualizado dinamicamente no localStorage em vez de hardcode em login.html)
+
+#### Sync & Database (executar só se aparecer trigger)
+8. **v1.5 — Sync automático** via Dropbox/Drive (JSON na pasta sincronizada)
+   - Trigger: querer editar do celular sem importar manualmente
+   - Resolve conflitos por timestamp; zero backend
+9. **v2.0 — Supabase** (Postgres + auth + realtime + RLS)
+   - Trigger: Mariana editar em paralelo, ou integração bancária, ou histórico de auditoria
+   - Schema mapeia direto do `_data` atual (~10 tabelas)
+   - Esforço: 2-3 sessões grandes (auth + migração + Store async)
+
+### Decisões registradas
+- **Rateio modelo escolhido**: B (embedded splits no lançamento), pelo equilíbrio simplicidade × poder.
+- **Database NÃO migrar agora**: localStorage cabe ~50 anos de dados. Sync via Drive é o próximo step intermediário.
+- **Mariana e Manuela continuam read-only** até existir auth+multi-user em v2.0.
+
