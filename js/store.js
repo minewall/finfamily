@@ -462,6 +462,28 @@ const Store = (function () {
     _data.__cleanup_despesas2026q1 = true;
   }
 
+  function _syncEditableConfig() {
+    if (_data.categorias) {
+      Object.keys(CATEGORIES).forEach(k => delete CATEGORIES[k]);
+      Object.assign(CATEGORIES, _data.categorias);
+    }
+    if (_data.subcategorias) {
+      Object.keys(SUBCATEGORIES).forEach(k => delete SUBCATEGORIES[k]);
+      Object.assign(SUBCATEGORIES, _data.subcategorias);
+    }
+    if (_data.pessoas) {
+      PESSOAS.length = 0;
+      _data.pessoas.forEach(p => PESSOAS.push(p));
+    }
+  }
+
+  function _loadEditableConfig() {
+    if (!_data.categorias)    _data.categorias    = JSON.parse(JSON.stringify(CATEGORIES));
+    if (!_data.subcategorias) _data.subcategorias = JSON.parse(JSON.stringify(SUBCATEGORIES));
+    if (!_data.pessoas)       _data.pessoas       = [...PESSOAS];
+    _syncEditableConfig();
+  }
+
   function _cleanupBadSeed() {
     // Limpeza única (v1.0.1): remove entradas r2/r6/r7 do seed inicial
     // — Mastercard Roberto fev/mai/jun que não existiam na planilha.
@@ -481,6 +503,7 @@ const Store = (function () {
     }
     _cleanupBadSeed();
     _cleanupDespesas2026Q1();
+    _loadEditableConfig();
     _migrateMetas();
     save(_data);
     return _data;
@@ -979,6 +1002,100 @@ const Store = (function () {
     persist();
   }
 
+  // ── CONFIG: CATEGORIAS / SUBCATEGORIAS / PESSOAS ─────────────────
+  function _slugKey(label) {
+    const base = (label || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+      .slice(0, 20);
+    return base || ('cat_' + Math.random().toString(36).slice(2, 5));
+  }
+
+  function getCategoriaUsage(key) {
+    return _data.despesas.filter(d => d.category === key).length
+         + _data.receitas.filter(r => r.category === key).length;
+  }
+
+  function addCategoria({ label, icon, color }) {
+    if (!label) throw new Error('Nome obrigatório');
+    let key = _slugKey(label);
+    while (_data.categorias[key]) key = key + '_' + Math.random().toString(36).slice(2, 4);
+    _data.categorias[key] = { label, icon: icon || '📁', color: color || '#7C6EF8' };
+    _data.subcategorias[key] = [];
+    _syncEditableConfig(); persist();
+    return key;
+  }
+
+  function updateCategoria(key, patch) {
+    if (!_data.categorias[key]) return;
+    Object.assign(_data.categorias[key], patch);
+    _syncEditableConfig(); persist();
+  }
+
+  function deleteCategoria(key) {
+    if (key === 'receita') throw new Error('Categoria reservada');
+    const usage = getCategoriaUsage(key);
+    if (usage > 0) throw new Error(`${usage} lançamento(s) ainda usam esta categoria`);
+    delete _data.categorias[key];
+    delete _data.subcategorias[key];
+    _syncEditableConfig(); persist();
+  }
+
+  function addSubcategoria(catKey, name) {
+    name = (name || '').trim();
+    if (!name) throw new Error('Nome obrigatório');
+    if (!_data.subcategorias[catKey]) _data.subcategorias[catKey] = [];
+    if (_data.subcategorias[catKey].includes(name)) throw new Error('Subcategoria já existe');
+    _data.subcategorias[catKey].push(name);
+    _syncEditableConfig(); persist();
+  }
+
+  function renameSubcategoria(catKey, oldName, newName) {
+    newName = (newName || '').trim();
+    if (!newName) throw new Error('Nome obrigatório');
+    const arr = _data.subcategorias[catKey] || [];
+    const idx = arr.indexOf(oldName);
+    if (idx < 0) return;
+    arr[idx] = newName;
+    _data.despesas.forEach(d => { if (d.category === catKey && d.sub === oldName) d.sub = newName; });
+    _syncEditableConfig(); persist();
+  }
+
+  function deleteSubcategoria(catKey, name) {
+    const usage = _data.despesas.filter(d => d.category === catKey && d.sub === name).length;
+    if (usage > 0) throw new Error(`${usage} lançamento(s) usam esta subcategoria`);
+    const arr = _data.subcategorias[catKey] || [];
+    const i = arr.indexOf(name);
+    if (i >= 0) arr.splice(i, 1);
+    _syncEditableConfig(); persist();
+  }
+
+  function addPessoa(name) {
+    name = (name || '').trim();
+    if (!name) throw new Error('Nome obrigatório');
+    if (_data.pessoas.includes(name)) throw new Error('Pessoa já cadastrada');
+    _data.pessoas.push(name);
+    _syncEditableConfig(); persist();
+  }
+
+  function renamePessoa(oldName, newName) {
+    newName = (newName || '').trim();
+    if (!newName) throw new Error('Nome obrigatório');
+    const idx = _data.pessoas.indexOf(oldName);
+    if (idx < 0) return;
+    _data.pessoas[idx] = newName;
+    _data.receitas.forEach(r => { if (r.person === oldName) r.person = newName; });
+    _syncEditableConfig(); persist();
+  }
+
+  function deletePessoa(name) {
+    const usage = _data.receitas.filter(r => r.person === name).length;
+    if (usage > 0) throw new Error(`${usage} receita(s) ainda referenciam esta pessoa`);
+    const i = _data.pessoas.indexOf(name);
+    if (i >= 0) _data.pessoas.splice(i, 1);
+    _syncEditableConfig(); persist();
+  }
+
   function exportData() {
     return {
       version: 1,
@@ -1061,5 +1178,8 @@ const Store = (function () {
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData,
     getProximasParcelas,
+    addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,
+    addSubcategoria, renameSubcategoria, deleteSubcategoria,
+    addPessoa, renamePessoa, deletePessoa,
   };
 })();

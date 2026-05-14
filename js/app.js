@@ -119,6 +119,7 @@ const App = (function () {
       reserva:     'Reserva & Investimentos',
       patrimonio:  'Patrimônio & Investimentos',
       comparativo: 'Comparativo Mensal',
+      config:      'Configurações',
     },
     init() {
       window.addEventListener('hashchange', () => this.route());
@@ -2938,6 +2939,263 @@ ${(() => {
   }
 
   // ── INIT ───────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+  // PAGE: CONFIGURAÇÕES
+  // ══════════════════════════════════════════════════════════════
+  function renderConfig(container) {
+    const section = localStorage.getItem('ff_config_section') || 'categorias';
+
+    container.innerHTML = `
+<div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
+  <aside class="card" style="padding:8px">
+    ${[
+      ['categorias', '🗂', 'Categorias'],
+      ['pessoas',    '👥', 'Grupo Familiar'],
+      ['cotacoes',   '💱', 'Cotações'],
+      ['backup',     '💾', 'Backup & Dados'],
+      ['sobre',      'ℹ️',  'Sobre'],
+    ].map(([k, ic, l]) => `
+      <button class="config-tab ${section===k?'active':''}" data-section="${k}"
+        style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:none;background:${section===k?'var(--bg-elevated)':'transparent'};color:${section===k?'var(--text-1)':'var(--text-2)'};border-radius:8px;cursor:pointer;font-size:13px;font-weight:${section===k?'600':'500'};margin-bottom:2px">
+        <span style="font-size:16px">${ic}</span>
+        <span>${l}</span>
+      </button>
+    `).join('')}
+  </aside>
+  <main id="configContent"></main>
+</div>`;
+
+    container.querySelectorAll('[data-section]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        localStorage.setItem('ff_config_section', btn.dataset.section);
+        renderConfig(container);
+      });
+    });
+
+    const content = document.getElementById('configContent');
+    if      (section === 'categorias') renderConfigCategorias(content);
+    else if (section === 'pessoas')    renderConfigPessoas(content);
+    else if (section === 'cotacoes')   renderConfigCotacoes(content);
+    else if (section === 'backup')     renderConfigBackup(content);
+    else                                renderConfigSobre(content);
+  }
+
+  function renderConfigCategorias(content) {
+    const cats = Object.entries(Store.CATEGORIES);
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div><div class="section-title">Categorias & Subcategorias</div>
+  <div class="section-sub">Adicione, renomeie ou exclua categorias e suas subcategorias</div></div>
+  <button class="btn-primary" id="btnAddCat">+ Nova Categoria</button>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+  ${cats.map(([key, info]) => {
+    const usage = Store.getCategoriaUsage(key);
+    const subs = Store.SUBCATEGORIES[key] || [];
+    const isProtected = key === 'receita';
+    return `
+    <details class="card" style="padding:0">
+      <summary style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none">
+        <span style="font-size:22px">${info.icon||'📁'}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--text-1)">${info.label}</div>
+          <div style="font-size:11px;color:var(--text-4)">key: <code>${key}</code> · ${usage} lançamento(s) · ${subs.length} subcat.</div>
+        </div>
+        <span class="badge" style="background:${info.color}20;color:${info.color}">${info.color}</span>
+        <button class="btn-xs" data-action="edit-cat" data-key="${key}" title="Editar">✏</button>
+        ${isProtected ? '<span class="badge badge-amber" title="Reservada">🔒</span>'
+          : `<button class="btn-xs btn-red" data-action="del-cat" data-key="${key}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''} title="${usage>0?'Existem lançamentos':'Excluir'}">✕</button>`}
+      </summary>
+      <div style="padding:0 16px 14px 60px">
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Subcategorias</div>
+        ${subs.length === 0 ? '<div style="font-size:12px;color:var(--text-4);font-style:italic;padding:4px 0">Nenhuma subcategoria</div>'
+          : subs.map(s => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)">
+              <span style="flex:1;font-size:13px;color:var(--text-2)">${s}</span>
+              <button class="btn-xs" data-action="ren-sub" data-cat="${key}" data-sub="${s.replace(/"/g,'&quot;')}" title="Renomear">✏</button>
+              <button class="btn-xs btn-red" data-action="del-sub" data-cat="${key}" data-sub="${s.replace(/"/g,'&quot;')}" title="Excluir">✕</button>
+            </div>`).join('')}
+        <button class="btn-xs" style="margin-top:10px" data-action="add-sub" data-cat="${key}">+ Subcategoria</button>
+      </div>
+    </details>`;
+  }).join('')}
+</div>`;
+
+    document.getElementById('btnAddCat').addEventListener('click', () => openCategoriaModal(null));
+    content.querySelectorAll('[data-action="edit-cat"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openCategoriaModal(b.dataset.key); }));
+    content.querySelectorAll('[data-action="del-cat"]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      if (!confirm(`Excluir a categoria "${Store.CATEGORIES[b.dataset.key].label}"?`)) return;
+      try { Store.deleteCategoria(b.dataset.key); renderConfigCategorias(content); toast('Categoria excluída', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+    content.querySelectorAll('[data-action="add-sub"]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      const name = prompt('Nome da subcategoria:');
+      if (!name) return;
+      try { Store.addSubcategoria(b.dataset.cat, name); renderConfigCategorias(content); toast('Subcategoria adicionada', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+    content.querySelectorAll('[data-action="ren-sub"]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      const old = b.dataset.sub;
+      const newName = prompt('Novo nome:', old);
+      if (!newName || newName === old) return;
+      try { Store.renameSubcategoria(b.dataset.cat, old, newName); renderConfigCategorias(content); toast('Subcategoria renomeada (lançamentos atualizados)', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+    content.querySelectorAll('[data-action="del-sub"]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      if (!confirm(`Excluir a subcategoria "${b.dataset.sub}"?`)) return;
+      try { Store.deleteSubcategoria(b.dataset.cat, b.dataset.sub); renderConfigCategorias(content); toast('Subcategoria excluída', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+  }
+
+  function openCategoriaModal(key) {
+    const isEdit = !!key;
+    const c = isEdit ? Store.CATEGORIES[key] : { label:'', icon:'📁', color:'#7C6EF8' };
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome</label><input class="form-input" id="fCatLabel" value="${c.label}" placeholder="Ex: Educação"/></div>
+      <div class="form-group"><label class="form-label">Ícone (emoji)</label><input class="form-input" id="fCatIcon" value="${c.icon}" maxlength="4"/></div>
+      <div class="form-group"><label class="form-label">Cor</label><input class="form-input" id="fCatColor" type="color" value="${c.color}"/></div>
+    </div>`;
+    Modal.open(isEdit?'Editar Categoria':'Nova Categoria', html, () => {
+      const label = document.getElementById('fCatLabel').value.trim();
+      const icon = document.getElementById('fCatIcon').value.trim();
+      const color = document.getElementById('fCatColor').value;
+      if (!label) return toast('Nome obrigatório', 'error');
+      try {
+        if (isEdit) Store.updateCategoria(key, { label, icon, color });
+        else Store.addCategoria({ label, icon, color });
+        Modal.close();
+        renderConfigCategorias(document.getElementById('configContent'));
+        toast(isEdit?'Categoria atualizada':'Categoria criada', 'success');
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  function renderConfigPessoas(content) {
+    const pessoas = Store.PESSOAS;
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div><div class="section-title">Grupo Familiar</div>
+  <div class="section-sub">Pessoas usadas em Receitas (responsável) e Contratos</div></div>
+  <button class="btn-primary" id="btnAddPessoa">+ Nova Pessoa</button>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+  ${pessoas.map(p => {
+    const usage = Store.get().receitas.filter(r => r.person === p).length;
+    return `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+      <div class="person-avatar" style="background:${Utils.personColor(p)};width:36px;height:36px;font-size:14px">${Utils.personInitial(p)}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--text-1)">${p}</div>
+        <div style="font-size:11px;color:var(--text-4)">${usage} receita(s) vinculada(s)</div>
+      </div>
+      <button class="btn-xs" data-action="ren-pessoa" data-name="${p}">✏</button>
+      <button class="btn-xs btn-red" data-action="del-pessoa" data-name="${p}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''}>✕</button>
+    </div>`;
+  }).join('')}
+</div>`;
+    document.getElementById('btnAddPessoa').addEventListener('click', () => {
+      const name = prompt('Nome da pessoa:');
+      if (!name) return;
+      try { Store.addPessoa(name); renderConfigPessoas(content); toast('Pessoa cadastrada', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    });
+    content.querySelectorAll('[data-action="ren-pessoa"]').forEach(b => b.addEventListener('click', () => {
+      const old = b.dataset.name;
+      const newName = prompt('Novo nome:', old);
+      if (!newName || newName === old) return;
+      try { Store.renamePessoa(old, newName); renderConfigPessoas(content); toast('Pessoa renomeada (receitas atualizadas)', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+    content.querySelectorAll('[data-action="del-pessoa"]').forEach(b => b.addEventListener('click', () => {
+      if (!confirm(`Excluir "${b.dataset.name}"?`)) return;
+      try { Store.deletePessoa(b.dataset.name); renderConfigPessoas(content); toast('Pessoa excluída', 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }));
+  }
+
+  function renderConfigCotacoes(content) {
+    const s = Store.get().settings;
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div><div class="section-title">Cotações de Moeda</div>
+  <div class="section-sub">Conversão de ativos em USD e EUR para BRL no Patrimônio</div></div>
+</div>
+<div class="card">
+  <div class="form-grid">
+    <div class="form-group"><label class="form-label">USD → BRL</label><input class="form-input" id="fUsd" type="number" step="0.0001" value="${s.usdBrl}"/></div>
+    <div class="form-group"><label class="form-label">EUR → BRL</label><input class="form-input" id="fEur" type="number" step="0.0001" value="${s.eurBrl}"/></div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn-primary" id="btnSaveRates">Salvar</button>
+  </div>
+</div>`;
+    document.getElementById('btnSaveRates').addEventListener('click', () => {
+      const usdBrl = parseFloat(document.getElementById('fUsd').value);
+      const eurBrl = parseFloat(document.getElementById('fEur').value);
+      if (!usdBrl || !eurBrl) return toast('Informe valores válidos', 'error');
+      Store.updateSettings({ usdBrl, eurBrl });
+      toast('Cotações atualizadas', 'success');
+    });
+  }
+
+  function renderConfigBackup(content) {
+    const data = Store.get();
+    const counts = {
+      Receitas: data.receitas.length, Despesas: data.despesas.length,
+      Contratos: (data.contratos||[]).length, Metas: data.metas.length,
+      Cartões: data.cartoes.length, Ativos: data.ativos.length,
+    };
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div><div class="section-title">Backup & Dados</div>
+  <div class="section-sub">Exporte/importe seus dados. Os dados vivem em localStorage — faça backup periódico.</div></div>
+</div>
+<div class="card mb-4">
+  <div class="card-header"><span class="card-title">Resumo</span></div>
+  ${Object.entries(counts).map(([k,v]) => `<div class="stat-row"><span class="stat-row-label">${k}</span><span class="stat-row-value">${v}</span></div>`).join('')}
+</div>
+<div class="card">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn-primary"   id="btnDoExport">⬇ Exportar JSON</button>
+    <button class="btn-secondary" id="btnDoImport">⬆ Importar JSON</button>
+    <button class="btn-secondary" id="btnDoReset" style="margin-left:auto;color:var(--red)">↺ Reset (seed)</button>
+    <input type="file" id="fileDoImport" accept="application/json" style="display:none"/>
+  </div>
+</div>`;
+    document.getElementById('btnDoExport').addEventListener('click', () => document.getElementById('btnExport').click());
+    document.getElementById('btnDoImport').addEventListener('click', () => document.getElementById('btnImport').click());
+    document.getElementById('btnDoReset').addEventListener('click', () => {
+      if (!confirm('Apagar TODOS os dados e voltar ao seed inicial?')) return;
+      Store.resetData();
+      toast('Dados resetados — recarregando…', 'success');
+      setTimeout(() => location.reload(), 600);
+    });
+  }
+
+  function renderConfigSobre(content) {
+    content.innerHTML = `
+<div class="section-header mb-4"><div><div class="section-title">Sobre</div></div></div>
+<div class="card">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+    <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px">📊</div>
+    <div>
+      <div style="font-size:18px;font-weight:800">FinFamily</div>
+      <div style="font-size:12px;color:var(--text-3)">v1.0.0 · Gestão financeira familiar</div>
+    </div>
+  </div>
+  <div style="font-size:13px;color:var(--text-2);line-height:1.6">
+    App roda 100% no navegador. Dados em <code>localStorage</code> — sem backend.<br/>
+    <a href="https://github.com/minewall/finfamily" target="_blank" style="color:var(--accent)">github.com/minewall/finfamily</a>
+  </div>
+</div>`;
+  }
+
   function init() {
     Store.init();
     // Remove legacy despesas with invalid/unknown categories (e.g. 'patrimônio')
@@ -2961,6 +3219,7 @@ ${(() => {
     Router.register('reserva',    renderReserva);
     Router.register('patrimonio', renderPatrimonio);
     Router.register('comparativo',renderComparativo);
+    Router.register('config',     renderConfig);
 
     // Theme toggle
     document.getElementById('themeToggle').addEventListener('click', () => {
