@@ -525,6 +525,7 @@ const Store = (function () {
 
   function addDespesa(entry) {
     entry.id = entry.id || newId();
+    if (entry.split) entry.split = _normalizeSplit(entry.split, entry.amount);
     _data.despesas.push(entry);
     persist();
     return entry;
@@ -547,7 +548,11 @@ const Store = (function () {
 
   function updateDespesa(id, patch) {
     const d = _data.despesas.find(d => d.id === id);
-    if (d) { Object.assign(d, patch); persist(); }
+    if (!d) return;
+    Object.assign(d, patch);
+    const finalAmt = patch.amount != null ? patch.amount : d.amount;
+    if (d.split) d.split = _normalizeSplit(d.split, finalAmt);
+    persist();
   }
 
   function updateSettings(patch) {
@@ -1070,6 +1075,63 @@ const Store = (function () {
     _syncEditableConfig(); persist();
   }
 
+  // ── RATEIO (split de despesas) ───────────────────────────────────
+  // Cada despesa pode ter d.split = [{person, share, valor}], opcional.
+  // share é fração de 0..1; valor é montante absoluto. Manter consistente.
+
+  function _normalizeSplit(split, amount) {
+    if (!Array.isArray(split) || split.length === 0) return null;
+    const clean = split
+      .filter(s => s.person && (s.valor > 0 || s.share > 0))
+      .map(s => {
+        const valor = s.valor != null ? Number(s.valor) : Number(s.share) * Number(amount);
+        const share = amount > 0 ? valor / amount : 0;
+        return { person: s.person, valor: Math.round(valor * 100) / 100, share };
+      });
+    return clean.length ? clean : null;
+  }
+
+  function computeContribuicoesByPerson(despesa) {
+    // Retorna { 'Roberto': 600, 'Mariana': 400, 'Família': 0 }
+    // Se split existe e cobre tudo, retorna split direto.
+    // Se split existe mas soma < amount, o resto vira "Família".
+    // Se não houver split, retorna { 'Família': amount }
+    const total = Number(despesa.amount) || 0;
+    if (!despesa.split || !despesa.split.length) return { 'Família': total };
+    const map = {};
+    let sumValor = 0;
+    despesa.split.forEach(s => {
+      map[s.person] = (map[s.person] || 0) + Number(s.valor || 0);
+      sumValor += Number(s.valor || 0);
+    });
+    const resto = Math.max(0, total - sumValor);
+    if (resto > 0.01) map['Família'] = (map['Família'] || 0) + resto;
+    return map;
+  }
+
+  function despesasPorPessoa(month, year) {
+    // Soma das contribuições por pessoa em determinado mês/ano
+    const acc = {};
+    _data.despesas
+      .filter(d => d.year === year && d.month === month)
+      .forEach(d => {
+        const map = computeContribuicoesByPerson(d);
+        Object.entries(map).forEach(([p, v]) => { acc[p] = (acc[p] || 0) + v; });
+      });
+    return acc;
+  }
+
+  function despesasPorPessoaRange(mStart, mEnd, year) {
+    const acc = {};
+    _data.despesas
+      .filter(d => d.year === year && d.month >= mStart && d.month <= mEnd)
+      .forEach(d => {
+        const map = computeContribuicoesByPerson(d);
+        Object.entries(map).forEach(([p, v]) => { acc[p] = (acc[p] || 0) + v; });
+      });
+    return acc;
+  }
+
   function addPessoa(name) {
     name = (name || '').trim();
     if (!name) throw new Error('Nome obrigatório');
@@ -1181,5 +1243,6 @@ const Store = (function () {
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,
     addSubcategoria, renameSubcategoria, deleteSubcategoria,
     addPessoa, renamePessoa, deletePessoa,
+    computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
   };
 })();

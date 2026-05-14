@@ -334,11 +334,19 @@ ${alerts.map(a => `
   </div>
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Próximas Parcelas (30 dias)</span>
-      <span class="badge badge-accent">contratos</span>
+      <span class="card-title">Despesas por Pessoa</span>
+      <span class="badge badge-red">${Utils.monthsFull[month-1]}</span>
     </div>
-    ${renderProximasParcelas()}
+    ${renderPersonDespesas(month, year)}
   </div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Próximas Parcelas (30 dias)</span>
+    <span class="badge badge-accent">contratos</span>
+  </div>
+  ${renderProximasParcelas()}
 </div>
 
 <div class="card mb-6">
@@ -442,6 +450,24 @@ ${alerts.map(a => `
     }).join('');
   }
 
+  function renderPersonDespesas(month, year) {
+    const map = Store.despesasPorPessoa(month, year);
+    const total = Object.values(map).reduce((a,b) => a+b, 0) || 1;
+    const entries = Object.entries(map).sort((a,b) => b[1]-a[1]);
+    if (!entries.length) return '<div class="empty-state" style="padding:20px"><p>Sem despesas neste mês</p></div>';
+    return entries.map(([p, v]) => `
+      <div class="stat-row">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="person-avatar" style="background:${Utils.personColor(p)}">${Utils.personInitial(p)}</div>
+          <span class="stat-row-label">${p}</span>
+        </div>
+        <div>
+          <div class="stat-row-value red">${Utils.currency(v)}</div>
+          <div style="font-size:11px;color:var(--text-3);text-align:right">${((v/total)*100).toFixed(0)}%</div>
+        </div>
+      </div>`).join('');
+  }
+
   function renderRecentTransactions(month, year) {
     const rows = [...Store.despesasByMonth(month, year)]
       .sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
@@ -528,7 +554,7 @@ ${filtered.map(d => {
   const paidState = d.paid === true ? 'on' : d.paid === false ? 'off' : (new Date(d.date+'T23:59:59') <= new Date() ? 'auto' : '');
   return `<tr>
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
-  <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}</td>
+  <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length ? ` <span class="badge badge-accent" style="font-size:10px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">👥 ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
   <td class="muted">${d.sub || '—'}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
@@ -1025,6 +1051,29 @@ ${periodToggleHTML('ff_desp_period', period)}
 
 
 <div class="card mb-6">
+  <div class="card-header"><span class="card-title">Por Pessoa — ${periodLabel}</span><span class="badge badge-accent">via rateio</span></div>
+  ${(() => {
+    const map = Store.despesasPorPessoaRange(mStart, mEnd, year);
+    const totalP = Object.values(map).reduce((a,b)=>a+b,0);
+    if (totalP === 0) return '<div style="padding:12px;color:var(--text-4);font-size:12px">Sem dados no período</div>';
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([p, v]) => {
+      const pct = v/totalP;
+      return `<div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div class="person-avatar" style="background:${Utils.personColor(p)};width:32px;height:32px;font-size:13px">${Utils.personInitial(p)}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:6px">${p}</div>
+          <div class="progress-bar progress-lg"><div class="progress-fill" style="width:${Math.round(pct*100)}%;background:${Utils.personColor(p)}"></div></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:15px;font-weight:700;color:var(--text-1)">${Utils.currency(v)}</div>
+          <div style="font-size:11px;color:var(--text-3)">${(pct*100).toFixed(1)}%</div>
+        </div>
+      </div>`;
+    }).join('');
+  })()}
+</div>
+
+<div class="card mb-6">
   <div class="card-header"><span class="card-title">Resumo por Categoria — ${Utils.monthsFull[month-1]}</span></div>
   <div>
     ${catSorted.map(([cat, val]) => {
@@ -1166,6 +1215,121 @@ ${periodToggleHTML('ff_desp_period', period)}
     bindPeriodToggle(container, 'ff_desp_period', () => renderDespesas(container));
   }
 
+  // ── Helper: seção de rateio reutilizável em modais de despesa ──
+  function splitSectionHTML() {
+    return `
+<div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:4px 0">
+  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+    <input type="checkbox" id="fDRatear" style="width:16px;height:16px;accent-color:var(--accent)">
+    <span class="form-label" style="margin:0">Ratear entre pessoas</span>
+  </label>
+  <div id="fDRateioMode" style="display:none;gap:4px">
+    <button type="button" class="btn-xs active" data-rateio-mode="valor">R$</button>
+    <button type="button" class="btn-xs" data-rateio-mode="pct">%</button>
+  </div>
+</div>
+<div id="fDRateioBox" style="display:none;grid-column:1/-1;background:var(--bg-elevated);border-radius:8px;padding:12px">
+  <div id="fDRateioList"></div>
+  <button type="button" class="btn-xs" id="fDRateioAdd" style="margin-top:8px">+ Pessoa</button>
+  <div id="fDRateioSummary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
+</div>`;
+  }
+
+  // Retorna interface: { read(): split[] | null }
+  function setupSplitUI(amountInputId, initialSplit) {
+    let rows = (initialSplit || []).map(s => ({ person: s.person, valor: s.valor }));
+    let mode = 'valor';
+    const cb     = document.getElementById('fDRatear');
+    const box    = document.getElementById('fDRateioBox');
+    const modeBox= document.getElementById('fDRateioMode');
+
+    function getAmount() { return parseFloat(document.getElementById(amountInputId)?.value) || 0; }
+
+    function renderRows() {
+      const list = document.getElementById('fDRateioList');
+      const amt = getAmount();
+      list.innerHTML = rows.map((r, i) => {
+        const pctVal = amt > 0 ? (r.valor / amt * 100) : 0;
+        const v = mode === 'valor' ? r.valor.toFixed(2) : pctVal.toFixed(1);
+        return `<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center" data-row="${i}">
+          <select class="form-select" data-field="person" style="flex:1">
+            ${Store.PESSOAS.map(p => `<option ${r.person===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+          <input class="form-input" data-field="valor" type="number" step="0.01" value="${v}" style="width:100px">
+          <span style="color:var(--text-4);font-size:11px;width:14px">${mode==='valor'?'R$':'%'}</span>
+          <button type="button" class="btn-xs btn-red" data-action="remove">✕</button>
+        </div>`;
+      }).join('');
+      // bind events on the newly rendered rows
+      list.querySelectorAll('[data-row]').forEach(row => {
+        const idx = parseInt(row.dataset.row);
+        row.querySelector('[data-field="person"]').addEventListener('change', e => { rows[idx].person = e.target.value; updateSummary(); });
+        row.querySelector('[data-field="valor"]').addEventListener('input', e => {
+          const raw = parseFloat(e.target.value) || 0;
+          rows[idx].valor = mode === 'pct' ? (raw / 100) * getAmount() : raw;
+          updateSummary();
+        });
+        row.querySelector('[data-action="remove"]').addEventListener('click', () => { rows.splice(idx, 1); renderRows(); });
+      });
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const amt = getAmount();
+      const total = rows.reduce((s, r) => s + (Number(r.valor) || 0), 0);
+      const resto = Math.max(0, amt - total);
+      const over = total > amt + 0.01;
+      const sum = document.getElementById('fDRateioSummary');
+      if (!sum) return;
+      sum.innerHTML = `
+        Alocado: <strong>${Utils.currency(total)}</strong> de ${Utils.currency(amt)}
+        · Família: <strong>${Utils.currency(resto)}</strong>
+        ${over ? '<span style="color:var(--red)"> · Soma excede o valor</span>' : ''}`;
+    }
+
+    function setOpen(on) {
+      box.style.display    = on ? 'block' : 'none';
+      modeBox.style.display= on ? 'inline-flex' : 'none';
+      if (on && rows.length === 0) {
+        const pess = Store.PESSOAS;
+        rows = [{ person: pess[0] || 'Roberto', valor: 0 }];
+      }
+      if (on) renderRows();
+    }
+
+    cb.addEventListener('change', () => setOpen(cb.checked));
+    modeBox.querySelectorAll('[data-rateio-mode]').forEach(b => b.addEventListener('click', () => {
+      mode = b.dataset.rateioMode;
+      modeBox.querySelectorAll('[data-rateio-mode]').forEach(x => x.classList.toggle('active', x === b));
+      renderRows();
+    }));
+    document.getElementById('fDRateioAdd').addEventListener('click', () => {
+      const used = new Set(rows.map(r => r.person));
+      const next = Store.PESSOAS.find(p => !used.has(p)) || Store.PESSOAS[0];
+      rows.push({ person: next, valor: 0 });
+      renderRows();
+    });
+    document.getElementById(amountInputId)?.addEventListener('input', () => {
+      // If user typing in pct mode, convert valors based on new amount
+      if (mode === 'pct') {
+        // valor antes era pct%amt antigo; pct mantido pelo render (recompute from current valor)
+      }
+      updateSummary();
+    });
+
+    if (initialSplit && initialSplit.length) {
+      cb.checked = true;
+      setOpen(true);
+    }
+
+    return {
+      read() {
+        if (!cb.checked) return null;
+        return rows.filter(r => r.valor > 0).map(r => ({ person: r.person, valor: Math.round(r.valor*100)/100 }));
+      }
+    };
+  }
+
   function openAddDespesa(refreshContainer) {
     const cats = Object.entries(Store.CATEGORIES).filter(([k])=>k!=='receita');
     const suggestions = Store.descSuggestions();
@@ -1212,7 +1376,9 @@ ${periodToggleHTML('ff_desp_period', period)}
           <div class="form-input" id="fDParcelaInfo" style="display:flex;align-items:center;color:var(--accent);font-weight:700;background:var(--bg-elevated)">—</div>
         </div>
       </div>
+      ${splitSectionHTML()}
     </div>`;
+    let splitApi = null;
     Modal.open('Nova Despesa', html, () => {
       const desc          = document.getElementById('fDDesc').value.trim();
       const amount        = parseFloat(document.getElementById('fDAmt').value);
@@ -1225,8 +1391,14 @@ ${periodToggleHTML('ff_desp_period', period)}
       const temDesconto   = document.getElementById('fDDesconto')?.checked;
       const valorOriginal = temDesconto ? parseFloat(document.getElementById('fDValorOriginal')?.value || '0') : 0;
       const economia      = temDesconto && valorOriginal > amount ? valorOriginal - amount : 0;
+      const split         = splitApi?.read() || null;
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
+      if (split) {
+        const sum = split.reduce((s,r)=>s+r.valor,0);
+        if (sum > amount + 0.01) return toast('Soma do rateio excede o valor', 'error');
+      }
       const extraFields = temDesconto && economia > 0 ? { desconto: true, valorOriginal, economia } : {};
+      if (split) extraFields.split = split;
       if (parcelado && parcelas > 1) {
         Store.addDespesaParcelada({ desc, amount: parseFloat((amount / parcelas).toFixed(2)), date, category: cat, sub, pay, parcelas });
         toast(`${parcelas} parcelas lançadas!`, 'success');
@@ -1251,6 +1423,7 @@ ${periodToggleHTML('ff_desp_period', period)}
       if (el) el.textContent = n > 1 && amt ? Utils.currency(amt / n) + '/mês' : '—';
     }
     setTimeout(() => {
+      splitApi = setupSplitUI('fDAmt', null);
       document.getElementById('fDCat')?.addEventListener('change', updateSubs);
       updateSubs();
       document.getElementById('fDParcelado')?.addEventListener('change', e => {
@@ -2860,8 +3033,10 @@ ${(() => {
         <input class="form-input" id="eDValorOriginal" type="number" step="0.01" value="${d.valorOriginal||''}"/>
         <div style="font-size:11px;color:var(--green);margin-top:4px" id="eDEconomia">${d.economia?'💰 Economia: '+Utils.currency(d.economia):''}</div>
       </div>
+      ${splitSectionHTML().replace(/fD/g, 'fD')}
     </div>`;
 
+    let editSplitApi = null;
     Modal.open('Editar Despesa', html, () => {
       const desc   = document.getElementById('eDDesc').value.trim();
       const amount = parseFloat(document.getElementById('eDAmt').value);
@@ -2872,12 +3047,18 @@ ${(() => {
       const temDesc = document.getElementById('eDDesconto').checked;
       const valorOrig = temDesc ? parseFloat(document.getElementById('eDValorOriginal').value||'0') : 0;
       const economia  = temDesc && valorOrig > amount ? valorOrig - amount : 0;
+      const split    = editSplitApi?.read() || null;
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
+      if (split) {
+        const sum = split.reduce((s,r)=>s+r.valor,0);
+        if (sum > amount + 0.01) return toast('Soma do rateio excede o valor', 'error');
+      }
       const dt = new Date(date);
       Store.updateDespesa(id, {
         desc, amount, date, category: cat, sub, pay,
         month: dt.getMonth() + 1, year: dt.getFullYear(),
         desconto: temDesc && economia > 0, valorOriginal: valorOrig, economia,
+        split: split || null,
       });
       Modal.close();
       toast('Despesa atualizada!', 'success');
@@ -2885,6 +3066,7 @@ ${(() => {
     });
 
     setTimeout(() => {
+      editSplitApi = setupSplitUI('eDAmt', d.split || null);
       document.getElementById('eDCat')?.addEventListener('change', () => {
         const cat = document.getElementById('eDCat').value;
         const sel = document.getElementById('eDSub');
