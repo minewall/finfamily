@@ -54,10 +54,28 @@ DEV_LOG.md              # histórico de sessões de desenvolvimento
 
 Os arquivos JS/CSS usam query string `?v=N` para invalidar cache do navegador. Ao publicar mudanças, incremente N em [index.html](index.html).
 
-## Próximos passos (roadmap)
+## Roadmap Fase 2
 
-- Histórico de snapshots da reserva
-- Cadastro de recebimentos futuros (UI)
-- KPI de "próximas parcelas a vencer" no Dashboard
-- Senha real (hash) para login
-- README com screenshots
+### Pendências da Fase 1
+- Mover tema/backup do sidebar para dentro da aba Configurações
+- Estender toggle de período (Mês/Tri/Sem/Ano) para Receitas e Despesas
+
+### Rateio de Despesas
+- **Modelo**: `despesa.split = [{person, share, valor}]` (opcional, embedded)
+- UI no modal de despesa: linhas pessoa + valor **ou** %, com auto-cálculo
+- Regras default por categoria/contrato (parcelas herdam o rateio)
+- View "Por Pessoa" em Despesas e Dashboard
+
+### Perfil & Auth
+- Stub Perfil de Usuário (nome, foto, fuso)
+- Trocar senha dinamicamente (sem hardcode em login.html)
+
+### Sync & Database
+- **v1.5** — Sync via Dropbox/Drive (JSON em pasta sincronizada, zero backend)
+- **v2.0** — Supabase (Postgres + auth + realtime + RLS) — só quando aparecer trigger:
+  - Multi-usuário simultâneo
+  - Acesso pelo celular sem importar JSON
+  - Integração bancária (import de extratos)
+  - Histórico de auditoria
+
+> **Migração para DB NÃO está no caminho crítico.** localStorage comporta ~50 anos de dados no volume atual. Sync via Drive é o passo intermediário antes de backend.
