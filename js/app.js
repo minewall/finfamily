@@ -429,19 +429,41 @@ ${alerts.map(a => `
   // ══════════════════════════════════════════════════════════════
   function renderLancamentos(container) {
     const month = getMonth(), year = getYear();
-    const despesas = [...Store.despesasByMonth(month, year)];
-    const receitas = [...Store.receitasByMonth(month, year)];
+    const period = localStorage.getItem('ff_lanc_period') || 'mes';
+
+    function rangeFor(p) {
+      if (p === 'ano') return { start: 1, end: 12, label: `${year}` };
+      if (p === 'sem') {
+        const isH1 = month <= 6;
+        return { start: isH1?1:7, end: isH1?6:12, label: `${isH1?'H1':'H2'} ${year} (${Utils.months[isH1?0:6]}–${Utils.months[isH1?5:11]})` };
+      }
+      if (p === 'tri') {
+        const q = Math.ceil(month / 3);
+        const s = (q-1)*3 + 1;
+        return { start: s, end: s+2, label: `Q${q} ${year} (${Utils.months[s-1]}–${Utils.months[s+1]})` };
+      }
+      return { start: month, end: month, label: `${Utils.monthsFull[month-1]} ${year}` };
+    }
+    const { start: mStart, end: mEnd, label: periodLabel } = rangeFor(period);
+
+    const despesas = Store.get().despesas.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
+    const receitas = Store.get().receitas.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
 
     let sortDir = 'asc'; // 'asc' | 'desc'
 
     container.innerHTML = `
 <div class="section-header mb-4">
-  <div><div class="section-title">Lançamentos — ${Utils.monthsFull[month-1]} ${year}</div>
+  <div><div class="section-title">Lançamentos — ${periodLabel}</div>
   <div class="section-sub">${despesas.length + receitas.length} registros · ${despesas.length} despesas · ${receitas.length} receitas</div></div>
   <div class="flex gap-2">
     <button class="btn-secondary active" id="btnTabDesp">Despesas</button>
     <button class="btn-secondary" id="btnTabRec">Receitas</button>
   </div>
+</div>
+<div class="flex gap-2 mb-3" id="periodToggle">
+  ${[['mes','Mês'],['tri','Trimestre'],['sem','Semestre'],['ano','Ano']].map(([k,l]) =>
+    `<button class="btn-secondary ${period===k?'active':''}" data-period="${k}" style="padding:6px 12px;font-size:12px">${l}</button>`
+  ).join('')}
 </div>
 <div class="filter-bar" id="filterBar">
   <div class="search-box">
@@ -635,6 +657,14 @@ ${filtered.map(r => {
         });
       });
     }
+
+    // ── período toggle ────────────────────────────────────────────
+    container.querySelectorAll('[data-period]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        localStorage.setItem('ff_lanc_period', btn.dataset.period);
+        renderLancamentos(container);
+      });
+    });
 
     // ── wire up tabs & filters ────────────────────────────────────
     document.getElementById('btnTabDesp').addEventListener('click', () => {
