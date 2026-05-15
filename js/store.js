@@ -23,12 +23,13 @@ const Store = (function () {
     manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: '👧' },
     educacao:    { label: 'Educação',            color: '#06B6D4', icon: '📚' },
     beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: '🎁' },
+    assessorias: { label: 'Assessorias',         color: '#F59E0B', icon: '⚖️' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: '💰' },
   };
 
   const SUBCATEGORIES = {
     moradia: ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Netflix','HBO','Spotify','Amazon Prime','Apple','iFood','Móveis e itens casa','Outras despesas'],
-    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água'],
+    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade'],
     transporte: ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
     saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja'],
@@ -39,8 +40,9 @@ const Store = (function () {
     roberto: ['Melissa Advogada','Assinaturas','Celular','Telegrama'],
     mariana: ['Faculdade UNIP','Livros e Materiais','Mesada','Lanche','OAB'],
     manuela:    ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
-    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material'],
+    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
     beneficios: ['Mesada','Vale Refeição','Vale Transporte','Plano de Saúde','Outros'],
+    assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','Outros'],
   };
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
@@ -527,20 +529,29 @@ const Store = (function () {
       });
     }
 
-    // Garante que educacao/beneficios existem em _data.categorias (Configurações)
+    // Garante que educacao/beneficios/assessorias existem em _data.categorias
     if (_data.categorias) {
-      if (!_data.categorias.educacao)   _data.categorias.educacao   = CATEGORIES.educacao;
-      if (!_data.categorias.beneficios) _data.categorias.beneficios = CATEGORIES.beneficios;
+      if (!_data.categorias.educacao)    _data.categorias.educacao    = CATEGORIES.educacao;
+      if (!_data.categorias.beneficios)  _data.categorias.beneficios  = CATEGORIES.beneficios;
+      if (!_data.categorias.assessorias) _data.categorias.assessorias = CATEGORIES.assessorias;
     }
     if (_data.subcategorias) {
-      if (!_data.subcategorias.educacao)   _data.subcategorias.educacao   = [...SUBCATEGORIES.educacao];
-      if (!_data.subcategorias.beneficios) _data.subcategorias.beneficios = [...SUBCATEGORIES.beneficios];
+      if (!_data.subcategorias.educacao)    _data.subcategorias.educacao    = [...SUBCATEGORIES.educacao];
+      if (!_data.subcategorias.beneficios)  _data.subcategorias.beneficios  = [...SUBCATEGORIES.beneficios];
+      if (!_data.subcategorias.assessorias) _data.subcategorias.assessorias = [...SUBCATEGORIES.assessorias];
       if (Array.isArray(_data.subcategorias.educacao) && !_data.subcategorias.educacao.includes('Passeios Escolares')) {
         _data.subcategorias.educacao.push('Passeios Escolares');
       }
       if (Array.isArray(_data.subcategorias.lazer)) {
         _data.subcategorias.lazer = _data.subcategorias.lazer.filter(s => s !== 'Passeios Individuais');
       }
+      // garante novas subs de alimentacao e educacao
+      ['Lanche na Faculdade'].forEach(s => {
+        if (!_data.subcategorias.alimentacao?.includes(s)) _data.subcategorias.alimentacao?.push(s);
+      });
+      ['Faculdade','Material Universitário','Cursos e Especializações'].forEach(s => {
+        if (!_data.subcategorias.educacao?.includes(s)) _data.subcategorias.educacao?.push(s);
+      });
     }
 
     _data.__migrated_manuela_cat = true;
@@ -563,6 +574,41 @@ const Store = (function () {
 
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
+  function _sweepRobertoCat() {
+    const MAP = {
+      'Melissa Advogada': { category: 'assessorias', sub: 'Honorários Advocatícios' },
+      'Assinaturas':      { category: 'pessoal',     sub: 'Assinaturas'             },
+      'Celular':          { category: 'moradia',     sub: 'TV / Internet / Telefone'},
+      'Telegrama':        { category: 'pessoal',     sub: 'Assinaturas'             },
+    };
+    if (!Array.isArray(_data.despesas)) return;
+    _data.despesas = _data.despesas.map(d => {
+      if (d.category !== 'roberto') return d;
+      const dest = MAP[d.sub] || MAP[d.desc] || { category: 'pessoal', sub: d.sub };
+      const valor = Number(d.amount) || 0;
+      const split = (d.split && d.split.length) ? d.split : [{ person: 'Roberto', valor }];
+      return { ...d, category: dest.category, sub: dest.sub, split };
+    });
+  }
+
+  function _sweepMarianaCat() {
+    const MAP = {
+      'Faculdade UNIP':     { category: 'educacao',    sub: 'Faculdade',              desc: 'Faculdade UNIP' },
+      'Livros e Materiais': { category: 'educacao',    sub: 'Material Universitário'                         },
+      'Mesada':             { category: 'beneficios',  sub: 'Mesada'                                         },
+      'Lanche':             { category: 'alimentacao', sub: 'Lanche na Faculdade',    desc: 'Lanche na Faculdade' },
+      'OAB':                { category: 'educacao',    sub: 'Cursos e Especializações'                       },
+    };
+    if (!Array.isArray(_data.despesas)) return;
+    _data.despesas = _data.despesas.map(d => {
+      if (d.category !== 'mariana') return d;
+      const dest = MAP[d.sub] || MAP[d.desc] || { category: 'educacao', sub: d.sub };
+      const valor = Number(d.amount) || 0;
+      const split = (d.split && d.split.length) ? d.split : [{ person: 'Mariana', valor }];
+      return { ...d, category: dest.category, sub: dest.sub, desc: dest.desc || d.desc, split };
+    });
+  }
+
   function _sweepManuelaCat() {
     const MAP = {
       'Escola Manuela':     { category: 'educacao',   sub: 'Mensalidade Escolar' },
@@ -595,6 +641,8 @@ const Store = (function () {
     _migrateManuelaCat();
     _fixPasseiosEscolares();
     _sweepManuelaCat();
+    _sweepRobertoCat();
+    _sweepMarianaCat();
     _syncEditableConfig();
     save(_data);
     return _data;
@@ -1295,6 +1343,8 @@ const Store = (function () {
     }
     _migrateMetas();
     _sweepManuelaCat();
+    _sweepRobertoCat();
+    _sweepMarianaCat();
     _loadEditableConfig();
     _syncEditableConfig();
     persist();
