@@ -1051,51 +1051,6 @@ ${periodToggleHTML('ff_desp_period', period)}
 
 
 <div class="card mb-6">
-  <div class="card-header"><span class="card-title">Por Pessoa — ${periodLabel}</span><span class="badge badge-accent">via rateio</span></div>
-  ${(() => {
-    const map = Store.despesasPorPessoaRange(mStart, mEnd, year);
-    const totalP = Object.values(map).reduce((a,b)=>a+b,0);
-    if (totalP === 0) return '<div style="padding:12px;color:var(--text-4);font-size:12px">Sem dados no período</div>';
-    return Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([p, v]) => {
-      const pct = v/totalP;
-      return `<div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div class="person-avatar" style="background:${Utils.personColor(p)};width:32px;height:32px;font-size:13px">${Utils.personInitial(p)}</div>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:6px">${p}</div>
-          <div class="progress-bar progress-lg"><div class="progress-fill" style="width:${Math.round(pct*100)}%;background:${Utils.personColor(p)}"></div></div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:15px;font-weight:700;color:var(--text-1)">${Utils.currency(v)}</div>
-          <div style="font-size:11px;color:var(--text-3)">${(pct*100).toFixed(1)}%</div>
-        </div>
-      </div>`;
-    }).join('');
-  })()}
-</div>
-
-<div class="card mb-6">
-  <div class="card-header"><span class="card-title">Resumo por Categoria — ${Utils.monthsFull[month-1]}</span></div>
-  <div>
-    ${catSorted.map(([cat, val]) => {
-      const pct = val / total;
-      const catInfo = Store.CATEGORIES[cat] || {};
-      return `<div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <span style="font-size:13px;font-weight:600;color:var(--text-1)">${catInfo.label||cat}</span>
-            <span class="badge" style="background:${catInfo.color+'20'};color:${catInfo.color}">${((pct)*100).toFixed(1)}%</span>
-          </div>
-          <div class="progress-bar progress-lg">
-            <div class="progress-fill" style="width:${Math.round(pct*100)}%;background:${catInfo.color||'var(--accent)'}"></div>
-          </div>
-        </div>
-        <div class="num" style="font-size:15px;font-weight:700;color:var(--text-1)">${Utils.currency(val)}</div>
-      </div>`;
-    }).join('')}
-  </div>
-</div>
-
-<div class="card mb-6">
   <div class="card-header"><span class="card-title">Por Categoria — ${year}</span></div>
   <div class="table-wrap">
     <table class="data-table" style="min-width:960px">
