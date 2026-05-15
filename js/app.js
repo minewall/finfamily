@@ -4069,6 +4069,23 @@ ${(() => {
 
   function init() {
     Store.init();
+
+    // Sync cloud → local após login (non-blocking)
+    if (typeof SupabaseSync !== 'undefined') {
+      SupabaseSync.init();
+      SupabaseSync.pullFromCloud().then(cloudData => {
+        if (cloudData && cloudData.despesas) {
+          // Cloud tem dados reais — usa como fonte de verdade
+          localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));
+          console.log('FinFamily: dados sincronizados da nuvem');
+        } else {
+          // Primeira vez na nuvem — push dos dados locais
+          SupabaseSync.schedulePush(Store.get());
+          console.log('FinFamily: dados locais enviados para a nuvem');
+        }
+      });
+    }
+
     // Remove legacy despesas with invalid/unknown categories (e.g. 'patrimônio')
     const validCats = Object.keys(Store.CATEGORIES);
     const invalidCats = [...new Set(

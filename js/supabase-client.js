@@ -6,7 +6,7 @@
 
 const SupabaseSync = (function () {
   const SUPABASE_URL = 'https://lpudgulhnfuwdttetwdn.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_DDNTPNk4RtpXHXpE5BMy5A_U7bh_UkP';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
 
   let _client = null;
   let _user   = null;
