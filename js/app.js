@@ -547,7 +547,7 @@ ${periodToggleHTML('ff_lanc_period', period)}
   </div>
   <select class="form-select" id="filterCat" style="width:175px">
     <option value="">Todas as categorias</option>
-    ${Object.entries(Store.CATEGORIES).filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
+    ${Store.categoriesOrdered().filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
   </select>
   <select class="form-select" id="filterSub" style="width:170px">
     <option value="">Todas as sub-categorias</option>
@@ -752,7 +752,7 @@ ${filtered.map(r => {
       // Restore desp category options
       document.getElementById('filterCat').innerHTML =
         `<option value="">Todas as categorias</option>` +
-        Object.entries(Store.CATEGORIES).filter(([k]) => k !== 'receita')
+        Store.categoriesOrdered().filter(([k]) => k !== 'receita')
           .map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
       updateSubFilter('');
       showDespFilters(true);
@@ -1152,7 +1152,7 @@ ${periodToggleHTML('ff_desp_period', period)}
       </select>
       <select class="form-select" id="despCatFilter" style="width:180px">
         <option value="">Todas as categorias</option>
-        ${Object.entries(Store.CATEGORIES).filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+        ${Store.categoriesOrdered().filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
       </select>
     </div>
   </div>
@@ -1402,7 +1402,7 @@ ${periodToggleHTML('ff_desp_period', period)}
   }
 
   function openAddDespesa(refreshContainer) {
-    const cats = Object.entries(Store.CATEGORIES).filter(([k])=>k!=='receita');
+    const cats = Store.categoriesOrdered().filter(([k])=>k!=='receita');
     const suggestions = Store.descSuggestions();
     const suggestMap  = Object.fromEntries(suggestions.map(s => [s.desc, s]));
     const html = `<div class="form-grid">
@@ -1743,7 +1743,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   function openMetaModal(meta, container) {
     const isEdit = !!meta;
     const m = meta || {};
-    const cats = Object.entries(Store.CATEGORIES);
+    const cats = Store.categoriesOrdered();
     const html = `<div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Nome da Meta</label><input class="form-input" id="fMLabel" placeholder="Ex: Limite Lazer, Receita Mín. Mensal" value="${m.label||''}"/></div>
       <div class="form-group">
@@ -2024,7 +2024,7 @@ ${contratos.length === 0 ? `
   function openContratoModal(contrato, container) {
     const isEdit = !!contrato;
     const c = contrato || {};
-    const cats = Object.entries(Store.CATEGORIES);
+    const cats = Store.categoriesOrdered();
     const today = new Date().toISOString().slice(0,10);
     const html = `<div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Contrato Bridge" value="${c.label||''}"/></div>
@@ -2928,7 +2928,7 @@ ${(() => {
   // GLOBAL: Add Lançamento (from topbar button)
   // ══════════════════════════════════════════════════════════════
   function openNovaEntrada() {
-    const cats = Object.entries(Store.CATEGORIES).filter(([k])=>k!=='receita');
+    const cats = Store.categoriesOrdered().filter(([k])=>k!=='receita');
     const dSugs = Store.descSuggestions();
     const dSugMap = Object.fromEntries(dSugs.map(s => [s.desc, s]));
     const rSugs = Store.receitaSuggestions();
@@ -3114,7 +3114,7 @@ ${(() => {
   function openEditDespesa(id, onSaved) {
     const d = Store.get().despesas.find(d => d.id === id);
     if (!d) return;
-    const cats = Object.entries(Store.CATEGORIES).filter(([k]) => k !== 'receita');
+    const cats = Store.categoriesOrdered().filter(([k]) => k !== 'receita');
     const html = `<div class="form-grid">
       <div class="form-group form-full">
         <label class="form-label">Descrição</label>
@@ -3311,7 +3311,7 @@ ${(() => {
   }
 
   function renderConfigCategorias(content) {
-    const cats = Object.entries(Store.CATEGORIES);
+    const cats = Store.categoriesOrdered();
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Categorias & Subcategorias</div>
@@ -3319,14 +3319,15 @@ ${(() => {
   <button class="btn-primary" id="btnAddCat">+ Nova Categoria</button>
 </div>
 
-<div style="display:flex;flex-direction:column;gap:8px">
+<div id="catSortList" style="display:flex;flex-direction:column;gap:8px">
   ${cats.map(([key, info]) => {
     const usage = Store.getCategoriaUsage(key);
     const subs = Store.SUBCATEGORIES[key] || [];
     const isProtected = key === 'receita';
     return `
-    <details class="card" style="padding:0">
+    <details class="card" draggable="true" data-cat-key="${key}" style="padding:0;cursor:grab">
       <summary style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none">
+        <span style="font-size:16px;color:var(--text-4);cursor:grab" title="Arrastar para reordenar">⠿</span>
         <span style="font-size:22px">${info.icon||'📁'}</span>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--text-1)">${info.label}</div>
@@ -3351,6 +3352,38 @@ ${(() => {
     </details>`;
   }).join('')}
 </div>`;
+
+    // ── Drag-and-drop reorder ─────────────────────────────────────
+    let dragSrc = null;
+    const list = document.getElementById('catSortList');
+    list.querySelectorAll('[data-cat-key]').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        dragSrc = el;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => el.style.opacity = '0.4', 0);
+      });
+      el.addEventListener('dragend', () => { el.style.opacity = ''; dragSrc = null; });
+      el.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (el !== dragSrc) el.style.outline = '2px dashed var(--accent)';
+      });
+      el.addEventListener('dragleave', () => { el.style.outline = ''; });
+      el.addEventListener('drop', e => {
+        e.preventDefault();
+        el.style.outline = '';
+        if (!dragSrc || dragSrc === el) return;
+        const items = [...list.querySelectorAll('[data-cat-key]')];
+        const fromIdx = items.indexOf(dragSrc);
+        const toIdx   = items.indexOf(el);
+        const order = items.map(i => i.dataset.catKey);
+        order.splice(fromIdx, 1);
+        order.splice(toIdx, 0, dragSrc.dataset.catKey);
+        Store.setCategoryOrder(order);
+        renderConfigCategorias(content);
+        toast('Ordem salva', 'success');
+      });
+    });
 
     document.getElementById('btnAddCat').addEventListener('click', () => openCategoriaModal(null));
     content.querySelectorAll('[data-action="edit-cat"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openCategoriaModal(b.dataset.key); }));

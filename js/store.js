@@ -1381,6 +1381,26 @@ const Store = (function () {
     persist();
   }
 
+  // ── CATEGORY ORDER ─────────────────────────────────────────────
+  function getCategoryOrder() {
+    const saved = (_data.settings && _data.settings.categoryOrder) || [];
+    const allKeys = Object.keys(CATEGORIES);
+    // merge: saved order first, then any new keys not yet in saved order
+    const ordered = saved.filter(k => allKeys.includes(k));
+    allKeys.forEach(k => { if (!ordered.includes(k)) ordered.push(k); });
+    return ordered;
+  }
+
+  function setCategoryOrder(order) {
+    if (!_data.settings) _data.settings = {};
+    _data.settings.categoryOrder = order;
+    persist();
+  }
+
+  function categoriesOrdered() {
+    return getCategoryOrder().map(k => [k, CATEGORIES[k]]).filter(([,v]) => v);
+  }
+
   function markAllPastParcelas(contratoId) {
     const c = _data.contratos.find(x => x.id === contratoId);
     if (!c) return;
@@ -1512,6 +1532,7 @@ const Store = (function () {
     totalAtivos,
     cleanDespesasByCategory,
     descSuggestions, receitaSuggestions,
+    categoriesOrdered, getCategoryOrder, setCategoryOrder,
     addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos, markAllPastParcelas,
     getSubcatTipo, setSubcatTipo, sumDespesasByTipo,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
