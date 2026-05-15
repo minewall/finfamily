@@ -1294,6 +1294,9 @@ const Store = (function () {
       });
     }
     _migrateMetas();
+    _sweepManuelaCat();
+    _loadEditableConfig();
+    _syncEditableConfig();
     persist();
     return _data;
   }
