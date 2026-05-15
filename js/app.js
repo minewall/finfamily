@@ -3691,7 +3691,7 @@ ${(() => {
     });
 
     // Apply saved theme
-    const { tema } = Store.get().settings;
+    const { tema } = Store.get().settings || {};
     if (tema) document.documentElement.dataset.theme = tema;
 
     // Init routing
