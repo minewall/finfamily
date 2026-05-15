@@ -1925,12 +1925,12 @@ ${contratos.length === 0 ? `
     <table class="data-table" style="min-width:900px">
       <thead><tr>
         <th>Tipo</th><th>Contrato</th><th>Responsável</th>
-        <th class="num">Parcela/mês</th><th class="num">Total</th>
+        <th class="num">Parcela/mês</th><th class="num">Valor Pago</th><th class="num">Total</th>
         <th style="min-width:140px">Parcelas</th>
         <th>Status</th><th></th>
       </tr></thead>
       <tbody>
-      ${filtered.length === 0 ? `<tr><td colspan="8" style="text-align:center;color:var(--text-4);padding:24px">Nenhum contrato para este filtro</td></tr>` :
+      ${filtered.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:var(--text-4);padding:24px">Nenhum contrato para este filtro</td></tr>` :
         filtered.map(({c, perf, status}) => {
           const isRec = c.kind === 'receita';
           const cat = Store.CATEGORIES[c.category] || { label: c.category, icon: '📄' };
@@ -1955,6 +1955,7 @@ ${contratos.length === 0 ? `
             </td>
             <td style="color:var(--text-2)">${c.responsavel||'—'}</td>
             <td class="num fw-700" style="font-family:var(--mono)">${Utils.currency(c.valorParcela)}</td>
+            <td class="num fw-700" style="font-family:var(--mono);color:${isRec?'var(--green)':'var(--accent)'}">${Utils.currency(perf.valorCumprido)}</td>
             <td class="num" style="font-family:var(--mono);color:var(--text-3)">${Utils.currency(perf.valorTotal)}</td>
             <td>
               <div style="font-size:11px;color:var(--text-3);margin-bottom:3px">${perf.cumpridas}/${perf.totalParcelas} · ${pctW}%</div>
