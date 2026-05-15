@@ -592,8 +592,9 @@ ${periodToggleHTML('ff_lanc_period', period)}
 ${filtered.map(d => {
   const c = d.contratoId ? Store.getContratoById(d.contratoId) : null;
   const paidState = d.paid === true ? 'on' : d.paid === false ? 'off' : (new Date(d.date+'T23:59:59') <= new Date() ? 'auto' : '');
-  return `<tr>
-  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
+  const isFuture = (d.year||0)*12+(d.month||0) > year*12+month;
+  return `<tr${isFuture ? ' style="opacity:0.55"' : ''}>
+  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length ? ` <span class="badge badge-accent" style="font-size:10px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">👥 ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
   <td class="muted">${d.sub || '—'}</td>
@@ -629,8 +630,9 @@ ${filtered.map(d => {
 ${filtered.map(r => {
   const c = r.contratoId ? Store.getContratoById(r.contratoId) : null;
   const paidState = r.paid === true ? 'on' : r.paid === false ? 'off' : (new Date(r.date+'T23:59:59') <= new Date() ? 'auto' : '');
-  return `<tr>
-  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
+  const isFuture = (r.year||0)*12+(r.month||0) > year*12+month;
+  return `<tr${isFuture ? ' style="opacity:0.55"' : ''}>
+  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${r.desc}</td>
   <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
   <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
@@ -1166,8 +1168,8 @@ ${periodToggleHTML('ff_desp_period', period)}
       const tot = filtered.reduce((a,d) => a+d.amount, 0);
       return `<table class="data-table">
 <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-cat</th><th>Pagamento</th><th class="num">Valor</th><th></th></tr></thead>
-<tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>`<tr>
-  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
+<tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{const isFut=(d.year||0)*12+(d.month||0)>year*12+month;return`<tr${isFut?' style="opacity:0.55"':''}>
+  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
   <td style="font-weight:500">${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">💰 desc.</span>`:''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
   <td class="muted">${d.sub||''}</td>
@@ -1177,7 +1179,7 @@ ${periodToggleHTML('ff_desp_period', period)}
     <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-desp="${d.id}">✏</button>
     <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button>
   </td>
-</tr>`).join('')}</tbody>
+</tr>`}).join('')}</tbody>
 <tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td><td></td></tr></tfoot>
 </table>`;
     }
