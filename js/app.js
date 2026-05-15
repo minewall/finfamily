@@ -2635,7 +2635,7 @@ ${passivos.length === 0
   <div class="table-wrap">
     <table class="data-table" style="min-width:780px">
       <thead><tr>
-        <th>Descrição</th><th>Tipo</th><th>Credor</th>
+        <th>Descrição</th><th>Tipo</th><th>Responsável</th><th>Credor</th>
         <th class="num">Valor Original</th><th class="num">Proposta</th><th class="num">Acordado</th>
         <th>Status</th><th>Referência</th><th></th>
       </tr></thead>
@@ -2657,6 +2657,7 @@ ${passivos.length === 0
             ${p.contratoId ? `<div style="font-size:11px;color:var(--accent)">📋 Contrato gerado</div>` : ''}
           </td>
           <td style="color:var(--text-3)">${tipo}</td>
+          <td style="color:var(--text-2)">${p.responsavel||'—'}</td>
           <td style="color:var(--text-2)">${p.credor||'—'}</td>
           <td class="num" style="font-family:var(--mono);color:var(--red)">${Utils.currency(p.valorOriginal||0)}</td>
           <td class="num" style="font-family:var(--mono);color:var(--amber)">${p.valorProposta ? Utils.currency(p.valorProposta) : '—'}</td>
@@ -2837,6 +2838,11 @@ ${futuros.length === 0
           ${TIPOS.map(t => `<option value="${t}" ${p.tipo===t?'selected':''}>${TIPO_LABEL[t]}</option>`).join('')}
         </select>
       </div>
+      <div class="form-group"><label class="form-label">Responsável</label>
+        <select class="form-select" id="fPResp">
+          ${Store.PESSOAS.map(ps => `<option value="${ps}" ${p.responsavel===ps?'selected':''}>${ps}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Credor</label>
         <input class="form-input" id="fPCreedor" placeholder="Nome do banco, pessoa ou empresa" value="${p.credor||''}"/>
       </div>
@@ -2866,6 +2872,7 @@ ${futuros.length === 0
         desc:          document.getElementById('fPDesc').value.trim(),
         tipo:          document.getElementById('fPTipo').value,
         credor:        document.getElementById('fPCreedor').value.trim(),
+        responsavel:   document.getElementById('fPResp').value,
         valorOriginal: parseFloat(document.getElementById('fPValOrig').value) || 0,
         valorProposta: parseFloat(document.getElementById('fPValProp').value) || null,
         valorAcordado: parseFloat(document.getElementById('fPValAcord').value) || null,
