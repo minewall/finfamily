@@ -433,7 +433,7 @@ ${alerts.map(a => `
 
   function renderProximasParcelas() {
     const rows = Store.getProximasParcelas(30).slice(0, 6);
-    if (!rows.length) return '<div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Sem parcelas previstas para os próximos 30 dias</p></div>';
+    if (!rows.length) return '<div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Sem parcelas previstas para os próximos 30 dias.<br><a href="#contratos" style="color:var(--accent);font-size:12px">Cadastrar contratos recorrentes →</a></p></div>';
     const today = new Date(); today.setHours(0,0,0,0);
     return rows.map(p => {
       const c = Store.getContratoById(p.contratoId);
@@ -528,6 +528,7 @@ ${periodToggleHTML('ff_lanc_period', period)}
     <option value="">Todas as pessoas</option>
     ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
   </select>
+  <button class="btn-secondary" id="btnClearFilters" title="Limpar todos os filtros" style="white-space:nowrap;padding:6px 10px;font-size:12px;color:var(--text-3)">✕ Limpar</button>
   <button class="btn-secondary" id="btnSort" title="Ordenar por data" style="white-space:nowrap;padding:6px 10px;font-size:12px">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     Data ↑
@@ -745,6 +746,15 @@ ${filtered.map(r => {
     document.getElementById('filterSub').addEventListener('change', refilter);
     document.getElementById('filterPay').addEventListener('change', refilter);
     document.getElementById('filterPessoa').addEventListener('change', refilter);
+    document.getElementById('btnClearFilters').addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterCat').selectedIndex = 0;
+      document.getElementById('filterSub').selectedIndex = 0;
+      document.getElementById('filterPay').selectedIndex = 0;
+      document.getElementById('filterPessoa').selectedIndex = 0;
+      if (activeTab === 'desp') updateSubFilter('');
+      refilter();
+    });
 
     document.getElementById('btnSort').addEventListener('click', () => {
       sortDir = sortDir === 'asc' ? 'desc' : 'asc';
@@ -817,7 +827,7 @@ ${filtered.map(r => {
   <div class="kpi-card" style="--kpi-color:var(--${statusCol});--kpi-bg:var(--${statusCol}-dim, #14B8A618)">
     <div class="kpi-header"><span class="kpi-label">Valor Futuro</span><span class="kpi-icon">🔮</span></div>
     <div class="kpi-value" style="color:var(--${statusCol})">${Utils.currency(valorFuturo)}</div>
-    <div class="card-sub">Projeção ${year}: <strong>${Utils.currency(projecaoAno)}</strong></div>
+    <div class="card-sub">${valorFuturo === 0 ? '<span style="color:var(--text-4)">Nenhum recebimento futuro previsto — cadastre contratos ou recebimentos futuros</span>' : `Projeção ${year}: <strong>${Utils.currency(projecaoAno)}</strong>`}</div>
     <div class="progress-bar" style="margin-top:8px"><div class="progress-fill ${statusCol}" style="width:${Math.min(pctMeta,1)*100}%"></div></div>
     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:4px">
       <span>${(pctMeta*100).toFixed(0)}% da meta anual</span>
@@ -855,7 +865,7 @@ ${filtered.map(r => {
 <div class="card">
   <div class="card-header">
     <span class="card-title">Receitas — ${periodLabel}</span>
-    <button class="btn-primary" id="btnAddRec">+ Nova Receita</button>
+    <button class="btn-secondary" id="btnAddRec">+ Nova Receita</button>
   </div>
   ${periodToggleHTML('ff_rec_period', period)}
   <div class="table-wrap">
@@ -2805,8 +2815,9 @@ ${(() => {
       <tbody>
         ${yrRec.map((rec,i)=>{
           const desp = yrDesp[i]; const saldo = rec-desp; const pct = rec>0?desp/rec:0;
-          return `<tr>
-            <td>${Utils.monthsFull[i]}</td>
+          const isFuture = rec === 0 && desp === 0;
+          return `<tr style="${isFuture?'opacity:0.45':''}">
+            <td>${Utils.monthsFull[i]}${isFuture?` <span style="font-size:10px;color:var(--text-4)">est.</span>`:''}</td>
             <td class="num positive">${rec>0?Utils.currency(rec):'—'}</td>
             <td class="num negative">${desp>0?Utils.currency(desp):'—'}</td>
             <td class="num ${saldo>=0?'positive':'negative'}">${rec>0||desp>0?(saldo<0?'-':'')+Utils.currency(Math.abs(saldo)):'—'}</td>
