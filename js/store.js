@@ -561,6 +561,27 @@ const Store = (function () {
     _data.__fix_passeios_escolares = true;
   }
 
+  // Varre TODOS os lançamentos com category='manuela' que ainda restarem
+  // (cobre casos de backup importado com flag já setada mas dados não migrados)
+  function _sweepManuelaCat() {
+    const MAP = {
+      'Escola Manuela':     { category: 'educacao',   sub: 'Mensalidade Escolar' },
+      'Livros e Materiais': { category: 'educacao',   sub: 'Material Escolar'    },
+      'Uniforme':           { category: 'educacao',   sub: 'Uniforme'            },
+      'Passeios':           { category: 'educacao',   sub: 'Passeios Escolares'  },
+      'Passeios Individuais':{ category: 'educacao',  sub: 'Passeios Escolares'  },
+      'Mesada':             { category: 'beneficios', sub: 'Mesada'              },
+    };
+    if (!Array.isArray(_data.despesas)) return;
+    _data.despesas = _data.despesas.map(d => {
+      if (d.category !== 'manuela') return d;
+      const dest = MAP[d.sub] || MAP[d.desc] || { category: 'educacao', sub: d.sub };
+      const valor = Number(d.amount) || 0;
+      const split = (d.split && d.split.length) ? d.split : [{ person: 'Manuela', valor }];
+      return { ...d, category: dest.category, sub: dest.sub, split };
+    });
+  }
+
   function init() {
     _data = load();
     if (!_data) {
@@ -573,6 +594,7 @@ const Store = (function () {
     _migrateMetas();
     _migrateManuelaCat();
     _fixPasseiosEscolares();
+    _sweepManuelaCat();
     _syncEditableConfig();
     save(_data);
     return _data;
