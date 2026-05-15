@@ -522,6 +522,10 @@ ${periodToggleHTML('ff_lanc_period', period)}
     <option value="">Todos os pagamentos</option>
     ${Store.PAYMENT_METHODS.map(m => `<option value="${m}">${m}</option>`).join('')}
   </select>
+  <select class="form-select" id="filterPessoa" style="width:140px">
+    <option value="">Todas as pessoas</option>
+    ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+  </select>
   <button class="btn-secondary" id="btnSort" title="Ordenar por data" style="white-space:nowrap;padding:6px 10px;font-size:12px">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     Data ↑
@@ -542,6 +546,7 @@ ${periodToggleHTML('ff_lanc_period', period)}
       if (filter.cat)    filtered = filtered.filter(d => d.category === filter.cat);
       if (filter.sub)    filtered = filtered.filter(d => d.sub === filter.sub);
       if (filter.pay)    filtered = filtered.filter(d => d.pay === filter.pay);
+      if (filter.pessoa) filtered = filtered.filter(d => d.split && d.split.some(s => s.person === filter.pessoa));
       const total = filtered.reduce((a, d) => a + d.amount, 0);
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
@@ -579,6 +584,7 @@ ${filtered.map(d => {
       let filtered = sortRows(rows);
       if (filter.search) filtered = filtered.filter(r => r.desc.toLowerCase().includes(filter.search.toLowerCase()));
       if (filter.cat)    filtered = filtered.filter(r => r.person === filter.cat);
+      if (filter.pessoa) filtered = filtered.filter(r => r.person === filter.pessoa);
       const total = filtered.reduce((a, r) => a + r.amount, 0);
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado.</div>';
       return `<table class="data-table">
@@ -613,9 +619,10 @@ ${filtered.map(r => {
     function getFilters() {
       return {
         search: document.getElementById('searchInput')?.value || '',
-        cat:    document.getElementById('filterCat')?.value  || '',
-        sub:    document.getElementById('filterSub')?.value  || '',
-        pay:    document.getElementById('filterPay')?.value  || '',
+        cat:    document.getElementById('filterCat')?.value    || '',
+        sub:    document.getElementById('filterSub')?.value    || '',
+        pay:    document.getElementById('filterPay')?.value    || '',
+        pessoa: document.getElementById('filterPessoa')?.value || '',
       };
     }
 
@@ -736,6 +743,7 @@ ${filtered.map(r => {
 
     document.getElementById('filterSub').addEventListener('change', refilter);
     document.getElementById('filterPay').addEventListener('change', refilter);
+    document.getElementById('filterPessoa').addEventListener('change', refilter);
 
     document.getElementById('btnSort').addEventListener('click', () => {
       sortDir = sortDir === 'asc' ? 'desc' : 'asc';
@@ -1092,18 +1100,26 @@ ${periodToggleHTML('ff_desp_period', period)}
 <div class="card">
   <div class="card-header">
     <span class="card-title">Detalhamento — ${Utils.monthsFull[month-1]}</span>
-    <select class="form-select" id="despCatFilter" style="width:180px">
-      <option value="">Todas as categorias</option>
-      ${Object.entries(Store.CATEGORIES).filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
-    </select>
+    <div style="display:flex;gap:8px">
+      <select class="form-select" id="despPessoaFilter" style="width:150px">
+        <option value="">Todas as pessoas</option>
+        ${Store.PESSOAS.map(p=>`<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <select class="form-select" id="despCatFilter" style="width:180px">
+        <option value="">Todas as categorias</option>
+        ${Object.entries(Store.CATEGORIES).filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+      </select>
+    </div>
   </div>
   <div class="table-wrap" id="despTable">
     ${buildDespTable(despesas)}
   </div>
 </div>`;
 
-    function buildDespTable(rows, catFilter = '') {
-      const filtered = catFilter ? rows.filter(d => d.category === catFilter) : rows;
+    function buildDespTable(rows, catFilter = '', pessoaFilter = '') {
+      let filtered = rows;
+      if (catFilter)    filtered = filtered.filter(d => d.category === catFilter);
+      if (pessoaFilter) filtered = filtered.filter(d => d.split && d.split.some(s => s.person === pessoaFilter));
       const tot = filtered.reduce((a,d) => a+d.amount, 0);
       return `<table class="data-table">
 <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-cat</th><th>Pagamento</th><th class="num">Valor</th><th></th></tr></thead>
@@ -1159,10 +1175,14 @@ ${periodToggleHTML('ff_desp_period', period)}
       }
     });
 
-    document.getElementById('despCatFilter').addEventListener('change', e => {
-      document.getElementById('despTable').innerHTML = buildDespTable(despesas, e.target.value);
+    function refilterDespTable() {
+      const cat    = document.getElementById('despCatFilter')?.value    || '';
+      const pessoa = document.getElementById('despPessoaFilter')?.value || '';
+      document.getElementById('despTable').innerHTML = buildDespTable(despesas, cat, pessoa);
       attachDespDeleteHandlers();
-    });
+    }
+    document.getElementById('despCatFilter').addEventListener('change', refilterDespTable);
+    document.getElementById('despPessoaFilter').addEventListener('change', refilterDespTable);
 
     function attachDespDeleteHandlers() {
       container.querySelectorAll('[data-del-desp]').forEach(btn => {
