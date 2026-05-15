@@ -2850,6 +2850,7 @@ ${(() => {
     const rSugs = Store.receitaSuggestions();
     const rSugMap = Object.fromEntries(rSugs.map(s => [s.desc, s]));
     const today = new Date().toISOString().slice(0,10);
+    let novaEntradaSplitApi = null;
     const html = `
 <div class="tabs" style="margin-bottom:16px">
   <button class="tab active" id="tabDesp">Despesa</button>
@@ -2893,6 +2894,7 @@ ${(() => {
       <div class="form-input" id="nParcelaInfo" style="display:flex;align-items:center;color:var(--accent);font-weight:700;background:var(--bg-elevated)">—</div>
     </div>
   </div>
+  ${splitSectionHTML()}
 </div>
 <div id="formRec" class="form-grid hidden">
   <div class="form-group form-full">
@@ -2926,12 +2928,13 @@ ${(() => {
         const economia=temDesc&&valorOrig>amount?valorOrig-amount:0;
         const extraD=temDesc&&economia>0?{desconto:true,valorOriginal:valorOrig,economia}:{};
         if (!desc||!amount||!date) return toast('Preencha todos os campos','error');
+        const splitVal = novaEntradaSplitApi?.read() || null;
         if (parcelado && parcelas > 1) {
-          Store.addDespesaParcelada({ desc, amount: parseFloat((amount/parcelas).toFixed(2)), date, category:cat, sub, pay, parcelas });
+          Store.addDespesaParcelada({ desc, amount: parseFloat((amount/parcelas).toFixed(2)), date, category:cat, sub, pay, parcelas, split: splitVal });
           toast(`${parcelas} parcelas lançadas!`, 'success');
         } else {
           const d=new Date(date);
-          Store.addDespesa({desc,amount,date,category:cat,sub,pay,month:d.getMonth()+1,year:d.getFullYear(),...extraD});
+          Store.addDespesa({desc,amount,date,category:cat,sub,pay,month:d.getMonth()+1,year:d.getFullYear(),...extraD,split:splitVal});
           toast('Despesa adicionada!', 'success');
         }
       } else {
@@ -2995,6 +2998,7 @@ ${(() => {
       });
       document.getElementById('nCat')?.addEventListener('change', updateSubs);
       updateSubs();
+      novaEntradaSplitApi = setupSplitUI('nAmt', null);
       document.getElementById('tabDesp')?.addEventListener('click', () => {
         document.getElementById('formDesp').classList.remove('hidden');
         document.getElementById('formRec').classList.add('hidden');
