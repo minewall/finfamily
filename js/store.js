@@ -33,13 +33,13 @@ const Store = (function () {
     saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja'],
     dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios / Brinquedos'],
-    lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens','Passeios Individuais'],
+    lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
     financeiro: ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     cartoes: ['Itaú Click','Itaú Uniclass','Wise','Santander','Shopee','Mercado Livre','Torra Torra'],
     roberto: ['Melissa Advogada','Assinaturas','Celular','Telegrama'],
     mariana: ['Faculdade UNIP','Livros e Materiais','Mesada','Lanche','OAB'],
     manuela:    ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
-    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Individuais','Livros','Cursos','Material'],
+    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material'],
     beneficios: ['Mesada','Vale Refeição','Vale Transporte','Plano de Saúde','Outros'],
   };
 
@@ -509,7 +509,7 @@ const Store = (function () {
       'Escola Manuela':     { category: 'educacao',   sub: 'Mensalidade Escolar'  },
       'Livros e Materiais': { category: 'educacao',   sub: 'Material Escolar'     },
       'Uniforme':           { category: 'educacao',   sub: 'Uniforme'             },
-      'Passeios':           { category: 'lazer',      sub: 'Passeios Individuais' },
+      'Passeios':           { category: 'educacao',   sub: 'Passeios Escolares'   },
       'Mesada':             { category: 'beneficios', sub: 'Mesada'               },
     };
 
@@ -535,12 +535,30 @@ const Store = (function () {
     if (_data.subcategorias) {
       if (!_data.subcategorias.educacao)   _data.subcategorias.educacao   = [...SUBCATEGORIES.educacao];
       if (!_data.subcategorias.beneficios) _data.subcategorias.beneficios = [...SUBCATEGORIES.beneficios];
-      if (Array.isArray(_data.subcategorias.lazer) && !_data.subcategorias.lazer.includes('Passeios Individuais')) {
-        _data.subcategorias.lazer.push('Passeios Individuais');
+      if (Array.isArray(_data.subcategorias.educacao) && !_data.subcategorias.educacao.includes('Passeios Escolares')) {
+        _data.subcategorias.educacao.push('Passeios Escolares');
+      }
+      if (Array.isArray(_data.subcategorias.lazer)) {
+        _data.subcategorias.lazer = _data.subcategorias.lazer.filter(s => s !== 'Passeios Individuais');
       }
     }
 
     _data.__migrated_manuela_cat = true;
+  }
+
+  // Corrige lançamentos que foram migrados para lazer/Passeios Individuais →
+  // educacao/Passeios Escolares (ajuste pós-validação)
+  function _fixPasseiosEscolares() {
+    if (_data.__fix_passeios_escolares) return;
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        if (d.sub === 'Passeios Individuais') {
+          return { ...d, category: 'educacao', sub: 'Passeios Escolares' };
+        }
+        return d;
+      });
+    }
+    _data.__fix_passeios_escolares = true;
   }
 
   function init() {
@@ -554,6 +572,7 @@ const Store = (function () {
     _loadEditableConfig();
     _migrateMetas();
     _migrateManuelaCat();
+    _fixPasseiosEscolares();
     _syncEditableConfig();
     save(_data);
     return _data;
