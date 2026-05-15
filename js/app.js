@@ -2596,6 +2596,94 @@ ${ativos.length > 0 ? `
   <button class="btn-xs" id="btnAddAtivo" style="margin-left:12px">+ Ativo</button>
 </div>`}
 
+<!-- Passivos -->
+${(() => {
+  const passivos = Store.getPassivos();
+  const totalPass = Store.totalPassivos();
+  const totalEco  = passivos.filter(p => p.status !== 'quitado' && p.valorAcordado)
+    .reduce((s,p) => s + (p.valorOriginal - p.valorAcordado), 0);
+  const TIPO_LABEL = { banco:'Banco', cartao:'Cartão', empresarial:'Empresarial', pessoal:'Pessoal', emprestimo:'Empréstimo a Terceiros', juridico:'Processo Jurídico', bloqueio:'Bloqueio' };
+  const STATUS_LABEL = { pendente:'Pendente', em_negociacao:'Em Negociação', acordado:'Acordado', quitado:'Quitado' };
+  const STATUS_COLOR = { pendente:'var(--red)', em_negociacao:'var(--amber)', acordado:'var(--accent)', quitado:'var(--green)' };
+  return `
+<div class="section-header mb-4" style="margin-top:32px">
+  <div><div class="section-title">Passivos & Dívidas</div><div class="section-sub">Dívidas e obrigações — não impactam o fluxo mensal enquanto pendentes</div></div>
+  <button class="btn-primary" id="btnAddPassivo">+ Novo Passivo</button>
+</div>
+${totalPass > 0 ? `
+<div class="kpi-grid mb-4" style="grid-template-columns:repeat(3,1fr)">
+  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+    <div class="kpi-header"><span class="kpi-label">Total Passivo</span><span class="kpi-icon">⚠️</span></div>
+    <div class="kpi-value" style="color:var(--red)">${Utils.currency(totalPass)}</div>
+    <div class="card-sub">${passivos.filter(p=>p.status!=='quitado').length} dívida(s) em aberto</div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
+    <div class="kpi-header"><span class="kpi-label">Patrimônio Líquido</span><span class="kpi-icon">⚖️</span></div>
+    <div class="kpi-value" style="color:${total-totalPass>=0?'var(--accent)':'var(--red)'}">${Utils.currency(total - totalPass)}</div>
+    <div class="card-sub">Ativos − Passivos</div>
+  </div>
+  ${totalEco > 0 ? `
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+    <div class="kpi-header"><span class="kpi-label">Economia Negociada</span><span class="kpi-icon">💰</span></div>
+    <div class="kpi-value" style="color:var(--green)">${Utils.currency(totalEco)}</div>
+    <div class="card-sub">Desconto obtido nos acordos</div>
+  </div>` : ''}
+</div>` : ''}
+${passivos.length === 0
+  ? `<div class="card" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum passivo cadastrado. Ótimo sinal!</div>`
+  : `<div class="card mb-4">
+  <div class="table-wrap">
+    <table class="data-table" style="min-width:780px">
+      <thead><tr>
+        <th>Descrição</th><th>Tipo</th><th>Credor</th>
+        <th class="num">Valor Original</th><th class="num">Proposta</th><th class="num">Acordado</th>
+        <th>Status</th><th>Referência</th><th></th>
+      </tr></thead>
+      <tbody>
+      ${passivos.map(p => {
+        const desc = p.desc || '—';
+        const tipo = TIPO_LABEL[p.tipo] || p.tipo || '—';
+        const st   = p.status || 'pendente';
+        const dataRef = p.dataRef ? new Date(p.dataRef+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'numeric'}) : '—';
+        const descPct = p.valorOriginal && p.valorAcordado
+          ? ((1 - p.valorAcordado/p.valorOriginal)*100).toFixed(0) + '% desc.'
+          : p.valorOriginal && p.valorProposta
+          ? ((1 - p.valorProposta/p.valorOriginal)*100).toFixed(0) + '% prop.'
+          : '';
+        return `<tr>
+          <td>
+            <div style="font-weight:600;color:var(--text-1)">${desc}</div>
+            ${p.notes ? `<div style="font-size:11px;color:var(--text-4)">${p.notes}</div>` : ''}
+            ${p.contratoId ? `<div style="font-size:11px;color:var(--accent)">📋 Contrato gerado</div>` : ''}
+          </td>
+          <td style="color:var(--text-3)">${tipo}</td>
+          <td style="color:var(--text-2)">${p.credor||'—'}</td>
+          <td class="num" style="font-family:var(--mono);color:var(--red)">${Utils.currency(p.valorOriginal||0)}</td>
+          <td class="num" style="font-family:var(--mono);color:var(--amber)">${p.valorProposta ? Utils.currency(p.valorProposta) : '—'}</td>
+          <td class="num" style="font-family:var(--mono);color:var(--green)">
+            ${p.valorAcordado ? Utils.currency(p.valorAcordado) : '—'}
+            ${descPct ? `<div style="font-size:10px;color:var(--text-4)">${descPct}</div>` : ''}
+          </td>
+          <td><span class="badge" style="background:${STATUS_COLOR[st]}20;color:${STATUS_COLOR[st]}">${STATUS_LABEL[st]||st}</span></td>
+          <td style="font-size:12px;color:var(--text-4)">${dataRef}</td>
+          <td style="white-space:nowrap">
+            ${st !== 'quitado' && st !== 'acordado' ? `<button class="btn-xs" data-action="passivo-contrato" data-id="${p.id}" title="Gerar contrato">📋</button>` : ''}
+            ${st !== 'quitado' ? `<button class="btn-xs" data-action="passivo-despesa" data-id="${p.id}" title="Lançar em despesas">💸</button>` : ''}
+            <button class="btn-xs" data-action="edit-passivo" data-id="${p.id}" title="Editar">✏</button>
+            <button class="btn-xs btn-red" data-action="del-passivo" data-id="${p.id}" title="Excluir">✕</button>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:11px;color:var(--text-4);margin-top:8px;display:flex;gap:16px">
+    <span>📋 = gerar contrato parcelado</span>
+    <span>💸 = lançar pagamento avulso em despesas</span>
+  </div>
+</div>`}`;
+})()}
+
 <!-- Recebimentos Futuros -->
 <div class="section-header mb-4"><div class="section-title">Recebimentos Futuros Previstos</div></div>
 ${futuros.length === 0
@@ -2672,6 +2760,7 @@ ${futuros.length === 0
 
     document.getElementById('btnAddInv')?.addEventListener('click', () => openInvModal(null, re));
     document.getElementById('btnAddFuturo')?.addEventListener('click', () => openFuturoModal2(re));
+    document.getElementById('btnAddPassivo')?.addEventListener('click', () => openPassivoModal(null, re));
     document.getElementById('btnAddAtivo')?.addEventListener('click', () => openAtivoModal(null, re));
     document.getElementById('btnEditRates')?.addEventListener('click', () => {
       const html = `<div class="form-grid">
@@ -2713,6 +2802,185 @@ ${futuros.length === 0
         const f = (Store.get().recebimentosFuturos||[]).find(f => f.id === id);
         if (f) { f.status = 'recebido'; Store.persist(); re(); toast('Marcado como recebido!', 'success'); }
       }
+      if (action === 'edit-passivo') {
+        const p = Store.getPassivos().find(p => p.id === id);
+        if (p) openPassivoModal(p, re);
+      }
+      if (action === 'del-passivo') {
+        if (!confirm('Excluir este passivo?')) return;
+        Store.deletePassivo(id); re(); toast('Passivo removido', 'success');
+      }
+      if (action === 'passivo-contrato') {
+        const p = Store.getPassivos().find(p => p.id === id);
+        if (p) openPassivoToContratoModal(p, re);
+      }
+      if (action === 'passivo-despesa') {
+        const p = Store.getPassivos().find(p => p.id === id);
+        if (p) openPassivoDespesaModal(p, re);
+      }
+    });
+  }
+
+  function openPassivoModal(passivo, onSaved) {
+    const isEdit = !!passivo;
+    const p = passivo || {};
+    const TIPOS = ['banco','cartao','empresarial','pessoal','emprestimo','juridico','bloqueio'];
+    const TIPO_LABEL = { banco:'Banco', cartao:'Cartão', empresarial:'Empresarial', pessoal:'Pessoal', emprestimo:'Empréstimo a Terceiros', juridico:'Processo Jurídico', bloqueio:'Bloqueio' };
+    const STATUS_OPTS = ['pendente','em_negociacao','acordado','quitado'];
+    const STATUS_LABEL = { pendente:'Pendente', em_negociacao:'Em Negociação', acordado:'Acordado', quitado:'Quitado' };
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Descrição</label>
+        <input class="form-input" id="fPDesc" placeholder="Ex: Cartão XP atrasado, Dívida Banco Itaú" value="${p.desc||''}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="fPTipo">
+          ${TIPOS.map(t => `<option value="${t}" ${p.tipo===t?'selected':''}>${TIPO_LABEL[t]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Credor</label>
+        <input class="form-input" id="fPCreedor" placeholder="Nome do banco, pessoa ou empresa" value="${p.credor||''}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Valor Original (R$)</label>
+        <input class="form-input" id="fPValOrig" type="number" step="0.01" placeholder="0,00" value="${p.valorOriginal||''}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Proposta do Credor (R$)</label>
+        <input class="form-input" id="fPValProp" type="number" step="0.01" placeholder="Opcional" value="${p.valorProposta||''}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Valor Acordado (R$)</label>
+        <input class="form-input" id="fPValAcord" type="number" step="0.01" placeholder="Apenas se acordo fechado" value="${p.valorAcordado||''}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="fPStatus">
+          ${STATUS_OPTS.map(s => `<option value="${s}" ${(p.status||'pendente')===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Data de Referência</label>
+        <input class="form-input" id="fPData" type="date" value="${p.dataRef||''}"/>
+      </div>
+      <div class="form-group form-full"><label class="form-label">Observações</label>
+        <input class="form-input" id="fPNotes" placeholder="Número do processo, contrato, etc." value="${p.notes||''}"/>
+      </div>
+    </div>`;
+    Modal.open(isEdit ? 'Editar Passivo' : 'Novo Passivo', html, () => {
+      const data = {
+        desc:          document.getElementById('fPDesc').value.trim(),
+        tipo:          document.getElementById('fPTipo').value,
+        credor:        document.getElementById('fPCreedor').value.trim(),
+        valorOriginal: parseFloat(document.getElementById('fPValOrig').value) || 0,
+        valorProposta: parseFloat(document.getElementById('fPValProp').value) || null,
+        valorAcordado: parseFloat(document.getElementById('fPValAcord').value) || null,
+        status:        document.getElementById('fPStatus').value,
+        dataRef:       document.getElementById('fPData').value || null,
+        notes:         document.getElementById('fPNotes').value.trim(),
+      };
+      if (!data.desc || !data.valorOriginal) return toast('Preencha descrição e valor original', 'error');
+      if (isEdit) Store.updatePassivo(passivo.id, data);
+      else Store.addPassivo(data);
+      Modal.close();
+      onSaved();
+      toast(isEdit ? 'Passivo atualizado' : 'Passivo cadastrado', 'success');
+    });
+  }
+
+  function openPassivoToContratoModal(passivo, onSaved) {
+    const valorSugerido = passivo.valorAcordado || passivo.valorProposta || passivo.valorOriginal || 0;
+    const today = new Date().toISOString().slice(0,10);
+    const html = `<div class="form-grid">
+      <div class="form-group form-full">
+        <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px;font-size:13px;color:var(--text-2)">
+          Passivo: <strong>${passivo.desc}</strong> — ${Utils.currency(passivo.valorOriginal)}
+          ${passivo.valorAcordado ? ` → Acordado: <strong style="color:var(--green)">${Utils.currency(passivo.valorAcordado)}</strong>` : ''}
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Valor da Parcela (R$)</label>
+        <input class="form-input" id="fPC_parcela" type="number" step="0.01" value="${(valorSugerido/12).toFixed(2)}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Nº de Parcelas</label>
+        <input class="form-input" id="fPC_qtd" type="number" min="1" value="12"/>
+      </div>
+      <div class="form-group"><label class="form-label">Data de Início</label>
+        <input class="form-input" id="fPC_ini" type="date" value="${today}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Dia de Vencimento</label>
+        <input class="form-input" id="fPC_dia" type="number" min="1" max="31" value="10"/>
+      </div>
+      <div class="form-group"><label class="form-label">Método</label>
+        <select class="form-select" id="fPC_pay">
+          ${Store.PAYMENT_METHODS.map(m => `<option>${m}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+    Modal.open('Gerar Contrato para Passivo', html, () => {
+      const contratoData = {
+        label:        passivo.desc,
+        kind:         'despesa',
+        responsavel:  Store.PESSOAS[0],
+        category:     'financeiro',
+        sub:          'Acordo de Dívida',
+        dataInicio:   document.getElementById('fPC_ini').value,
+        valorParcela: parseFloat(document.getElementById('fPC_parcela').value),
+        parcelas:     parseInt(document.getElementById('fPC_qtd').value, 10),
+        entrada:      0,
+        diaVencimento: parseInt(document.getElementById('fPC_dia').value, 10),
+        pay:          document.getElementById('fPC_pay').value,
+        notes:        `Gerado a partir do passivo: ${passivo.desc}`,
+        active:       true,
+      };
+      if (!contratoData.valorParcela || !contratoData.parcelas) return toast('Preencha valor e parcelas', 'error');
+      Store.addContrato(contratoData);
+      const contratos = Store.getContratos();
+      const novo = contratos[contratos.length - 1];
+      Store.updatePassivo(passivo.id, { status: 'acordado', contratoId: novo.id });
+      Modal.close();
+      onSaved();
+      toast('Contrato criado e passivo marcado como acordado!', 'success');
+    });
+  }
+
+  function openPassivoDespesaModal(passivo, onSaved) {
+    const valorSugerido = passivo.valorAcordado || passivo.valorProposta || passivo.valorOriginal || 0;
+    const today = new Date().toISOString().slice(0,10);
+    const html = `<div class="form-grid">
+      <div class="form-group form-full">
+        <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px;font-size:13px;color:var(--text-2)">
+          Lançar pagamento de: <strong>${passivo.desc}</strong>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Valor (R$)</label>
+        <input class="form-input" id="fPD_val" type="number" step="0.01" value="${valorSugerido.toFixed(2)}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Data</label>
+        <input class="form-input" id="fPD_data" type="date" value="${today}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Método</label>
+        <select class="form-select" id="fPD_pay">
+          ${Store.PAYMENT_METHODS.map(m => `<option>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="fPD_quitar"/> Marcar passivo como Quitado após lançamento
+        </label>
+      </div>
+    </div>`;
+    Modal.open('Lançar Pagamento em Despesas', html, () => {
+      const val  = parseFloat(document.getElementById('fPD_val').value);
+      const data = document.getElementById('fPD_data').value;
+      const pay  = document.getElementById('fPD_pay').value;
+      const quitar = document.getElementById('fPD_quitar').checked;
+      if (!val || !data) return toast('Preencha valor e data', 'error');
+      const d = new Date(data+'T12:00:00');
+      Store.addDespesa({
+        desc: `Pgto: ${passivo.desc}`,
+        amount: val, date: data,
+        month: d.getMonth() + 1, year: d.getFullYear(),
+        category: 'financeiro', sub: 'Acordo de Dívida',
+        pay, split: [],
+      });
+      if (quitar) Store.updatePassivo(passivo.id, { status: 'quitado' });
+      Modal.close();
+      onSaved();
+      toast('Despesa lançada' + (quitar ? ' e passivo quitado!' : '!'), 'success');
     });
   }
 

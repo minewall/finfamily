@@ -921,6 +921,31 @@ const Store = (function () {
     if (a) { Object.assign(a, patch); persist(); }
   }
 
+  // ── PASSIVOS ───────────────────────────────────────────────────
+  function getPassivos() { return _data.passivos || []; }
+
+  function addPassivo(p) {
+    if (!_data.passivos) _data.passivos = [];
+    _data.passivos.push({ ...p, id: '_p' + Date.now() });
+    persist();
+  }
+
+  function updatePassivo(id, patch) {
+    const p = (_data.passivos || []).find(p => p.id === id);
+    if (p) { Object.assign(p, patch); persist(); }
+  }
+
+  function deletePassivo(id) {
+    _data.passivos = (_data.passivos || []).filter(p => p.id !== id);
+    persist();
+  }
+
+  function totalPassivos() {
+    return (_data.passivos || [])
+      .filter(p => p.status !== 'quitado')
+      .reduce((s, p) => s + (p.valorAcordado || p.valorProposta || p.valorOriginal || 0), 0);
+  }
+
   function cleanDespesasByCategory(cats) {
     // Case-insensitive match; also strips any entry whose category has no label in CATEGORIES
     const lower = cats.map(c => c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
@@ -1579,6 +1604,7 @@ const Store = (function () {
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData,
     getProximasParcelas,
+    getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,
     addSubcategoria, renameSubcategoria, deleteSubcategoria,
     addPessoa, renamePessoa, deletePessoa,
