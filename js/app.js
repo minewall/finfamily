@@ -231,6 +231,14 @@ const App = (function () {
 
     const yrReceitas = Store.yearlyMonthly(year, 'receita');
     const yrDespesas = Store.yearlyMonthly(year, 'despesa');
+    const tipoDesp = Store.sumDespesasByTipo(month, year);
+    const TIPO_INFO = {
+      fixa_essencial:       { label: 'Fixa Essencial',        color: 'var(--red)',    desc: 'Não dá pra cortar' },
+      fixa_comprometida:    { label: 'Fixa Comprometida',     color: 'var(--amber)',  desc: 'Custo para cancelar' },
+      variavel_comprometida:{ label: 'Variável Comprometida', color: 'var(--accent)', desc: 'Difícil de cortar' },
+      variavel_opcional:    { label: 'Variável Opcional',     color: 'var(--green)',  desc: 'Pode cortar' },
+      pontual:              { label: 'Pontual / Eventual',    color: 'var(--teal)',   desc: 'Evento único' },
+    };
 
     container.innerHTML = `
 <div class="kpi-grid">
@@ -340,6 +348,30 @@ ${alerts.map(a => `
       <span class="badge badge-red">${Utils.monthsFull[month-1]}</span>
     </div>
     ${renderPersonDespesas(month, year)}
+  </div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Comprometimento de Despesas</span>
+    <span class="badge badge-blue">${Utils.monthsFull[month-1]}</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    ${Object.entries(TIPO_INFO).map(([tipo, info]) => {
+      const val = tipoDesp[tipo] || 0;
+      const pct = despesa > 0 ? val / despesa : 0;
+      return `<div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:12px;font-weight:600;color:var(--text-1)">${info.label}</span>
+          <span style="font-size:11px;color:var(--text-3)">${Utils.currency(val)} <span style="color:var(--text-4)">(${Utils.pct(pct)}) · ${info.desc}</span></span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(pct*100).toFixed(1)}%;background:${info.color}"></div></div>
+      </div>`;
+    }).join('')}
+    <div style="font-size:11px;color:var(--text-4);margin-top:4px">
+      Fixo total: <strong style="color:var(--text-2)">${Utils.currency((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0))}</strong>
+      · Comprometimento: <strong style="color:var(--text-2)">${Utils.pct(despesa > 0 ? ((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0)+(tipoDesp.variavel_comprometida||0))/despesa : 0)}</strong>
+    </div>
   </div>
 </div>
 
@@ -1388,6 +1420,9 @@ ${periodToggleHTML('ff_desp_period', period)}
       <div class="form-group"><label class="form-label">Pagamento</label>
         <select class="form-select" id="fDPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select>
       </div>
+      <div class="form-group" id="fDCartaoRow" style="display:none"><label class="form-label">Cartão</label>
+        <select class="form-select" id="fDCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+      </div>
       <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:4px 0">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
           <input type="checkbox" id="fDParcelado" style="width:16px;height:16px;accent-color:var(--accent)">
@@ -1423,6 +1458,7 @@ ${periodToggleHTML('ff_desp_period', period)}
       const cat           = document.getElementById('fDCat').value;
       const sub           = document.getElementById('fDSub').value;
       const pay           = document.getElementById('fDPay').value;
+      const cartaoId      = pay === 'Cartão' ? (document.getElementById('fDCartao')?.value || null) : null;
       const parcelado     = document.getElementById('fDParcelado').checked;
       const parcelas      = parseInt(document.getElementById('fDParcelas')?.value || '1');
       const temDesconto   = document.getElementById('fDDesconto')?.checked;
@@ -1436,8 +1472,9 @@ ${periodToggleHTML('ff_desp_period', period)}
       }
       const extraFields = temDesconto && economia > 0 ? { desconto: true, valorOriginal, economia } : {};
       if (split) extraFields.split = split;
+      if (cartaoId) extraFields.cartaoId = cartaoId;
       if (parcelado && parcelas > 1) {
-        Store.addDespesaParcelada({ desc, amount: parseFloat((amount / parcelas).toFixed(2)), date, category: cat, sub, pay, parcelas });
+        Store.addDespesaParcelada({ desc, amount: parseFloat((amount / parcelas).toFixed(2)), date, category: cat, sub, pay, parcelas, ...extraFields });
         toast(`${parcelas} parcelas lançadas!`, 'success');
       } else {
         const d = new Date(date);
@@ -1470,6 +1507,10 @@ ${periodToggleHTML('ff_desp_period', period)}
       document.getElementById('fDDesconto')?.addEventListener('change', e => {
         const opts = document.getElementById('fDDescontoOpts');
         if (opts) opts.style.display = e.target.checked ? 'block' : 'none';
+      });
+      document.getElementById('fDPay')?.addEventListener('change', e => {
+        const row = document.getElementById('fDCartaoRow');
+        if (row) row.style.display = e.target.value === 'Cartão' ? 'block' : 'none';
       });
       function updateEconomia() {
         const amt = parseFloat(document.getElementById('fDAmt')?.value) || 0;
@@ -1791,26 +1832,51 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   function renderContratos(container) {
     const contratos = Store.getContratos();
     const month = getMonth(), year = getYear();
+    const today = new Date().toISOString().slice(0, 10);
+    const allData = Store.get();
 
-    // KPIs agregados
-    let totReceitaMes = 0, totDespesaMes = 0, totReceitaContrato = 0, totDespesaContrato = 0;
+    function calcStatus(c, perf) {
+      if (c.status === 'quitado') return 'quitado';
+      const linked = (c.kind === 'receita' ? allData.receitas : allData.despesas)
+        .filter(x => x.contratoId === c.id);
+      if (linked.some(x => x.date < today && x.paid === false)) return 'atrasado';
+      if (perf.parcelasRestantes === 0) return 'encerrado';
+      return 'ativo';
+    }
+    const STATUS_LABEL = { ativo:'Ativo', atrasado:'Atrasado', encerrado:'Encerrado', quitado:'Quitado' };
+    const STATUS_COLOR = { ativo:'var(--green)', atrasado:'var(--red)', encerrado:'var(--text-3)', quitado:'var(--accent)' };
+
+    const filterStatus = localStorage.getItem('ff_contratos_status') || 'todos';
+    const filterPessoa = localStorage.getItem('ff_contratos_pessoa') || '';
+
+    // KPIs
+    let totReceitaMes = 0, totDespesaMes = 0;
     contratos.filter(c => c.active !== false).forEach(c => {
       const perf = Store.getContratoPerformance(c.id);
-      const mesAtual = (c.kind === 'receita' ? Store.get().receitas : Store.get().despesas)
+      const mesAtual = (c.kind === 'receita' ? allData.receitas : allData.despesas)
         .filter(x => x.contratoId === c.id && x.month === month && x.year === year)
         .reduce((s, x) => s + x.amount, 0);
-      if (c.kind === 'receita') { totReceitaMes += mesAtual; totReceitaContrato += perf.valorTotal; }
-      else { totDespesaMes += mesAtual; totDespesaContrato += perf.valorTotal; }
+      if (c.kind === 'receita') totReceitaMes += mesAtual;
+      else totDespesaMes += mesAtual;
     });
-
     const receitaMes = Store.sumReceitas(month, year);
     const despesaMes = Store.sumDespesas(month, year);
-    const impactoRec = receitaMes > 0 ? totReceitaMes / receitaMes : 0;
-    const impactoDesp = despesaMes > 0 ? totDespesaMes / despesaMes : 0;
+
+    // build rows with status
+    const rows = contratos.map(c => ({
+      c, perf: Store.getContratoPerformance(c.id),
+    })).map(({c, perf}) => ({ c, perf, status: calcStatus(c, perf) }));
+
+    const filtered = rows.filter(({c, status}) =>
+      (filterStatus === 'todos' || status === filterStatus) &&
+      (!filterPessoa || c.responsavel === filterPessoa)
+    );
+
+    const pessoas = [...new Set(contratos.map(c => c.responsavel).filter(Boolean))];
 
     container.innerHTML = `
 <div class="section-header mb-6">
-  <div><div class="section-title">Contratos</div><div class="section-sub">Cadastre contratos recorrentes — parcelas alimentam Receitas/Despesas automaticamente</div></div>
+  <div><div class="section-title">Contratos</div><div class="section-sub">Contratos recorrentes — parcelas alimentam Receitas/Despesas automaticamente</div></div>
   <button class="btn-primary" id="btnAddContrato">+ Novo Contrato</button>
 </div>
 
@@ -1818,135 +1884,138 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
     <div class="kpi-header"><span class="kpi-label">Receita p/ Contratos (mês)</span><span class="kpi-icon">📈</span></div>
     <div class="kpi-value" style="color:var(--green)">${Utils.currency(totReceitaMes)}</div>
-    <div class="card-sub">${Utils.pct(impactoRec)} da receita do mês</div>
+    <div class="card-sub">${Utils.pct(receitaMes > 0 ? totReceitaMes / receitaMes : 0)} da receita do mês</div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
     <div class="kpi-header"><span class="kpi-label">Despesa p/ Contratos (mês)</span><span class="kpi-icon">📉</span></div>
     <div class="kpi-value" style="color:var(--red)">${Utils.currency(totDespesaMes)}</div>
-    <div class="card-sub">${Utils.pct(impactoDesp)} da despesa do mês</div>
+    <div class="card-sub">${Utils.pct(despesaMes > 0 ? totDespesaMes / despesaMes : 0)} da despesa do mês</div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-header"><span class="kpi-label">Contratos ativos</span><span class="kpi-icon">📑</span></div>
-    <div class="kpi-value">${contratos.filter(c=>c.active!==false).length}</div>
-    <div class="card-sub">Total cadastrado: ${contratos.length}</div>
+    <div class="kpi-header"><span class="kpi-label">Contratos</span><span class="kpi-icon">📑</span></div>
+    <div class="kpi-value">${rows.filter(r => r.status === 'ativo').length} <span style="font-size:14px;color:var(--text-3)">ativos</span></div>
+    <div class="card-sub">${rows.filter(r => r.status === 'atrasado').length} atrasado(s) · ${contratos.length} total</div>
+  </div>
+</div>
+
+<div class="card mb-6">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;gap:6px;flex-wrap:wrap" data-status-filter>
+      ${['todos','ativo','atrasado','encerrado','quitado'].map(s => `
+        <button class="btn-secondary ${filterStatus===s?'active':''}" data-status="${s}" style="padding:5px 12px;font-size:12px">${s==='todos'?'Todos':STATUS_LABEL[s]}</button>
+      `).join('')}
+    </div>
+    <select class="form-select" id="contratosPessoa" style="width:160px;margin-left:auto">
+      <option value="">Todas as pessoas</option>
+      ${pessoas.map(p => `<option value="${p}" ${filterPessoa===p?'selected':''}>${p}</option>`).join('')}
+    </select>
   </div>
 </div>
 
 ${contratos.length === 0 ? `
   <div class="empty-state" style="padding:48px;text-align:center;border:1px dashed var(--border);border-radius:12px">
     <div style="font-size:14px;color:var(--text-3);margin-bottom:8px">Nenhum contrato cadastrado</div>
-    <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Contrato" para começar. Cada parcela vira um lançamento automático.</div>
+    <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Contrato" para começar.</div>
   </div>
 ` : `
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
-  ${contratos.map(c => {
-    const perf = Store.getContratoPerformance(c.id);
-    const isRec = c.kind === 'receita';
-    const cat = Store.CATEGORIES[c.category] || { label: c.category, icon: '📄', color: 'var(--accent)' };
-    const colorBar = perf.pctValor >= 1 ? 'green' : isRec ? 'accent' : (perf.pctValor > 0.8 ? 'amber' : 'accent');
-    const impactoMes = perf.impactoMensal;
-    const base = isRec ? receitaMes : despesaMes;
-    const impactoMesPct = base > 0 ? impactoMes / base : 0;
-    return `
-    <div class="card" data-contrato-id="${c.id}" style="border-top:3px solid var(--${isRec?'green':'red'})">
-      <div class="card-header">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:18px">${cat.icon || '📄'}</span>
-          <div>
-            <div style="font-size:14px;font-weight:700;color:var(--text-1)">${c.label}</div>
-            <div style="font-size:11px;color:var(--text-4)">${isRec?'Receita':'Despesa'} · ${cat.label}${c.sub?' / '+c.sub:''}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn-xs" data-action="edit-contrato" data-id="${c.id}" title="Editar">✏</button>
-          <button class="btn-xs btn-red" data-action="del-contrato" data-id="${c.id}" title="Excluir">✕</button>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:12px;margin:8px 0 12px;font-size:11px;color:var(--text-3)">
-        <span>👤 ${c.responsavel || '—'}</span>
-        <span>📅 ${new Date(c.dataInicio+'T12:00:00').toLocaleDateString('pt-BR')} → ${c.dataFim?new Date(c.dataFim+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</span>
-      </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
-        <div>
-          <div style="font-size:11px;color:var(--text-3)">Cumprido</div>
-          <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:var(--${colorBar})">${Utils.currency(perf.valorCumprido)}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--text-3)">Total</div>
-          <div style="font-size:13px;color:var(--text-2);font-family:var(--mono)">${Utils.currency(perf.valorTotal)}</div>
-        </div>
-      </div>
-
-      <div class="progress-bar progress-lg" style="margin-bottom:6px">
-        <div class="progress-fill ${colorBar}" style="width:${Math.round(perf.pctValor*100)}%"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:10px">
-        <span>${(perf.pctValor*100).toFixed(0)}% do valor</span>
-        <span>${perf.cumpridas}/${perf.totalParcelas} parcelas</span>
-        <span>${(perf.pctTempo*100).toFixed(0)}% do tempo</span>
-      </div>
-
-      ${(() => {
-        const linked = (isRec ? Store.get().receitas : Store.get().despesas)
-          .filter(x => x.contratoId === c.id)
-          .sort((a,b) => a.parcelaNum - b.parcelaNum);
-        const today = new Date();
-        const cells = linked.map(p => {
-          let state, color, title;
-          if (p.paid === true)       { state='paid'; color='var(--green)'; title='Pago'; }
-          else if (p.paid === false) { state='due';  color='var(--red)';   title='Em aberto (marcado)'; }
-          else if (new Date(p.date+'T23:59:59') <= today) { state='auto'; color='var(--amber)'; title='Vencida (considerada paga)'; }
-          else                       { state='future'; color='var(--border)'; title='Futura'; }
-          return `<span title="${title} · ${new Date(p.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(p.amount)}" style="flex:1;min-width:6px;height:8px;border-radius:2px;background:${color}"></span>`;
-        }).join('');
-        return `
-        <div style="margin-bottom:10px">
-          <div style="font-size:10px;color:var(--text-4);margin-bottom:4px">Evolução · cada bloco = 1 parcela</div>
-          <div style="display:flex;gap:2px">${cells}</div>
-        </div>`;
-      })()}
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;padding-top:10px;border-top:1px solid var(--border)">
-        <div>
-          <div style="color:var(--text-4)">Parcela mensal</div>
-          <div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(perf.impactoMensal)}</div>
-        </div>
-        <div>
-          <div style="color:var(--text-4)">Restante</div>
-          <div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(perf.valorRestante)}</div>
-        </div>
-        <div>
-          <div style="color:var(--text-4)">Parc. restantes</div>
-          <div style="font-weight:700;color:var(--text-1)">${perf.parcelasRestantes}</div>
-        </div>
-        <div>
-          <div style="color:var(--text-4)">Impacto no mês</div>
-          <div style="font-weight:700;color:var(--${isRec?'green':'red'})">${Utils.pct(impactoMesPct)}</div>
-        </div>
-        ${c.entrada ? `<div style="grid-column:span 2"><div style="color:var(--text-4)">Entrada</div><div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(c.entrada)}</div></div>` : ''}
-        ${perf.proxima ? `<div style="grid-column:span 2"><div style="color:var(--text-4)">Próxima parcela</div><div style="font-weight:700;color:var(--text-1)">${new Date(perf.proxima.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(perf.proxima.amount)}</div></div>` : ''}
-      </div>
-    </div>`;
-  }).join('')}
+<div class="card">
+  <div class="table-wrap">
+    <table class="data-table" style="min-width:900px">
+      <thead><tr>
+        <th>Tipo</th><th>Contrato</th><th>Responsável</th>
+        <th class="num">Parcela/mês</th><th class="num">Total</th>
+        <th style="min-width:140px">Parcelas</th>
+        <th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+      ${filtered.length === 0 ? `<tr><td colspan="8" style="text-align:center;color:var(--text-4);padding:24px">Nenhum contrato para este filtro</td></tr>` :
+        filtered.map(({c, perf, status}) => {
+          const isRec = c.kind === 'receita';
+          const cat = Store.CATEGORIES[c.category] || { label: c.category, icon: '📄' };
+          const pctW = Math.round(perf.pctValor * 100);
+          const linked = (isRec ? allData.receitas : allData.despesas)
+            .filter(x => x.contratoId === c.id)
+            .sort((a,b) => a.parcelaNum - b.parcelaNum);
+          const cells = linked.map(p => {
+            const color = p.paid === true ? 'var(--green)'
+              : p.date < today && p.paid === false ? 'var(--red)'
+              : p.date <= today ? 'var(--amber)'
+              : 'var(--border)';
+            return `<span title="${new Date(p.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(p.amount)}" style="flex:1;min-width:5px;height:7px;border-radius:2px;background:${color}"></span>`;
+          }).join('');
+          const iniStr = new Date(c.dataInicio+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+          const fimStr = c.dataFim ? new Date(c.dataFim+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) : '—';
+          return `<tr>
+            <td><span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span></td>
+            <td>
+              <div style="font-weight:600;color:var(--text-1)">${c.label}</div>
+              <div style="font-size:11px;color:var(--text-4)">${cat.icon} ${cat.label}${c.sub?' / '+c.sub:''} · ${iniStr}→${fimStr}</div>
+            </td>
+            <td style="color:var(--text-2)">${c.responsavel||'—'}</td>
+            <td class="num fw-700" style="font-family:var(--mono)">${Utils.currency(c.valorParcela)}</td>
+            <td class="num" style="font-family:var(--mono);color:var(--text-3)">${Utils.currency(perf.valorTotal)}</td>
+            <td>
+              <div style="font-size:11px;color:var(--text-3);margin-bottom:3px">${perf.cumpridas}/${perf.totalParcelas} · ${pctW}%</div>
+              <div style="display:flex;gap:2px;height:7px">${cells}</div>
+            </td>
+            <td><span class="badge" style="background:${STATUS_COLOR[status]}20;color:${STATUS_COLOR[status]}">${STATUS_LABEL[status]}</span></td>
+            <td style="white-space:nowrap">
+              <button class="btn-xs" data-action="mark-past" data-id="${c.id}" title="Marcar passadas como pagas">✓</button>
+              <button class="btn-xs" data-action="edit-contrato" data-id="${c.id}" title="Editar">✏</button>
+              <button class="btn-xs btn-red" data-action="del-contrato" data-id="${c.id}" title="Excluir">✕</button>
+            </td>
+          </tr>`;
+        }).join('')
+      }
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-4);flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--green);display:inline-block"></span>Pago</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--amber);display:inline-block"></span>Vencido (auto)</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--red);display:inline-block"></span>Atrasado</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--border);display:inline-block"></span>Futuro</span>
+    <span style="margin-left:auto">✓ = marcar todas as parcelas passadas como pagas</span>
+  </div>
 </div>`}`;
 
+    if (!container.dataset.contratosBound) {
+      container.dataset.contratosBound = '1';
+      container.addEventListener('click', e => {
+        const actionBtn = e.target.closest('[data-action]');
+        if (actionBtn) {
+          const action = actionBtn.dataset.action, id = actionBtn.dataset.id;
+          if (action === 'edit-contrato') {
+            const c = Store.getContratos().find(x => x.id === id);
+            if (c) openContratoModal(c, container);
+          } else if (action === 'del-contrato') {
+            if (!confirm('Excluir contrato e todos os lançamentos vinculados?')) return;
+            Store.deleteContrato(id, true);
+            renderContratos(container);
+            toast('Contrato excluído', 'success');
+          } else if (action === 'mark-past') {
+            Store.markAllPastParcelas(id);
+            renderContratos(container);
+            toast('Parcelas passadas marcadas como pagas', 'success');
+          } else if (action === 'add-contrato') {
+            openContratoModal(null, container);
+          }
+          return;
+        }
+        const statusBtn = e.target.closest('[data-status]');
+        if (statusBtn) {
+          localStorage.setItem('ff_contratos_status', statusBtn.dataset.status);
+          renderContratos(container);
+        }
+      });
+      container.addEventListener('change', e => {
+        if (e.target.id === 'contratosPessoa') {
+          localStorage.setItem('ff_contratos_pessoa', e.target.value);
+          renderContratos(container);
+        }
+      });
+    }
     document.getElementById('btnAddContrato')?.addEventListener('click', () => openContratoModal(null, container));
-    container.querySelectorAll('[data-action="edit-contrato"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const c = Store.getContratos().find(x => x.id === btn.dataset.id);
-        if (c) openContratoModal(c, container);
-      });
-    });
-    container.querySelectorAll('[data-action="del-contrato"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('Excluir contrato e todos os lançamentos vinculados?')) return;
-        Store.deleteContrato(btn.dataset.id, true);
-        renderContratos(container);
-        toast('Contrato excluído', 'success');
-      });
-    });
   }
 
   function openContratoModal(contrato, container) {
@@ -2881,6 +2950,9 @@ ${(() => {
   <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="nCat">${cats.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></div>
   <div class="form-group"><label class="form-label">Sub-categoria</label><select class="form-select" id="nSub"></select></div>
   <div class="form-group"><label class="form-label">Pagamento</label><select class="form-select" id="nPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select></div>
+  <div class="form-group" id="nCartaoRow" style="display:none"><label class="form-label">Cartão</label>
+    <select class="form-select" id="nCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+  </div>
   <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:2px 0">
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
       <input type="checkbox" id="nParcelado" style="width:16px;height:16px;accent-color:var(--accent)">
@@ -2933,20 +3005,23 @@ ${(() => {
         const cat=document.getElementById('nCat').value;
         const sub=document.getElementById('nSub').value;
         const pay=document.getElementById('nPay').value;
+        const cartaoId=pay==='Cartão'?(document.getElementById('nCartao')?.value||null):null;
         const parcelado=document.getElementById('nParcelado').checked;
         const parcelas=parseInt(document.getElementById('nParcelas')?.value||'1');
         const temDesc=document.getElementById('nDesconto')?.checked;
         const valorOrig=temDesc?parseFloat(document.getElementById('nValorOriginal')?.value||'0'):0;
         const economia=temDesc&&valorOrig>amount?valorOrig-amount:0;
         const extraD=temDesc&&economia>0?{desconto:true,valorOriginal:valorOrig,economia}:{};
+        if (cartaoId) extraD.cartaoId=cartaoId;
         if (!desc||!amount||!date) return toast('Preencha todos os campos','error');
         const splitVal = novaEntradaSplitApi?.read() || null;
+        if (splitVal) extraD.split=splitVal;
         if (parcelado && parcelas > 1) {
-          Store.addDespesaParcelada({ desc, amount: parseFloat((amount/parcelas).toFixed(2)), date, category:cat, sub, pay, parcelas, split: splitVal });
+          Store.addDespesaParcelada({ desc, amount: parseFloat((amount/parcelas).toFixed(2)), date, category:cat, sub, pay, parcelas, ...extraD });
           toast(`${parcelas} parcelas lançadas!`, 'success');
         } else {
           const d=new Date(date);
-          Store.addDespesa({desc,amount,date,category:cat,sub,pay,month:d.getMonth()+1,year:d.getFullYear(),...extraD,split:splitVal});
+          Store.addDespesa({desc,amount,date,category:cat,sub,pay,month:d.getMonth()+1,year:d.getFullYear(),...extraD});
           toast('Despesa adicionada!', 'success');
         }
       } else {
@@ -2976,6 +3051,10 @@ ${(() => {
         const el  = document.getElementById('nParcelaInfo');
         if (el) el.textContent = n > 1 && amt ? Utils.currency(amt/n) + '/mês' : '—';
       };
+      document.getElementById('nPay')?.addEventListener('change', e => {
+        const row = document.getElementById('nCartaoRow');
+        if (row) row.style.display = e.target.value === 'Cartão' ? 'block' : 'none';
+      });
       document.getElementById('nParcelado')?.addEventListener('change', e => {
         const opts = document.getElementById('nParceladoOpts');
         if (opts) opts.style.display = e.target.checked ? 'grid' : 'none';

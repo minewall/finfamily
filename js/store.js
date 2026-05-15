@@ -1381,6 +1381,119 @@ const Store = (function () {
     persist();
   }
 
+  function markAllPastParcelas(contratoId) {
+    const c = _data.contratos.find(x => x.id === contratoId);
+    if (!c) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const arr = c.kind === 'receita' ? _data.receitas : _data.despesas;
+    arr.filter(x => x.contratoId === contratoId && x.date <= today)
+       .forEach(x => { x.paid = true; });
+    persist();
+  }
+
+  // ── SUBCAT TIPOS ───────────────────────────────────────────────
+  // Tipos: fixa_essencial | fixa_comprometida | variavel_comprometida | variavel_opcional | pontual
+  const _DEFAULT_SUBTYPES = {
+    'moradia.Aluguel':                    'fixa_essencial',
+    'moradia.Energia Elétrica':           'fixa_essencial',
+    'moradia.Água e Saneamento':          'fixa_essencial',
+    'moradia.TV / Internet / Telefone':   'fixa_comprometida',
+    'moradia.Reparos e Manutenção':       'variavel_opcional',
+    'moradia.Netflix':                    'fixa_comprometida',
+    'moradia.HBO':                        'fixa_comprometida',
+    'moradia.Spotify':                    'fixa_comprometida',
+    'moradia.Amazon Prime':               'fixa_comprometida',
+    'moradia.Apple':                      'fixa_comprometida',
+    'moradia.iFood':                      'variavel_opcional',
+    'moradia.Móveis e itens casa':        'variavel_opcional',
+    'moradia.Outras despesas':            'variavel_opcional',
+    'alimentacao.Supermercado':           'fixa_essencial',
+    'alimentacao.Feira / Sacolão':        'fixa_essencial',
+    'alimentacao.Padaria':                'variavel_opcional',
+    'alimentacao.Açougue':                'variavel_opcional',
+    'alimentacao.Nespresso':              'variavel_opcional',
+    'alimentacao.Sorveteria':             'variavel_opcional',
+    'alimentacao.Água':                   'fixa_essencial',
+    'alimentacao.Lanche na Faculdade':    'variavel_opcional',
+    'transporte.Aluguel Carro':           'variavel_opcional',
+    'transporte.Combustível':             'fixa_comprometida',
+    'transporte.Manutenção':              'variavel_comprometida',
+    'transporte.Estacionamento':          'variavel_opcional',
+    'transporte.Multas':                  'variavel_opcional',
+    'transporte.Uber':                    'variavel_opcional',
+    'transporte.Seguro':                  'fixa_comprometida',
+    'transporte.IPVA':                    'pontual',
+    'transporte.Documentos':              'pontual',
+    'saude.Convênio Médico':              'fixa_comprometida',
+    'saude.Medicamentos':                 'variavel_comprometida',
+    'saude.Higiene Pessoal':              'fixa_essencial',
+    'saude.Dentista':                     'variavel_comprometida',
+    'saude.Emergências':                  'variavel_comprometida',
+    'pessoal.Academia / Esportes':        'fixa_comprometida',
+    'pessoal.Salão de Beleza':            'variavel_opcional',
+    'pessoal.Presentes':                  'variavel_opcional',
+    'pessoal.Vestuário':                  'variavel_opcional',
+    'pessoal.Terapia':                    'fixa_comprometida',
+    'pessoal.Cigarro':                    'variavel_opcional',
+    'pessoal.Cerveja':                    'variavel_opcional',
+    'dogs.Ração':                         'fixa_essencial',
+    'dogs.Banho e Tosa':                  'fixa_comprometida',
+    'dogs.Veterinário':                   'variavel_comprometida',
+    'dogs.Assessórios / Brinquedos':      'variavel_opcional',
+    'lazer.Restaurantes e Passeios':      'variavel_opcional',
+    'lazer.Diversão Local':               'variavel_opcional',
+    'lazer.Famílias e Amigos':            'variavel_opcional',
+    'lazer.Viagens':                      'pontual',
+    'financeiro.Taxas Bancárias':         'fixa_comprometida',
+    'financeiro.Saques':                  'variavel_opcional',
+    'financeiro.Seguro de Vida':          'fixa_comprometida',
+    'financeiro.Imposto de Renda':        'pontual',
+    'financeiro.Loteria':                 'variavel_opcional',
+    'financeiro.Correios':                'variavel_opcional',
+    'financeiro.Cartório':                'pontual',
+    'financeiro.Contador':                'fixa_comprometida',
+    'financeiro.Impostos Empresa':        'fixa_comprometida',
+    'educacao.Mensalidade Escolar':       'fixa_comprometida',
+    'educacao.Material Escolar':          'variavel_comprometida',
+    'educacao.Uniforme':                  'pontual',
+    'educacao.Passeios Escolares':        'variavel_opcional',
+    'educacao.Livros':                    'variavel_comprometida',
+    'educacao.Cursos':                    'fixa_comprometida',
+    'educacao.Material':                  'variavel_comprometida',
+    'educacao.Faculdade':                 'fixa_comprometida',
+    'educacao.Material Universitário':    'variavel_comprometida',
+    'educacao.Cursos e Especializações':  'fixa_comprometida',
+    'assessorias.Honorários Advocatícios':'fixa_comprometida',
+    'assessorias.Consultoria':            'fixa_comprometida',
+    'assessorias.Contador Pessoal':       'fixa_comprometida',
+    'assessorias.Outros':                 'variavel_opcional',
+  };
+
+  function getSubcatTipo(cat, sub) {
+    const userMap = (_data.settings && _data.settings.subcatTipo) || {};
+    const key = `${cat}.${sub}`;
+    return userMap[key] || _DEFAULT_SUBTYPES[key] || 'variavel_opcional';
+  }
+
+  function setSubcatTipo(cat, sub, tipo) {
+    if (!_data.settings) _data.settings = {};
+    if (!_data.settings.subcatTipo) _data.settings.subcatTipo = {};
+    _data.settings.subcatTipo[`${cat}.${sub}`] = tipo;
+    persist();
+  }
+
+  function sumDespesasByTipo(month, year) {
+    const totals = { fixa_essencial: 0, fixa_comprometida: 0, variavel_comprometida: 0, variavel_opcional: 0, pontual: 0 };
+    _data.despesas
+      .filter(d => d.month === month && d.year === year && d.category !== 'cartoes' && d.category !== 'receita')
+      .forEach(d => {
+        const tipo = getSubcatTipo(d.category, d.sub || '');
+        if (totals[tipo] !== undefined) totals[tipo] += d.amount;
+        else totals.variavel_opcional += d.amount;
+      });
+    return totals;
+  }
+
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
@@ -1399,7 +1512,8 @@ const Store = (function () {
     totalAtivos,
     cleanDespesasByCategory,
     descSuggestions, receitaSuggestions,
-    addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos,
+    addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos, markAllPastParcelas,
+    getSubcatTipo, setSubcatTipo, sumDespesasByTipo,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData,
     getProximasParcelas,
