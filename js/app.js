@@ -4073,13 +4073,29 @@ ${(() => {
     // Sync cloud → local após login (non-blocking)
     if (typeof SupabaseSync !== 'undefined') {
       SupabaseSync.init();
+
+      // Wires sync badge in topbar
+      const syncDot   = document.getElementById('syncDot');
+      const syncLabel = document.getElementById('syncLabel');
+      const SYNC_STATES = {
+        offline: { color: 'var(--text-4)', label: 'Offline'        },
+        syncing: { color: 'var(--amber)',  label: 'Sincronizando…' },
+        synced:  { color: 'var(--green)',  label: 'Sincronizado'   },
+        error:   { color: 'var(--red)',    label: 'Erro de sync'   },
+      };
+      SupabaseSync.onStatusChange(status => {
+        const s = SYNC_STATES[status] || SYNC_STATES.offline;
+        if (syncDot)   syncDot.style.background = s.color;
+        if (syncLabel) syncLabel.textContent     = s.label;
+      });
+
       SupabaseSync.pullFromCloud().then(cloudData => {
         if (cloudData && cloudData.despesas) {
-          // Cloud tem dados reais — usa como fonte de verdade
           localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));
+          if (syncDot)   { syncDot.style.background = 'var(--green)'; }
+          if (syncLabel) { syncLabel.textContent = 'Sincronizado'; }
           console.log('FinFamily: dados sincronizados da nuvem');
         } else {
-          // Primeira vez na nuvem — push dos dados locais
           SupabaseSync.schedulePush(Store.get());
           console.log('FinFamily: dados locais enviados para a nuvem');
         }

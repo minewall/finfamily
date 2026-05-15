@@ -12,6 +12,12 @@ const SupabaseSync = (function () {
   let _user   = null;
   let _syncTimer = null;
   let _pendingSync = false;
+  let _onStatusChange = null;
+
+  function _emitStatus(status) {
+    // status: 'offline' | 'syncing' | 'synced' | 'error'
+    if (_onStatusChange) _onStatusChange(status);
+  }
 
   function init() {
     if (typeof window.supabase === 'undefined') {
@@ -32,21 +38,23 @@ const SupabaseSync = (function () {
   // ── PUSH: localStorage → Supabase (debounced 2s) ─────────────────
   function schedulePush(data) {
     _pendingSync = true;
+    _emitStatus('syncing');
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => _pushToCloud(data), 2000);
   }
 
   async function _pushToCloud(data) {
-    if (!_client || !_user) return;
+    if (!_client || !_user) { _emitStatus('offline'); return; }
     try {
       const { error } = await _client.from('user_data').upsert({
         user_id: _user.id,
         data: data,
       }, { onConflict: 'user_id' });
-      if (error) console.warn('SupabaseSync push error:', error.message);
-      else _pendingSync = false;
+      if (error) { console.warn('SupabaseSync push error:', error.message); _emitStatus('error'); }
+      else { _pendingSync = false; _emitStatus('synced'); }
     } catch (e) {
       console.warn('SupabaseSync push failed:', e);
+      _emitStatus('error');
     }
   }
 
@@ -90,9 +98,10 @@ const SupabaseSync = (function () {
   function getUser() { return _user; }
   function isConnected() { return !!_client && !!_user; }
   function hasPendingSync() { return _pendingSync; }
+  function onStatusChange(cb) { _onStatusChange = cb; }
 
   async function pullFromCloud() { return _pullFromCloud(); }
   async function pushToCloud(data) { return _pushToCloud(data); }
 
-  return { init, schedulePush, pullFromCloud, pushToCloud, signUp, signIn, signOut, getUser, isConnected, hasPendingSync };
+  return { init, schedulePush, pullFromCloud, pushToCloud, signUp, signIn, signOut, getUser, isConnected, hasPendingSync, onStatusChange };
 })();
