@@ -92,7 +92,7 @@ const App = (function () {
       const footer = document.createElement('div');
       footer.className = 'modal-footer';
       footer.innerHTML = `<button class="btn-secondary" id="modalCancel">Cancelar</button><button class="btn-primary" id="modalSave">Salvar</button>`;
-      document.getElementById('modalBody').appendChild(footer);
+      document.getElementById('modal').appendChild(footer);
       document.getElementById('modalCancel').addEventListener('click', () => this.close());
       if (onSave) document.getElementById('modalSave').addEventListener('click', onSave);
       this.overlay.classList.add('open');
@@ -101,6 +101,7 @@ const App = (function () {
     close() {
       this.overlay.classList.remove('open');
       this.overlay.setAttribute('aria-hidden', 'true');
+      document.getElementById('modal').querySelectorAll('.modal-footer').forEach(el => el.remove());
     },
   };
 
@@ -551,7 +552,7 @@ ${periodToggleHTML('ff_lanc_period', period)}
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th>Contrato</th><th class="num">Valor</th><th></th>
+  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th>Contrato</th><th class="num">Valor</th><th style="position:sticky;right:0;background:var(--bg-card)"></th>
 </tr></thead>
 <tbody>
 ${filtered.map(d => {
@@ -565,7 +566,7 @@ ${filtered.map(d => {
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
-  <td style="white-space:nowrap">
+  <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card)">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
     <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-desp="${d.id}">✏</button>
     <button class="btn-ghost" style="font-size:11px;color:var(--red)" data-del-desp="${d.id}">✕</button>
@@ -575,7 +576,7 @@ ${filtered.map(d => {
 <tfoot><tr>
   <td colspan="6" class="fw-700">Total (${filtered.length} lançamentos)</td>
   <td class="num negative fw-700">${Utils.currency(total)}</td>
-  <td></td>
+  <td style="position:sticky;right:0;background:var(--bg-card)"></td>
 </tr></tfoot>
 </table>`;
     }
@@ -1160,7 +1161,7 @@ ${periodToggleHTML('ff_desp_period', period)}
       }));
       if (donutPessoa.length) {
         Charts.Donut(document.getElementById('chartDespPessoa'), donutPessoa, {
-          size: 190, centerLabel: Utils.currency(totalP).split('.')[0], centerSub: 'rateio',
+          size: 190, centerLabel: Charts.fmt(totalP, true), centerSub: 'total',
         });
         document.getElementById('despPessoaLegend').innerHTML = donutPessoa.map(d => `
           <div class="donut-legend-item">
@@ -2447,7 +2448,7 @@ ${ativos.length > 0 ? `
         </div>
         <div>
           <div class="asset-value">${Utils.currency(brl)}</div>
-          <div style="font-size:11px;color:var(--text-3);text-align:right">${a.qty * a.unitPrice} ${a.currency}</div>
+          <div style="font-size:11px;color:var(--text-3);text-align:right">${(a.qty * a.unitPrice).toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2})} ${a.currency}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
           <button class="btn-xs" data-action="edit-ativo" data-id="${a.id}">✏</button>
