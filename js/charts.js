@@ -365,10 +365,19 @@ const Charts = (function () {
       ctx.textBaseline = 'middle';
       ctx.fillText(item.label, padL - 8, y + barH / 2);
 
-      // Value
+      // Value + optional percentage
       ctx.fillStyle = textMuted;
       ctx.textAlign = 'left';
-      ctx.fillText((opts.prefix || 'R$ ') + fmt(item.value, true), padL + chartW + 6, y + barH / 2);
+      const valStr = (opts.prefix || 'R$ ') + fmt(item.value, true);
+      const pctStr = opts.showPct && item.pct != null ? `  ${item.pct.toFixed(1)}%` : '';
+      ctx.fillText(valStr, padL + chartW + 6, y + barH / 2 - (pctStr ? 5 : 0));
+      if (pctStr) {
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillStyle = css('--text-4') || textMuted;
+        ctx.fillText(item.pct.toFixed(1) + '%', padL + chartW + 6, y + barH / 2 + 8);
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillStyle = textMuted;
+      }
     });
 
     return { destroy() {} };

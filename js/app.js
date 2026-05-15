@@ -1037,14 +1037,14 @@ ${periodToggleHTML('ff_desp_period', period)}
 
 <div class="chart-grid mb-6">
   <div class="card">
-    <div class="card-header"><span class="card-title">Por Categoria</span></div>
+    <div class="card-header"><span class="card-title">Distribuição por Categoria</span></div>
     <div class="chart-wrap"><canvas id="chartDespCat" class="chart-canvas"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-header"><span class="card-title">Distribuição</span></div>
+    <div class="card-header"><span class="card-title">Por Pessoa</span></div>
     <div class="chart-with-legend">
-      <canvas id="chartDespDonut"></canvas>
-      <div class="donut-legend" id="despDonutLegend"></div>
+      <canvas id="chartDespPessoa"></canvas>
+      <div class="donut-legend" id="despPessoaLegend"></div>
     </div>
   </div>
 </div>
@@ -1098,10 +1098,10 @@ ${periodToggleHTML('ff_desp_period', period)}
 <div class="card mb-6">
   <div class="card-header"><span class="card-title">Por Categoria — ${year}</span></div>
   <div class="table-wrap">
-    <table class="data-table" style="min-width:920px">
+    <table class="data-table" style="min-width:960px">
       <thead><tr>
         <th>Categoria</th>
-        ${Utils.months.map(m=>`<th class="num">${m}</th>`).join('')}
+        ${Utils.months.map(m=>`<th class="num" style="font-size:11px;padding:8px 6px">${m}</th>`).join('')}
         <th class="num">Total</th>
       </tr></thead>
       <tbody>
@@ -1118,17 +1118,17 @@ ${periodToggleHTML('ff_desp_period', period)}
             const info = Store.CATEGORIES[cat] || {};
             const total = vals.reduce((a,b) => a+b, 0);
             return `<tr>
-              <td><span class="badge" style="background:${(info.color||'#7C6EF8')+'20'};color:${info.color||'#7C6EF8'}">${info.label||cat}</span></td>
-              ${vals.map(v => `<td class="num ${v>0?'negative':'muted'}">${v>0?Utils.currency(v):'—'}</td>`).join('')}
-              <td class="num negative fw-700">${Utils.currency(total)}</td>
+              <td><span class="badge" style="background:${(info.color||'#7C6EF8')+'20'};color:${info.color||'#7C6EF8'};white-space:nowrap">${info.label||cat}</span></td>
+              ${vals.map(v => `<td class="num ${v>0?'negative':'muted'}" style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;padding:8px 6px">${v>0?Utils.currency(v):'—'}</td>`).join('')}
+              <td class="num negative fw-700" style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;padding:8px 6px">${Utils.currency(total)}</td>
             </tr>`;
           }).join('');
         })()}
       </tbody>
       <tfoot><tr>
         <td class="fw-700">Total</td>
-        ${yrDesp.map(v => `<td class="num negative fw-700">${v>0?Utils.currency(v):'—'}</td>`).join('')}
-        <td class="num negative fw-700">${Utils.currency(yrDesp.reduce((a,b)=>a+b,0))}</td>
+        ${yrDesp.map(v => `<td class="num negative fw-700" style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;padding:8px 6px">${v>0?Utils.currency(v):'—'}</td>`).join('')}
+        <td class="num negative fw-700" style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap">${Utils.currency(yrDesp.reduce((a,b)=>a+b,0))}</td>
       </tr></tfoot>
     </table>
   </div>
@@ -1169,27 +1169,39 @@ ${periodToggleHTML('ff_desp_period', period)}
     }
 
     requestAnimationFrame(() => {
-      Charts.HBar(document.getElementById('chartDespCat'), catSorted.slice(0,6).map(([cat,val])=>({
-        label: Store.CATEGORIES[cat]?.label||cat, value: val, color: Store.CATEGORIES[cat]?.color,
-      })), { barH: 22, padL: 150, padR: 90, gap: 6 });
-
-      const donutData = catSorted.slice(0,6).map(([cat,val]) => ({
-        label: Store.CATEGORIES[cat]?.label||cat, value: val,
-        color: Store.CATEGORIES[cat]?.color || '#7C6EF8',
+      // HBar: distribuição por categoria com valor + percentual
+      const hbarData = catSorted.slice(0, 8).map(([cat, val]) => ({
+        label: Store.CATEGORIES[cat]?.label || cat,
+        value: val,
+        color: Store.CATEGORIES[cat]?.color,
+        pct:   total > 0 ? (val / total * 100) : 0,
       }));
-      Charts.Donut(document.getElementById('chartDespDonut'), donutData, {
-        size: 190, centerLabel: Utils.currency(total).split('.')[0], centerSub: 'total',
+      Charts.HBar(document.getElementById('chartDespCat'), hbarData, {
+        barH: 24, padL: 150, padR: 110, gap: 7, showPct: true,
       });
-      const legend = document.getElementById('despDonutLegend');
-      const totalD = donutData.reduce((a,d)=>a+d.value,0)||1;
-      legend.innerHTML = donutData.map(d=>`
-        <div class="donut-legend-item">
-          <div class="donut-legend-dot" style="background:${d.color}"></div>
-          <span class="donut-legend-label">${d.label}</span>
-          <span class="donut-legend-pct">${((d.value/totalD)*100).toFixed(0)}%</span>
-          <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
-        </div>`).join('');
 
+      // Donut: Por Pessoa
+      const pessoaMap = Store.despesasPorPessoaRange(mStart, mEnd, year);
+      const pessoaEntries = Object.entries(pessoaMap).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+      const totalP = pessoaEntries.reduce((s,[,v]) => s+v, 0);
+      const donutPessoa = pessoaEntries.map(([p, v]) => ({
+        label: p, value: v, color: Utils.personColor(p),
+      }));
+      if (donutPessoa.length) {
+        Charts.Donut(document.getElementById('chartDespPessoa'), donutPessoa, {
+          size: 190, centerLabel: Utils.currency(totalP).split('.')[0], centerSub: 'rateio',
+        });
+        document.getElementById('despPessoaLegend').innerHTML = donutPessoa.map(d => `
+          <div class="donut-legend-item">
+            <div class="donut-legend-dot" style="background:${d.color}"></div>
+            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-pct">${totalP > 0 ? ((d.value/totalP)*100).toFixed(0) : 0}%</span>
+            <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
+          </div>`).join('');
+      } else {
+        document.getElementById('despPessoaLegend').innerHTML =
+          '<div style="font-size:12px;color:var(--text-4);padding:8px">Sem rateio no período</div>';
+      }
     });
 
     document.getElementById('despCatFilter').addEventListener('change', e => {
