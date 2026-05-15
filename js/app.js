@@ -3766,13 +3766,17 @@ ${(() => {
 
   function renderConfigPessoas(content) {
     const pessoas = Store.PESSOAS;
+    const isConnected = typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected();
+    const ctx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
+    const isAdmin = !ctx || ctx.role === 'admin';
+
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Grupo Familiar</div>
-  <div class="section-sub">Pessoas usadas em Receitas (responsável) e Contratos</div></div>
+  <div class="section-sub">Pessoas usadas em Receitas, Contratos e Rateios</div></div>
   <button class="btn-primary" id="btnAddPessoa">+ Nova Pessoa</button>
 </div>
-<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;flex-direction:column;gap:8px" id="pessoasList">
   ${pessoas.map(p => {
     const usage = Store.get().receitas.filter(r => r.person === p).length;
     return `
@@ -3786,7 +3790,48 @@ ${(() => {
       <button class="btn-xs btn-red" data-action="del-pessoa" data-name="${p}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''}>✕</button>
     </div>`;
   }).join('')}
-</div>`;
+</div>
+
+${isConnected && isAdmin ? `
+<!-- ── Acesso na Nuvem ── -->
+<div class="section-header mb-4" style="margin-top:32px">
+  <div>
+    <div class="section-title">Acesso na Nuvem</div>
+    <div class="section-sub">Convide membros da família para acessar o FinFamily</div>
+  </div>
+</div>
+<div class="card" style="padding:16px 20px;margin-bottom:12px">
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:12px">Convidar novo membro</div>
+  <div style="display:flex;gap:8px;align-items:flex-end">
+    <div style="flex:1">
+      <label class="form-label" style="font-size:10px">E-mail</label>
+      <input class="form-input" id="fInviteEmail" type="email" placeholder="email@exemplo.com" style="font-size:13px"/>
+    </div>
+    <div style="width:130px">
+      <label class="form-label" style="font-size:10px">Perfil</label>
+      <select class="form-input" id="fInviteRole" style="font-size:13px">
+        <option value="editor">Editor (acesso total)</option>
+        <option value="member">Membro (só os próprios)</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="btnInvite" style="white-space:nowrap">Convidar</button>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--text-4)">
+    Editor: vê e edita tudo · Membro: lança e vê apenas suas próprias despesas e rateios
+  </div>
+</div>
+<div id="familyMembersList"><div style="font-size:12px;color:var(--text-4);padding:8px">Carregando membros…</div></div>
+` : isConnected && !isAdmin ? `
+<div class="card" style="padding:16px;margin-top:24px;border-color:var(--accent)20">
+  <div style="font-size:13px;color:var(--text-2)">Você está conectado como <strong style="color:var(--accent)">${ctx.role}</strong> na família.</div>
+  <div style="font-size:11px;color:var(--text-4);margin-top:4px">Apenas o administrador pode gerenciar membros.</div>
+</div>
+` : `
+<div class="card" style="padding:16px;margin-top:24px;border-style:dashed">
+  <div style="font-size:13px;color:var(--text-3)">Faça login com sua conta Supabase para habilitar o acesso multi-usuário.</div>
+</div>
+`}`;
+
     document.getElementById('btnAddPessoa').addEventListener('click', () => {
       const name = prompt('Nome da pessoa:');
       if (!name) return;
@@ -3805,6 +3850,67 @@ ${(() => {
       try { Store.deletePessoa(b.dataset.name); renderConfigPessoas(content); toast('Pessoa excluída', 'success'); }
       catch (err) { toast(err.message, 'error'); }
     }));
+
+    if (isConnected && isAdmin) {
+      _loadFamilyMembers();
+
+      document.getElementById('btnInvite').addEventListener('click', async () => {
+        const email = document.getElementById('fInviteEmail').value.trim();
+        const role  = document.getElementById('fInviteRole').value;
+        if (!email) return toast('Informe o e-mail', 'error');
+        const btn = document.getElementById('btnInvite');
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        const { error } = await SupabaseSync.inviteMember(email, role);
+        btn.disabled = false; btn.textContent = 'Convidar';
+        if (error) return toast(typeof error === 'string' ? error : (error.message || 'Erro ao convidar'), 'error');
+        document.getElementById('fInviteEmail').value = '';
+        toast(`Convite registrado para ${email}`, 'success');
+        _loadFamilyMembers();
+      });
+    }
+
+    async function _loadFamilyMembers() {
+      const listEl = document.getElementById('familyMembersList');
+      if (!listEl) return;
+      const group = await SupabaseSync.getFamilyGroup();
+      if (!group) {
+        listEl.innerHTML = '<div style="font-size:12px;color:var(--text-4);padding:8px">Nenhum grupo criado ainda. Convide um membro para criar automaticamente.</div>';
+        return;
+      }
+      const members = await SupabaseSync.getFamilyMembers(group.id);
+      if (!members.length) {
+        listEl.innerHTML = '<div style="font-size:12px;color:var(--text-4);padding:8px">Nenhum membro convidado ainda.</div>';
+        return;
+      }
+      const ROLE_LABELS = { admin: 'Admin', editor: 'Editor', member: 'Membro' };
+      const ROLE_COLORS = { admin: 'var(--accent)', editor: 'var(--green)', member: 'var(--amber)' };
+      listEl.innerHTML = `
+<div style="display:flex;flex-direction:column;gap:6px">
+  ${members.map(m => {
+    const accepted = !!m.accepted_at;
+    const email = m.invited_email || '—';
+    const role  = m.role;
+    return `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 16px">
+      <div class="person-avatar" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]};width:34px;height:34px;font-size:12px;font-weight:700;border:1px solid ${ROLE_COLORS[role]}40">
+        ${email.slice(0,2).toUpperCase()}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${email}</div>
+        <div style="font-size:11px;color:var(--text-4)">${accepted ? 'Ativo' : 'Aguardando login'}</div>
+      </div>
+      <span class="badge" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]}">${ROLE_LABELS[role]||role}</span>
+      <button class="btn-xs btn-red" data-member-id="${m.id}" title="Remover acesso">✕</button>
+    </div>`;
+  }).join('')}
+</div>`;
+      listEl.querySelectorAll('[data-member-id]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Remover acesso deste membro?')) return;
+        await SupabaseSync.removeMember(b.dataset.memberId);
+        toast('Membro removido', 'success');
+        _loadFamilyMembers();
+      }));
+    }
   }
 
   function renderConfigCotacoes(content) {
@@ -4089,17 +4195,21 @@ ${(() => {
         if (syncLabel) syncLabel.textContent     = s.label;
       });
 
-      SupabaseSync.pullFromCloud().then(cloudData => {
+      // Resolve family context, accept pending invites, then pull data
+      (async () => {
+        await SupabaseSync.acceptPendingInvite();
+        const ctx = await SupabaseSync.resolveFamilyContext();
+        const cloudData = await SupabaseSync.pullFromCloud();
         if (cloudData && cloudData.despesas) {
           localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));
           if (syncDot)   { syncDot.style.background = 'var(--green)'; }
-          if (syncLabel) { syncLabel.textContent = 'Sincronizado'; }
-          console.log('FinFamily: dados sincronizados da nuvem');
+          if (syncLabel) { syncLabel.textContent = ctx && ctx.role !== 'admin' ? `Conectado (${ctx.role})` : 'Sincronizado'; }
+          console.log('FinFamily: dados sincronizados da nuvem, role:', ctx?.role);
         } else {
-          SupabaseSync.schedulePush(Store.get());
-          console.log('FinFamily: dados locais enviados para a nuvem');
+          if (!ctx || ctx.role === 'admin') SupabaseSync.schedulePush(Store.get());
+          console.log('FinFamily: dados locais (nuvem vazia ou sem conexão)');
         }
-      });
+      })();
     }
 
     // Remove legacy despesas with invalid/unknown categories (e.g. 'patrimônio')
