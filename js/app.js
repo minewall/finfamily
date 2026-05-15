@@ -2782,7 +2782,7 @@ ${futuros.length === 0
   // PAGE: COMPARATIVO
   // ══════════════════════════════════════════════════════════════
   function renderComparativo(container) {
-    const year = getYear();
+    const month = getMonth(), year = getYear();
     const yrRec  = Store.yearlyMonthly(year, 'receita');
     const yrDesp = Store.yearlyMonthly(year, 'despesa');
     const yrSaldo = yrRec.map((r,i) => r - yrDesp[i]);
@@ -2838,10 +2838,10 @@ ${(() => {
   const avgRec  = activeMths.reduce((a,m) => a + m.r, 0) / activeMths.length;
   const avgDesp = activeMths.reduce((a,m) => a + m.d, 0) / activeMths.length;
   const avgSaldo = avgRec - avgDesp;
-  const lastActiveMth = yrRec.reduce((last, r, i) => (r > 0 || yrDesp[i] > 0) ? i : last, -1);
   const proj = Array.from({length: 3}, (_, k) => {
-    const mIdx = (lastActiveMth + 1 + k) % 12;
-    const yr   = year + Math.floor((lastActiveMth + 1 + k) / 12);
+    const rawIdx = (month - 1) + 1 + k; // month é 1-based; projeta a partir do mês seguinte ao selecionado
+    const mIdx = rawIdx % 12;
+    const yr   = year + Math.floor(rawIdx / 12);
     return { label: Utils.months[mIdx] + (yr !== year ? ' '+yr : ''), rec: avgRec, desp: avgDesp, saldo: avgSaldo };
   });
   const saldoColor = avgSaldo >= 0 ? 'var(--green)' : 'var(--red)';
