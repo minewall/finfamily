@@ -1218,14 +1218,19 @@ ${periodToggleHTML('ff_desp_period', period)}
   // ── Helper: seção de rateio reutilizável em modais de despesa ──
   function splitSectionHTML() {
     return `
-<div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:4px 0">
+<div class="form-group form-full" style="display:flex;align-items:center;gap:16px;padding:4px 0;flex-wrap:wrap">
   <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
     <input type="checkbox" id="fDRatear" style="width:16px;height:16px;accent-color:var(--accent)">
     <span class="form-label" style="margin:0">Ratear entre pessoas</span>
   </label>
-  <div id="fDRateioMode" style="display:none;gap:4px">
-    <button type="button" class="btn-xs active" data-rateio-mode="valor">R$</button>
-    <button type="button" class="btn-xs" data-rateio-mode="pct">%</button>
+  <div id="fDRateioMode" style="display:none;align-items:center;gap:6px">
+    <span style="font-size:11px;color:var(--text-3)">Inserir em:</span>
+    <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <button type="button" data-rateio-mode="valor"
+        style="padding:3px 10px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:var(--accent);color:#fff" id="fDModeValor">R$</button>
+      <button type="button" data-rateio-mode="pct"
+        style="padding:3px 10px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-2)" id="fDModePct">%</button>
+    </div>
   </div>
 </div>
 <div id="fDRateioBox" style="display:none;grid-column:1/-1;background:var(--bg-elevated);border-radius:8px;padding:12px">
@@ -1237,39 +1242,64 @@ ${periodToggleHTML('ff_desp_period', period)}
 
   // Retorna interface: { read(): split[] | null }
   function setupSplitUI(amountInputId, initialSplit) {
-    let rows = (initialSplit || []).map(s => ({ person: s.person, valor: s.valor }));
+    // rows armazena sempre em R$ internamente; pct é só modo de entrada
+    let rows = (initialSplit || []).map(s => ({ person: s.person, valor: Number(s.valor) || 0 }));
     let mode = 'valor';
-    const cb     = document.getElementById('fDRatear');
-    const box    = document.getElementById('fDRateioBox');
-    const modeBox= document.getElementById('fDRateioMode');
+    // pcts armazena o percentual digitado por linha para recalcular quando o total muda
+    let pcts = [];
+
+    const cb      = document.getElementById('fDRatear');
+    const box     = document.getElementById('fDRateioBox');
+    const modeBox = document.getElementById('fDRateioMode');
+    const btnVal  = document.getElementById('fDModeValor');
+    const btnPct  = document.getElementById('fDModePct');
 
     function getAmount() { return parseFloat(document.getElementById(amountInputId)?.value) || 0; }
+
+    function applyModeStyle() {
+      const isVal = mode === 'valor';
+      btnVal.style.background = isVal ? 'var(--accent)' : 'transparent';
+      btnVal.style.color      = isVal ? '#fff' : 'var(--text-2)';
+      btnPct.style.background = isVal ? 'transparent' : 'var(--accent)';
+      btnPct.style.color      = isVal ? 'var(--text-2)' : '#fff';
+    }
 
     function renderRows() {
       const list = document.getElementById('fDRateioList');
       const amt = getAmount();
+      if (pcts.length !== rows.length) pcts = rows.map(r => amt > 0 ? (r.valor / amt * 100) : 0);
       list.innerHTML = rows.map((r, i) => {
-        const pctVal = amt > 0 ? (r.valor / amt * 100) : 0;
-        const v = mode === 'valor' ? r.valor.toFixed(2) : pctVal.toFixed(1);
+        const v = mode === 'valor' ? r.valor.toFixed(2) : (pcts[i] ?? 0).toFixed(1);
+        const unit = mode === 'valor' ? 'R$' : '%';
+        const step = mode === 'valor' ? '0.01' : '0.1';
         return `<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center" data-row="${i}">
           <select class="form-select" data-field="person" style="flex:1">
             ${Store.PESSOAS.map(p => `<option ${r.person===p?'selected':''}>${p}</option>`).join('')}
           </select>
-          <input class="form-input" data-field="valor" type="number" step="0.01" value="${v}" style="width:100px">
-          <span style="color:var(--text-4);font-size:11px;width:14px">${mode==='valor'?'R$':'%'}</span>
+          <div style="display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <input class="form-input" data-field="valor" type="number" step="${step}" min="0" value="${v}"
+              style="width:90px;border:none;border-radius:0;text-align:right">
+            <span style="padding:0 8px;font-size:12px;font-weight:600;color:var(--text-3);background:var(--bg-elevated);border-left:1px solid var(--border)">${unit}</span>
+          </div>
           <button type="button" class="btn-xs btn-red" data-action="remove">✕</button>
         </div>`;
       }).join('');
-      // bind events on the newly rendered rows
+
       list.querySelectorAll('[data-row]').forEach(row => {
         const idx = parseInt(row.dataset.row);
         row.querySelector('[data-field="person"]').addEventListener('change', e => { rows[idx].person = e.target.value; updateSummary(); });
         row.querySelector('[data-field="valor"]').addEventListener('input', e => {
           const raw = parseFloat(e.target.value) || 0;
-          rows[idx].valor = mode === 'pct' ? (raw / 100) * getAmount() : raw;
+          if (mode === 'pct') {
+            pcts[idx] = raw;
+            rows[idx].valor = (raw / 100) * getAmount();
+          } else {
+            rows[idx].valor = raw;
+            pcts[idx] = getAmount() > 0 ? (raw / getAmount() * 100) : 0;
+          }
           updateSummary();
         });
-        row.querySelector('[data-action="remove"]').addEventListener('click', () => { rows.splice(idx, 1); renderRows(); });
+        row.querySelector('[data-action="remove"]').addEventListener('click', () => { rows.splice(idx, 1); pcts.splice(idx, 1); renderRows(); });
       });
       updateSummary();
     }
@@ -1281,38 +1311,47 @@ ${periodToggleHTML('ff_desp_period', period)}
       const over = total > amt + 0.01;
       const sum = document.getElementById('fDRateioSummary');
       if (!sum) return;
+      const totalPct = amt > 0 ? (total / amt * 100).toFixed(1) : '0.0';
       sum.innerHTML = `
-        Alocado: <strong>${Utils.currency(total)}</strong> de ${Utils.currency(amt)}
+        Alocado: <strong>${Utils.currency(total)}</strong> (${totalPct}%) de ${Utils.currency(amt)}
         · Família: <strong>${Utils.currency(resto)}</strong>
         ${over ? '<span style="color:var(--red)"> · Soma excede o valor</span>' : ''}`;
     }
 
     function setOpen(on) {
-      box.style.display    = on ? 'block' : 'none';
-      modeBox.style.display= on ? 'inline-flex' : 'none';
+      box.style.display     = on ? 'block' : 'none';
+      modeBox.style.display = on ? 'flex' : 'none';
       if (on && rows.length === 0) {
-        const pess = Store.PESSOAS;
-        rows = [{ person: pess[0] || 'Roberto', valor: 0 }];
+        rows = [{ person: Store.PESSOAS[0] || 'Roberto', valor: 0 }];
+        pcts = [0];
       }
       if (on) renderRows();
     }
 
     cb.addEventListener('change', () => setOpen(cb.checked));
-    modeBox.querySelectorAll('[data-rateio-mode]').forEach(b => b.addEventListener('click', () => {
+
+    [btnVal, btnPct].forEach(b => b.addEventListener('click', () => {
       mode = b.dataset.rateioMode;
-      modeBox.querySelectorAll('[data-rateio-mode]').forEach(x => x.classList.toggle('active', x === b));
+      applyModeStyle();
       renderRows();
     }));
+
     document.getElementById('fDRateioAdd').addEventListener('click', () => {
       const used = new Set(rows.map(r => r.person));
       const next = Store.PESSOAS.find(p => !used.has(p)) || Store.PESSOAS[0];
       rows.push({ person: next, valor: 0 });
+      pcts.push(0);
       renderRows();
     });
+
+    // Quando o valor total muda, recalcula em modo % para manter os percentuais
     document.getElementById(amountInputId)?.addEventListener('input', () => {
-      // If user typing in pct mode, convert valors based on new amount
       if (mode === 'pct') {
-        // valor antes era pct%amt antigo; pct mantido pelo render (recompute from current valor)
+        const amt = getAmount();
+        rows = rows.map((r, i) => ({ ...r, valor: (pcts[i] ?? 0) / 100 * amt }));
+      } else {
+        const amt = getAmount();
+        pcts = rows.map(r => amt > 0 ? (r.valor / amt * 100) : 0);
       }
       updateSummary();
     });
@@ -1325,7 +1364,7 @@ ${periodToggleHTML('ff_desp_period', period)}
     return {
       read() {
         if (!cb.checked) return null;
-        return rows.filter(r => r.valor > 0).map(r => ({ person: r.person, valor: Math.round(r.valor*100)/100 }));
+        return rows.filter(r => r.valor > 0).map(r => ({ person: r.person, valor: Math.round(r.valor * 100) / 100 }));
       }
     };
   }
