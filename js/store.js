@@ -408,6 +408,22 @@ const Store = (function () {
   function save(data) {
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { console.warn('Store: cannot save', e); }
+    // Hybrid sync: push to Supabase in background
+    if (typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected()) {
+      SupabaseSync.schedulePush(data);
+    }
+  }
+
+  // Pull cloud data and merge into local store (called after login)
+  async function syncFromCloud() {
+    if (typeof SupabaseSync === 'undefined') return false;
+    const cloudData = await SupabaseSync.pullFromCloud();
+    if (!cloudData) return false;
+    // Cloud wins — replace local with cloud data
+    _data = cloudData;
+    save(_data);
+    _syncEditableConfig();
+    return true;
   }
 
   let _data = null;
@@ -674,6 +690,8 @@ const Store = (function () {
       _data = buildSeed();
       save(_data);
     }
+    // Init Supabase connection (non-blocking)
+    if (typeof SupabaseSync !== 'undefined') SupabaseSync.init();
     _cleanupBadSeed();
     _cleanupDespesas2026Q1();
     _loadEditableConfig();
@@ -1610,5 +1628,6 @@ const Store = (function () {
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
     getProfile, setProfile, getCredHash, setCredHash,
+    syncFromCloud,
   };
 })();
