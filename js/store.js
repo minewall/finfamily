@@ -21,6 +21,8 @@ const Store = (function () {
     roberto:     { label: 'Roberto Individual',  color: '#0EA5E9', icon: '👨' },
     mariana:     { label: 'Mariana Individual',  color: '#D946EF', icon: '👩' },
     manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: '👧' },
+    educacao:    { label: 'Educação',            color: '#06B6D4', icon: '📚' },
+    beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: '🎁' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: '💰' },
   };
 
@@ -31,12 +33,14 @@ const Store = (function () {
     saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja'],
     dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios / Brinquedos'],
-    lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
+    lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens','Passeios Individuais'],
     financeiro: ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     cartoes: ['Itaú Click','Itaú Uniclass','Wise','Santander','Shopee','Mercado Livre','Torra Torra'],
     roberto: ['Melissa Advogada','Assinaturas','Celular','Telegrama'],
     mariana: ['Faculdade UNIP','Livros e Materiais','Mesada','Lanche','OAB'],
-    manuela: ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
+    manuela:    ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
+    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Individuais','Livros','Cursos','Material'],
+    beneficios: ['Mesada','Vale Refeição','Vale Transporte','Plano de Saúde','Outros'],
   };
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
@@ -495,6 +499,50 @@ const Store = (function () {
     }
   }
 
+  // Migração única: move lançamentos da categoria 'manuela' para
+  // educacao/lazer/beneficios com split 100% Manuela.
+  function _migrateManuelaCat() {
+    if (_data.__migrated_manuela_cat) return;
+
+    // mapa: sub-categoria original → { category, sub }
+    const MAP = {
+      'Escola Manuela':     { category: 'educacao',   sub: 'Mensalidade Escolar'  },
+      'Livros e Materiais': { category: 'educacao',   sub: 'Material Escolar'     },
+      'Uniforme':           { category: 'educacao',   sub: 'Uniforme'             },
+      'Passeios':           { category: 'lazer',      sub: 'Passeios Individuais' },
+      'Mesada':             { category: 'beneficios', sub: 'Mesada'               },
+    };
+
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        if (d.category !== 'manuela') return d;
+        const dest = MAP[d.sub] || MAP[d.desc] || { category: 'educacao', sub: d.sub };
+        const valor = Number(d.amount) || 0;
+        return {
+          ...d,
+          category: dest.category,
+          sub:      dest.sub,
+          split:    [{ person: 'Manuela', valor }],
+        };
+      });
+    }
+
+    // Garante que educacao/beneficios existem em _data.categorias (Configurações)
+    if (_data.categorias) {
+      if (!_data.categorias.educacao)   _data.categorias.educacao   = CATEGORIES.educacao;
+      if (!_data.categorias.beneficios) _data.categorias.beneficios = CATEGORIES.beneficios;
+    }
+    if (_data.subcategorias) {
+      if (!_data.subcategorias.educacao)   _data.subcategorias.educacao   = [...SUBCATEGORIES.educacao];
+      if (!_data.subcategorias.beneficios) _data.subcategorias.beneficios = [...SUBCATEGORIES.beneficios];
+      if (Array.isArray(_data.subcategorias.lazer) && !_data.subcategorias.lazer.includes('Passeios Individuais')) {
+        _data.subcategorias.lazer.push('Passeios Individuais');
+      }
+    }
+
+    _data.__migrated_manuela_cat = true;
+  }
+
   function init() {
     _data = load();
     if (!_data) {
@@ -505,6 +553,8 @@ const Store = (function () {
     _cleanupDespesas2026Q1();
     _loadEditableConfig();
     _migrateMetas();
+    _migrateManuelaCat();
+    _syncEditableConfig();
     save(_data);
     return _data;
   }
