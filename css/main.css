@@ -367,6 +367,8 @@ body { background: var(--bg-base); color: var(--text-1); }
   transition: background var(--t-fast), color var(--t-fast);
 }
 .btn-secondary:hover { background: var(--bg-hover); color: var(--text-1); }
+.btn-secondary.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-secondary.active:hover { background: var(--accent-hover, var(--accent)); }
 
 .btn-ghost {
   display: inline-flex;
@@ -577,6 +579,7 @@ canvas.chart-canvas {
 
 table.data-table {
   width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -618,7 +621,7 @@ table.data-table tfoot td {
   color: var(--text-1);
 }
 
-td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
+td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
 td.positive { color: var(--green); }
 td.negative { color: var(--red); }
 td.muted    { color: var(--text-3); }
@@ -1204,7 +1207,7 @@ body.sidebar-open { overflow: hidden; }
 .cc-bank { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; }
 .cc-limit-label { font-size: 11px; color: var(--text-3); }
 .cc-limit-value { font-size: 22px; font-weight: 800; font-family: var(--mono); color: var(--text-1); }
-.cc-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+.cc-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
 .cc-meta-label { font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; }
 .cc-meta-value { font-size: 14px; font-weight: 600; color: var(--text-2); }
 

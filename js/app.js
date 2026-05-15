@@ -226,7 +226,8 @@ const App = (function () {
     if (util > limitePct) alerts.push({ type:'danger',  title:'Limite de gastos ultrapassado!', text:`Você gastou ${Utils.pct(util)} da receita (limite: ${Utils.pct(limitePct)}).` });
     else if (util > limitePct * 0.9) alerts.push({ type:'warning', title:'Próximo do limite de gastos', text:`Você já usou ${Utils.pct(util)} da receita.` });
     if (receita < metaReceitaMensal) alerts.push({ type:'info', title:'Meta de receita não atingida', text:`Receita atual: ${Utils.currency(receita)} / Meta: ${Utils.currency(metaReceitaMensal)}` });
-    if (saldo > 0) alerts.push({ type:'success', title:'Saldo positivo este mês', text:`Sobram ${Utils.currency(saldo)} após todas as despesas.` });
+    if (saldo > 0 && alerts.filter(a => a.type === 'danger' || a.type === 'warning').length === 0)
+      alerts.push({ type:'success', title:'Saldo positivo este mês', text:`Sobram ${Utils.currency(saldo)} após todas as despesas.` });
 
     const yrReceitas = Store.yearlyMonthly(year, 'receita');
     const yrDespesas = Store.yearlyMonthly(year, 'despesa');
@@ -377,7 +378,7 @@ ${alerts.map(a => `
       }));
       Charts.Donut(document.getElementById('chartDonut'), donutData, {
         size: 190,
-        centerLabel: Utils.currency(despesa).split('.')[0],
+        centerLabel: Charts.fmt(despesa, true),
         centerSub: 'total',
       });
       const legend = document.getElementById('donutLegend');
@@ -552,7 +553,7 @@ ${periodToggleHTML('ff_lanc_period', period)}
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th>Contrato</th><th class="num">Valor</th><th style="position:sticky;right:0;background:var(--bg-card)"></th>
+  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th class="num">Valor</th><th style="position:sticky;right:0;background:var(--bg-card)"></th>
 </tr></thead>
 <tbody>
 ${filtered.map(d => {
@@ -564,7 +565,6 @@ ${filtered.map(d => {
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
   <td class="muted">${d.sub || '—'}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
-  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card)">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
@@ -574,7 +574,7 @@ ${filtered.map(d => {
 </tr>`;}).join('')}
 </tbody>
 <tfoot><tr>
-  <td colspan="6" class="fw-700">Total (${filtered.length} lançamentos)</td>
+  <td colspan="5" class="fw-700">Total (${filtered.length} lançamentos)</td>
   <td class="num negative fw-700">${Utils.currency(total)}</td>
   <td style="position:sticky;right:0;background:var(--bg-card)"></td>
 </tr></tfoot>
@@ -600,7 +600,7 @@ ${filtered.map(r => {
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
   <td>${r.desc}</td>
   <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
-  <td class="muted">${r.type||''}</td>
+  <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap">
@@ -866,7 +866,7 @@ ${filtered.map(r => {
           <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
           <td>${r.desc}</td>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
-          <td class="muted">${r.type||''}</td>
+          <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
           <td style="white-space:nowrap">
             <button class="btn-ghost" style="font-size:11px;color:var(--text-3)" data-edit-rec="${r.id}">✏</button>
@@ -1060,7 +1060,7 @@ ${periodToggleHTML('ff_desp_period', period)}
 
 
 <div class="card mb-6">
-  <div class="card-header"><span class="card-title">Por Categoria — ${year}</span></div>
+  <div class="card-header"><span class="card-title">Por Categoria — ${year}</span><span style="font-size:11px;color:var(--text-4)">visão anual completa</span></div>
   <div class="table-wrap">
     <table class="data-table" style="min-width:960px">
       <thead><tr>
@@ -1632,10 +1632,10 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   <div style="overflow-x:auto">
     <table class="table" style="width:100%;min-width:720px;font-size:12px">
       <thead><tr>
-        <th style="text-align:left">Meta</th>
-        ${Utils.months.map(m => `<th style="text-align:right">${m}</th>`).join('')}
-        <th style="text-align:right">Total/Proj</th>
-        <th style="text-align:right">Alvo</th>
+        <th style="text-align:left;white-space:nowrap">Meta</th>
+        ${Utils.months.map(m => `<th style="text-align:right;white-space:nowrap">${m}</th>`).join('')}
+        <th style="text-align:right;white-space:nowrap">Total/Proj</th>
+        <th style="text-align:right;white-space:nowrap">Alvo</th>
       </tr></thead>
       <tbody>
       ${indicadores.filter(m => m.type !== 'reserva').map(m => {
@@ -2495,7 +2495,7 @@ ${futuros.length === 0
       }));
       if (donutData.length) {
         Charts.Donut(document.getElementById('chartPatDonut'), donutData, {
-          size: 200, centerLabel: Charts.fmt(total/1e6,true)+'M', centerSub: 'BRL',
+          size: 200, centerLabel: Charts.fmt(total, true), centerSub: 'BRL',
         });
         const legend = document.getElementById('patLegend');
         const tot2 = donutData.reduce((a,d)=>a+d.value,0)||1;
