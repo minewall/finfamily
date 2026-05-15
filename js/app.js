@@ -180,7 +180,7 @@ const App = (function () {
   }
 
   function periodToggleHTML(stateKey, current) {
-    return `<div class="flex gap-2 mb-3" data-period-toggle="${stateKey}">
+    return `<div class="period-toggle-bar" data-period-toggle="${stateKey}">
       ${[['mes','Mês'],['tri','Trimestre'],['sem','Semestre'],['ano','Ano']].map(([k,l]) =>
         `<button class="btn-secondary ${current===k?'active':''}" data-period="${k}" style="padding:6px 12px;font-size:12px">${l}</button>`
       ).join('')}
@@ -1658,10 +1658,10 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
             const cmp = m.period === 'mensal' ? perf.target : (perf.target / 12);
             const okv = isLimit ? v <= cmp : v >= cmp;
             const cls = v === 0 ? 'var(--text-4)' : (okv ? 'var(--green)' : 'var(--red)');
-            return `<td style="text-align:right;font-family:var(--mono);color:${cls}">${v?Utils.currency(v).replace('R$ ',''):'—'}</td>`;
+            return `<td style="text-align:right;font-family:var(--mono);color:${cls};white-space:nowrap">${v?Utils.currency(v).replace('R$ ',''):'—'}</td>`;
           }).join('')}
-          <td style="text-align:right;font-family:var(--mono);font-weight:700">${Utils.currency(m.period==='anual'?perf.projecaoAnual:perf.byMonth.reduce((a,b)=>a+b,0))}</td>
-          <td style="text-align:right;font-family:var(--mono);color:var(--text-3)">${Utils.currency(m.period==='anual'?perf.target:perf.target*12)}</td>
+          <td style="text-align:right;font-family:var(--mono);font-weight:700;white-space:nowrap">${Utils.currency(m.period==='anual'?perf.projecaoAnual:perf.byMonth.reduce((a,b)=>a+b,0))}</td>
+          <td style="text-align:right;font-family:var(--mono);color:var(--text-3);white-space:nowrap">${Utils.currency(m.period==='anual'?perf.target:perf.target*12)}</td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -3210,11 +3210,11 @@ ${(() => {
   <main id="configContent"></main>
 </div>`;
 
-    container.querySelectorAll('[data-section]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        localStorage.setItem('ff_config_section', btn.dataset.section);
-        renderConfig(container);
-      });
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('[data-section]');
+      if (!btn) return;
+      localStorage.setItem('ff_config_section', btn.dataset.section);
+      renderConfig(container);
     });
 
     const content = document.getElementById('configContent');

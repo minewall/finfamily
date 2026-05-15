@@ -733,6 +733,16 @@ td.muted    { color: var(--text-3); }
 }
 .tab:hover:not(.active) { color: var(--text-2); }
 
+/* ── PERIOD TOGGLE ──────────────────────────────────────────────── */
+.period-toggle-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
 /* ── FILTER BAR ─────────────────────────────────────────────────── */
 .filter-bar {
   display: flex;
