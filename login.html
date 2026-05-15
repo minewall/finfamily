@@ -213,9 +213,18 @@
     window.location.replace('index.html');
   }
 
-  // SHA-256 do par "<usuario>:<senha>" — comparado abaixo.
-  // Para trocar a senha, gere com: printf 'usuario:senha' | shasum -a 256
-  const FF_CREDENTIALS_HASH = '1dc7c1b6bfb072f6b957888d9a974cc477a5e059ae92b1552c956dc246399da2';
+  // Hash padrão (mmr:271712). Pode ser sobrescrito via Configurações → Trocar Senha.
+  const FF_DEFAULT_HASH = '1dc7c1b6bfb072f6b957888d9a974cc477a5e059ae92b1552c956dc246399da2';
+  function _getCredHash() {
+    try {
+      const stored = localStorage.getItem('finfamily_v1');
+      if (stored) {
+        const d = JSON.parse(stored);
+        if (d && d.credHash) return d.credHash;
+      }
+    } catch(_) {}
+    return FF_DEFAULT_HASH;
+  }
 
   async function sha256Hex(str) {
     const buf = new TextEncoder().encode(str);
@@ -232,7 +241,7 @@
     const err  = document.getElementById('errorMsg');
 
     const digest = await sha256Hex(`${user}:${pass}`);
-    if (digest === FF_CREDENTIALS_HASH) {
+    if (digest === _getCredHash()) {
       sessionStorage.setItem('ff_auth', '1');
       window.location.replace('index.html');
     } else {

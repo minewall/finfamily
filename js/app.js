@@ -3154,6 +3154,8 @@ ${(() => {
       ['cotacoes',   '💱', 'Cotações'],
       ['aparencia',  '🎨', 'Aparência'],
       ['backup',     '💾', 'Backup & Dados'],
+      ['perfil',     '👤', 'Perfil'],
+      ['senha',      '🔑', 'Trocar Senha'],
       ['sobre',      'ℹ️',  'Sobre'],
     ].map(([k, ic, l]) => `
       <button class="config-tab ${section===k?'active':''}" data-section="${k}"
@@ -3179,6 +3181,8 @@ ${(() => {
     else if (section === 'cotacoes')   renderConfigCotacoes(content);
     else if (section === 'aparencia')  renderConfigAparencia(content);
     else if (section === 'backup')     renderConfigBackup(content);
+    else if (section === 'perfil')     renderConfigPerfil(content);
+    else if (section === 'senha')      renderConfigSenha(content);
     else                                renderConfigSobre(content);
   }
 
@@ -3429,6 +3433,138 @@ ${(() => {
       Store.updateSettings({ tema: next });
       renderConfigAparencia(content);
     }));
+  }
+
+  const AVATAR_OPTIONS = ['👤','👨','👩','🧑','👨‍💼','👩‍💼','🧔','👱','🧑‍💻','👨‍💻','👩‍💻'];
+  const TIMEZONES = [
+    'America/Sao_Paulo','America/Manaus','America/Belem','America/Fortaleza',
+    'America/Recife','America/Maceio','America/Bahia','America/Campo_Grande',
+    'America/Cuiaba','America/Porto_Velho','America/Boa_Vista',
+    'America/Rio_Branco','America/Noronha',
+    'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+    'Europe/Lisbon','Europe/London','Europe/Paris','Europe/Berlin',
+    'UTC',
+  ];
+
+  function renderConfigPerfil(content) {
+    const p = Store.getProfile();
+    content.innerHTML = `
+<div class="section-header mb-4"><div>
+  <div class="section-title">Perfil</div>
+  <div class="section-sub">Nome exibido no app e configurações regionais</div>
+</div></div>
+<div class="card" style="max-width:480px">
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+    <div id="avatarPreview" style="font-size:48px;line-height:1;cursor:pointer;padding:8px;border-radius:12px;border:2px solid var(--border);background:var(--bg-elevated)" title="Clique para trocar">${p.avatar || '👤'}</div>
+    <div>
+      <div style="font-size:13px;color:var(--text-2);margin-bottom:6px">Avatar (emoji)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;max-width:300px" id="avatarPicker">
+        ${AVATAR_OPTIONS.map(a => `<button data-av="${a}" style="font-size:22px;padding:4px 6px;border-radius:8px;border:2px solid ${a===p.avatar?'var(--accent)':'var(--border)'};background:var(--bg-elevated);cursor:pointer">${a}</button>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div style="display:grid;gap:14px">
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Nome</label>
+      <input id="pfName" class="form-input" value="${(p.name||'').replace(/"/g,'&quot;')}" placeholder="Seu nome" style="max-width:320px"/>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Fuso Horário</label>
+      <select id="pfTz" class="month-select" style="max-width:320px">
+        ${TIMEZONES.map(tz => `<option value="${tz}" ${tz===(p.timezone||'America/Sao_Paulo')?'selected':''}>${tz}</option>`).join('')}
+      </select>
+    </div>
+  </div>
+  <div style="margin-top:20px;display:flex;gap:10px">
+    <button class="btn-primary" id="btnSavePerfil">Salvar</button>
+  </div>
+  <div id="perfilMsg" style="display:none;margin-top:10px;font-size:13px;color:var(--green)">✓ Perfil salvo</div>
+</div>`;
+
+    let selectedAvatar = p.avatar || '👤';
+    content.querySelectorAll('[data-av]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedAvatar = btn.dataset.av;
+        content.querySelectorAll('[data-av]').forEach(b => b.style.borderColor = 'var(--border)');
+        btn.style.borderColor = 'var(--accent)';
+        document.getElementById('avatarPreview').textContent = selectedAvatar;
+      });
+    });
+
+    document.getElementById('btnSavePerfil').addEventListener('click', () => {
+      const name = document.getElementById('pfName').value.trim();
+      if (!name) { toast('Nome obrigatório', 'error'); return; }
+      Store.setProfile({ name, avatar: selectedAvatar, timezone: document.getElementById('pfTz').value });
+      const msg = document.getElementById('perfilMsg');
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    });
+  }
+
+  async function _sha256Hex(str) {
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function renderConfigSenha(content) {
+    content.innerHTML = `
+<div class="section-header mb-4"><div>
+  <div class="section-title">Trocar Senha</div>
+  <div class="section-sub">A nova senha entra em vigor imediatamente</div>
+</div></div>
+<div class="card" style="max-width:400px">
+  <div style="display:grid;gap:14px">
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Usuário</label>
+      <input id="csUser" class="form-input" placeholder="Usuário atual" autocomplete="username"/>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Senha Atual</label>
+      <input id="csOld" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Nova Senha</label>
+      <input id="csNew" class="form-input" type="password" placeholder="••••••••" autocomplete="new-password"/>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Confirmar Nova Senha</label>
+      <input id="csConfirm" class="form-input" type="password" placeholder="••••••••" autocomplete="new-password"/>
+    </div>
+  </div>
+  <div id="csError" style="display:none;background:#ef444418;border:1px solid #ef444440;border-radius:8px;color:var(--red);font-size:13px;padding:10px 14px;margin-top:14px"></div>
+  <div style="margin-top:16px">
+    <button class="btn-primary" id="btnSaveSenha">Alterar Senha</button>
+  </div>
+  <div id="csSuccess" style="display:none;margin-top:10px;font-size:13px;color:var(--green)">✓ Senha alterada. Será pedida no próximo login.</div>
+</div>`;
+
+    document.getElementById('btnSaveSenha').addEventListener('click', async () => {
+      const user    = document.getElementById('csUser').value.trim();
+      const oldPass = document.getElementById('csOld').value;
+      const newPass = document.getElementById('csNew').value;
+      const confirm = document.getElementById('csConfirm').value;
+      const errEl   = document.getElementById('csError');
+      const okEl    = document.getElementById('csSuccess');
+
+      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; okEl.style.display = 'none'; }
+
+      if (!user || !oldPass || !newPass) { showErr('Preencha todos os campos.'); return; }
+      if (newPass !== confirm) { showErr('Nova senha e confirmação não coincidem.'); return; }
+      if (newPass.length < 6) { showErr('A nova senha deve ter no mínimo 6 caracteres.'); return; }
+
+      const oldHash = await _sha256Hex(`${user}:${oldPass}`);
+      const storedHash = Store.getCredHash() || '1dc7c1b6bfb072f6b957888d9a974cc477a5e059ae92b1552c956dc246399da2';
+      if (oldHash !== storedHash) { showErr('Usuário ou senha atual incorretos.'); return; }
+
+      const newHash = await _sha256Hex(`${user}:${newPass}`);
+      Store.setCredHash(newHash);
+      errEl.style.display = 'none';
+      okEl.style.display = 'block';
+      document.getElementById('csOld').value = '';
+      document.getElementById('csNew').value = '';
+      document.getElementById('csConfirm').value = '';
+    });
   }
 
   function renderConfigSobre(content) {

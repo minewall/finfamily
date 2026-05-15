@@ -1158,6 +1158,25 @@ const Store = (function () {
     _syncEditableConfig(); persist();
   }
 
+  // ── PERFIL & SENHA ────────────────────────────────────────────
+  function getProfile() {
+    return _data.profile || { name: 'Usuário', avatar: '👤', timezone: 'America/Sao_Paulo' };
+  }
+
+  function setProfile(fields) {
+    _data.profile = { ...getProfile(), ...fields };
+    persist();
+  }
+
+  function getCredHash() {
+    return _data.credHash || null;
+  }
+
+  function setCredHash(hash) {
+    _data.credHash = hash;
+    persist();
+  }
+
   function exportData() {
     return {
       version: 1,
@@ -1244,5 +1263,6 @@ const Store = (function () {
     addSubcategoria, renameSubcategoria, deleteSubcategoria,
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
+    getProfile, setProfile, getCredHash, setCredHash,
   };
 })();
