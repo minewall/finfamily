@@ -1831,6 +1831,8 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   // ══════════════════════════════════════════════════════════════
   // PAGE: CONTRATOS
   // ══════════════════════════════════════════════════════════════
+  const _contratoExpanded = new Set();
+
   function renderContratos(container) {
     const contratos = Store.getContratos();
     const month = getMonth(), year = getYear();
@@ -1947,7 +1949,50 @@ ${contratos.length === 0 ? `
           }).join('');
           const iniStr = new Date(c.dataInicio+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
           const fimStr = c.dataFim ? new Date(c.dataFim+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) : '—';
-          return `<tr>
+          const isExpanded = _contratoExpanded.has(c.id);
+          const detailRows = isExpanded ? (() => {
+            const PSTATUS = p => {
+              if (p.paid === true)  return { label: 'Pago',     color: 'var(--green)' };
+              if (p.date < today && p.paid === false) return { label: 'Atrasado', color: 'var(--red)' };
+              if (p.date <= today)  return { label: 'Vencido',  color: 'var(--amber)' };
+              return { label: 'Futuro', color: 'var(--text-4)' };
+            };
+            return `<tr class="parcelas-detail-row" data-detail-for="${c.id}">
+              <td colspan="9" style="padding:0;background:var(--surface-2)">
+                <div style="padding:12px 16px 16px">
+                  <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Parcelas — ${c.label}</div>
+                  <table style="width:100%;border-collapse:collapse;font-size:12px">
+                    <thead>
+                      <tr style="border-bottom:1px solid var(--border)">
+                        <th style="text-align:left;padding:4px 8px;color:var(--text-4);font-weight:500">#</th>
+                        <th style="text-align:left;padding:4px 8px;color:var(--text-4);font-weight:500">Vencimento</th>
+                        <th style="text-align:right;padding:4px 8px;color:var(--text-4);font-weight:500">Valor</th>
+                        <th style="text-align:left;padding:4px 8px;color:var(--text-4);font-weight:500">Método</th>
+                        <th style="text-align:left;padding:4px 8px;color:var(--text-4);font-weight:500">Status</th>
+                        <th style="text-align:left;padding:4px 8px;color:var(--text-4);font-weight:500">Confirmação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${linked.map(p => {
+                        const ps = PSTATUS(p);
+                        const dt = new Date(p.date+'T12:00:00').toLocaleDateString('pt-BR');
+                        const paidAt = p.paidDate ? new Date(p.paidDate+'T12:00:00').toLocaleDateString('pt-BR') : (p.paid === true ? dt : '—');
+                        return `<tr style="border-bottom:1px solid var(--border-faint, var(--border))">
+                          <td style="padding:5px 8px;color:var(--text-3)">${p.parcelaNum||'—'}</td>
+                          <td style="padding:5px 8px;color:var(--text-2);font-family:var(--mono)">${dt}</td>
+                          <td style="padding:5px 8px;text-align:right;font-family:var(--mono);font-weight:600;color:${isRec?'var(--green)':'var(--text-1)'}">${Utils.currency(p.amount)}</td>
+                          <td style="padding:5px 8px;color:var(--text-3)">${p.pay||'—'}</td>
+                          <td style="padding:5px 8px"><span style="font-size:11px;font-weight:600;color:${ps.color}">${ps.label}</span></td>
+                          <td style="padding:5px 8px;font-family:var(--mono);color:${p.paid===true?'var(--green)':'var(--text-4)'}">${paidAt}</td>
+                        </tr>`;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>`;
+          })() : '';
+          return `<tr style="cursor:pointer" data-action="toggle-detail" data-id="${c.id}">
             <td><span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span></td>
             <td>
               <div style="font-weight:600;color:var(--text-1)">${c.label}</div>
@@ -1963,11 +2008,12 @@ ${contratos.length === 0 ? `
             </td>
             <td><span class="badge" style="background:${STATUS_COLOR[status]}20;color:${STATUS_COLOR[status]}">${STATUS_LABEL[status]}</span></td>
             <td style="white-space:nowrap">
+              <button class="btn-xs" style="font-size:14px;padding:2px 7px;transition:transform .15s" data-action="toggle-detail" data-id="${c.id}" title="Ver parcelas">${isExpanded?'▾':'▸'}</button>
               <button class="btn-xs" data-action="mark-past" data-id="${c.id}" title="Marcar passadas como pagas">✓</button>
               <button class="btn-xs" data-action="edit-contrato" data-id="${c.id}" title="Editar">✏</button>
               <button class="btn-xs btn-red" data-action="del-contrato" data-id="${c.id}" title="Excluir">✕</button>
             </td>
-          </tr>`;
+          </tr>${detailRows}`;
         }).join('')
       }
       </tbody>
@@ -1988,7 +2034,11 @@ ${contratos.length === 0 ? `
         const actionBtn = e.target.closest('[data-action]');
         if (actionBtn) {
           const action = actionBtn.dataset.action, id = actionBtn.dataset.id;
-          if (action === 'edit-contrato') {
+          if (action === 'toggle-detail') {
+            if (_contratoExpanded.has(id)) _contratoExpanded.delete(id);
+            else _contratoExpanded.add(id);
+            renderContratos(container);
+          } else if (action === 'edit-contrato') {
             const c = Store.getContratos().find(x => x.id === id);
             if (c) openContratoModal(c, container);
           } else if (action === 'del-contrato') {
