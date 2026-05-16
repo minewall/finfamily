@@ -6,7 +6,7 @@
 /* ── RESET ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
-body { font-family: 'Inter', system-ui, -apple-system, sans-serif; overflow: hidden; }
+body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "cv11" 1; overflow: hidden; }
 a { text-decoration: none; color: inherit; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
@@ -32,8 +32,8 @@ svg { display: block; flex-shrink: 0; }
   /* Semantic colors */
   --green:       #22C55E;
   --green-dim:   rgba(34, 197, 94, 0.12);
-  --red:         #EF4444;
-  --red-dim:     rgba(239, 68, 68, 0.12);
+  --red:         #C92764;
+  --red-dim:     rgba(201, 39, 100, 0.12);
   --amber:       #F59E0B;
   --amber-dim:   rgba(245, 158, 11, 0.12);
   --blue:        #3B82F6;
@@ -74,8 +74,8 @@ svg { display: block; flex-shrink: 0; }
   --t-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
   --t-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Mono font */
-  --mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  /* Mono font (agora DM Sans com tabular numerics — fonte única no app) */
+  --mono: 'DM Sans', system-ui, -apple-system, sans-serif;
 }
 
 /* Light theme — Vuexy light palette */
@@ -579,7 +579,7 @@ body { background: var(--bg-base); color: var(--text-1); }
 /* ── DASHBOARD HERO BANNER ──────────────────────────────────────── */
 .dash-hero {
   border-radius: var(--radius-lg);
-  padding: 20px 24px;
+  padding: 28px 32px;
   background: var(--bg-card);
   box-shadow: var(--shadow-md);
   border-left: 4px solid var(--accent);
@@ -587,25 +587,66 @@ body { background: var(--bg-base); color: var(--text-1); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 32px;
+  position: relative;
+  overflow: hidden;
 }
-.dash-hero-left {}
+.dash-hero--mood-pos { border-left-color: var(--green); }
+.dash-hero--mood-neg { border-left-color: var(--red); }
+.dash-hero--mood-neu { border-left-color: var(--accent); }
+.dash-hero-left { flex: 1; min-width: 0; }
 .dash-hero-greeting {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-1);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
 }
-.dash-hero-month {
+.dash-hero-sub-text {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-3);
-  margin-bottom: 0;
+  margin-bottom: 14px;
 }
+.dash-hero-saldo {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.05;
+  margin-bottom: 4px;
+}
+.dash-hero-saldo.pos { color: var(--green); }
+.dash-hero-saldo.neg { color: var(--red); }
+.dash-hero-month {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 18px;
+}
+.dash-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--accent-dim);
+  transition: filter var(--t-fast), transform var(--t-fast);
+}
+.dash-hero-cta:hover { filter: brightness(1.08); }
+.dash-hero-cta:active { transform: translateY(1px); }
 .dash-hero-sub { display: none; }
 .dash-hero-stats {
   display: flex;
-  gap: 32px;
+  gap: 36px;
+  align-items: stretch;
 }
 .dash-hero-stat { text-align: right; }
 .dash-hero-stat-label {
@@ -614,10 +655,10 @@ body { background: var(--bg-base); color: var(--text-1); }
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-4);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .dash-hero-stat-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   font-family: var(--mono);
   color: var(--text-1);
@@ -625,6 +666,10 @@ body { background: var(--bg-base); color: var(--text-1); }
 }
 .dash-hero-stat-value.neg { color: var(--red); }
 .dash-hero-stat-value.pos { color: var(--green); }
+@media (max-width: 860px) {
+  .dash-hero { flex-direction: column; align-items: flex-start; }
+  .dash-hero-stats { width: 100%; justify-content: space-between; }
+}
 
 /* ── CHARTS LAYOUT ──────────────────────────────────────────────── */
 .chart-grid {
@@ -1763,7 +1808,7 @@ body.sidebar-open { overflow: hidden; }
 }
 .coach-msg.assistant .coach-bubble strong { font-weight: 700; }
 .coach-msg.assistant .coach-bubble .ff-pos { color: #15803d; font-weight: 700; }
-.coach-msg.assistant .coach-bubble .ff-neg { color: #b91c1c; font-weight: 700; }
+.coach-msg.assistant .coach-bubble .ff-neg { color: #C92764; font-weight: 700; }
 .coach-msg-avatar {
   width: 26px; height: 26px;
   border-radius: 50%;

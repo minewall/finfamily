@@ -461,6 +461,21 @@ const App = (function () {
       return 'Boa noite';
     })();
     const monthLabel = `${Utils.monthsFull[month-1]} ${year}`;
+    const familyCtxHero = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
+    const isMemberHero  = familyCtxHero && familyCtxHero.role === 'member';
+
+    // Mensagem motivacional baseada no saldo
+    const heroMood = (() => {
+      if (saldo > 0 && util <= limitePct * 0.8)
+        return { title: `Excelente, ${currentPessoa()}! 🎉`, sub: 'Você está no controle das suas finanças', tone: 'pos' };
+      if (saldo > 0)
+        return { title: `Bom trabalho, ${currentPessoa()}! 👏`, sub: 'Saldo positivo este mês — continue assim', tone: 'pos' };
+      if (saldo === 0)
+        return { title: `Olá, ${currentPessoa()}.`, sub: 'Equilíbrio total entre receitas e despesas', tone: 'neu' };
+      if (util > limitePct)
+        return { title: `Atenção, ${currentPessoa()}.`, sub: 'Você ultrapassou o limite de gastos do mês', tone: 'neg' };
+      return { title: `Cuidado, ${currentPessoa()}.`, sub: 'Saldo negativo — é hora de revisar os gastos', tone: 'neg' };
+    })();
 
     // ── Dados anuais (para seção 2) ───────────────────────────────
     const totalRec  = yrReceitas.reduce((a,b)=>a+b,0);
@@ -510,23 +525,26 @@ const App = (function () {
     container.innerHTML = `
 
 <!-- ═══ SEÇÃO 1: MÊS ATUAL ═══════════════════════════════════════ -->
-<div class="dash-hero">
+<div class="dash-hero dash-hero--mood-${heroMood.tone}">
   <div class="dash-hero-left">
-    <div class="dash-hero-greeting">${heroGreeting}, ${currentPessoa()} 👋</div>
+    <div class="dash-hero-greeting">${heroMood.title}</div>
+    <div class="dash-hero-sub-text">${heroMood.sub}</div>
+    <div class="dash-hero-saldo ${saldo >= 0 ? 'pos' : 'neg'}">${saldo < 0 ? '-' : '+'}${Utils.currency(Math.abs(saldo))}</div>
     <div class="dash-hero-month">${monthLabel}</div>
+    ${isMemberHero ? '' : `
+    <button class="dash-hero-cta" id="btnNovaEntrada">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      Novo Lançamento
+    </button>`}
   </div>
   <div class="dash-hero-stats">
     <div class="dash-hero-stat">
       <div class="dash-hero-stat-label">Receitas</div>
-      <div class="dash-hero-stat-value pos">${Utils.currency(receita)}</div>
+      <div class="dash-hero-stat-value pos">+${Utils.currency(receita)}</div>
     </div>
     <div class="dash-hero-stat">
       <div class="dash-hero-stat-label">Despesas</div>
-      <div class="dash-hero-stat-value neg">${Utils.currency(despesa)}</div>
-    </div>
-    <div class="dash-hero-stat">
-      <div class="dash-hero-stat-label">Saldo</div>
-      <div class="dash-hero-stat-value ${saldo >= 0 ? 'pos' : 'neg'}">${saldo < 0 ? '-' : ''}${Utils.currency(Math.abs(saldo))}</div>
+      <div class="dash-hero-stat-value neg">-${Utils.currency(despesa)}</div>
     </div>
   </div>
 </div>
@@ -5855,8 +5873,12 @@ ${isConnected && isAdmin ? `
     document.getElementById('globalMonth').addEventListener('change', () => Router.navigate(Router.current));
     document.getElementById('globalYear')?.addEventListener('change', () => Router.navigate(Router.current));
 
-    // New entry button
-    document.getElementById('btnNovaEntrada').addEventListener('click', openNovaEntrada);
+    // "Novo Lançamento" agora vive dentro do hero do Dashboard — handler é
+    // anexado em renderDashboard. Mantemos delegação global por segurança.
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('#btnNovaEntrada');
+      if (btn) openNovaEntrada();
+    });
 
     // Logout button
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
