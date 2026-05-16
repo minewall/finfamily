@@ -240,155 +240,171 @@ const App = (function () {
       pontual:              { label: 'Pontual / Eventual',    color: 'var(--teal)',   desc: 'Evento único' },
     };
 
+    // ── helpers de variação ──────────────────────────────────────
+    const chgBadge = (pct, inverse = false) => {
+      const good = inverse ? pct <= 0 : pct >= 0;
+      const sign = pct >= 0 ? '+' : '';
+      return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;font-family:var(--mono);color:${good?'var(--green)':'var(--red)'};background:${good?'var(--green)':'var(--red)'}12;border-radius:4px;padding:2px 6px">
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor"><path d="${good?'M5 1l4 5H1z':'M5 9L1 4h8z'}"/></svg>
+        ${sign}${Math.abs(pct).toFixed(1)}%
+      </span>`;
+    };
+
     container.innerHTML = `
-<div class="kpi-grid">
-  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header">
-      <span class="kpi-label">Receitas</span>
-      <span class="kpi-icon">${Utils.icon.arrow_up}</span>
+
+<!-- ── KPI ROW ─────────────────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:24px">
+
+  <div style="background:var(--bg-card);padding:20px 24px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);margin-bottom:10px">Receitas</div>
+    <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--green);letter-spacing:-.5px;line-height:1">${Utils.currency(receita)}</div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      ${chgBadge(chgRec)}
+      <span style="font-size:11px;color:var(--text-4)">vs mês anterior</span>
     </div>
-    <div class="kpi-value green">${Utils.currency(receita)}</div>
-    <div class="kpi-change ${chgRec>=0?'up':'down'}">${chgRec>=0?'▲':'▼'} ${Math.abs(chgRec).toFixed(1)}% vs mês anterior</div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-header">
-      <span class="kpi-label">Despesas</span>
-      <span class="kpi-icon">${Utils.icon.arrow_down}</span>
+
+  <div style="background:var(--bg-card);padding:20px 24px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);margin-bottom:10px">Despesas</div>
+    <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--text-1);letter-spacing:-.5px;line-height:1">${Utils.currency(despesa)}</div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      ${chgBadge(chgDesp, true)}
+      <span style="font-size:11px;color:var(--text-4)">vs mês anterior</span>
     </div>
-    <div class="kpi-value red">${Utils.currency(despesa)}</div>
-    <div class="kpi-change ${chgDesp<=0?'up':'down'}">${chgDesp<=0?'▼':'▲'} ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
   </div>
-  <div class="kpi-card" style="--kpi-color:${saldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${saldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-header">
-      <span class="kpi-label">Saldo do Mês</span>
-      <span class="kpi-icon">📊</span>
+
+  <div style="background:var(--bg-card);padding:20px 24px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);margin-bottom:10px">Saldo do Mês</div>
+    <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:${saldo>=0?'var(--accent)':'var(--red)'};letter-spacing:-.5px;line-height:1">${Utils.currency(Math.abs(saldo))}</div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+      <span style="font-size:11px;color:var(--text-4)">${Utils.pct(util)} da receita comprometida</span>
     </div>
-    <div class="kpi-value ${saldo>=0?'accent':'red'}">${saldo<0?'-':''}${Utils.currency(saldo)}</div>
-    <div class="card-sub">${Utils.pct(util)} da receita gasto</div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
-    <div class="kpi-header">
-      <span class="kpi-label">Patrimônio</span>
-      <span class="kpi-icon">💎</span>
+
+  <div style="background:var(--bg-card);padding:20px 24px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);margin-bottom:10px">Patrimônio</div>
+    <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--text-1);letter-spacing:-.5px;line-height:1">${Utils.currency(patrimonio)}</div>
+    <div style="margin-top:10px">
+      <span style="font-size:11px;color:var(--text-4)">Ativos totais em BRL</span>
     </div>
-    <div class="kpi-value" style="color:var(--teal)">${Utils.currency(patrimonio)}</div>
-    <div class="card-sub">Ativos totais convertidos em BRL</div>
   </div>
+
 </div>
 
-${alerts.map(a => `
-<div class="alert-strip ${a.type}">
-  <span class="alert-icon">${a.type==='danger'||a.type==='warning'?Utils.icon.warn:a.type==='success'?Utils.icon.check:Utils.icon.info}</span>
-  <div class="alert-text"><div class="alert-title">${a.title}</div><div>${a.text}</div></div>
-</div>`).join('')}
+<!-- ── ALERTAS ─────────────────────────────────────────────── -->
+${alerts.map(a => {
+  const cfg = {
+    danger:  { color:'var(--red)',    bg:'#ef444410', dot:'#ef4444' },
+    warning: { color:'var(--amber)',  bg:'#f59e0b10', dot:'#f59e0b' },
+    success: { color:'var(--green)',  bg:'#22c55e10', dot:'#22c55e' },
+    info:    { color:'var(--accent)', bg:'#7c6ef810', dot:'#7c6ef8' },
+  }[a.type] || {};
+  return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:${cfg.bg};border-left:3px solid ${cfg.dot};border-radius:6px;margin-bottom:10px">
+    <div style="width:6px;height:6px;border-radius:50%;background:${cfg.dot};flex-shrink:0;margin-top:5px"></div>
+    <div style="font-size:13px;color:var(--text-2)"><strong style="color:${cfg.color}">${a.title}</strong> — ${a.text}</div>
+  </div>`;
+}).join('')}
 
-<div class="chart-grid mb-6">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Receitas vs Despesas 2026</span>
-      <span class="badge badge-accent">Anual</span>
+<!-- ── GRÁFICOS PRINCIPAIS ─────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px">
+
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4)">Receitas vs Despesas</span>
+      <span style="font-size:11px;color:var(--text-4);font-family:var(--mono)">${year}</span>
     </div>
-    <div class="chart-wrap">
-      <canvas id="chartAnual" class="chart-canvas"></canvas>
+    <div style="display:flex;gap:16px;margin-bottom:16px">
+      <span style="font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:var(--green);display:inline-block"></span>Receitas</span>
+      <span style="font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#EF4444;display:inline-block"></span>Despesas</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chartAnual" class="chart-canvas"></canvas></div>
+  </div>
+
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Distribuição — ${Utils.monthsFull[month-1]}</div>
+    <div class="chart-with-legend" style="flex-direction:column;gap:12px">
+      <canvas id="chartDonut" style="max-height:160px"></canvas>
+      <div class="donut-legend" id="donutLegend" style="flex-direction:column;gap:4px"></div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Distribuição de Despesas</span>
-      <span class="badge badge-blue">${Utils.monthsFull[month-1]}</span>
-    </div>
-    <div class="chart-with-legend">
-      <canvas id="chartDonut"></canvas>
-      <div class="donut-legend" id="donutLegend"></div>
-    </div>
-  </div>
+
 </div>
 
-<div class="chart-grid mb-6">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Comprometimento da Receita</span>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:12px 0">
-      <canvas id="chartGauge"></canvas>
-      <div style="text-align:center">
-        <div class="text-sm text-2">Limite seguro: <strong style="color:var(--green)">${Utils.pct(limitePct)}</strong></div>
-        <div class="text-xs text-3 mt-4">Meta receita mín: <strong>${Utils.currency(metaReceitaMensal)}</strong></div>
-      </div>
+<!-- ── LINHA 2: gauge + hbar + saldo ──────────────────────── -->
+<div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:16px;margin-bottom:16px">
+
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4)">Comprometimento</div>
+    <canvas id="chartGauge"></canvas>
+    <div style="text-align:center;margin-top:-4px">
+      <div style="font-size:11px;color:var(--text-4)">Limite seguro: <strong style="color:var(--green)">${Utils.pct(limitePct)}</strong></div>
+      <div style="font-size:10px;color:var(--text-4);margin-top:2px">Meta mín: ${Utils.currency(metaReceitaMensal)}</div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Top Categorias do Mês</span>
-    </div>
+
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Top Categorias</div>
     <canvas id="chartHBar" class="chart-canvas"></canvas>
   </div>
+
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Saldo Acumulado — ${year}</div>
+    <div class="chart-wrap"><canvas id="chartSaldo" class="chart-canvas"></canvas></div>
+  </div>
+
 </div>
 
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Evolução Mensal — Saldo Acumulado 2026</span>
-  </div>
-  <div class="chart-wrap">
-    <canvas id="chartSaldo" class="chart-canvas"></canvas>
-  </div>
-</div>
-
-<div class="chart-grid">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Receitas por Pessoa</span>
-      <span class="badge badge-green">${Utils.monthsFull[month-1]}</span>
-    </div>
+<!-- ── LINHA 3: por pessoa ────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Receitas por Pessoa — ${Utils.monthsFull[month-1]}</div>
     ${renderPersonReceitas(month, year)}
   </div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Despesas por Pessoa</span>
-      <span class="badge badge-red">${Utils.monthsFull[month-1]}</span>
-    </div>
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Despesas por Pessoa — ${Utils.monthsFull[month-1]}</div>
     ${renderPersonDespesas(month, year)}
   </div>
 </div>
 
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Comprometimento de Despesas</span>
-    <span class="badge badge-blue">${Utils.monthsFull[month-1]}</span>
+<!-- ── COMPROMETIMENTO DE TIPOS ───────────────────────────── -->
+<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+    <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4)">Comprometimento de Despesas</span>
+    <span style="font-size:11px;font-family:var(--mono);color:var(--text-4)">${Utils.monthsFull[month-1]}</span>
   </div>
-  <div style="display:flex;flex-direction:column;gap:8px">
+  <div style="display:flex;flex-direction:column;gap:14px">
     ${Object.entries(TIPO_INFO).map(([tipo, info]) => {
       const val = tipoDesp[tipo] || 0;
       const pct = despesa > 0 ? val / despesa : 0;
       return `<div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-          <span style="font-size:12px;font-weight:600;color:var(--text-1)">${info.label}</span>
-          <span style="font-size:11px;color:var(--text-3)">${Utils.currency(val)} <span style="color:var(--text-4)">(${Utils.pct(pct)}) · ${info.desc}</span></span>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="font-size:12px;font-weight:600;color:var(--text-2)">${info.label}</span>
+          <span style="font-size:11px;font-family:var(--mono);color:var(--text-3)">${Utils.currency(val)} <span style="color:var(--text-4);font-family:inherit">${Utils.pct(pct)}</span></span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${(pct*100).toFixed(1)}%;background:${info.color}"></div></div>
+        <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${(pct*100).toFixed(1)}%;background:${info.color};border-radius:2px;transition:width .4s ease"></div>
+        </div>
       </div>`;
     }).join('')}
-    <div style="font-size:11px;color:var(--text-4);margin-top:4px">
-      Fixo total: <strong style="color:var(--text-2)">${Utils.currency((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0))}</strong>
-      · Comprometimento: <strong style="color:var(--text-2)">${Utils.pct(despesa > 0 ? ((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0)+(tipoDesp.variavel_comprometida||0))/despesa : 0)}</strong>
+    <div style="display:flex;gap:24px;padding-top:4px;border-top:1px solid var(--border);margin-top:4px">
+      <div style="font-size:11px;color:var(--text-4)">Fixo total <strong style="color:var(--text-2);font-family:var(--mono)">${Utils.currency((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0))}</strong></div>
+      <div style="font-size:11px;color:var(--text-4)">Comprometimento <strong style="color:var(--text-2);font-family:var(--mono)">${Utils.pct(despesa > 0 ? ((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0)+(tipoDesp.variavel_comprometida||0))/despesa : 0)}</strong></div>
     </div>
   </div>
 </div>
 
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Próximas Parcelas (30 dias)</span>
-    <span class="badge badge-accent">contratos</span>
+<!-- ── PARCELAS + ÚLTIMOS ──────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Próximas Parcelas <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-4);font-size:10px">30 dias</span></div>
+    ${renderProximasParcelas()}
   </div>
-  ${renderProximasParcelas()}
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px 24px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-4);margin-bottom:16px">Últimos Lançamentos</div>
+    ${renderRecentTransactions(month, year)}
+  </div>
 </div>
 
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Últimos Lançamentos</span>
-  </div>
-  ${renderRecentTransactions(month, year)}
-</div>
     `;
 
     // Render charts after DOM is ready
