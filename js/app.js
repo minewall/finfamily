@@ -263,7 +263,7 @@ const App = (function () {
     </div>
     <svg id="anomaliasChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" style="color:var(--text-4);transition:transform .2s;flex-shrink:0;pointer-events:none"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-  <div id="anomaliasBody" style="display:none;margin-top:8px;display:none;flex-direction:column;gap:10px">
+  <div id="anomaliasBody" style="display:none;margin-top:8px;flex-direction:column;gap:10px">
     ${anomalias.map(a => {
       const barW = Math.min((a.delta / 2) * 100, 100);
       return `<div>
@@ -6126,25 +6126,34 @@ INSTRUÇÕES:
       showTyping();
 
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
-            'anthropic-dangerous-allow-browser': 'true',
-          },
-          body: JSON.stringify({
-            model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
-            system: buildContext(),
-            messages: history,
-          }),
-        });
+        let res;
+        try {
+          res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': apiKey.trim(),
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json',
+              'anthropic-dangerous-allow-browser': 'true',
+            },
+            body: JSON.stringify({
+              model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
+              max_tokens: 1024,
+              system: buildContext(),
+              messages: history,
+            }),
+          });
+        } catch (netErr) {
+          throw new Error(`Falha de rede (CORS ou sem conexão). Verifique o console do browser (F12 → Network) para detalhes. Erro: ${netErr.message}`);
+        }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error?.message || `HTTP ${res.status}`);
+          const msg = err.error?.message || `HTTP ${res.status}`;
+          if (res.status === 401) throw new Error('Chave de API inválida ou expirada. Verifique em Configurações → Sobre.');
+          if (res.status === 402 || res.status === 529) throw new Error('Conta sem créditos. Adicione créditos em console.anthropic.com.');
+          if (res.status === 429) throw new Error('Limite de requisições atingido. Aguarde um momento.');
+          throw new Error(msg);
         }
 
         const data = await res.json();
