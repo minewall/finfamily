@@ -35,136 +35,89 @@
       padding: 24px;
     }
 
-    .login-wrap {
-      width: 100%;
-      max-width: 380px;
-    }
+    .login-wrap { width: 100%; max-width: 380px; }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      justify-content: center;
-      margin-bottom: 40px;
+      display: flex; align-items: center; gap: 12px;
+      justify-content: center; margin-bottom: 40px;
     }
-
     .brand-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: var(--accent-dim);
-      border: 1px solid var(--accent)40;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--accent-dim); border: 1px solid #7c6ef840;
+      display: flex; align-items: center; justify-content: center;
       color: var(--accent);
     }
+    .brand-name { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .brand-sub  { font-size: 12px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-top: -2px; }
 
-    .brand-name {
-      font-size: 24px;
-      font-weight: 800;
-      color: var(--text-1);
-      letter-spacing: -0.5px;
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+    .card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .card-sub   { font-size: 13px; color: var(--text-3); margin-bottom: 28px; }
+
+    .form-group  { margin-bottom: 16px; }
+    .form-label  {
+      display: block; font-size: 12px; font-weight: 600; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
     }
-
-    .brand-sub {
-      font-size: 12px;
-      color: var(--text-3);
-      font-family: 'JetBrains Mono', monospace;
-      margin-top: -2px;
-    }
-
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-    }
-
-    .card-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-1);
-      margin-bottom: 6px;
-    }
-
-    .card-sub {
-      font-size: 13px;
-      color: var(--text-3);
-      margin-bottom: 28px;
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-2);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 6px;
-    }
-
-    .form-input {
-      width: 100%;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-1);
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      padding: 10px 14px;
-      outline: none;
+    .form-input  {
+      width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-1); font-size: 14px;
+      font-family: 'Inter', sans-serif; padding: 10px 14px; outline: none;
       transition: border-color .15s;
     }
-
-    .form-input:focus {
-      border-color: var(--accent);
-    }
-
+    .form-input:focus { border-color: var(--accent); }
     .form-input::placeholder { color: var(--text-3); }
 
     .btn-login {
-      width: 100%;
-      margin-top: 8px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: 'Inter', sans-serif;
-      padding: 12px;
-      cursor: pointer;
-      transition: opacity .15s, transform .1s;
+      width: 100%; margin-top: 8px; background: var(--accent); color: #fff;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif; padding: 12px; cursor: pointer;
+      transition: opacity .15s, transform .1s; display: flex;
+      align-items: center; justify-content: center; gap: 8px;
     }
-
     .btn-login:hover  { opacity: .9; }
     .btn-login:active { transform: scale(.98); }
+    .btn-login:disabled { opacity: .6; cursor: not-allowed; }
 
-    .error-msg {
-      display: none;
-      background: #ef444418;
-      border: 1px solid #ef444440;
-      border-radius: 8px;
-      color: var(--red);
-      font-size: 13px;
-      padding: 10px 14px;
-      margin-top: 12px;
-      text-align: center;
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid #ffffff40;
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .7s linear infinite; display: none;
+    }
+    .btn-login.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .msg {
+      border-radius: 8px; font-size: 13px; padding: 10px 14px;
+      margin-top: 12px; text-align: center; display: none;
+    }
+    .msg.visible { display: block; }
+    .msg.error   { background: #ef444418; border: 1px solid #ef444440; color: var(--red); }
+    .msg.success { background: #22c55e18; border: 1px solid #22c55e40; color: var(--green); }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--text-3); font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
     }
 
-    .error-msg.visible { display: block; }
-
-    .footer-note {
-      text-align: center;
-      font-size: 11px;
-      color: var(--text-3);
-      margin-top: 24px;
+    .btn-secondary {
+      width: 100%; background: transparent; color: var(--text-2);
+      border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+      font-weight: 500; font-family: 'Inter', sans-serif; padding: 10px;
+      cursor: pointer; transition: border-color .15s, color .15s;
     }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    .footer-note { text-align: center; font-size: 11px; color: var(--text-3); margin-top: 24px; }
+
+    .sync-badge {
+      display: flex; align-items: center; gap: 6px; justify-content: center;
+      font-size: 11px; color: var(--text-3); margin-top: 16px;
+    }
+    .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
   </style>
 </head>
 <body>
@@ -186,67 +139,138 @@
   </div>
 
   <div class="card">
-    <div class="card-title">Bem-vindo de volta</div>
-    <div class="card-sub">Acesso restrito — identifique-se para continuar</div>
+    <div class="card-title" id="cardTitle">Bem-vindo de volta</div>
+    <div class="card-sub"  id="cardSub">Entre com seu e-mail e senha para continuar</div>
 
     <form id="loginForm" autocomplete="off">
       <div class="form-group">
-        <label class="form-label" for="fUser">Usuário</label>
-        <input class="form-input" id="fUser" type="text" placeholder="Usuário" autocomplete="username" />
+        <label class="form-label" for="fEmail">E-mail</label>
+        <input class="form-input" id="fEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
       </div>
       <div class="form-group">
         <label class="form-label" for="fPass">Senha</label>
         <input class="form-input" id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
       </div>
-      <button class="btn-login" type="submit">Entrar</button>
-      <div class="error-msg" id="errorMsg">Usuário ou senha incorretos.</div>
+      <div class="form-group" id="fPassConfirmGroup" style="display:none">
+        <label class="form-label" for="fPassConfirm">Confirmar Senha</label>
+        <input class="form-input" id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+
+      <button class="btn-login" type="submit" id="btnSubmit">
+        <div class="spinner"></div>
+        <span id="btnLabel">Entrar</span>
+      </button>
+
+      <div class="msg error" id="errorMsg"></div>
+      <div class="msg success" id="successMsg"></div>
     </form>
+
+    <div class="divider" id="divider">ou</div>
+
+    <button class="btn-secondary" id="btnToggleMode">Primeiro acesso? Criar conta</button>
+  </div>
+
+  <div class="sync-badge">
+    <div class="sync-dot"></div>
+    Dados sincronizados na nuvem via Supabase
   </div>
 
   <div class="footer-note">FinFamily © 2026 · Acesso privado</div>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-  // Redirect if already authenticated
-  if (sessionStorage.getItem('ff_auth') === '1') {
-    window.location.replace('index.html');
-  }
+  const SUPABASE_URL = 'https://lpudgulhnfuwdttetwdn.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // SHA-256 do par "<usuario>:<senha>" — comparado abaixo.
-  // Para trocar a senha, gere com: printf 'usuario:senha' | shasum -a 256
-  const FF_CREDENTIALS_HASH = '1dc7c1b6bfb072f6b957888d9a974cc477a5e059ae92b1552c956dc246399da2';
-
-  async function sha256Hex(str) {
-    const buf = new TextEncoder().encode(str);
-    const hash = await crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(hash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  document.getElementById('loginForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const user = document.getElementById('fUser').value.trim();
-    const pass = document.getElementById('fPass').value;
-    const err  = document.getElementById('errorMsg');
-
-    const digest = await sha256Hex(`${user}:${pass}`);
-    if (digest === FF_CREDENTIALS_HASH) {
+  // Se já tem sessão ativa no Supabase, redireciona direto
+  sb.auth.getSession().then(({ data }) => {
+    if (data?.session) {
       sessionStorage.setItem('ff_auth', '1');
       window.location.replace('index.html');
-    } else {
-      err.classList.add('visible');
-      document.getElementById('fPass').value = '';
-      document.getElementById('fPass').focus();
     }
   });
 
-  // Hide error on input change
-  ['fUser','fPass'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      document.getElementById('errorMsg').classList.remove('visible');
-    });
+  let isSignUp = false;
+
+  const btnToggle      = document.getElementById('btnToggleMode');
+  const btnSubmit      = document.getElementById('btnSubmit');
+  const btnLabel       = document.getElementById('btnLabel');
+  const cardTitle      = document.getElementById('cardTitle');
+  const cardSub        = document.getElementById('cardSub');
+  const confirmGroup   = document.getElementById('fPassConfirmGroup');
+  const errorMsg       = document.getElementById('errorMsg');
+  const successMsg     = document.getElementById('successMsg');
+
+  btnToggle.addEventListener('click', () => {
+    isSignUp = !isSignUp;
+    cardTitle.textContent    = isSignUp ? 'Criar conta' : 'Bem-vindo de volta';
+    cardSub.textContent      = isSignUp ? 'Preencha os dados para criar seu acesso' : 'Entre com seu e-mail e senha para continuar';
+    btnLabel.textContent     = isSignUp ? 'Criar conta' : 'Entrar';
+    btnToggle.textContent    = isSignUp ? 'Já tenho conta — Entrar' : 'Primeiro acesso? Criar conta';
+    confirmGroup.style.display = isSignUp ? 'block' : 'none';
+    clearMsgs();
+  });
+
+  function setLoading(on) {
+    btnSubmit.disabled = on;
+    btnSubmit.classList.toggle('loading', on);
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+    successMsg.classList.remove('visible');
+  }
+
+  function showSuccess(msg) {
+    successMsg.textContent = msg;
+    successMsg.classList.add('visible');
+    errorMsg.classList.remove('visible');
+  }
+
+  function clearMsgs() {
+    errorMsg.classList.remove('visible');
+    successMsg.classList.remove('visible');
+  }
+
+  ['fEmail','fPass','fPassConfirm'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', clearMsgs);
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('fEmail').value.trim();
+    const pass  = document.getElementById('fPass').value;
+
+    if (!email || !pass) return showError('Preencha e-mail e senha.');
+
+    setLoading(true);
+
+    if (isSignUp) {
+      const confirm = document.getElementById('fPassConfirm').value;
+      if (pass !== confirm) { setLoading(false); return showError('As senhas não coincidem.'); }
+      if (pass.length < 6)  { setLoading(false); return showError('Senha deve ter ao menos 6 caracteres.'); }
+
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      setLoading(false);
+      if (error) return showError(error.message);
+      showSuccess('Conta criada! Verifique seu e-mail para confirmar o acesso.');
+
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      setLoading(false);
+      if (error) return showError('E-mail ou senha incorretos.');
+
+      // Sessão válida — marca auth e redireciona
+      sessionStorage.setItem('ff_auth', '1');
+      sessionStorage.setItem('ff_user_email', email);
+
+      // Se há dados locais e é o primeiro login na nuvem, fará push automático via store
+      window.location.replace('index.html');
+    }
   });
 </script>
 

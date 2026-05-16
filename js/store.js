@@ -18,25 +18,27 @@ const Store = (function () {
     lazer:       { label: 'Lazer',               color: '#14B8A6', icon: '🎉' },
     financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: '🏦' },
     cartoes:     { label: 'Cartões & Wallets',   color: '#8B5CF6', icon: '💳' },
-    roberto:     { label: 'Roberto Individual',  color: '#0EA5E9', icon: '👨' },
-    mariana:     { label: 'Mariana Individual',  color: '#D946EF', icon: '👩' },
     manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: '👧' },
+    educacao:    { label: 'Educação',            color: '#06B6D4', icon: '📚' },
+    beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: '🎁' },
+    assessorias: { label: 'Assessorias',         color: '#F59E0B', icon: '⚖️' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: '💰' },
   };
 
   const SUBCATEGORIES = {
     moradia: ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Netflix','HBO','Spotify','Amazon Prime','Apple','iFood','Móveis e itens casa','Outras despesas'],
-    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água'],
+    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade'],
     transporte: ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
     saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
-    pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja'],
+    pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja','Assinaturas','Celular','Telegrama','Mesada'],
     dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios / Brinquedos'],
     lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
     financeiro: ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     cartoes: ['Itaú Click','Itaú Uniclass','Wise','Santander','Shopee','Mercado Livre','Torra Torra'],
-    roberto: ['Melissa Advogada','Assinaturas','Celular','Telegrama'],
-    mariana: ['Faculdade UNIP','Livros e Materiais','Mesada','Lanche','OAB'],
-    manuela: ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
+    manuela:    ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
+    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
+    beneficios: ['Mesada','Vale Refeição','Vale Transporte','Plano de Saúde','Outros'],
+    assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','Melissa Advogada','OAB','Outros'],
   };
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
@@ -262,33 +264,33 @@ const Store = (function () {
     { date:'2026-04-28', desc:'Mercado Livre', amount:669.27,   category:'cartoes', sub:'Mercado Livre', pay:'Dinheiro', month:4 },
 
     // ── ROBERTO INDIVIDUAL ──
-    { date:'2026-01-31', desc:'Melissa Advogada', amount:1500.00, category:'roberto', sub:'Melissa Advogada', pay:'Dinheiro', month:1 },
-    { date:'2026-01-31', desc:'Assinaturas',      amount:73.58,   category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:1 },
-    { date:'2026-01-31', desc:'Celular',          amount:179.90,  category:'roberto', sub:'Celular',          pay:'Cartão',   month:1 },
-    { date:'2026-02-28', desc:'Assinaturas',      amount:42.51,   category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:2 },
-    { date:'2026-02-28', desc:'Celular',          amount:179.90,  category:'roberto', sub:'Celular',          pay:'Cartão',   month:2 },
-    { date:'2026-03-28', desc:'Assinaturas',      amount:94.99,   category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:3 },
-    { date:'2026-03-28', desc:'Celular',          amount:179.90,  category:'roberto', sub:'Celular',          pay:'Cartão',   month:3 },
-    { date:'2026-04-28', desc:'Assinaturas',      amount:133.75,  category:'roberto', sub:'Assinaturas',      pay:'Cartão',   month:4 },
-    { date:'2026-04-28', desc:'Melissa Advogada', amount:3900.00, category:'roberto', sub:'Melissa Advogada', pay:'Dinheiro', month:4 },
+    { date:'2026-01-31', desc:'Melissa Advogada', amount:1500.00, category:'assessorias', sub:'Melissa Advogada', pay:'Dinheiro', month:1 },
+    { date:'2026-01-31', desc:'Assinaturas',      amount:73.58,   category:'pessoal',     sub:'Assinaturas',      pay:'Cartão',   month:1 },
+    { date:'2026-01-31', desc:'Celular',          amount:179.90,  category:'pessoal',     sub:'Celular',          pay:'Cartão',   month:1 },
+    { date:'2026-02-28', desc:'Assinaturas',      amount:42.51,   category:'pessoal',     sub:'Assinaturas',      pay:'Cartão',   month:2 },
+    { date:'2026-02-28', desc:'Celular',          amount:179.90,  category:'pessoal',     sub:'Celular',          pay:'Cartão',   month:2 },
+    { date:'2026-03-28', desc:'Assinaturas',      amount:94.99,   category:'pessoal',     sub:'Assinaturas',      pay:'Cartão',   month:3 },
+    { date:'2026-03-28', desc:'Celular',          amount:179.90,  category:'pessoal',     sub:'Celular',          pay:'Cartão',   month:3 },
+    { date:'2026-04-28', desc:'Assinaturas',      amount:133.75,  category:'pessoal',     sub:'Assinaturas',      pay:'Cartão',   month:4 },
+    { date:'2026-04-28', desc:'Melissa Advogada', amount:3900.00, category:'assessorias', sub:'Melissa Advogada', pay:'Dinheiro', month:4 },
 
-    // ── MARIANA INDIVIDUAL ──
-    { date:'2026-01-28', desc:'Faculdade UNIP',     amount:748.14,  category:'mariana', sub:'Faculdade UNIP',     pay:'Dinheiro', month:1 },
-    { date:'2026-02-28', desc:'Faculdade UNIP',     amount:748.14,  category:'mariana', sub:'Faculdade UNIP',     pay:'Cartão',   month:2 },
-    { date:'2026-02-15', desc:'Lanche',             amount:34.00,   category:'mariana', sub:'Lanche',             pay:'Cartão',   month:2 },
-    { date:'2026-02-15', desc:'Lanche',             amount:8.50,    category:'mariana', sub:'Lanche',             pay:'Dinheiro', month:2 },
-    { date:'2026-03-15', desc:'Livros e Materiais', amount:138.88,  category:'mariana', sub:'Livros e Materiais', pay:'Cartão',   month:3 },
-    { date:'2026-03-15', desc:'Livros e Materiais', amount:28.50,   category:'mariana', sub:'Livros e Materiais', pay:'Dinheiro', month:3 },
-    { date:'2026-03-15', desc:'Mesada',             amount:30.00,   category:'mariana', sub:'Mesada',             pay:'Dinheiro', month:3 },
-    { date:'2026-03-15', desc:'Lanche',             amount:49.00,   category:'mariana', sub:'Lanche',             pay:'Cartão',   month:3 },
-    { date:'2026-03-15', desc:'Lanche',             amount:23.50,   category:'mariana', sub:'Lanche',             pay:'Dinheiro', month:3 },
-    { date:'2026-04-28', desc:'Faculdade UNIP',     amount:1835.83, category:'mariana', sub:'Faculdade UNIP',     pay:'Dinheiro', month:4 },
-    { date:'2026-04-28', desc:'Livros e Materiais', amount:71.98,   category:'mariana', sub:'Livros e Materiais', pay:'Cartão',   month:4 },
-    { date:'2026-04-28', desc:'Livros e Materiais', amount:11.70,   category:'mariana', sub:'Livros e Materiais', pay:'Dinheiro', month:4 },
-    { date:'2026-04-15', desc:'Mesada',             amount:49.80,   category:'mariana', sub:'Mesada',             pay:'Cartão',   month:4 },
-    { date:'2026-04-15', desc:'Lanche',             amount:47.50,   category:'mariana', sub:'Lanche',             pay:'Cartão',   month:4 },
-    { date:'2026-04-15', desc:'Lanche',             amount:37.50,   category:'mariana', sub:'Lanche',             pay:'Dinheiro', month:4 },
-    { date:'2026-04-28', desc:'OAB',                amount:320.00,  category:'mariana', sub:'OAB',                pay:'Dinheiro', month:4 },
+    // ── MARIANA INDIVIDUAL (migrado → educacao/pessoal/alimentacao) ──
+    { date:'2026-01-28', desc:'Faculdade UNIP',     amount:748.14,  category:'educacao',    sub:'Faculdade UNIP',     pay:'Dinheiro', month:1 },
+    { date:'2026-02-28', desc:'Faculdade UNIP',     amount:748.14,  category:'educacao',    sub:'Faculdade UNIP',     pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Lanche',             amount:34.00,   category:'alimentacao', sub:'Lanche na Faculdade',pay:'Cartão',   month:2 },
+    { date:'2026-02-15', desc:'Lanche',             amount:8.50,    category:'alimentacao', sub:'Lanche na Faculdade',pay:'Dinheiro', month:2 },
+    { date:'2026-03-15', desc:'Livros e Materiais', amount:138.88,  category:'educacao',    sub:'Livros e Materiais', pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Livros e Materiais', amount:28.50,   category:'educacao',    sub:'Livros e Materiais', pay:'Dinheiro', month:3 },
+    { date:'2026-03-15', desc:'Mesada',             amount:30.00,   category:'pessoal',     sub:'Mesada',             pay:'Dinheiro', month:3 },
+    { date:'2026-03-15', desc:'Lanche',             amount:49.00,   category:'alimentacao', sub:'Lanche na Faculdade',pay:'Cartão',   month:3 },
+    { date:'2026-03-15', desc:'Lanche',             amount:23.50,   category:'alimentacao', sub:'Lanche na Faculdade',pay:'Dinheiro', month:3 },
+    { date:'2026-04-28', desc:'Faculdade UNIP',     amount:1835.83, category:'educacao',    sub:'Faculdade UNIP',     pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'Livros e Materiais', amount:71.98,   category:'educacao',    sub:'Livros e Materiais', pay:'Cartão',   month:4 },
+    { date:'2026-04-28', desc:'Livros e Materiais', amount:11.70,   category:'educacao',    sub:'Livros e Materiais', pay:'Dinheiro', month:4 },
+    { date:'2026-04-15', desc:'Mesada',             amount:49.80,   category:'pessoal',     sub:'Mesada',             pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Lanche',             amount:47.50,   category:'alimentacao', sub:'Lanche na Faculdade',pay:'Cartão',   month:4 },
+    { date:'2026-04-15', desc:'Lanche',             amount:37.50,   category:'alimentacao', sub:'Lanche na Faculdade',pay:'Dinheiro', month:4 },
+    { date:'2026-04-28', desc:'OAB',                amount:320.00,  category:'assessorias', sub:'OAB',                pay:'Dinheiro', month:4 },
 
     // ── MANUELA INDIVIDUAL ──
     { date:'2026-02-15', desc:'Livros e Materiais', amount:72.50,   category:'manuela', sub:'Livros e Materiais', pay:'Cartão',   month:2 },
@@ -404,8 +406,25 @@ const Store = (function () {
   }
 
   function save(data) {
+    data._syncedAt = Date.now(); // timestamp para resolução de conflito
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { console.warn('Store: cannot save', e); }
+    // Hybrid sync: push to Supabase in background
+    if (typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected()) {
+      SupabaseSync.schedulePush(data);
+    }
+  }
+
+  // Pull cloud data and merge into local store (called after login)
+  async function syncFromCloud() {
+    if (typeof SupabaseSync === 'undefined') return false;
+    const cloudData = await SupabaseSync.pullFromCloud();
+    if (!cloudData) return false;
+    // Cloud wins — replace local with cloud data
+    _data = cloudData;
+    save(_data);
+    _syncEditableConfig();
+    return true;
   }
 
   let _data = null;
@@ -495,16 +514,196 @@ const Store = (function () {
     }
   }
 
+  // Migração única: move lançamentos da categoria 'manuela' para
+  // educacao/lazer/beneficios com split 100% Manuela.
+  function _migrateManuelaCat() {
+    if (_data.__migrated_manuela_cat) return;
+
+    // mapa: sub-categoria original → { category, sub }
+    const MAP = {
+      'Escola Manuela':     { category: 'educacao',   sub: 'Mensalidade Escolar'  },
+      'Livros e Materiais': { category: 'educacao',   sub: 'Material Escolar'     },
+      'Uniforme':           { category: 'educacao',   sub: 'Uniforme'             },
+      'Passeios':           { category: 'educacao',   sub: 'Passeios Escolares'   },
+      'Mesada':             { category: 'beneficios', sub: 'Mesada'               },
+    };
+
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        if (d.category !== 'manuela') return d;
+        const dest = MAP[d.sub] || MAP[d.desc] || { category: 'educacao', sub: d.sub };
+        const valor = Number(d.amount) || 0;
+        return {
+          ...d,
+          category: dest.category,
+          sub:      dest.sub,
+          split:    [{ person: 'Manuela', valor }],
+        };
+      });
+    }
+
+    // Garante que educacao/beneficios/assessorias existem em _data.categorias
+    if (_data.categorias) {
+      if (!_data.categorias.educacao)    _data.categorias.educacao    = CATEGORIES.educacao;
+      if (!_data.categorias.beneficios)  _data.categorias.beneficios  = CATEGORIES.beneficios;
+      if (!_data.categorias.assessorias) _data.categorias.assessorias = CATEGORIES.assessorias;
+    }
+    if (_data.subcategorias) {
+      if (!_data.subcategorias.educacao)    _data.subcategorias.educacao    = [...SUBCATEGORIES.educacao];
+      if (!_data.subcategorias.beneficios)  _data.subcategorias.beneficios  = [...SUBCATEGORIES.beneficios];
+      if (!_data.subcategorias.assessorias) _data.subcategorias.assessorias = [...SUBCATEGORIES.assessorias];
+      if (Array.isArray(_data.subcategorias.educacao) && !_data.subcategorias.educacao.includes('Passeios Escolares')) {
+        _data.subcategorias.educacao.push('Passeios Escolares');
+      }
+      if (Array.isArray(_data.subcategorias.lazer)) {
+        _data.subcategorias.lazer = _data.subcategorias.lazer.filter(s => s !== 'Passeios Individuais');
+      }
+      // garante novas subs de alimentacao e educacao
+      ['Lanche na Faculdade'].forEach(s => {
+        if (!_data.subcategorias.alimentacao?.includes(s)) _data.subcategorias.alimentacao?.push(s);
+      });
+      ['Faculdade','Material Universitário','Cursos e Especializações'].forEach(s => {
+        if (!_data.subcategorias.educacao?.includes(s)) _data.subcategorias.educacao?.push(s);
+      });
+    }
+
+    _data.__migrated_manuela_cat = true;
+  }
+
+  // Migração única: remove categorias 'roberto' e 'mariana' remapeando lançamentos.
+  function _migrateRobertoMarianaCat() {
+    if (_data.__migrated_roberto_mariana) return;
+
+    const SUB_MAP = {
+      'roberto/Melissa Advogada': { category: 'assessorias', sub: 'Melissa Advogada' },
+      'roberto/Assinaturas':      { category: 'pessoal',     sub: 'Assinaturas' },
+      'roberto/Celular':          { category: 'pessoal',     sub: 'Celular' },
+      'roberto/Telegrama':        { category: 'pessoal',     sub: 'Telegrama' },
+      'mariana/Faculdade UNIP':     { category: 'educacao',    sub: 'Faculdade UNIP' },
+      'mariana/Livros e Materiais': { category: 'educacao',    sub: 'Livros e Materiais' },
+      'mariana/Mesada':             { category: 'pessoal',     sub: 'Mesada' },
+      'mariana/Lanche':             { category: 'alimentacao', sub: 'Lanche na Faculdade' },
+      'mariana/OAB':                { category: 'assessorias', sub: 'OAB' },
+    };
+
+    const remap = d => {
+      if (d.category !== 'roberto' && d.category !== 'mariana') return d;
+      const key = `${d.category}/${d.sub}`;
+      const dest = SUB_MAP[key] || { category: 'pessoal', sub: d.sub };
+      return { ...d, category: dest.category, sub: dest.sub };
+    };
+
+    if (Array.isArray(_data.despesas)) _data.despesas = _data.despesas.map(remap);
+    if (Array.isArray(_data.receitas)) _data.receitas = _data.receitas.map(remap);
+
+    // Remove das categorias/subcategorias editáveis
+    if (_data.categorias)    { delete _data.categorias.roberto;    delete _data.categorias.mariana;    }
+    if (_data.subcategorias) { delete _data.subcategorias.roberto; delete _data.subcategorias.mariana; }
+
+    // Garante novas subcats nas categorias de destino
+    if (_data.subcategorias) {
+      const ensure = (cat, subs) => subs.forEach(s => {
+        if (_data.subcategorias[cat] && !_data.subcategorias[cat].includes(s))
+          _data.subcategorias[cat].push(s);
+      });
+      ensure('pessoal',     ['Assinaturas','Celular','Telegrama','Mesada']);
+      ensure('assessorias', ['Melissa Advogada','OAB']);
+      ensure('educacao',    ['Faculdade UNIP','Livros e Materiais']);
+    }
+
+    _data.__migrated_roberto_mariana = true;
+  }
+
+  // Corrige lançamentos que foram migrados para lazer/Passeios Individuais →
+  // educacao/Passeios Escolares (ajuste pós-validação)
+  function _fixPasseiosEscolares() {
+    if (_data.__fix_passeios_escolares) return;
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        if (d.sub === 'Passeios Individuais') {
+          return { ...d, category: 'educacao', sub: 'Passeios Escolares' };
+        }
+        return d;
+      });
+    }
+    _data.__fix_passeios_escolares = true;
+  }
+
+  // Varre TODOS os lançamentos com category='manuela' que ainda restarem
+  // (cobre casos de backup importado com flag já setada mas dados não migrados)
+  function _sweepRobertoCat() {
+    const MAP = {
+      'Melissa Advogada': { category: 'assessorias', sub: 'Honorários Advocatícios' },
+      'Assinaturas':      { category: 'pessoal',     sub: 'Assinaturas'             },
+      'Celular':          { category: 'moradia',     sub: 'TV / Internet / Telefone'},
+      'Telegrama':        { category: 'pessoal',     sub: 'Assinaturas'             },
+    };
+    if (!Array.isArray(_data.despesas)) return;
+    _data.despesas = _data.despesas.map(d => {
+      if (d.category !== 'roberto') return d;
+      const dest = MAP[d.sub] || MAP[d.desc] || { category: 'pessoal', sub: d.sub };
+      const valor = Number(d.amount) || 0;
+      const split = (d.split && d.split.length) ? d.split : [{ person: 'Roberto', valor }];
+      return { ...d, category: dest.category, sub: dest.sub, split };
+    });
+  }
+
+  function _sweepMarianaCat() {
+    const MAP = {
+      'Faculdade UNIP':     { category: 'educacao',    sub: 'Faculdade',              desc: 'Faculdade UNIP' },
+      'Livros e Materiais': { category: 'educacao',    sub: 'Material Universitário'                         },
+      'Mesada':             { category: 'beneficios',  sub: 'Mesada'                                         },
+      'Lanche':             { category: 'alimentacao', sub: 'Lanche na Faculdade',    desc: 'Lanche na Faculdade' },
+      'OAB':                { category: 'educacao',    sub: 'Cursos e Especializações'                       },
+    };
+    if (!Array.isArray(_data.despesas)) return;
+    _data.despesas = _data.despesas.map(d => {
+      if (d.category !== 'mariana') return d;
+      const dest = MAP[d.sub] || MAP[d.desc] || { category: 'educacao', sub: d.sub };
+      const valor = Number(d.amount) || 0;
+      const split = (d.split && d.split.length) ? d.split : [{ person: 'Mariana', valor }];
+      return { ...d, category: dest.category, sub: dest.sub, desc: dest.desc || d.desc, split };
+    });
+  }
+
+  function _sweepManuelaCat() {
+    const MAP = {
+      'Escola Manuela':     { category: 'educacao',   sub: 'Mensalidade Escolar' },
+      'Livros e Materiais': { category: 'educacao',   sub: 'Material Escolar'    },
+      'Uniforme':           { category: 'educacao',   sub: 'Uniforme'            },
+      'Passeios':           { category: 'educacao',   sub: 'Passeios Escolares'  },
+      'Passeios Individuais':{ category: 'educacao',  sub: 'Passeios Escolares'  },
+      'Mesada':             { category: 'beneficios', sub: 'Mesada'              },
+    };
+    if (!Array.isArray(_data.despesas)) return;
+    _data.despesas = _data.despesas.map(d => {
+      if (d.category !== 'manuela') return d;
+      const dest = MAP[d.sub] || MAP[d.desc] || { category: 'educacao', sub: d.sub };
+      const valor = Number(d.amount) || 0;
+      const split = (d.split && d.split.length) ? d.split : [{ person: 'Manuela', valor }];
+      return { ...d, category: dest.category, sub: dest.sub, split };
+    });
+  }
+
   function init() {
     _data = load();
     if (!_data) {
       _data = buildSeed();
       save(_data);
     }
+    // Init Supabase connection (non-blocking)
+    if (typeof SupabaseSync !== 'undefined') SupabaseSync.init();
     _cleanupBadSeed();
     _cleanupDespesas2026Q1();
     _loadEditableConfig();
     _migrateMetas();
+    _migrateManuelaCat();
+    _migrateRobertoMarianaCat();
+    _fixPasseiosEscolares();
+    _sweepManuelaCat();
+    _sweepRobertoCat();
+    _sweepMarianaCat();
+    _syncEditableConfig();
     save(_data);
     return _data;
   }
@@ -739,6 +938,31 @@ const Store = (function () {
   function updateAtivo(id, patch) {
     const a = _data.ativos.find(a => a.id === id);
     if (a) { Object.assign(a, patch); persist(); }
+  }
+
+  // ── PASSIVOS ───────────────────────────────────────────────────
+  function getPassivos() { return _data.passivos || []; }
+
+  function addPassivo(p) {
+    if (!_data.passivos) _data.passivos = [];
+    _data.passivos.push({ ...p, id: '_p' + Date.now() });
+    persist();
+  }
+
+  function updatePassivo(id, patch) {
+    const p = (_data.passivos || []).find(p => p.id === id);
+    if (p) { Object.assign(p, patch); persist(); }
+  }
+
+  function deletePassivo(id) {
+    _data.passivos = (_data.passivos || []).filter(p => p.id !== id);
+    persist();
+  }
+
+  function totalPassivos() {
+    return (_data.passivos || [])
+      .filter(p => p.status !== 'quitado')
+      .reduce((s, p) => s + (p.valorAcordado || p.valorProposta || p.valorOriginal || 0), 0);
   }
 
   function cleanDespesasByCategory(cats) {
@@ -1158,6 +1382,25 @@ const Store = (function () {
     _syncEditableConfig(); persist();
   }
 
+  // ── PERFIL & SENHA ────────────────────────────────────────────
+  function getProfile() {
+    return _data.profile || { name: 'Usuário', avatar: '👤', timezone: 'America/Sao_Paulo' };
+  }
+
+  function setProfile(fields) {
+    _data.profile = { ...getProfile(), ...fields };
+    persist();
+  }
+
+  function getCredHash() {
+    return _data.credHash || null;
+  }
+
+  function setCredHash(hash) {
+    _data.credHash = hash;
+    persist();
+  }
+
   function exportData() {
     return {
       version: 1,
@@ -1184,6 +1427,11 @@ const Store = (function () {
       });
     }
     _migrateMetas();
+    _sweepManuelaCat();
+    _sweepRobertoCat();
+    _sweepMarianaCat();
+    _loadEditableConfig();
+    _syncEditableConfig();
     persist();
     return _data;
   }
@@ -1218,6 +1466,156 @@ const Store = (function () {
     persist();
   }
 
+  // ── CATEGORY ORDER ─────────────────────────────────────────────
+  function getCategoryOrder() {
+    const saved = (_data.settings && _data.settings.categoryOrder) || [];
+    const allKeys = Object.keys(CATEGORIES);
+    // merge: saved order first, then any new keys not yet in saved order
+    const ordered = saved.filter(k => allKeys.includes(k));
+    allKeys.forEach(k => { if (!ordered.includes(k)) ordered.push(k); });
+    return ordered;
+  }
+
+  function setCategoryOrder(order) {
+    if (!_data.settings) _data.settings = {};
+    _data.settings.categoryOrder = order;
+    persist();
+  }
+
+  function categoriesOrdered() {
+    return getCategoryOrder().map(k => [k, CATEGORIES[k]]).filter(([,v]) => v);
+  }
+
+  function markAllPastParcelas(contratoId) {
+    const c = _data.contratos.find(x => x.id === contratoId);
+    if (!c) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const arr = c.kind === 'receita' ? _data.receitas : _data.despesas;
+    arr.filter(x => x.contratoId === contratoId && x.date <= today)
+       .forEach(x => { x.paid = true; });
+    persist();
+  }
+
+  // ── SUBCAT TIPOS ───────────────────────────────────────────────
+  // Tipos: fixa_essencial | fixa_comprometida | variavel_comprometida | variavel_opcional | pontual
+  const _DEFAULT_SUBTYPES = {
+    'moradia.Aluguel':                    'fixa_essencial',
+    'moradia.Energia Elétrica':           'fixa_essencial',
+    'moradia.Água e Saneamento':          'fixa_essencial',
+    'moradia.TV / Internet / Telefone':   'fixa_comprometida',
+    'moradia.Reparos e Manutenção':       'variavel_opcional',
+    'moradia.Netflix':                    'fixa_comprometida',
+    'moradia.HBO':                        'fixa_comprometida',
+    'moradia.Spotify':                    'fixa_comprometida',
+    'moradia.Amazon Prime':               'fixa_comprometida',
+    'moradia.Apple':                      'fixa_comprometida',
+    'moradia.iFood':                      'variavel_opcional',
+    'moradia.Móveis e itens casa':        'variavel_opcional',
+    'moradia.Outras despesas':            'variavel_opcional',
+    'alimentacao.Supermercado':           'fixa_essencial',
+    'alimentacao.Feira / Sacolão':        'fixa_essencial',
+    'alimentacao.Padaria':                'variavel_opcional',
+    'alimentacao.Açougue':                'variavel_opcional',
+    'alimentacao.Nespresso':              'variavel_opcional',
+    'alimentacao.Sorveteria':             'variavel_opcional',
+    'alimentacao.Água':                   'fixa_essencial',
+    'alimentacao.Lanche na Faculdade':    'variavel_opcional',
+    'transporte.Aluguel Carro':           'variavel_opcional',
+    'transporte.Combustível':             'fixa_comprometida',
+    'transporte.Manutenção':              'variavel_comprometida',
+    'transporte.Estacionamento':          'variavel_opcional',
+    'transporte.Multas':                  'variavel_opcional',
+    'transporte.Uber':                    'variavel_opcional',
+    'transporte.Seguro':                  'fixa_comprometida',
+    'transporte.IPVA':                    'pontual',
+    'transporte.Documentos':              'pontual',
+    'saude.Convênio Médico':              'fixa_comprometida',
+    'saude.Medicamentos':                 'variavel_comprometida',
+    'saude.Higiene Pessoal':              'fixa_essencial',
+    'saude.Dentista':                     'variavel_comprometida',
+    'saude.Emergências':                  'variavel_comprometida',
+    'pessoal.Academia / Esportes':        'fixa_comprometida',
+    'pessoal.Salão de Beleza':            'variavel_opcional',
+    'pessoal.Presentes':                  'variavel_opcional',
+    'pessoal.Vestuário':                  'variavel_opcional',
+    'pessoal.Terapia':                    'fixa_comprometida',
+    'pessoal.Cigarro':                    'variavel_opcional',
+    'pessoal.Cerveja':                    'variavel_opcional',
+    'dogs.Ração':                         'fixa_essencial',
+    'dogs.Banho e Tosa':                  'fixa_comprometida',
+    'dogs.Veterinário':                   'variavel_comprometida',
+    'dogs.Assessórios / Brinquedos':      'variavel_opcional',
+    'lazer.Restaurantes e Passeios':      'variavel_opcional',
+    'lazer.Diversão Local':               'variavel_opcional',
+    'lazer.Famílias e Amigos':            'variavel_opcional',
+    'lazer.Viagens':                      'pontual',
+    'financeiro.Taxas Bancárias':         'fixa_comprometida',
+    'financeiro.Saques':                  'variavel_opcional',
+    'financeiro.Seguro de Vida':          'fixa_comprometida',
+    'financeiro.Imposto de Renda':        'pontual',
+    'financeiro.Loteria':                 'variavel_opcional',
+    'financeiro.Correios':                'variavel_opcional',
+    'financeiro.Cartório':                'pontual',
+    'financeiro.Contador':                'fixa_comprometida',
+    'financeiro.Impostos Empresa':        'fixa_comprometida',
+    'educacao.Mensalidade Escolar':       'fixa_comprometida',
+    'educacao.Material Escolar':          'variavel_comprometida',
+    'educacao.Uniforme':                  'pontual',
+    'educacao.Passeios Escolares':        'variavel_opcional',
+    'educacao.Livros':                    'variavel_comprometida',
+    'educacao.Cursos':                    'fixa_comprometida',
+    'educacao.Material':                  'variavel_comprometida',
+    'educacao.Faculdade':                 'fixa_comprometida',
+    'educacao.Material Universitário':    'variavel_comprometida',
+    'educacao.Cursos e Especializações':  'fixa_comprometida',
+    'assessorias.Honorários Advocatícios':'fixa_comprometida',
+    'assessorias.Consultoria':            'fixa_comprometida',
+    'assessorias.Contador Pessoal':       'fixa_comprometida',
+    'assessorias.Outros':                 'variavel_opcional',
+  };
+
+  function getSubcatTipo(cat, sub) {
+    const userMap = (_data.settings && _data.settings.subcatTipo) || {};
+    const key = `${cat}.${sub}`;
+    return userMap[key] || _DEFAULT_SUBTYPES[key] || 'variavel_opcional';
+  }
+
+  function setSubcatTipo(cat, sub, tipo) {
+    if (!_data.settings) _data.settings = {};
+    if (!_data.settings.subcatTipo) _data.settings.subcatTipo = {};
+    _data.settings.subcatTipo[`${cat}.${sub}`] = tipo;
+    persist();
+  }
+
+  function sumDespesasByTipo(month, year) {
+    const totals = { fixa_essencial: 0, fixa_comprometida: 0, variavel_comprometida: 0, variavel_opcional: 0, pontual: 0 };
+    _data.despesas
+      .filter(d => d.month === month && d.year === year && d.category !== 'cartoes' && d.category !== 'receita')
+      .forEach(d => {
+        const tipo = getSubcatTipo(d.category, d.sub || '');
+        if (totals[tipo] !== undefined) totals[tipo] += d.amount;
+        else totals.variavel_opcional += d.amount;
+      });
+    return totals;
+  }
+
+  // Restricts in-memory data to what a 'member' role user should see.
+  // Keeps only despesas where pessoa appears as responsavel or in split.
+  // Receitas, contratos, contas, passivos, ativos: hidden (replaced with empty arrays).
+  function applyMemberFilter(pessoaName) {
+    if (!pessoaName || !_data) return;
+    _data.despesas = (_data.despesas || []).filter(d => {
+      if (d.responsavel === pessoaName) return true;
+      if (Array.isArray(d.split) && d.split.some(s => s.person === pessoaName)) return true;
+      return false;
+    });
+    _data.receitas   = [];
+    _data.contratos  = [];
+    _data.passivos   = [];
+    _data.ativos     = [];
+    _data.contas     = [];
+  }
+
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
@@ -1236,13 +1634,19 @@ const Store = (function () {
     totalAtivos,
     cleanDespesasByCategory,
     descSuggestions, receitaSuggestions,
-    addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos,
+    categoriesOrdered, getCategoryOrder, setCategoryOrder,
+    addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos, markAllPastParcelas,
+    getSubcatTipo, setSubcatTipo, sumDespesasByTipo,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData,
     getProximasParcelas,
+    getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,
     addSubcategoria, renameSubcategoria, deleteSubcategoria,
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
+    getProfile, setProfile, getCredHash, setCredHash,
+    applyMemberFilter,
+    syncFromCloud,
   };
 })();
