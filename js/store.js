@@ -759,7 +759,7 @@ const Store = (function () {
     persist();
   }
 
-  function addDespesaParcelada({ desc, amount, date, category, sub, pay, parcelas }) {
+  function addDespesaParcelada({ desc, amount, date, category, sub, pay, parcelas, ...extra }) {
     const grpId = newId();
     const base = new Date(date + 'T12:00:00');
     const entries = [];
@@ -775,11 +775,25 @@ const Store = (function () {
         month: dt.getMonth() + 1,
         year: dt.getFullYear(),
         parcela: { grupo: grpId, num: i + 1, total: parcelas },
+        ...extra,
       });
     }
     _data.despesas.push(...entries);
     persist();
     return entries;
+  }
+
+  function getReembolsosPendentes() {
+    return _data.despesas.filter(d => d.reembolso && d.reembolso.status === 'pendente');
+  }
+
+  function marcarReembolsoPago(despesaId) {
+    const d = _data.despesas.find(x => x.id === despesaId);
+    if (d && d.reembolso) {
+      d.reembolso.status = 'pago';
+      d.reembolso.paidAt = new Date().toISOString().slice(0, 10);
+      persist();
+    }
   }
 
   function addConta(entry) {
@@ -1620,7 +1634,7 @@ const Store = (function () {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
-    addDespesaParcelada,
+    addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
     addConta, deleteConta, updateConta,
     addCartao, deleteCartao,
     updateMeta, deleteMeta,
