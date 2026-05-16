@@ -5683,7 +5683,7 @@ ${isConnected && isAdmin ? `
     <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px">📊</div>
     <div>
       <div style="font-size:18px;font-weight:800">FinFamily</div>
-      <div style="font-size:12px;color:var(--text-3)">v1.0.0 · Gestão financeira familiar</div>
+      <div style="font-size:12px;color:var(--text-3)">v1.2.0 · Gestão financeira familiar</div>
     </div>
   </div>
   <div style="font-size:13px;color:var(--text-2);line-height:1.6">
