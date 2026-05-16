@@ -21,6 +21,11 @@ serve(async (req) => {
       });
     }
 
+    const usedModel = model || 'claude-haiku-4-5-20251001';
+    const msgCount = Array.isArray(messages) ? messages.length : 0;
+    const sysLen = typeof system === 'string' ? system.length : 0;
+    console.log(`[claude-proxy] → model=${usedModel} msgs=${msgCount} sysChars=${sysLen} maxTokens=${max_tokens || 1024}`);
+
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -29,20 +34,30 @@ serve(async (req) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: model || 'claude-haiku-4-5-20251001',
+        model: usedModel,
         max_tokens: max_tokens || 1024,
         system,
         messages,
       }),
     });
 
-    const data = await res.json();
-    return new Response(JSON.stringify(data), {
+    const rawText = await res.text();
+    if (!res.ok) {
+      console.error(`[claude-proxy] ← Anthropic ${res.status}: ${rawText.slice(0, 2000)}`);
+    } else {
+      console.log(`[claude-proxy] ← Anthropic ${res.status} OK (${rawText.length} bytes)`);
+    }
+
+    let parsed: unknown;
+    try { parsed = JSON.parse(rawText); } catch { parsed = { error: { type: 'non_json_response', message: rawText.slice(0, 1000) } }; }
+
+    return new Response(JSON.stringify(parsed), {
       status: res.status,
       headers: { ...CORS, 'content-type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    console.error('[claude-proxy] exception:', e);
+    return new Response(JSON.stringify({ error: { type: 'proxy_exception', message: (e as Error).message } }), {
       status: 500, headers: { ...CORS, 'content-type': 'application/json' },
     });
   }
