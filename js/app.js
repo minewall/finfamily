@@ -202,6 +202,210 @@ const App = (function () {
   // ══════════════════════════════════════════════════════════════
   // PAGE: DASHBOARD
   // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // DETECTOR DE ANOMALIAS
+  // ══════════════════════════════════════════════════════════════
+  function detectAnomalias(month, year, threshold = 0.30) {
+    const despesas = Store.get().despesas;
+    const cats = Object.keys(Store.CATEGORIES).filter(k => k !== 'receita');
+    const result = [];
+
+    for (const cat of cats) {
+      const current = despesas
+        .filter(d => d.year === year && d.month === month && d.category === cat)
+        .reduce((a, d) => a + d.amount, 0);
+      if (current === 0) continue;
+
+      // Média dos últimos 3 meses com dados
+      const prevVals = [];
+      for (let i = 1; i <= 3; i++) {
+        let m = month - i, y = year;
+        if (m <= 0) { m += 12; y--; }
+        const val = despesas
+          .filter(d => d.year === y && d.month === m && d.category === cat)
+          .reduce((a, d) => a + d.amount, 0);
+        if (val > 0) prevVals.push(val);
+      }
+      if (prevVals.length === 0) continue;
+
+      const avg   = prevVals.reduce((a, b) => a + b, 0) / prevVals.length;
+      const delta = (current - avg) / avg;
+      if (delta > threshold) {
+        result.push({
+          cat,
+          label:   Store.CATEGORIES[cat]?.label || cat,
+          color:   Store.CATEGORIES[cat]?.color || 'var(--accent)',
+          current,
+          avg,
+          delta,
+          mesesBase: prevVals.length,
+        });
+      }
+    }
+    return result.sort((a, b) => b.delta - a.delta);
+  }
+
+  function anomaliasHTML(anomalias) {
+    if (!anomalias.length) return '';
+    return `
+<div class="card mb-6" style="border-left:3px solid var(--amber)">
+  <div class="card-header">
+    <span class="card-title" style="color:var(--amber)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+      Anomalias Detectadas
+    </span>
+    <span class="badge badge-amber">${anomalias.length} categoria${anomalias.length > 1 ? 's' : ''} acima do normal</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${anomalias.map(a => {
+      const barW = Math.min((a.delta / 2) * 100, 100); // escala visual até 200%
+      return `<div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${a.color};flex-shrink:0"></span>
+            <span style="font-size:13px;font-weight:600;color:var(--text-1)">${a.label}</span>
+            <span class="badge badge-amber" style="font-size:10px">+${(a.delta*100).toFixed(0)}%</span>
+          </div>
+          <div style="text-align:right;font-size:12px">
+            <span style="color:var(--red);font-weight:700">${Utils.currency(a.current)}</span>
+            <span style="color:var(--text-4)"> vs média ${Utils.currency(a.avg)}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div style="flex:1;height:6px;background:var(--bg-elevated);border-radius:4px;overflow:hidden">
+            <div style="width:${Math.min((a.avg/a.current)*100,100).toFixed(1)}%;height:100%;background:var(--text-4);border-radius:4px"></div>
+          </div>
+          <div style="width:${barW.toFixed(1)}%;height:6px;background:${a.color};border-radius:4px;max-width:60%;flex-shrink:0"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-4);margin-top:3px">Baseado em ${a.mesesBase} mês${a.mesesBase>1?'es':''} anteriores</div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PREVISÃO DE CAIXA 30 DIAS
+  // ══════════════════════════════════════════════════════════════
+  function buildPrevisaoCaixa(currentSaldo) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    // Historical daily variable spending: avg of last 3 months / days
+    const now = new Date();
+    const nowM = now.getMonth() + 1;
+    const nowY = now.getFullYear();
+    let histTotal = 0, histDays = 0;
+    for (let i = 1; i <= 3; i++) {
+      let m = nowM - i, y = nowY;
+      if (m <= 0) { m += 12; y--; }
+      const daysInMonth = new Date(y, m, 0).getDate();
+      // Only variable despesas (not from contratos)
+      const varDesp = Store.get().despesas
+        .filter(d => d.year === y && d.month === m && !d.contratoId)
+        .reduce((a, d) => a + d.amount, 0);
+      if (varDesp > 0) { histTotal += varDesp; histDays += daysInMonth; }
+    }
+    const dailyVar = histDays > 0 ? histTotal / histDays : 0;
+
+    // Get contract installments in next 30 days
+    const parcelas = Store.getProximasParcelas(30);
+    const parcelasByDate = {};
+    parcelas.forEach(p => {
+      if (!parcelasByDate[p.date]) parcelasByDate[p.date] = [];
+      parcelasByDate[p.date].push(p);
+    });
+
+    // Build day-by-day projection
+    const days = [];
+    let balance = currentSaldo;
+    for (let i = 0; i <= 30; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const events = parcelasByDate[dateStr] || [];
+      const fixedIn  = events.filter(e => e.kind === 'receita').reduce((a, e) => a + e.amount, 0);
+      const fixedOut = events.filter(e => e.kind === 'despesa').reduce((a, e) => a + e.amount, 0);
+      if (i > 0) balance += fixedIn - fixedOut - dailyVar;
+      days.push({ date: d, dateStr, balance: Math.round(balance * 100) / 100, events, fixedIn, fixedOut });
+    }
+
+    // Find lowest balance point and first negative day
+    const minDay = days.reduce((a, b) => b.balance < a.balance ? b : a);
+    const firstNegDay = days.find(d => d.balance < 0);
+
+    return { days, dailyVar, minDay, firstNegDay };
+  }
+
+  function renderPrevisaoCaixa(currentSaldo) {
+    const { days, dailyVar, minDay, firstNegDay } = buildPrevisaoCaixa(currentSaldo);
+    const today = days[0];
+    const end   = days[days.length - 1];
+
+    // Pick weekly checkpoints for the label axis (day 0, 7, 14, 21, 30)
+    const checkpoints = [0, 7, 14, 21, 30].map(i => days[i]);
+
+    // Key events (contract installments) in next 30 days
+    const keyEvents = days.slice(1).flatMap(d => d.events.map(e => ({ ...e, day: d })))
+      .sort((a, b) => a.day.dateStr.localeCompare(b.day.dateStr))
+      .slice(0, 5);
+
+    const endColor  = end.balance >= 0 ? 'var(--green)' : 'var(--red)';
+    const minColor  = minDay.balance >= 0 ? 'var(--text-3)' : 'var(--red)';
+
+    return `
+<div class="card mb-6" id="previsaoCaixaCard">
+  <div class="card-header">
+    <span class="card-title">Previsão de Caixa — 30 dias</span>
+    <span class="badge badge-accent">projeção</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 220px;gap:16px;padding:4px 0 0">
+    <!-- Chart -->
+    <div>
+      <canvas id="chartPrevisaoCaixa" style="width:100%;height:130px"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        ${checkpoints.map(d => `<span style="font-size:10px;color:var(--text-4)">${d.date.getDate()}/${d.date.getMonth()+1}</span>`).join('')}
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px">
+        <div>
+          <div style="font-size:11px;color:var(--text-4)">Hoje</div>
+          <div style="font-size:14px;font-weight:600;color:${today.balance>=0?'var(--green)':'var(--red)'}">${today.balance<0?'-':''}${Utils.currency(Math.abs(today.balance))}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-4)">Em 30 dias</div>
+          <div style="font-size:14px;font-weight:600;color:${endColor}">${end.balance<0?'-':''}${Utils.currency(Math.abs(end.balance))}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-4)">Ponto mínimo</div>
+          <div style="font-size:14px;font-weight:600;color:${minColor}">${minDay.balance<0?'-':''}${Utils.currency(Math.abs(minDay.balance))}</div>
+        </div>
+        ${dailyVar > 0 ? `<div>
+          <div style="font-size:11px;color:var(--text-4)">Gasto variável/dia</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-2)">${Utils.currency(dailyVar)}</div>
+        </div>` : ''}
+      </div>
+      ${firstNegDay ? `<div style="margin-top:10px;padding:8px 12px;background:var(--red-dim);border-radius:8px;border-left:3px solid var(--red);font-size:12px;color:var(--red)">
+        ⚠️ Saldo negativo previsto a partir de <strong>${firstNegDay.date.toLocaleDateString('pt-BR')}</strong>
+      </div>` : ''}
+    </div>
+    <!-- Key events -->
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Próximos vencimentos</div>
+      ${keyEvents.length ? keyEvents.map(e => {
+        const dias = Math.round((new Date(e.day.dateStr+'T12:00:00') - new Date()) / 86400000);
+        const isRec = e.kind === 'receita';
+        return `<div class="stat-row" style="padding:6px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--text-1)">${e.desc}</div>
+            <div style="font-size:10px;color:var(--text-4)">${e.day.date.toLocaleDateString('pt-BR')} · ${dias===0?'hoje':dias===1?'amanhã':`em ${dias}d`}</div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:${isRec?'var(--green)':'var(--red)'}">${isRec?'+':'-'}${Utils.currency(e.amount)}</div>
+        </div>`;
+      }).join('') : `<div style="font-size:12px;color:var(--text-4);padding-top:8px">Sem vencimentos nos próximos 30 dias.</div>`}
+    </div>
+  </div>
+</div>`;
+  }
+
   function renderDashboard(container) {
     const month = getMonth(), year = getYear();
     const data  = Store.get();
@@ -251,12 +455,58 @@ const App = (function () {
     })();
     const monthLabel = `${Utils.monthsFull[month-1]} ${year}`;
 
+    // ── Dados anuais (para seção 2) ───────────────────────────────
+    const totalRec  = yrReceitas.reduce((a,b)=>a+b,0);
+    const totalDesp = yrDespesas.reduce((a,b)=>a+b,0);
+    const totalSaldo = totalRec - totalDesp;
+    const mediaRec  = totalRec  / 12;
+    const mediaDesp = totalDesp / 12;
+    const activeMths = yrReceitas.map((r,i) => ({ r, d: yrDespesas[i] })).filter(m => m.r > 0 || m.d > 0);
+    const avgRec  = activeMths.length ? activeMths.reduce((a,m) => a+m.r,0)/activeMths.length : 0;
+    const avgDesp = activeMths.length ? activeMths.reduce((a,m) => a+m.d,0)/activeMths.length : 0;
+    const avgSaldo = avgRec - avgDesp;
+    const proj = Array.from({length: 3}, (_,k) => {
+      const rawIdx = (month - 1) + 1 + k;
+      const mIdx = rawIdx % 12;
+      const yr   = year + Math.floor(rawIdx / 12);
+      return { label: Utils.months[mIdx] + (yr !== year ? ' '+yr : ''), rec: avgRec, desp: avgDesp, saldo: avgSaldo };
+    });
+    const saldoAcc = (() => { let acc=0; return yrReceitas.map((r,i) => { acc += r-yrDespesas[i]; return acc; }); })();
+
+    // ── Card 1: saúde financeira ──────────────────────────────────
+    const healthPct = util;
+    const healthOver = util > limitePct;
+    const healthWarn = !healthOver && util > limitePct * 0.9;
+    const healthColor = healthOver ? 'var(--red)' : healthWarn ? 'var(--amber)' : 'var(--green)';
+    const healthBg    = healthOver ? 'var(--red-dim)' : healthWarn ? 'var(--amber-dim)' : 'var(--green-dim)';
+    const healthLabel = healthOver ? 'Limite ultrapassado' : healthWarn ? 'Próximo do limite' : 'Dentro do orçamento';
+    const healthIcon  = healthOver
+      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/></svg>`
+      : healthWarn
+      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2"/></svg>`
+      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    // ── Card 4: maior despesa do mês (outlier) ────────────────────
+    const despMes = Store.get().despesas.filter(d => d.year === year && d.month === month);
+    const topDesp = despMes.length ? despMes.reduce((a,b) => b.amount > a.amount ? b : a) : null;
+
+    // ── Receitas por pessoa para donut ────────────────────────────
+    const recsByPerson = {};
+    Store.receitasByMonth(month, year).forEach(r => {
+      recsByPerson[r.person] = (recsByPerson[r.person] || 0) + r.amount;
+    });
+
+    // Anomalias — badge only (card shown in Despesas)
+    const anomalias = detectAnomalias(month, year);
+    _updateAnomaliasBadge(anomalias.length);
+
     container.innerHTML = `
+
+<!-- ═══ SEÇÃO 1: MÊS ATUAL ═══════════════════════════════════════ -->
 <div class="dash-hero">
   <div class="dash-hero-left">
-    <div class="dash-hero-greeting">${heroGreeting} 👋</div>
+    <div class="dash-hero-greeting">${heroGreeting}, ${currentPessoa()} 👋</div>
     <div class="dash-hero-month">${monthLabel}</div>
-    <div class="dash-hero-sub">Resumo financeiro do período</div>
   </div>
   <div class="dash-hero-stats">
     <div class="dash-hero-stat">
@@ -274,178 +524,198 @@ const App = (function () {
   </div>
 </div>
 
-<div class="kpi-grid">
-
-  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </div>
+<div class="kpi-grid mb-6">
+  <div class="kpi-card" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
+    <div class="kpi-icon" style="color:${healthColor}">${healthIcon}</div>
     <div class="kpi-body">
-      <div class="kpi-label">Receitas — ${Utils.monthsFull[month-1]}</div>
-      <div class="kpi-value green">${Utils.currency(receita)}</div>
-      <div class="kpi-change ${chgRec>=0?'up':'down'}">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgRec>=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg>
-        ${Math.abs(chgRec).toFixed(1)}% vs mês anterior
-      </div>
+      <div class="kpi-label">Saúde Financeira</div>
+      <div class="kpi-value" style="color:${healthColor}">${Utils.pct(healthPct)} usado</div>
+      <div class="kpi-sub">${healthLabel} · limite ${Utils.pct(limitePct)}</div>
     </div>
   </div>
-
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
       <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
-      <div class="kpi-value">${Utils.currency(despesa)}</div>
-      <div class="kpi-change ${chgDesp<=0?'up':'down'}">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg>
-        ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior
-      </div>
+      <div class="kpi-value red">${Utils.currency(despesa)}</div>
+      <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
     </div>
   </div>
-
   <div class="kpi-card" style="--kpi-color:${saldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${saldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v4H3zM3 10h18M8 10v11M16 10v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v4H3zM3 10h18M8 10v11M16 10v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="kpi-body">
       <div class="kpi-label">Saldo do Mês</div>
-      <div class="kpi-value ${saldo>=0?'accent':'red'}">${Utils.currency(Math.abs(saldo))}</div>
-      <div class="kpi-change flat">${Utils.pct(util)} da receita comprometida</div>
+      <div class="kpi-value ${saldo>=0?'accent':'red'}">${saldo<0?'-':''}${Utils.currency(Math.abs(saldo))}</div>
+      <div class="kpi-change ${chgRec>=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgRec>=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> receita ${Math.abs(chgRec).toFixed(1)}% vs mês ant.</div>
     </div>
   </div>
-
-  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
-    <div class="kpi-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
+  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Patrimônio Total</div>
-      <div class="kpi-value" style="color:var(--teal)">${Utils.currency(patrimonio)}</div>
-      <div class="kpi-change flat">Ativos convertidos em BRL</div>
+      <div class="kpi-label">Maior Gasto do Mês</div>
+      <div class="kpi-value" style="color:var(--amber)">${topDesp ? Utils.currency(topDesp.amount) : '—'}</div>
+      <div class="kpi-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp ? topDesp.desc + ' · ' + (Store.CATEGORIES[topDesp.category]?.label || topDesp.category) : 'Sem despesas'}</div>
     </div>
   </div>
-
 </div>
-
-${alerts.map(a => `
-<div class="alert-strip ${a.type}">
-  <span class="alert-icon">${a.type==='danger'||a.type==='warning'?Utils.icon.warn:a.type==='success'?Utils.icon.check:Utils.icon.info}</span>
-  <div class="alert-text"><div class="alert-title">${a.title}</div><div>${a.text}</div></div>
-</div>`).join('')}
 
 <div class="chart-grid mb-6">
   <div class="card">
-    <div class="card-header">
-      <span class="card-title">Receitas vs Despesas 2026</span>
-      <span class="badge badge-accent">Anual</span>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="chartAnual" class="chart-canvas"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Distribuição de Despesas</span>
-      <span class="badge badge-blue">${Utils.monthsFull[month-1]}</span>
-    </div>
+    <div class="card-header"><span class="card-title">Distribuição de Despesas</span><span class="badge badge-red">${Utils.monthsFull[month-1]}</span></div>
     <div class="chart-with-legend">
       <canvas id="chartDonut"></canvas>
       <div class="donut-legend" id="donutLegend"></div>
     </div>
   </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Receitas por Pessoa</span><span class="badge badge-green">${Utils.monthsFull[month-1]}</span></div>
+    <div class="chart-with-legend">
+      <canvas id="chartDonutRec"></canvas>
+      <div class="donut-legend" id="donutLegendRec"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SEÇÃO 2: VISÃO ANUAL ══════════════════════════════════════ -->
+<div class="dash-section-divider">
+  <span>Visão Anual — ${year}</span>
+</div>
+
+<div class="kpi-grid mb-6" style="grid-template-columns:repeat(3,1fr)">
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Receita Total ${year}</div>
+      <div class="kpi-value green">${Utils.currency(totalRec)}</div>
+      <div class="kpi-sub">Média: ${Utils.currency(mediaRec)}/mês</div>
+    </div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Despesa Total ${year}</div>
+      <div class="kpi-value red">${Utils.currency(totalDesp)}</div>
+      <div class="kpi-sub">Média: ${Utils.currency(mediaDesp)}/mês</div>
+    </div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:${totalSaldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${totalSaldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Saldo do Ano</div>
+      <div class="kpi-value ${totalSaldo>=0?'accent':'red'}">${Utils.currency(Math.abs(totalSaldo))}</div>
+      <div class="kpi-sub">${totalSaldo>=0?'Sobrou no ano':'Déficit no ano'}</div>
+    </div>
+  </div>
 </div>
 
 <div class="chart-grid mb-6">
   <div class="card">
-    <div class="card-header">
-      <span class="card-title">Comprometimento da Receita</span>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:12px 0">
-      <canvas id="chartGauge"></canvas>
-      <div style="text-align:center">
-        <div class="text-sm text-2">Limite seguro: <strong style="color:var(--green)">${Utils.pct(limitePct)}</strong></div>
-        <div class="text-xs text-3 mt-4">Meta receita mín: <strong>${Utils.currency(metaReceitaMensal)}</strong></div>
+    <div class="card-header"><span class="card-title">Receitas vs Despesas ${year}</span><span class="badge badge-accent">Anual</span></div>
+    <div class="chart-wrap"><canvas id="chartAnual" class="chart-canvas"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Saldo Acumulado ${year}</span></div>
+    <div class="chart-wrap"><canvas id="chartSaldo" class="chart-canvas"></canvas></div>
+  </div>
+</div>
+
+${activeMths.length > 0 ? `
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Projeção — Próximos 3 Meses</span>
+    <span class="badge badge-accent">Baseado na média de ${activeMths.length} mês${activeMths.length>1?'es':''}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:4px 0 8px">
+    ${proj.map(p => `
+    <div style="background:var(--bg-elevated);border-radius:12px;padding:16px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">${p.label}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Receita est.</span><span style="color:var(--green);font-weight:600">${Utils.currency(p.rec)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Despesa est.</span><span style="color:var(--red);font-weight:600">${Utils.currency(p.desp)}</span></div>
+        <div style="height:1px;background:var(--border);margin:4px 0"></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text-2);font-weight:600">Saldo est.</span><span style="color:${avgSaldo>=0?'var(--green)':'var(--red)'};font-weight:700">${p.saldo>=0?'':'-'}${Utils.currency(Math.abs(p.saldo))}</span></div>
       </div>
-    </div>
+    </div>`).join('')}
   </div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Top Categorias do Mês</span>
-    </div>
-    <canvas id="chartHBar" class="chart-canvas"></canvas>
+  <div style="font-size:11px;color:var(--text-4);padding-top:4px">Projeção baseada na média histórica dos meses com dados. Valores estimados.</div>
+</div>` : ''}
+
+<div class="table-section mb-6">
+  <div class="card-header"><span class="card-title">Tabela Mensal ${year}</span></div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th class="num">% Gasto</th></tr></thead>
+      <tbody>
+        ${yrReceitas.map((rec,i)=>{
+          const desp = yrDespesas[i]; const saldo2 = rec-desp; const pct = rec>0?desp/rec:0;
+          const isFuture = rec === 0 && desp === 0;
+          return `<tr style="${isFuture?'opacity:0.45':''}">
+            <td>${Utils.monthsFull[i]}${isFuture?' <span style="font-size:10px;color:var(--text-4)">est.</span>':''}</td>
+            <td class="num positive">${rec>0?Utils.currency(rec):'—'}</td>
+            <td class="num negative">${desp>0?Utils.currency(desp):'—'}</td>
+            <td class="num ${saldo2>=0?'positive':'negative'}">${rec>0||desp>0?(saldo2<0?'-':'')+Utils.currency(Math.abs(saldo2)):'—'}</td>
+            <td class="num"><span class="badge ${pct>0.9?'badge-red':pct>0.7?'badge-amber':'badge-green'}">${rec>0?Utils.pct(pct):'—'}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td class="fw-700">Total</td>
+        <td class="num positive fw-700">${Utils.currency(totalRec)}</td>
+        <td class="num negative fw-700">${Utils.currency(totalDesp)}</td>
+        <td class="num ${totalSaldo>=0?'positive':'negative'} fw-700">${totalSaldo<0?'-':''}${Utils.currency(Math.abs(totalSaldo))}</td>
+        <td class="num"><span class="badge ${totalDesp/totalRec>0.7?'badge-red':'badge-green'}">${Utils.pct(totalDesp/totalRec||0)}</span></td>
+      </tr></tfoot>
+    </table>
   </div>
 </div>
+
+${renderPrevisaoCaixa(saldo)}
 
 <div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Evolução Mensal — Saldo Acumulado 2026</span>
-  </div>
-  <div class="chart-wrap">
-    <canvas id="chartSaldo" class="chart-canvas"></canvas>
-  </div>
-</div>
-
-<div class="chart-grid">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Receitas por Pessoa</span>
-      <span class="badge badge-green">${Utils.monthsFull[month-1]}</span>
-    </div>
-    ${renderPersonReceitas(month, year)}
-  </div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Despesas por Pessoa</span>
-      <span class="badge badge-red">${Utils.monthsFull[month-1]}</span>
-    </div>
-    ${renderPersonDespesas(month, year)}
-  </div>
-</div>
-
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Comprometimento de Despesas</span>
-    <span class="badge badge-blue">${Utils.monthsFull[month-1]}</span>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:8px">
-    ${Object.entries(TIPO_INFO).map(([tipo, info]) => {
-      const val = tipoDesp[tipo] || 0;
-      const pct = despesa > 0 ? val / despesa : 0;
-      return `<div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-          <span style="font-size:12px;font-weight:600;color:var(--text-1)">${info.label}</span>
-          <span style="font-size:11px;color:var(--text-3)">${Utils.currency(val)} <span style="color:var(--text-4)">(${Utils.pct(pct)}) · ${info.desc}</span></span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${(pct*100).toFixed(1)}%;background:${info.color}"></div></div>
-      </div>`;
-    }).join('')}
-    <div style="font-size:11px;color:var(--text-4);margin-top:4px">
-      Fixo total: <strong style="color:var(--text-2)">${Utils.currency((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0))}</strong>
-      · Comprometimento: <strong style="color:var(--text-2)">${Utils.pct(despesa > 0 ? ((tipoDesp.fixa_essencial||0)+(tipoDesp.fixa_comprometida||0)+(tipoDesp.variavel_comprometida||0))/despesa : 0)}</strong>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Próximas Parcelas (30 dias)</span>
-    <span class="badge badge-accent">contratos</span>
-  </div>
+  <div class="card-header"><span class="card-title">Próximas Parcelas (30 dias)</span><span class="badge badge-accent">contratos</span></div>
   ${renderProximasParcelas()}
-</div>
-
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Últimos Lançamentos</span>
-  </div>
-  ${renderRecentTransactions(month, year)}
 </div>
     `;
 
     // Render charts after DOM is ready
     requestAnimationFrame(() => {
-      // Anual bar
+      // Donut despesas por categoria
+      const donutData = topCats.map(([cat, val], i) => ({
+        label: Store.CATEGORIES[cat]?.label || cat,
+        value: val,
+        color: Store.CATEGORIES[cat]?.color || Charts.PALETTE[i],
+      }));
+      Charts.Donut(document.getElementById('chartDonut'), donutData, {
+        size: 170, centerLabel: Charts.fmt(despesa, true), centerSub: 'total',
+      });
+      const totalD = donutData.reduce((a,d) => a+d.value, 0) || 1;
+      document.getElementById('donutLegend').innerHTML = donutData.map(d => `
+        <div class="donut-legend-item">
+          <div class="donut-legend-dot" style="background:${d.color}"></div>
+          <span class="donut-legend-label">${d.label}</span>
+          <span class="donut-legend-pct">${((d.value/totalD)*100).toFixed(0)}%</span>
+          <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
+        </div>`).join('');
+
+      // Donut receitas por pessoa
+      const recDonutData = Object.entries(recsByPerson).map(([p, v], i) => ({
+        label: p, value: v, color: Utils.personColor(p),
+      }));
+      const totalR = recDonutData.reduce((a,d) => a+d.value, 0) || 1;
+      if (recDonutData.length) {
+        Charts.Donut(document.getElementById('chartDonutRec'), recDonutData, {
+          size: 170, centerLabel: Charts.fmt(totalR, true), centerSub: 'total',
+        });
+        document.getElementById('donutLegendRec').innerHTML = recDonutData.map(d => `
+          <div class="donut-legend-item">
+            <div class="donut-legend-dot" style="background:${d.color}"></div>
+            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-pct">${((d.value/totalR)*100).toFixed(0)}%</span>
+            <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
+          </div>`).join('');
+      }
+
+      // Bar anual
       Charts.Bar(document.getElementById('chartAnual'), {
         labels: Utils.months,
         datasets: [
@@ -454,45 +724,25 @@ ${alerts.map(a => `
         ]
       }, { height: 165 });
 
-      // Donut
-      const donutData = topCats.map(([cat, val], i) => ({
-        label: Store.CATEGORIES[cat]?.label || cat,
-        value: val,
-        color: Store.CATEGORIES[cat]?.color || Charts.PALETTE[i],
-      }));
-      Charts.Donut(document.getElementById('chartDonut'), donutData, {
-        size: 190,
-        centerLabel: Charts.fmt(despesa, true),
-        centerSub: 'total',
-      });
-      const legend = document.getElementById('donutLegend');
-      const totalD = donutData.reduce((a,d) => a+d.value, 0) || 1;
-      legend.innerHTML = donutData.map(d => `
-        <div class="donut-legend-item">
-          <div class="donut-legend-dot" style="background:${d.color}"></div>
-          <span class="donut-legend-label">${d.label}</span>
-          <span class="donut-legend-pct">${((d.value/totalD)*100).toFixed(0)}%</span>
-          <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
-        </div>
-      `).join('');
-
-      // Gauge
-      Charts.Gauge(document.getElementById('chartGauge'), util, { label: 'da receita', size: 140 });
-
-      // HBar
-      Charts.HBar(document.getElementById('chartHBar'), topCats.map(([cat, val]) => ({
-        label: Store.CATEGORIES[cat]?.label || cat,
-        value: val,
-        color: Store.CATEGORIES[cat]?.color,
-      })), { barH: 24, padL: 140, padR: 90, gap: 7 });
-
       // Saldo acumulado line
-      let acc = 0;
-      const saldoAcc = yrReceitas.map((r, i) => { acc += r - yrDespesas[i]; return acc; });
       Charts.Line(document.getElementById('chartSaldo'), {
         labels: Utils.months,
         datasets: [{ label: 'Saldo', values: saldoAcc, color: '#7C6EF8' }],
       }, { height: 150 });
+
+      // Previsão de caixa 30 dias
+      const pcCanvas = document.getElementById('chartPrevisaoCaixa');
+      if (pcCanvas) {
+        const { days } = buildPrevisaoCaixa(saldo);
+        const pcLabels = days.map((d, i) => i % 7 === 0 ? `${d.date.getDate()}/${d.date.getMonth()+1}` : '');
+        const pcValues = days.map(d => d.balance);
+        const minVal = Math.min(...pcValues);
+        const lineColor = minVal < 0 ? '#EF4444' : '#22C55E';
+        Charts.Line(pcCanvas, {
+          labels: pcLabels,
+          datasets: [{ label: 'Saldo Projetado', values: pcValues, color: lineColor }],
+        }, { height: 130 });
+      }
     });
   }
 
@@ -589,6 +839,10 @@ ${alerts.map(a => `
   <div class="flex gap-2">
     <button class="btn-secondary active" id="btnTabDesp">Despesas</button>
     <button class="btn-secondary" id="btnTabRec">Receitas</button>
+    <button class="btn-secondary" id="btnTabCal">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+      Calendário
+    </button>
   </div>
 </div>
 ${periodToggleHTML('ff_lanc_period', period)}
@@ -702,7 +956,7 @@ ${filtered.map(r => {
     }
 
     // ── tab state ─────────────────────────────────────────────────
-    let activeTab = 'desp';
+    let activeTab = localStorage.getItem('ff_lanc_tab') || 'desp';
 
     function getFilters() {
       return {
@@ -797,10 +1051,102 @@ ${filtered.map(r => {
     bindPeriodToggle(container, 'ff_lanc_period', () => renderLancamentos(container));
 
     // ── wire up tabs & filters ────────────────────────────────────
+    function buildCalendar() {
+      const tbl = document.getElementById('lancTable');
+      if (!tbl) return;
+
+      // Group entries by day (YYYY-MM-DD)
+      const byDay = {};
+      despesas.forEach(d => {
+        if (!byDay[d.date]) byDay[d.date] = { desp: [], rec: [] };
+        byDay[d.date].desp.push(d);
+      });
+      receitas.forEach(r => {
+        if (!byDay[r.date]) byDay[r.date] = { desp: [], rec: [] };
+        byDay[r.date].rec.push(r);
+      });
+
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const firstWeekday = new Date(year, month - 1, 1).getDay(); // 0=Sun
+      const weeks = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+      let html = `<div class="cal-grid">`;
+      html += weeks.map(w => `<div class="cal-head">${w}</div>`).join('');
+
+      // blank leading cells
+      for (let i = 0; i < firstWeekday; i++) html += `<div class="cal-cell cal-empty"></div>`;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const mm = String(month).padStart(2,'0');
+        const dd = String(day).padStart(2,'0');
+        const dateKey = `${year}-${mm}-${dd}`;
+        const entries = byDay[dateKey] || { desp: [], rec: [] };
+        const today = new Date(); const isToday = today.getFullYear()===year && today.getMonth()+1===month && today.getDate()===day;
+        const totalDesp = entries.desp.reduce((a,d) => a + d.amount, 0);
+        const totalRec  = entries.rec.reduce((a,r) => a + r.amount, 0);
+        const hasTx = entries.desp.length + entries.rec.length > 0;
+
+        html += `<div class="cal-cell${isToday?' cal-today':''}${hasTx?' cal-has-tx':''}" data-cal-date="${dateKey}">
+  <span class="cal-day-num">${day}</span>
+  <div class="cal-dots">
+    ${entries.rec.length  ? `<span class="cal-dot cal-dot-green"  title="${entries.rec.length} receita(s)"></span>` : ''}
+    ${entries.desp.length ? `<span class="cal-dot cal-dot-red"    title="${entries.desp.length} despesa(s)"></span>` : ''}
+  </div>
+  ${hasTx ? `<div class="cal-amounts">
+    ${totalRec  ? `<span class="cal-amt-rec">+${Utils.currency(totalRec)}</span>` : ''}
+    ${totalDesp ? `<span class="cal-amt-desp">-${Utils.currency(totalDesp)}</span>` : ''}
+  </div>` : ''}
+</div>`;
+      }
+      html += `</div>`;
+
+      // Popover HTML (hidden, shown on click)
+      html += `<div id="calPopover" class="cal-popover" style="display:none"></div>`;
+      tbl.innerHTML = html;
+
+      // Click handler
+      tbl.querySelectorAll('.cal-cell[data-cal-date]').forEach(cell => {
+        cell.addEventListener('click', e => {
+          const dateKey = cell.dataset.calDate;
+          const entries = byDay[dateKey] || { desp: [], rec: [] };
+          if (!entries.desp.length && !entries.rec.length) return;
+          const pop = document.getElementById('calPopover');
+          const [yyyy, mm2, dd2] = dateKey.split('-');
+          let rows = '';
+          entries.rec.forEach(r => {
+            rows += `<div class="cal-pop-row"><span class="cal-pop-dot cal-dot-green"></span><span class="cal-pop-desc">${r.desc}</span><span class="cal-pop-val positive">+${Utils.currency(r.amount)}</span></div>`;
+          });
+          entries.desp.forEach(d => {
+            const cat = Store.CATEGORIES[d.category];
+            rows += `<div class="cal-pop-row"><span class="cal-pop-dot cal-dot-red"></span><span class="cal-pop-desc">${d.desc} <span style="font-size:10px;color:var(--text-4)">${cat?.label||d.category}</span></span><span class="cal-pop-val negative">-${Utils.currency(d.amount)}</span></div>`;
+          });
+          pop.innerHTML = `<div class="cal-pop-head">${dd2}/${mm2}/${yyyy}</div>${rows}`;
+          pop.style.display = 'block';
+          // position near cell
+          const rect = cell.getBoundingClientRect();
+          const contRect = tbl.getBoundingClientRect();
+          let left = rect.left - contRect.left;
+          let top  = rect.bottom - contRect.top + 4;
+          pop.style.left = Math.min(left, contRect.width - 220) + 'px';
+          pop.style.top  = top + 'px';
+          e.stopPropagation();
+        });
+      });
+
+      // Close popover on outside click
+      document.addEventListener('click', function closePop() {
+        const pop = document.getElementById('calPopover');
+        if (pop) pop.style.display = 'none';
+        document.removeEventListener('click', closePop);
+      });
+    }
+
     document.getElementById('btnTabDesp').addEventListener('click', () => {
-      activeTab = 'desp';
+      activeTab = 'desp'; localStorage.setItem('ff_lanc_tab', 'desp');
       document.getElementById('btnTabDesp').classList.add('active');
       document.getElementById('btnTabRec').classList.remove('active');
+      document.getElementById('btnTabCal').classList.remove('active');
+      document.getElementById('filterBar').style.display = '';
       // Restore desp category options
       document.getElementById('filterCat').innerHTML =
         `<option value="">Todas as categorias</option>` +
@@ -812,14 +1158,25 @@ ${filtered.map(r => {
     });
 
     document.getElementById('btnTabRec').addEventListener('click', () => {
-      activeTab = 'rec';
+      activeTab = 'rec'; localStorage.setItem('ff_lanc_tab', 'rec');
       document.getElementById('btnTabRec').classList.add('active');
       document.getElementById('btnTabDesp').classList.remove('active');
+      document.getElementById('btnTabCal').classList.remove('active');
+      document.getElementById('filterBar').style.display = '';
       document.getElementById('filterCat').innerHTML =
         `<option value="">Todas as pessoas</option>` +
         Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('');
       showDespFilters(false);
       refilter();
+    });
+
+    document.getElementById('btnTabCal').addEventListener('click', () => {
+      activeTab = 'cal'; localStorage.setItem('ff_lanc_tab', 'cal');
+      document.getElementById('btnTabCal').classList.add('active');
+      document.getElementById('btnTabDesp').classList.remove('active');
+      document.getElementById('btnTabRec').classList.remove('active');
+      document.getElementById('filterBar').style.display = 'none';
+      buildCalendar();
     });
 
     document.getElementById('searchInput').addEventListener('input', refilter);
@@ -848,8 +1205,23 @@ ${filtered.map(r => {
       refilter();
     });
 
-    // ── initial render ────────────────────────────────────────────
-    refilter(); // already calls attachDeleteHandlers() internally
+    // ── initial render — restore active tab ──────────────────────
+    if (activeTab === 'cal') {
+      document.getElementById('btnTabCal').classList.add('active');
+      document.getElementById('btnTabDesp').classList.remove('active');
+      document.getElementById('filterBar').style.display = 'none';
+      buildCalendar();
+    } else if (activeTab === 'rec') {
+      document.getElementById('btnTabRec').classList.add('active');
+      document.getElementById('btnTabDesp').classList.remove('active');
+      document.getElementById('filterCat').innerHTML =
+        `<option value="">Todas as pessoas</option>` +
+        Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('');
+      showDespFilters(false);
+      refilter();
+    } else {
+      refilter();
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1155,6 +1527,8 @@ ${filtered.map(r => {
     const familyCtx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
     const isMember  = familyCtx && familyCtx.role === 'member';
 
+    const anomalias = period === 'mes' ? detectAnomalias(month, year) : [];
+
     container.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Despesas — ${periodLabel}</div>
@@ -1163,6 +1537,7 @@ ${filtered.map(r => {
     ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
     : `<button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>`}
 </div>
+${anomaliasHTML(anomalias)}
 ${isMember ? `
 <div class="card mb-4" style="border-color:var(--amber)30;background:var(--amber)08">
   <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber)">
@@ -3231,149 +3606,228 @@ ${futuros.length === 0
   // ══════════════════════════════════════════════════════════════
   function renderComparativo(container) {
     const month = getMonth(), year = getYear();
-    const yrRec  = Store.yearlyMonthly(year, 'receita');
-    const yrDesp = Store.yearlyMonthly(year, 'despesa');
-    const yrSaldo = yrRec.map((r,i) => r - yrDesp[i]);
+    const eu = currentPessoa();
+    const cor = Utils.personColor(eu);
 
-    const totalRec  = yrRec.reduce((a,b)=>a+b,0);
-    const totalDesp = yrDesp.reduce((a,b)=>a+b,0);
-    const totalSaldo = totalRec - totalDesp;
-    const mediaRec  = totalRec  / 12;
-    const mediaDesp = totalDesp / 12;
+    // ── Dados filtrados por pessoa ────────────────────────────────
+    const todasDesp = Store.get().despesas;
+    const todasRec  = Store.get().receitas;
 
-    if (totalRec === 0 && totalDesp === 0) {
-      container.innerHTML = `
-<div class="empty-state">
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 14l4-4 4 4 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <p><strong>Sem dados para ${year}</strong><br/>Cadastre receitas e despesas para ver o comparativo anual.</p>
-</div>`;
-      return;
+    // Despesas do mês atribuídas a esta pessoa (split ou responsavel)
+    function despPessoa(m, y) {
+      return todasDesp.filter(d => d.year === y && d.month === m).reduce((acc, d) => {
+        if (d.split && d.split.length) {
+          const minha = d.split.find(s => s.person === eu);
+          return acc + (minha ? minha.valor : 0);
+        }
+        return d.responsavel === eu ? acc + d.amount : acc;
+      }, 0);
+    }
+    // Receitas do mês desta pessoa
+    function recPessoa(m, y) {
+      return todasRec.filter(r => r.year === y && r.month === m && r.person === eu)
+        .reduce((a, r) => a + r.amount, 0);
     }
 
+    const despMes   = despPessoa(month, year);
+    const recMes    = recPessoa(month, year);
+    const saldoMes  = recMes - despMes;
+
+    // Histórico mensal individual
+    const yrMeuDesp = Array.from({length:12}, (_,i) => despPessoa(i+1, year));
+    const yrMeuRec  = Array.from({length:12}, (_,i) => recPessoa(i+1, year));
+    const yrMeuSaldo = yrMeuRec.map((r,i) => r - yrMeuDesp[i]);
+
+    const totalMeuRec  = yrMeuRec.reduce((a,b)=>a+b,0);
+    const totalMeuDesp = yrMeuDesp.reduce((a,b)=>a+b,0);
+    const totalMeuSaldo = totalMeuRec - totalMeuDesp;
+    const mediaMeuDesp = totalMeuDesp / Math.max(1, yrMeuDesp.filter(d=>d>0).length);
+
+    // Maior gasto do mês desta pessoa
+    const despMesLista = todasDesp.filter(d => d.year===year && d.month===month).filter(d => {
+      if (d.split && d.split.length) return d.split.some(s => s.person === eu && s.valor > 0);
+      return d.responsavel === eu;
+    });
+    const topDesp = despMesLista.length ? despMesLista.reduce((a,b) => {
+      const va = a.split?.find(s=>s.person===eu)?.valor ?? a.amount;
+      const vb = b.split?.find(s=>s.person===eu)?.valor ?? b.amount;
+      return vb > va ? b : a;
+    }) : null;
+
+    // Top categorias do mês desta pessoa
+    const catMap = {};
+    despMesLista.forEach(d => {
+      const val = d.split?.find(s=>s.person===eu)?.valor ?? d.amount;
+      catMap[d.category] = (catMap[d.category]||0) + val;
+    });
+    const topCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    // Últimos lançamentos desta pessoa
+    const recentDesp = [...despMesLista].sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
+    const recentRec  = todasRec.filter(r=>r.year===year&&r.month===month&&r.person===eu)
+      .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+
     container.innerHTML = `
+<div class="dash-hero" style="border-left-color:${cor}">
+  <div class="dash-hero-left">
+    <div class="dash-hero-greeting" style="color:${cor}">Meu Painel — ${eu}</div>
+    <div class="dash-hero-month">${Utils.monthsFull[month-1]} ${year}</div>
+  </div>
+  <div class="dash-hero-stats">
+    <div class="dash-hero-stat"><div class="dash-hero-stat-label">Receitas</div><div class="dash-hero-stat-value pos">${Utils.currency(recMes)}</div></div>
+    <div class="dash-hero-stat"><div class="dash-hero-stat-label">Despesas</div><div class="dash-hero-stat-value neg">${Utils.currency(despMes)}</div></div>
+    <div class="dash-hero-stat"><div class="dash-hero-stat-label">Saldo</div><div class="dash-hero-stat-value ${saldoMes>=0?'pos':'neg'}">${saldoMes<0?'-':''}${Utils.currency(Math.abs(saldoMes))}</div></div>
+  </div>
+</div>
+
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Receita Total ${year}</div>
-      <div class="kpi-value green">${Utils.currency(totalRec)}</div>
-      <div class="kpi-sub">Média: ${Utils.currency(mediaRec)}/mês</div>
+      <div class="kpi-label">Receita do Mês</div>
+      <div class="kpi-value green">${Utils.currency(recMes)}</div>
+      <div class="kpi-sub">Total anual: ${Utils.currency(totalMeuRec)}</div>
     </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Despesa Total ${year}</div>
-      <div class="kpi-value red">${Utils.currency(totalDesp)}</div>
-      <div class="kpi-sub">Média: ${Utils.currency(mediaDesp)}/mês</div>
+      <div class="kpi-label">Despesas do Mês</div>
+      <div class="kpi-value red">${Utils.currency(despMes)}</div>
+      <div class="kpi-sub">Média mensal: ${Utils.currency(mediaMeuDesp)}</div>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:${totalSaldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${totalSaldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+  <div class="kpi-card" style="--kpi-color:${saldoMes>=0?'var(--accent)':'var(--red)'};--kpi-bg:${saldoMes>=0?'var(--accent-dim)':'var(--red-dim)'}">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v4H3zM3 10h18M8 10v11M16 10v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Saldo do Ano</div>
-      <div class="kpi-value ${totalSaldo>=0?'accent':'red'}">${Utils.currency(Math.abs(totalSaldo))}</div>
-      <div class="kpi-sub">${totalSaldo>=0?'Sobrou no ano':'Déficit no ano'}</div>
+      <div class="kpi-label">Saldo Pessoal</div>
+      <div class="kpi-value ${saldoMes>=0?'accent':'red'}">${saldoMes<0?'-':''}${Utils.currency(Math.abs(saldoMes))}</div>
+      <div class="kpi-sub">Anual: ${totalMeuSaldo>=0?'':'-'}${Utils.currency(Math.abs(totalMeuSaldo))}</div>
+    </div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Maior Gasto do Mês</div>
+      <div class="kpi-value" style="color:var(--amber)">${topDesp ? Utils.currency(topDesp.split?.find(s=>s.person===eu)?.valor ?? topDesp.amount) : '—'}</div>
+      <div class="kpi-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp ? topDesp.desc + ' · ' + (Store.CATEGORIES[topDesp.category]?.label||topDesp.category) : 'Sem despesas'}</div>
     </div>
   </div>
 </div>
 
-<div class="card mb-6">
-  <div class="card-header"><span class="card-title">Receitas vs Despesas por Mês</span></div>
-  <div class="chart-wrap"><canvas id="chartCompAnual" class="chart-canvas"></canvas></div>
+<div class="chart-grid mb-6">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Meus Gastos por Mês — ${year}</span></div>
+    <div class="chart-wrap"><canvas id="chartMeuAnual" class="chart-canvas"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Meu Saldo Acumulado — ${year}</span></div>
+    <div class="chart-wrap"><canvas id="chartMeuSaldo" class="chart-canvas"></canvas></div>
+  </div>
 </div>
 
-<div class="card mb-6">
-  <div class="card-header"><span class="card-title">Saldo Mensal</span></div>
-  <div class="chart-wrap"><canvas id="chartCompSaldo" class="chart-canvas"></canvas></div>
-</div>
+${topCats.length ? `
+<div class="chart-grid mb-6">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Minhas Categorias — ${Utils.monthsFull[month-1]}</span></div>
+    <div class="chart-with-legend">
+      <canvas id="chartMeuDonut"></canvas>
+      <div class="donut-legend" id="meuDonutLegend"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Últimas Receitas</span><span class="badge badge-green">${Utils.monthsFull[month-1]}</span></div>
+    ${recentRec.length ? `<div style="display:flex;flex-direction:column;gap:0">
+      ${recentRec.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-1)">${r.desc}</div>
+          <div style="font-size:11px;color:var(--text-4)">${Utils.fmtDate(r.date)}</div>
+        </div>
+        <span style="font-size:14px;font-weight:700;color:var(--green)">${Utils.currency(r.amount)}</span>
+      </div>`).join('')}
+    </div>` : '<div style="padding:24px;text-align:center;color:var(--text-4);font-size:13px">Sem receitas no período</div>'}
+  </div>
+</div>` : ''}
 
-${(() => {
-  // Projeção: média dos meses com dados → projeta próximos 3 meses
-  const activeMths = yrRec.map((r,i) => ({ r, d: yrDesp[i] })).filter(m => m.r > 0 || m.d > 0);
-  if (activeMths.length === 0) return '';
-  const avgRec  = activeMths.reduce((a,m) => a + m.r, 0) / activeMths.length;
-  const avgDesp = activeMths.reduce((a,m) => a + m.d, 0) / activeMths.length;
-  const avgSaldo = avgRec - avgDesp;
-  const proj = Array.from({length: 3}, (_, k) => {
-    const rawIdx = (month - 1) + 1 + k; // month é 1-based; projeta a partir do mês seguinte ao selecionado
-    const mIdx = rawIdx % 12;
-    const yr   = year + Math.floor(rawIdx / 12);
-    return { label: Utils.months[mIdx] + (yr !== year ? ' '+yr : ''), rec: avgRec, desp: avgDesp, saldo: avgSaldo };
-  });
-  const saldoColor = avgSaldo >= 0 ? 'var(--green)' : 'var(--red)';
-  return `
 <div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">Projeção — Próximos 3 Meses</span>
-    <span class="badge badge-accent">Baseado na média de ${activeMths.length} mês${activeMths.length>1?'es':''}</span>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:4px 0 8px">
-    ${proj.map(p => `
-    <div style="background:var(--bg-elevated);border-radius:12px;padding:16px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">${p.label}</div>
-      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
-        <div style="display:flex;justify-content:space-between">
-          <span style="color:var(--text-3)">Receita est.</span>
-          <span style="color:var(--green);font-weight:600">${Utils.currency(p.rec)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="color:var(--text-3)">Despesa est.</span>
-          <span style="color:var(--red);font-weight:600">${Utils.currency(p.desp)}</span>
-        </div>
-        <div style="height:1px;background:var(--border);margin:4px 0"></div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="color:var(--text-2);font-weight:600">Saldo est.</span>
-          <span style="color:${saldoColor};font-weight:700">${p.saldo >= 0 ? '' : '-'}${Utils.currency(Math.abs(p.saldo))}</span>
-        </div>
-      </div>
-    </div>`).join('')}
-  </div>
-  <div style="font-size:11px;color:var(--text-4);padding-top:4px">⚠️ Projeção baseada na média histórica dos meses com dados. Valores estimados.</div>
-</div>`;
-})()}
+  <div class="card-header"><span class="card-title">Meus Lançamentos — ${Utils.monthsFull[month-1]}</span><span class="badge badge-red">${recentDesp.length} itens</span></div>
+  ${recentDesp.length ? `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="num">Valor</th></tr></thead>
+    <tbody>
+      ${recentDesp.map(d => {
+        const val = d.split?.find(s=>s.person===eu)?.valor ?? d.amount;
+        const cat = Store.CATEGORIES[d.category];
+        return `<tr>
+          <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
+          <td>${d.desc}${d.split?.length ? ` <span class="badge badge-accent" style="font-size:10px">rateio</span>` : ''}</td>
+          <td><span class="badge" style="background:${cat?.color+'20'};color:${cat?.color}">${cat?.label||d.category}</span></td>
+          <td class="num negative">${Utils.currency(val)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>` : '<div style="padding:24px;text-align:center;color:var(--text-4);font-size:13px">Sem despesas no período</div>'}
+</div>
 
 <div class="card">
-  <div class="card-header"><span class="card-title">Tabela Mensal ${year}</span></div>
+  <div class="card-header"><span class="card-title">Histórico Mensal — ${year}</span></div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th class="num">% Gasto</th></tr></thead>
+      <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th></tr></thead>
       <tbody>
-        ${yrRec.map((rec,i)=>{
-          const desp = yrDesp[i]; const saldo = rec-desp; const pct = rec>0?desp/rec:0;
-          const isFuture = rec === 0 && desp === 0;
-          return `<tr style="${isFuture?'opacity:0.45':''}">
-            <td>${Utils.monthsFull[i]}${isFuture?` <span style="font-size:10px;color:var(--text-4)">est.</span>`:''}</td>
+        ${yrMeuRec.map((rec,i) => {
+          const desp = yrMeuDesp[i]; const s = rec-desp;
+          const empty = rec===0&&desp===0;
+          return `<tr style="${empty?'opacity:0.4':''}">
+            <td>${Utils.monthsFull[i]}</td>
             <td class="num positive">${rec>0?Utils.currency(rec):'—'}</td>
             <td class="num negative">${desp>0?Utils.currency(desp):'—'}</td>
-            <td class="num ${saldo>=0?'positive':'negative'}">${rec>0||desp>0?(saldo<0?'-':'')+Utils.currency(Math.abs(saldo)):'—'}</td>
-            <td class="num"><span class="badge ${pct>0.9?'badge-red':pct>0.7?'badge-amber':'badge-green'}">${rec>0?Utils.pct(pct):'—'}</span></td>
+            <td class="num ${s>=0?'positive':'negative'}">${rec>0||desp>0?(s<0?'-':'')+Utils.currency(Math.abs(s)):'—'}</td>
           </tr>`;
         }).join('')}
       </tbody>
       <tfoot><tr>
         <td class="fw-700">Total</td>
-        <td class="num positive fw-700">${Utils.currency(totalRec)}</td>
-        <td class="num negative fw-700">${Utils.currency(totalDesp)}</td>
-        <td class="num ${totalSaldo>=0?'positive':'negative'} fw-700">${totalSaldo<0?'-':''}${Utils.currency(Math.abs(totalSaldo))}</td>
-        <td class="num"><span class="badge ${totalDesp/totalRec>0.7?'badge-red':'badge-green'}">${Utils.pct(totalDesp/totalRec||0)}</span></td>
+        <td class="num positive fw-700">${Utils.currency(totalMeuRec)}</td>
+        <td class="num negative fw-700">${Utils.currency(totalMeuDesp)}</td>
+        <td class="num ${totalMeuSaldo>=0?'positive':'negative'} fw-700">${totalMeuSaldo<0?'-':''}${Utils.currency(Math.abs(totalMeuSaldo))}</td>
       </tr></tfoot>
     </table>
   </div>
 </div>`;
 
     requestAnimationFrame(() => {
-      Charts.Bar(document.getElementById('chartCompAnual'), {
+      Charts.Bar(document.getElementById('chartMeuAnual'), {
         labels: Utils.months,
         datasets: [
-          { label:'Receitas', values:yrRec,  color:'#22C55E' },
-          { label:'Despesas', values:yrDesp, color:'#EF4444' },
+          { label:'Receitas', values:yrMeuRec,  color: cor },
+          { label:'Despesas', values:yrMeuDesp, color:'#EF4444' },
         ],
-      }, { height: 170 });
-      Charts.Line(document.getElementById('chartCompSaldo'), {
+      }, { height: 165 });
+
+      let saldoAcc2 = 0;
+      Charts.Line(document.getElementById('chartMeuSaldo'), {
         labels: Utils.months,
-        datasets: [{ label:'Saldo', values:yrSaldo, color:'#7C6EF8' }],
+        datasets: [{ label:'Saldo', values: yrMeuSaldo.map(s => { saldoAcc2+=s; return saldoAcc2; }), color: cor }],
       }, { height: 150 });
+
+      if (topCats.length && document.getElementById('chartMeuDonut')) {
+        const donutData = topCats.map(([cat, val], i) => ({
+          label: Store.CATEGORIES[cat]?.label||cat,
+          value: val,
+          color: Store.CATEGORIES[cat]?.color || Charts.PALETTE[i],
+        }));
+        Charts.Donut(document.getElementById('chartMeuDonut'), donutData, {
+          size: 170, centerLabel: Charts.fmt(despMes, true), centerSub: 'total',
+        });
+        const td = donutData.reduce((a,d)=>a+d.value,0)||1;
+        document.getElementById('meuDonutLegend').innerHTML = donutData.map(d => `
+          <div class="donut-legend-item">
+            <div class="donut-legend-dot" style="background:${d.color}"></div>
+            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-pct">${((d.value/td)*100).toFixed(0)}%</span>
+            <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
+          </div>`).join('');
+      }
     });
   }
 
@@ -4147,6 +4601,233 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
     });
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // RECADOS — localStorage store
+  // ══════════════════════════════════════════════════════════════
+  const Recados = {
+    _key: 'ff_recados',
+    getAll() {
+      try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; }
+    },
+    save(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
+    add(from, to, content, linkedId, linkedType) {
+      const list = this.getAll();
+      const rec = { id: Date.now() + '_' + Math.random().toString(36).slice(2,7), from, to, content, read: false, created_at: new Date().toISOString(), linked_id: linkedId || null, linked_type: linkedType || null };
+      list.unshift(rec);
+      this.save(list);
+      return rec;
+    },
+    markRead(id) {
+      const list = this.getAll().map(r => r.id === id ? { ...r, read: true } : r);
+      this.save(list);
+    },
+    markAllRead(forPessoa) {
+      const list = this.getAll().map(r => (r.to === forPessoa || r.to === 'Todos') && !r.read ? { ...r, read: true } : r);
+      this.save(list);
+    },
+    delete(id) { this.save(this.getAll().filter(r => r.id !== id)); },
+    unreadFor(pessoa) { return this.getAll().filter(r => (r.to === pessoa || r.to === 'Todos') && !r.read).length; },
+  };
+
+  function currentPessoa() {
+    const ctx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
+    if (ctx?.pessoaName) return ctx.pessoaName;
+    return Store.PESSOAS[0] || 'Roberto';
+  }
+
+  function _updateAnomaliasBadge(count) {
+    let badge = document.getElementById('anomaliasBadge');
+    if (!badge) return;
+    badge.textContent = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+
+  function updateRecadosBadge() {
+    const badge = document.getElementById('recadosBadge');
+    if (!badge) return;
+    const count = Recados.unreadFor(currentPessoa());
+    badge.textContent = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PAGE: RECADOS
+  // ══════════════════════════════════════════════════════════════
+  function renderRecados(container) {
+    const eu = currentPessoa();
+    const outros = Store.PESSOAS.filter(p => p !== eu);
+    let activeTab = 'inbox';
+
+    function fmtRelTime(isoStr) {
+      const diff = Date.now() - new Date(isoStr).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1)  return 'agora';
+      if (m < 60) return `há ${m}min`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `há ${h}h`;
+      const d = Math.floor(h / 24);
+      return `há ${d}d`;
+    }
+
+    function buildInbox() {
+      const msgs = Recados.getAll().filter(r => r.to === eu || r.to === 'Todos');
+      if (!msgs.length) return `<div class="recados-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.5"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.5"/></svg><div>Nenhum recado recebido</div></div>`;
+      return msgs.map(r => {
+        const linked = r.linked_id && r.linked_type ? `<span class="recado-link-badge">${{'despesa':'📊 Despesa','receita':'💰 Receita','contrato':'📑 Contrato'}[r.linked_type]||r.linked_type}</span>` : '';
+        return `<div class="recado-item${r.read ? '' : ' recado-unread'}" data-id="${r.id}">
+  <div class="recado-avatar" style="background:${Utils.personColor(r.from)}">${Utils.personInitial(r.from)}</div>
+  <div class="recado-body">
+    <div class="recado-meta"><span class="recado-from">${r.from}</span>${linked}<span class="recado-time">${fmtRelTime(r.created_at)}</span>${r.to==='Todos'?'<span class="recado-to-badge">Para todos</span>':''}</div>
+    <div class="recado-content">${r.content}</div>
+  </div>
+  <button class="btn-ghost recado-del" data-del="${r.id}" title="Apagar" style="color:var(--text-4);flex-shrink:0">✕</button>
+</div>`;
+      }).join('');
+    }
+
+    function buildSent() {
+      const msgs = Recados.getAll().filter(r => r.from === eu);
+      if (!msgs.length) return `<div class="recados-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.5"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" stroke-width="1.5"/></svg><div>Nenhum recado enviado</div></div>`;
+      return msgs.map(r => {
+        const statusIcon = r.read ? `<span style="color:var(--green);font-size:11px" title="Lido">✓✓</span>` : `<span style="color:var(--text-4);font-size:11px" title="Não lido">✓</span>`;
+        return `<div class="recado-item" data-id="${r.id}">
+  <div class="recado-avatar" style="background:${Utils.personColor(r.to === 'Todos' ? 'Família' : r.to)}">${r.to === 'Todos' ? '👥' : Utils.personInitial(r.to)}</div>
+  <div class="recado-body">
+    <div class="recado-meta"><span class="recado-from">Para: ${r.to}</span>${statusIcon}<span class="recado-time">${fmtRelTime(r.created_at)}</span></div>
+    <div class="recado-content">${r.content}</div>
+  </div>
+  <button class="btn-ghost recado-del" data-del="${r.id}" title="Apagar" style="color:var(--text-4);flex-shrink:0">✕</button>
+</div>`;
+      }).join('');
+    }
+
+    function rerender() {
+      const box = document.getElementById('recadosBox');
+      if (box) box.innerHTML = activeTab === 'inbox' ? buildInbox() : buildSent();
+      attachHandlers();
+      updateRecadosBadge();
+    }
+
+    function attachHandlers() {
+      container.querySelectorAll('.recado-item[data-id]').forEach(item => {
+        if (activeTab === 'inbox' && !item.classList.contains('recado-unread') === false) {
+          item.addEventListener('click', e => {
+            if (e.target.closest('.recado-del')) return;
+            Recados.markRead(item.dataset.id);
+            item.classList.remove('recado-unread');
+            updateRecadosBadge();
+          });
+        }
+      });
+      container.querySelectorAll('.recado-del').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          Recados.delete(btn.dataset.del);
+          rerender();
+          toast('Recado apagado', 'success');
+        });
+      });
+    }
+
+    const unread = Recados.unreadFor(eu);
+    container.innerHTML = `
+<div class="section-header mb-4">
+  <div>
+    <div class="section-title">Recados</div>
+    <div class="section-sub">Caixa de mensagens da família · Como: <strong>${eu}</strong></div>
+  </div>
+  <button class="btn-primary" id="btnEscreverRecado">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Escrever recado
+  </button>
+</div>
+
+<div class="card" style="margin-bottom:12px">
+  <div class="flex gap-2" style="margin-bottom:12px">
+    <button class="btn-secondary active" id="btnTabInbox">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
+      Recebidos ${unread > 0 ? `<span style="background:var(--red);color:#fff;border-radius:20px;padding:0 6px;font-size:10px;margin-left:4px">${unread}</span>` : ''}
+    </button>
+    <button class="btn-secondary" id="btnTabEnviados">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" stroke-width="2"/></svg>
+      Enviados
+    </button>
+    ${unread > 0 ? `<button class="btn-secondary" id="btnMarkAllRead" style="margin-left:auto;font-size:12px">Marcar todos como lidos</button>` : ''}
+  </div>
+  <div id="recadosBox"></div>
+</div>`;
+
+    // Mark all as read on inbox open
+    Recados.markAllRead(eu);
+    updateRecadosBadge();
+
+    rerender();
+
+    document.getElementById('btnTabInbox').addEventListener('click', () => {
+      activeTab = 'inbox';
+      document.getElementById('btnTabInbox').classList.add('active');
+      document.getElementById('btnTabEnviados').classList.remove('active');
+      rerender();
+    });
+    document.getElementById('btnTabEnviados').addEventListener('click', () => {
+      activeTab = 'sent';
+      document.getElementById('btnTabEnviados').classList.add('active');
+      document.getElementById('btnTabInbox').classList.remove('active');
+      rerender();
+    });
+    document.getElementById('btnMarkAllRead')?.addEventListener('click', () => {
+      Recados.markAllRead(eu);
+      rerender();
+    });
+
+    document.getElementById('btnEscreverRecado').addEventListener('click', () => {
+      const despesas = Store.get().despesas;
+      const receitas = Store.get().receitas;
+      const contratos = Store.get().contratos || [];
+      Modal.open('Escrever Recado', `
+<div class="form-group">
+  <label class="form-label">Para</label>
+  <select class="form-select" id="rTo">
+    ${Store.PESSOAS.filter(p => p !== eu).map(p => `<option value="${p}">${p}</option>`).join('')}
+    <option value="Todos">👥 Todos</option>
+  </select>
+</div>
+<div class="form-group">
+  <label class="form-label">Mensagem</label>
+  <textarea class="form-input" id="rContent" rows="4" placeholder="Escreva seu recado aqui…" style="resize:vertical"></textarea>
+</div>
+<div class="form-group">
+  <label class="form-label">Vincular a um lançamento <span class="muted">(opcional)</span></label>
+  <select class="form-select" id="rLinked">
+    <option value="">— Nenhum —</option>
+    <optgroup label="Despesas recentes">
+      ${despesas.slice(0,20).map(d => `<option value="${d.id}|despesa">${d.desc} (${Utils.currency(d.amount)})</option>`).join('')}
+    </optgroup>
+    <optgroup label="Receitas recentes">
+      ${receitas.slice(0,10).map(r => `<option value="${r.id}|receita">${r.desc} (${Utils.currency(r.amount)})</option>`).join('')}
+    </optgroup>
+    ${contratos.length ? `<optgroup label="Contratos">${contratos.map(c => `<option value="${c.id}|contrato">${c.label}</option>`).join('')}</optgroup>` : ''}
+  </select>
+</div>`, () => {
+        const to      = document.getElementById('rTo').value;
+        const content = document.getElementById('rContent').value.trim();
+        const linked  = document.getElementById('rLinked').value;
+        if (!content) { toast('Escreva uma mensagem', 'error'); return; }
+        const [linkedId, linkedType] = linked ? linked.split('|') : [null, null];
+        Recados.add(eu, to, content, linkedId, linkedType);
+        Modal.close();
+        toast(`Recado enviado para ${to}`, 'success');
+        activeTab = 'sent';
+        rerender();
+        document.getElementById('btnTabEnviados')?.classList.add('active');
+        document.getElementById('btnTabInbox')?.classList.remove('active');
+      });
+      // Rename save button after modal opens
+      const btnSave = document.getElementById('modalSave');
+      if (btnSave) btnSave.textContent = 'Enviar recado';
+    });
+  }
+
   // ── INIT ───────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════
   // PAGE: CONFIGURAÇÕES
@@ -4731,9 +5412,10 @@ ${isConnected && isAdmin ? `
   }
 
   function renderConfigSobre(content) {
+    const savedKey = Store.get().settings?.claudeApiKey || '';
     content.innerHTML = `
 <div class="section-header mb-4"><div><div class="section-title">Sobre</div></div></div>
-<div class="card">
+<div class="card mb-4">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
     <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px">📊</div>
     <div>
@@ -4742,10 +5424,39 @@ ${isConnected && isAdmin ? `
     </div>
   </div>
   <div style="font-size:13px;color:var(--text-2);line-height:1.6">
-    App roda 100% no navegador. Dados em <code>localStorage</code> — sem backend.<br/>
-    <a href="https://github.com/minewall/finfamily" target="_blank" style="color:var(--accent)">github.com/minewall/finfamily</a>
+    App roda 100% no navegador. Dados em <code>localStorage</code> — sem backend.
   </div>
+</div>
+
+<div class="card">
+  <div class="card-header" style="margin-bottom:12px">
+    <span class="card-title">🤖 AI Coach — Chave de API</span>
+  </div>
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:12px;line-height:1.6">
+    O AI Coach usa a API do Claude (Anthropic). Insira sua chave abaixo — ela é salva localmente apenas no seu navegador e nunca é enviada a nenhum servidor nosso.
+    <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);display:inline-block;margin-top:4px">Obter chave em console.anthropic.com →</a>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input type="password" id="claudeApiKeyInput" class="form-input" style="flex:1;font-family:var(--mono);font-size:12px"
+      placeholder="sk-ant-api03-…" value="${savedKey}" autocomplete="off" />
+    <button class="btn-primary" id="saveApiKeyBtn">Salvar</button>
+    ${savedKey ? `<button class="btn-secondary" id="clearApiKeyBtn" style="color:var(--red)">Remover</button>` : ''}
+  </div>
+  ${savedKey ? `<div style="font-size:11px;color:var(--green);margin-top:8px">✓ Chave configurada — AI Coach disponível</div>` : ''}
 </div>`;
+
+    document.getElementById('saveApiKeyBtn')?.addEventListener('click', () => {
+      const key = document.getElementById('claudeApiKeyInput')?.value.trim();
+      if (!key) { toast('Digite a chave antes de salvar', 'error'); return; }
+      Store.updateSettings({ claudeApiKey: key });
+      toast('Chave salva com sucesso', 'success');
+      renderConfigSobre(content);
+    });
+    document.getElementById('clearApiKeyBtn')?.addEventListener('click', () => {
+      Store.updateSettings({ claudeApiKey: '' });
+      toast('Chave removida', 'info');
+      renderConfigSobre(content);
+    });
   }
 
   function init() {
@@ -4839,6 +5550,7 @@ ${isConnected && isAdmin ? `
     Router.register('simulacoes',    renderSimulacoes);
     Router.register('patrimonio',    renderPatrimonio);
     Router.register('comparativo',   renderComparativo);
+    Router.register('recados',       renderRecados);
     Router.register('config',        renderConfig);
 
     // Month / Year selectors
@@ -4885,6 +5597,267 @@ ${isConnected && isAdmin ? `
 
     // Init routing
     Router.init();
+
+    // Init badges
+    updateRecadosBadge();
+    _updateAnomaliasBadge(detectAnomalias(getMonth(), getYear()).length);
+
+    // Init AI Coach
+    initCoach();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // AI COACH
+  // ══════════════════════════════════════════════════════════════
+  function initCoach() {
+    const panel    = document.getElementById('coachPanel');
+    const sidebar  = document.getElementById('sidebar');
+    const btnOpen  = document.getElementById('btnCoach');
+    const btnClose = document.getElementById('coachCloseBtn');
+    const btnClear = document.getElementById('coachClearBtn');
+    const input    = document.getElementById('coachInput');
+    const sendBtn  = document.getElementById('coachSendBtn');
+    const msgs     = document.getElementById('coachMessages');
+    const resizeH  = document.getElementById('coachResizeHandle');
+    const statusEl = document.getElementById('coachStatus');
+    if (!panel || !btnOpen) return;
+
+    let history = []; // [{role, content}]
+    let isLoading = false;
+    let panelWidth = parseInt(localStorage.getItem('ff_coach_width') || '380', 10);
+
+    function openPanel() {
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      sidebar.classList.add('icon-only');
+      panel.style.width = panelWidth + 'px';
+      btnOpen.classList.add('active');
+      input.focus();
+    }
+
+    function closePanel() {
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+      sidebar.classList.remove('icon-only');
+      btnOpen.classList.remove('active');
+    }
+
+    btnOpen.addEventListener('click', () => {
+      panel.classList.contains('open') ? closePanel() : openPanel();
+    });
+    btnClose.addEventListener('click', closePanel);
+
+    btnClear.addEventListener('click', () => {
+      history = [];
+      msgs.innerHTML = document.getElementById('coachSuggestions') ? msgs.innerHTML : '';
+      msgs.innerHTML = `
+      <div class="coach-welcome">
+        <div class="coach-avatar-lg">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div>
+        <p>Conversa reiniciada. Como posso ajudar?</p>
+        <div class="coach-suggestions" id="coachSuggestions">
+          <button class="coach-suggestion">Qual meu maior gasto esse mês?</button>
+          <button class="coach-suggestion">Estou dentro do orçamento?</button>
+          <button class="coach-suggestion">Onde posso economizar?</button>
+          <button class="coach-suggestion">Como está minha saúde financeira?</button>
+        </div>
+      </div>`;
+      bindSuggestions();
+    });
+
+    // ── Drag to resize ────────────────────────────────────────────
+    let dragging = false, startX = 0, startW = 0;
+    resizeH.addEventListener('mousedown', e => {
+      dragging = true; startX = e.clientX; startW = panel.offsetWidth;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const delta = startX - e.clientX;
+      const newW = Math.min(640, Math.max(300, startW + delta));
+      panel.style.width = newW + 'px';
+      panelWidth = newW;
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('ff_coach_width', panelWidth);
+    });
+
+    // ── Build financial context ───────────────────────────────────
+    function buildContext() {
+      const month = getMonth(), year = getYear();
+      const data  = Store.get();
+      const rec   = Store.sumReceitas(month, year);
+      const desp  = Store.sumDespesas(month, year);
+      const saldo = rec - desp;
+      const util  = rec > 0 ? ((desp / rec) * 100).toFixed(1) : '0';
+      const catMap = Store.despesasByCategory(month, year);
+      const topCats = Object.entries(catMap).sort((a,b) => b[1]-a[1]).slice(0,6)
+        .map(([k,v]) => `  - ${Store.CATEGORIES[k]?.label||k}: R$ ${v.toFixed(2)}`).join('\n');
+      const metas = data.metas || [];
+      const metasAtivas = metas.filter(m => !m.concluida).length;
+      const contratos = Store.getContratos().filter(c => c.active !== false);
+      const anomalias = detectAnomalias(month, year);
+      const anomStr = anomalias.length
+        ? anomalias.slice(0,3).map(a => `  - ${a.label}: +${(a.delta*100).toFixed(0)}% acima da média`).join('\n')
+        : '  Nenhuma anomalia detectada';
+      const recs = Store.receitasByMonth(month, year);
+      const recByPerson = {};
+      recs.forEach(r => { recByPerson[r.person] = (recByPerson[r.person]||0)+r.amount; });
+      const recStr = Object.entries(recByPerson).map(([p,v]) => `  - ${p}: R$ ${v.toFixed(2)}`).join('\n') || '  Sem receitas';
+      const settings = data.settings || {};
+      const limiteGasto = settings.limiteGasto ? (settings.limiteGasto*100).toFixed(0)+'%' : '80%';
+      const metaRecMensal = settings.metaReceita ? `R$ ${settings.metaReceita.toFixed(2)}` : 'não definida';
+      const pessoa = currentPessoa();
+      const userName = pessoa || 'usuário';
+
+      return `Você é o AI Coach financeiro do FinFamily, um assistente especializado em finanças pessoais e familiares. Você tem acesso ao contexto financeiro completo do usuário abaixo.
+
+USUÁRIO: ${userName}
+MÊS DE REFERÊNCIA: ${Utils.monthsFull[month-1]} ${year}
+
+=== RESUMO DO MÊS ===
+Receitas: R$ ${rec.toFixed(2)}
+Despesas: R$ ${desp.toFixed(2)}
+Saldo: R$ ${saldo.toFixed(2)} (${saldo >= 0 ? 'positivo' : 'NEGATIVO'})
+Comprometimento da receita: ${util}% (limite configurado: ${limiteGasto})
+Meta de receita mensal: ${metaRecMensal}
+
+=== RECEITAS POR PESSOA ===
+${recStr}
+
+=== TOP DESPESAS POR CATEGORIA ===
+${topCats || '  Sem despesas registradas'}
+
+=== METAS FINANCEIRAS ===
+${metasAtivas} meta(s) ativa(s) de ${metas.length} no total
+
+=== CONTRATOS RECORRENTES ===
+${contratos.length} contrato(s) ativo(s)
+
+=== ANOMALIAS DETECTADAS ===
+${anomStr}
+
+INSTRUÇÕES:
+- Seja direto, empático e prático
+- Use valores reais do contexto acima nas respostas
+- Dê conselhos específicos e acionáveis, não genéricos
+- Use português do Brasil
+- Quando relevante, mencione valores concretos
+- Seja como um CFO pessoal que conhece bem a situação financeira da família`;
+    }
+
+    // ── Render message ────────────────────────────────────────────
+    function appendMsg(role, content) {
+      const welcome = msgs.querySelector('.coach-welcome');
+      if (welcome) welcome.remove();
+      const initial = role === 'user' ? currentPessoa()[0]?.toUpperCase() || 'U' : '✦';
+      const div = document.createElement('div');
+      div.className = `coach-msg ${role}`;
+      div.innerHTML = `
+        <div class="coach-msg-avatar">${initial}</div>
+        <div class="coach-bubble">${content.replace(/\n/g, '<br>')}</div>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return div;
+    }
+
+    function showTyping() {
+      const div = document.createElement('div');
+      div.className = 'coach-msg assistant';
+      div.id = 'coachTypingIndicator';
+      div.innerHTML = `<div class="coach-msg-avatar">✦</div><div class="coach-bubble"><div class="coach-typing"><span></span><span></span><span></span></div></div>`;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function removeTyping() {
+      document.getElementById('coachTypingIndicator')?.remove();
+    }
+
+    // ── Send message ──────────────────────────────────────────────
+    async function sendMessage(text) {
+      if (!text.trim() || isLoading) return;
+
+      const apiKey = Store.get().settings?.claudeApiKey;
+      if (!apiKey) {
+        appendMsg('assistant', '⚠️ Chave de API do Claude não configurada. Acesse **Configurações → Sobre** para inserir sua chave.');
+        return;
+      }
+
+      isLoading = true;
+      sendBtn.disabled = true;
+      statusEl.textContent = 'Pensando…';
+      statusEl.style.color = 'var(--amber)';
+
+      history.push({ role: 'user', content: text });
+      appendMsg('user', text);
+      input.value = '';
+      input.style.height = 'auto';
+      showTyping();
+
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+            'anthropic-dangerous-allow-browser': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1024,
+            system: buildContext(),
+            messages: history,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const reply = data.content?.[0]?.text || '(sem resposta)';
+        history.push({ role: 'assistant', content: reply });
+        removeTyping();
+        appendMsg('assistant', reply);
+        statusEl.textContent = 'Pronto para ajudar';
+        statusEl.style.color = 'var(--accent)';
+      } catch (e) {
+        removeTyping();
+        appendMsg('assistant', `❌ Erro ao conectar com o Claude: ${e.message}`);
+        history.pop();
+        statusEl.textContent = 'Erro na conexão';
+        statusEl.style.color = 'var(--red)';
+      } finally {
+        isLoading = false;
+        sendBtn.disabled = false;
+      }
+    }
+
+    // ── Input handlers ────────────────────────────────────────────
+    sendBtn.addEventListener('click', () => sendMessage(input.value));
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input.value); }
+    });
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+
+    function bindSuggestions() {
+      document.querySelectorAll('.coach-suggestion').forEach(btn => {
+        btn.addEventListener('click', () => sendMessage(btn.textContent));
+      });
+    }
+    bindSuggestions();
   }
 
   // Hides nav sections not accessible to 'member' role users

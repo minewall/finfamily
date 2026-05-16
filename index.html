@@ -94,6 +94,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
           <span class="nav-text">Despesas</span>
+          <span class="nav-badge amber" id="anomaliasBadge" style="display:none">0</span>
         </a>
         <a href="#contas" class="nav-item" data-page="contas">
           <span class="nav-icon">
@@ -145,12 +146,19 @@
       </div>
 
       <div class="nav-section">
-        <span class="nav-label">Sistema</span>
+        <span class="nav-label">Família</span>
+        <a href="#recados" class="nav-item" data-page="recados">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span class="nav-text">Recados</span>
+          <span class="nav-badge red" id="recadosBadge" style="display:none">0</span>
+        </a>
         <a href="#comparativo" class="nav-item" data-page="comparativo">
           <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
-          <span class="nav-text">Comparativo</span>
+          <span class="nav-text">Meu Painel</span>
         </a>
         <a href="#config" class="nav-item" data-page="config">
           <span class="nav-icon">
@@ -186,6 +194,10 @@
           <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-4);flex-shrink:0"></span>
           <span id="syncLabel">—</span>
         </div>
+        <button class="btn-secondary" id="btnCoach" title="Abrir AI Coach">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Coach
+        </button>
         <button class="btn-primary" id="btnNovaEntrada">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
           Novo Lançamento
@@ -216,6 +228,50 @@
 <!-- ═══════════════════════════════════════════════════ SIDEBAR OVERLAY ══ -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+<!-- ═══════════════════════════════════════════════════ AI COACH PANEL ══ -->
+<div class="coach-panel" id="coachPanel" aria-hidden="true">
+  <div class="coach-resize-handle" id="coachResizeHandle"></div>
+  <div class="coach-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="coach-avatar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-1)">AI Coach</div>
+        <div style="font-size:10px;color:var(--accent)" id="coachStatus">Pronto para ajudar</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="coach-icon-btn" id="coachClearBtn" title="Limpar conversa">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="coach-icon-btn" id="coachCloseBtn" title="Fechar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="coach-messages" id="coachMessages">
+    <div class="coach-welcome">
+      <div class="coach-avatar-lg">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
+      </div>
+      <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
+      <div class="coach-suggestions" id="coachSuggestions">
+        <button class="coach-suggestion">Qual meu maior gasto esse mês?</button>
+        <button class="coach-suggestion">Estou dentro do orçamento?</button>
+        <button class="coach-suggestion">Onde posso economizar?</button>
+        <button class="coach-suggestion">Como está minha saúde financeira?</button>
+      </div>
+    </div>
+  </div>
+  <div class="coach-input-area">
+    <textarea class="coach-input" id="coachInput" placeholder="Pergunte sobre suas finanças…" rows="1"></textarea>
+    <button class="coach-send-btn" id="coachSendBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════ TOAST ══ -->
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
@@ -224,7 +280,7 @@
 <script src="js/supabase-client.js?v=69"></script>
 <script src="js/store.js?v=69"></script>
 <script src="js/charts.js?v=69"></script>
-<script src="js/app.js?v=69"></script>
+<script src="js/app.js?v=81"></script>
 
 </body>
 </html>
