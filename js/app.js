@@ -1897,6 +1897,33 @@ ${periodToggleHTML('ff_desp_period', period)}
           <span class="form-label" style="margin:0">Houve desconto?</span>
         </label>
       </div>
+      <div class="form-group form-full">
+        <label class="form-label">Visibilidade</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="vis-btn active" data-vis="familiar" id="visBtnFamiliar"
+            style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            👨‍👩‍👧 Familiar
+          </button>
+          <button type="button" class="vis-btn" data-vis="particular" id="visBtnParticular"
+            style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            🔒 Particular
+          </button>
+        </div>
+        <input type="hidden" id="fDVis" value="familiar"/>
+      </div>
+      <div class="form-group form-full" id="fDReembolsoRow" style="display:none">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="fDReembolso" style="width:16px;height:16px;accent-color:var(--amber)">
+          <span class="form-label" style="margin:0;color:var(--amber)">Solicitar reembolso</span>
+        </label>
+        <div id="fDReembolsoOpts" style="display:none;display:flex;gap:8px;margin-top:4px">
+          <select class="form-select" id="fDReembolsoDe" style="flex:1">
+            ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+            <option value="Família">Família (grupo)</option>
+          </select>
+          <input class="form-input" type="number" id="fDReembolsoValor" step="0.01" placeholder="Valor a reembolsar" style="flex:1"/>
+        </div>
+      </div>
       <div id="fDDescontoOpts" style="display:none;grid-column:1/-1" class="form-group">
         <label class="form-label">Valor Original (R$)</label>
         <input class="form-input" id="fDValorOriginal" type="number" step="0.01" placeholder="Valor sem desconto"/>
@@ -1929,6 +1956,10 @@ ${periodToggleHTML('ff_desp_period', period)}
       const valorOriginal = temDesconto ? parseFloat(document.getElementById('fDValorOriginal')?.value || '0') : 0;
       const economia      = temDesconto && valorOriginal > amount ? valorOriginal - amount : 0;
       const split         = splitApi?.read() || null;
+      const visibilidade  = document.getElementById('fDVis')?.value || 'familiar';
+      const temReembolso  = visibilidade === 'particular' && document.getElementById('fDReembolso')?.checked;
+      const reembolsoDe   = temReembolso ? (document.getElementById('fDReembolsoDe')?.value || 'Família') : null;
+      const reembolsoVal  = temReembolso ? (parseFloat(document.getElementById('fDReembolsoValor')?.value) || amount) : null;
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
       if (split) {
         const sum = split.reduce((s,r)=>s+r.valor,0);
@@ -1937,6 +1968,10 @@ ${periodToggleHTML('ff_desp_period', period)}
       const extraFields = temDesconto && economia > 0 ? { desconto: true, valorOriginal, economia } : {};
       if (split) extraFields.split = split;
       if (cartaoId) extraFields.cartaoId = cartaoId;
+      extraFields.visibilidade = visibilidade;
+      if (temReembolso) extraFields.reembolso = {
+        para: currentPessoa(), de: reembolsoDe, valor: reembolsoVal, status: 'pendente', criadoEm: new Date().toISOString().slice(0,10)
+      };
       if (parcelado && parcelas > 1) {
         Store.addDespesaParcelada({ desc, amount: parseFloat((amount / parcelas).toFixed(2)), date, category: cat, sub, pay, parcelas, ...extraFields });
         toast(`${parcelas} parcelas lançadas!`, 'success');
@@ -1946,6 +1981,7 @@ ${periodToggleHTML('ff_desp_period', period)}
         toast('Despesa adicionada!', 'success');
       }
       Modal.close();
+      updateReembolsosBadge();
       renderDespesas(refreshContainer);
     });
     function updateSubs() {
@@ -1985,6 +2021,35 @@ ${periodToggleHTML('ff_desp_period', period)}
       document.getElementById('fDValorOriginal')?.addEventListener('input', updateEconomia);
       document.getElementById('fDAmt')?.addEventListener('input', () => { updateParcelaInfo(); updateEconomia(); });
       document.getElementById('fDParcelas')?.addEventListener('change', updateParcelaInfo);
+
+      // Visibilidade toggle
+      document.querySelectorAll('.vis-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const vis = btn.dataset.vis;
+          document.getElementById('fDVis').value = vis;
+          document.getElementById('visBtnFamiliar').style.cssText =
+            vis === 'familiar'
+              ? 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s'
+              : 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s';
+          document.getElementById('visBtnParticular').style.cssText =
+            vis === 'particular'
+              ? 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--amber);background:var(--amber-dim);color:var(--amber);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s'
+              : 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s';
+          const reembolsoRow = document.getElementById('fDReembolsoRow');
+          if (reembolsoRow) reembolsoRow.style.display = vis === 'particular' ? 'block' : 'none';
+        });
+      });
+      document.getElementById('fDReembolso')?.addEventListener('change', e => {
+        const opts = document.getElementById('fDReembolsoOpts');
+        if (opts) opts.style.display = e.target.checked ? 'flex' : 'none';
+        // Pre-fill valor with despesa amount
+        if (e.target.checked) {
+          const amt = document.getElementById('fDAmt')?.value;
+          const valEl = document.getElementById('fDReembolsoValor');
+          if (valEl && amt) valEl.value = amt;
+        }
+      });
+
       setupAC('fDDesc', 'fDDescAc', suggestions.map(s => s.desc), val => {
         const match = suggestMap[val];
         if (match) {
@@ -4125,6 +4190,39 @@ ${topCats.length ? `
         <div style="font-size:11px;color:var(--green);margin-top:4px" id="eDEconomia">${d.economia?'💰 Economia: '+Utils.currency(d.economia):''}</div>
       </div>
       ${splitSectionHTML().replace(/fD/g, 'fD')}
+      <div class="form-group form-full">
+        <label class="form-label">Visibilidade</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="vis-btn${(d.visibilidade||'familiar')==='familiar'?' active':''}" data-vis="familiar" id="eDVisBtnFamiliar"
+            style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-2);cursor:pointer;font-size:13px;transition:all .15s">
+            👨‍👩‍👧 Familiar</button>
+          <button type="button" class="vis-btn${(d.visibilidade||'familiar')==='particular'?' active':''}" data-vis="particular" id="eDVisBtnParticular"
+            style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-2);cursor:pointer;font-size:13px;transition:all .15s">
+            🔒 Particular</button>
+        </div>
+        <input type="hidden" id="eDVis" value="${d.visibilidade||'familiar'}"/>
+      </div>
+      <div id="eDReembolsoRow" class="form-group form-full" style="display:${(d.visibilidade||'familiar')==='particular'?'block':'none'};background:var(--amber-bg,rgba(245,158,11,.07));border-radius:10px;padding:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="eDReembolso" style="width:16px;height:16px;accent-color:var(--amber)"${d.reembolso?' checked':''}>
+          <span class="form-label" style="margin:0;color:var(--amber)">Solicitar reembolso</span>
+        </label>
+        <div id="eDReembolsoFields" style="display:${d.reembolso?'block':'none'}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+            <div>
+              <label class="form-label">Quem reembolsa</label>
+              <select class="form-select" id="eDReembolsoDe">
+                ${Store.PESSOAS.map(p => `<option${p===(d.reembolso?.de||'')?' selected':''}>${p}</option>`).join('')}
+                <option${'Família'===(d.reembolso?.de||'')?' selected':''}>Família</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Valor a reembolsar (R$)</label>
+              <input class="form-input" id="eDReembolsoValor" type="number" step="0.01" value="${d.reembolso?.valor||''}"/>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>`;
 
     let editSplitApi = null;
@@ -4139,20 +4237,33 @@ ${topCats.length ? `
       const valorOrig = temDesc ? parseFloat(document.getElementById('eDValorOriginal').value||'0') : 0;
       const economia  = temDesc && valorOrig > amount ? valorOrig - amount : 0;
       const split    = editSplitApi?.read() || null;
+      const visibilidade = document.getElementById('eDVis')?.value || 'familiar';
+      const temReembolso = visibilidade === 'particular' && document.getElementById('eDReembolso')?.checked;
+      const reembolsoDe  = temReembolso ? (document.getElementById('eDReembolsoDe')?.value || 'Família') : null;
+      const reembolsoVal = temReembolso ? (parseFloat(document.getElementById('eDReembolsoValor')?.value) || amount) : null;
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
       if (split) {
         const sum = split.reduce((s,r)=>s+r.valor,0);
         if (sum > amount + 0.01) return toast('Soma do rateio excede o valor', 'error');
       }
       const dt = new Date(date);
-      Store.updateDespesa(id, {
+      const updates = {
         desc, amount, date, category: cat, sub, pay,
         month: dt.getMonth() + 1, year: dt.getFullYear(),
         desconto: temDesc && economia > 0, valorOriginal: valorOrig, economia,
         split: split || null,
-      });
+        visibilidade,
+        reembolso: temReembolso ? {
+          para: d.reembolso?.para || currentPessoa(),
+          de: reembolsoDe, valor: reembolsoVal,
+          status: d.reembolso?.status || 'pendente',
+          criadoEm: d.reembolso?.criadoEm || new Date().toISOString().slice(0,10),
+        } : null,
+      };
+      Store.updateDespesa(id, updates);
       Modal.close();
       toast('Despesa atualizada!', 'success');
+      updateReembolsosBadge();
       if (onSaved) onSaved();
     });
 
@@ -4174,6 +4285,18 @@ ${topCats.length ? `
       }
       document.getElementById('eDValorOriginal')?.addEventListener('input', updateEd);
       document.getElementById('eDAmt')?.addEventListener('input', updateEd);
+      document.querySelectorAll('#eDVisBtnFamiliar,#eDVisBtnParticular').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#eDVisBtnFamiliar,#eDVisBtnParticular').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('eDVis').value = btn.dataset.vis;
+          const row = document.getElementById('eDReembolsoRow');
+          if (row) row.style.display = btn.dataset.vis === 'particular' ? 'block' : 'none';
+        });
+      });
+      document.getElementById('eDReembolso')?.addEventListener('change', e => {
+        document.getElementById('eDReembolsoFields').style.display = e.target.checked ? 'block' : 'none';
+      });
     }, 50);
   }
 
@@ -4640,6 +4763,103 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
     if (!badge) return;
     badge.textContent = count;
     badge.style.display = count > 0 ? '' : 'none';
+  }
+
+  function updateReembolsosBadge() {
+    const badge = document.getElementById('reembolsosBadge');
+    if (!badge) return;
+    const count = Store.getReembolsosPendentes().length;
+    badge.textContent = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PAGE: REEMBOLSOS
+  // ══════════════════════════════════════════════════════════════
+  function renderReembolsos(container) {
+    const pendentes = Store.getReembolsosPendentes();
+    const todos = Store.get().despesas.filter(d => d.reembolso);
+    const pagos = todos.filter(d => d.reembolso.status === 'pago');
+
+    const totalPendente = pendentes.reduce((s,d) => s + (d.reembolso.valor || d.amount), 0);
+
+    function rowHTML(d, isPendente) {
+      const r = d.reembolso;
+      const val = r.valor || d.amount;
+      return `<tr>
+        <td style="padding:10px 12px">
+          <div style="font-weight:500;font-size:13px">${d.desc}</div>
+          <div style="font-size:11px;color:var(--text-4)">${d.date} · ${d.category}</div>
+        </td>
+        <td style="padding:10px 12px;font-size:12px;color:var(--text-3)">${r.para} → ${r.de}</td>
+        <td style="padding:10px 12px;font-family:var(--font-mono,monospace);font-size:13px;color:var(--amber);text-align:right">${Utils.currency(val)}</td>
+        <td style="padding:10px 12px;text-align:center">
+          ${isPendente
+            ? `<span style="background:rgba(245,158,11,.15);color:var(--amber);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600">pendente</span>`
+            : `<span style="background:rgba(34,197,94,.15);color:var(--green);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600">pago em ${r.paidAt||''}</span>`}
+        </td>
+        <td style="padding:10px 12px;text-align:right">
+          ${isPendente
+            ? `<button class="btn btn-sm btn-outline" data-mark-paid="${d.id}" style="font-size:11px;padding:4px 10px">Marcar pago</button>`
+            : ''}
+        </td>
+      </tr>`;
+    }
+
+    container.innerHTML = `
+      <div class="page-header">
+        <h1 class="page-title">Reembolsos</h1>
+      </div>
+      ${pendentes.length > 0 ? `
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <div class="card kpi-card">
+          <div class="kpi-label">Pendentes</div>
+          <div class="kpi-value" style="color:var(--amber)">${pendentes.length}</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Total a receber</div>
+          <div class="kpi-value" style="color:var(--amber)">${Utils.currency(totalPendente)}</div>
+        </div>
+      </div>` : ''}
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span>Pendentes de pagamento</span></div>
+        ${pendentes.length === 0
+          ? `<div style="padding:32px;text-align:center;color:var(--text-4);font-size:13px">Nenhum reembolso pendente 🎉</div>`
+          : `<table style="width:100%;border-collapse:collapse">
+              <thead><tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">Despesa</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">De → Para</th>
+                <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text-4);font-weight:500">Valor</th>
+                <th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text-4);font-weight:500">Status</th>
+                <th></th>
+              </tr></thead>
+              <tbody>${pendentes.map(d => rowHTML(d, true)).join('')}</tbody>
+            </table>`}
+      </div>
+      ${pagos.length > 0 ? `
+      <div class="card">
+        <div class="card-header"><span>Histórico — pagos</span></div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">Despesa</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">De → Para</th>
+            <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text-4);font-weight:500">Valor</th>
+            <th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text-4);font-weight:500">Status</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${pagos.map(d => rowHTML(d, false)).join('')}</tbody>
+        </table>
+      </div>` : ''}
+    `;
+
+    container.querySelectorAll('[data-mark-paid]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Store.marcarReembolsoPago(btn.dataset.markPaid);
+        updateReembolsosBadge();
+        renderReembolsos(container);
+        toast('Reembolso marcado como pago!', 'success');
+      });
+    });
   }
 
   function updateRecadosBadge() {
@@ -5595,6 +5815,7 @@ ${isConnected && isAdmin ? `
     Router.register('patrimonio',    renderPatrimonio);
     Router.register('comparativo',   renderComparativo);
     Router.register('recados',       renderRecados);
+    Router.register('reembolsos',    renderReembolsos);
     Router.register('config',        renderConfig);
 
     // Month / Year selectors
@@ -5644,6 +5865,7 @@ ${isConnected && isAdmin ? `
 
     // Init badges
     updateRecadosBadge();
+    updateReembolsosBadge();
     _updateAnomaliasBadge(detectAnomalias(getMonth(), getYear()).length);
 
     // Init AI Coach
