@@ -3802,22 +3802,28 @@ ${isConnected && isAdmin ? `
 </div>
 <div class="card" style="padding:16px 20px;margin-bottom:12px">
   <div style="font-size:12px;color:var(--text-3);margin-bottom:12px">Convidar novo membro</div>
-  <div style="display:flex;gap:8px;align-items:flex-end">
-    <div style="flex:1">
+  <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <div style="flex:1;min-width:160px">
       <label class="form-label" style="font-size:10px">E-mail</label>
       <input class="form-input" id="fInviteEmail" type="email" placeholder="email@exemplo.com" style="font-size:13px"/>
     </div>
-    <div style="width:130px">
+    <div style="width:140px">
       <label class="form-label" style="font-size:10px">Perfil</label>
       <select class="form-input" id="fInviteRole" style="font-size:13px">
         <option value="editor">Editor (acesso total)</option>
         <option value="member">Membro (só os próprios)</option>
       </select>
     </div>
+    <div style="width:130px;display:none" id="fPessoaGroup">
+      <label class="form-label" style="font-size:10px">Pessoa local</label>
+      <select class="form-input" id="fInvitePessoa" style="font-size:13px">
+        ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+    </div>
     <button class="btn-primary" id="btnInvite" style="white-space:nowrap">Convidar</button>
   </div>
   <div style="margin-top:8px;font-size:11px;color:var(--text-4)">
-    Editor: vê e edita tudo · Membro: lança e vê apenas suas próprias despesas e rateios
+    Editor: vê e edita tudo · Membro: selecione qual pessoa local corresponde a este usuário
   </div>
 </div>
 <div id="familyMembersList"><div style="font-size:12px;color:var(--text-4);padding:8px">Carregando membros…</div></div>
@@ -3854,13 +3860,21 @@ ${isConnected && isAdmin ? `
     if (isConnected && isAdmin) {
       _loadFamilyMembers();
 
+      // Show/hide pessoa selector based on role
+      document.getElementById('fInviteRole').addEventListener('change', e => {
+        const pg = document.getElementById('fPessoaGroup');
+        if (pg) pg.style.display = e.target.value === 'member' ? 'block' : 'none';
+      });
+
       document.getElementById('btnInvite').addEventListener('click', async () => {
         const email = document.getElementById('fInviteEmail').value.trim();
         const role  = document.getElementById('fInviteRole').value;
+        const pessoaName = role === 'member' ? (document.getElementById('fInvitePessoa')?.value || null) : null;
         if (!email) return toast('Informe o e-mail', 'error');
+        if (role === 'member' && !pessoaName) return toast('Selecione a pessoa local para o membro', 'error');
         const btn = document.getElementById('btnInvite');
         btn.disabled = true; btn.textContent = 'Enviando…';
-        const { error } = await SupabaseSync.inviteMember(email, role);
+        const { error } = await SupabaseSync.inviteMember(email, role, pessoaName);
         btn.disabled = false; btn.textContent = 'Convidar';
         if (error) return toast(typeof error === 'string' ? error : (error.message || 'Erro ao convidar'), 'error');
         document.getElementById('fInviteEmail').value = '';
@@ -3890,6 +3904,7 @@ ${isConnected && isAdmin ? `
     const accepted = !!m.accepted_at;
     const email = m.invited_email || '—';
     const role  = m.role;
+    const sub   = [accepted ? 'Ativo' : 'Aguardando login', m.pessoa_name ? `→ ${m.pessoa_name}` : ''].filter(Boolean).join(' · ');
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 16px">
       <div class="person-avatar" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]};width:34px;height:34px;font-size:12px;font-weight:700;border:1px solid ${ROLE_COLORS[role]}40">
@@ -3897,7 +3912,7 @@ ${isConnected && isAdmin ? `
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${email}</div>
-        <div style="font-size:11px;color:var(--text-4)">${accepted ? 'Ativo' : 'Aguardando login'}</div>
+        <div style="font-size:11px;color:var(--text-4)">${sub}</div>
       </div>
       <span class="badge" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]}">${ROLE_LABELS[role]||role}</span>
       <button class="btn-xs btn-red" data-member-id="${m.id}" title="Remover acesso">✕</button>
@@ -4202,12 +4217,22 @@ ${isConnected && isAdmin ? `
         const cloudData = await SupabaseSync.pullFromCloud();
         if (cloudData && cloudData.despesas) {
           localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));
+          // Re-init store from freshly saved localStorage
+          Store.init();
           if (syncDot)   { syncDot.style.background = 'var(--green)'; }
           if (syncLabel) { syncLabel.textContent = ctx && ctx.role !== 'admin' ? `Conectado (${ctx.role})` : 'Sincronizado'; }
           console.log('FinFamily: dados sincronizados da nuvem, role:', ctx?.role);
         } else {
           if (!ctx || ctx.role === 'admin') SupabaseSync.schedulePush(Store.get());
           console.log('FinFamily: dados locais (nuvem vazia ou sem conexão)');
+        }
+
+        // Apply member-role restrictions after data is settled
+        if (ctx && ctx.role === 'member') {
+          if (ctx.pessoaName) Store.applyMemberFilter(ctx.pessoaName);
+          _applyMemberNav();
+          // Re-render current page with filtered data
+          Router.navigate(Router.current || 'despesas');
         }
       })();
     }
@@ -4270,6 +4295,26 @@ ${isConnected && isAdmin ? `
 
     // Init routing
     Router.init();
+  }
+
+  // Hides nav sections not accessible to 'member' role users
+  function _applyMemberNav() {
+    const HIDDEN_PAGES = ['receitas','metas','contratos','contas','reserva','comparativo'];
+    HIDDEN_PAGES.forEach(page => {
+      const el = document.querySelector(`[data-page="${page}"]`);
+      if (el) el.style.display = 'none';
+    });
+    // Also hide the "Novo Lançamento" button from topbar (member can only log own expenses inline)
+    const btnNova = document.getElementById('btnNovaEntrada');
+    if (btnNova) btnNova.style.display = 'none';
+    // Show member badge in sidebar footer
+    const footer = document.querySelector('.sidebar-footer');
+    if (footer) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:10px;background:var(--amber)20;color:var(--amber);border:1px solid var(--amber)40;border-radius:20px;padding:2px 8px;margin-right:6px';
+      badge.textContent = 'Membro';
+      footer.prepend(badge);
+    }
   }
 
   return { init };

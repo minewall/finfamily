@@ -117,13 +117,13 @@ const SupabaseSync = (function () {
     if (!_client || !groupId) return [];
     const { data } = await _client
       .from('family_members')
-      .select('id, user_id, role, invited_email, accepted_at, created_at')
+      .select('id, user_id, role, invited_email, pessoa_name, accepted_at, created_at')
       .eq('family_id', groupId)
       .order('created_at');
     return data || [];
   }
 
-  async function inviteMember(email, role) {
+  async function inviteMember(email, role, pessoaName) {
     if (!_client || !_user) return { error: 'Não conectado' };
     // Ensure group exists first
     const { data: group, error: ge } = await createOrGetFamilyGroup();
@@ -136,9 +136,11 @@ const SupabaseSync = (function () {
       .eq('invited_email', email)
       .maybeSingle();
     if (existing) return { error: 'Este e-mail já foi convidado' };
+    const row = { family_id: group.id, invited_email: email, role, user_id: null };
+    if (pessoaName) row.pessoa_name = pessoaName;
     const { data, error } = await _client
       .from('family_members')
-      .insert({ family_id: group.id, invited_email: email, role, user_id: null })
+      .insert(row)
       .select()
       .single();
     return { data, error };
@@ -198,6 +200,7 @@ const SupabaseSync = (function () {
         groupId: membership.family_id,
         ownerId,
         role: membership.role,
+        pessoaName: membership.pessoa_name || null,
         dataOwnerUserId: ownerId,
       };
       return _family;

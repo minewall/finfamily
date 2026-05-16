@@ -1598,6 +1598,23 @@ const Store = (function () {
     return totals;
   }
 
+  // Restricts in-memory data to what a 'member' role user should see.
+  // Keeps only despesas where pessoa appears as responsavel or in split.
+  // Receitas, contratos, contas, passivos, ativos: hidden (replaced with empty arrays).
+  function applyMemberFilter(pessoaName) {
+    if (!pessoaName || !_data) return;
+    _data.despesas = (_data.despesas || []).filter(d => {
+      if (d.responsavel === pessoaName) return true;
+      if (Array.isArray(d.split) && d.split.some(s => s.person === pessoaName)) return true;
+      return false;
+    });
+    _data.receitas   = [];
+    _data.contratos  = [];
+    _data.passivos   = [];
+    _data.ativos     = [];
+    _data.contas     = [];
+  }
+
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
@@ -1628,6 +1645,7 @@ const Store = (function () {
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
     getProfile, setProfile, getCredHash, setCredHash,
+    applyMemberFilter,
     syncFromCloud,
   };
 })();
