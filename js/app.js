@@ -6060,23 +6060,42 @@ INSTRUÇÕES:
 - Tom: CFO pessoal direto, não professor.
 
 FORMATO DA RESPOSTA (importante):
-- Responda em texto corrido (plain text). NÃO use markdown.
-- Proibido: #, ##, ###, **negrito**, *itálico*, listas com - ou *, tabelas, blocos de código.
-- Use parágrafos curtos separados por uma linha em branco.
-- Para enumerar opções, escreva inline: "1) opção um. 2) opção dois. 3) opção três."
-- Para destacar um valor, escreva o número direto (ex.: R$ 380), sem asteriscos.`;
+- Texto corrido em parágrafos curtos. NÃO use cabeçalhos (#), listas com - ou *, tabelas, blocos de código.
+- Para enumerar inline: "1) ... 2) ... 3) ..."
+- VALORES MONETÁRIOS:
+  • Sempre formate em real brasileiro com 2 casas decimais: R$ 1.234,56 (ponto para milhar, vírgula para decimal).
+  • Sempre coloque o valor entre **asteriscos duplos** (negrito).
+  • SEMPRE prefixe com sinal: +R$ 100,00 para entradas/saldos positivos e -R$ 100,00 para gastos/déficits.
+  • Exemplos corretos: **+R$ 1.234,56**, **-R$ 380,00**, **+R$ 2.500,00**.
+  • Se o número é neutro (ex.: "7 contratos"), NÃO use negrito nem R$.`;
     }
 
     // ── Render message ────────────────────────────────────────────
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function formatCoachContent(text) {
+      let html = escapeHtml(text);
+      // Bold **...**
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // Signed currency BR: +R$ 1.234,56 / -R$ 380,00 (com ou sem espaço, dentro ou fora de <strong>)
+      html = html.replace(/([+\-])\s?R\$\s*[\d.]+(?:,\d{2})?/g, m => {
+        const cls = m.trim().startsWith('+') ? 'ff-pos' : 'ff-neg';
+        return `<span class="${cls}">${m}</span>`;
+      });
+      html = html.replace(/\n/g, '<br>');
+      return html;
+    }
     function appendMsg(role, content) {
       const welcome = msgs.querySelector('.coach-welcome');
       if (welcome) welcome.remove();
       const initial = role === 'user' ? currentPessoa()[0]?.toUpperCase() || 'U' : '✦';
       const div = document.createElement('div');
       div.className = `coach-msg ${role}`;
+      const rendered = role === 'assistant' ? formatCoachContent(content) : escapeHtml(content).replace(/\n/g, '<br>');
       div.innerHTML = `
         <div class="coach-msg-avatar">${initial}</div>
-        <div class="coach-bubble">${content.replace(/\n/g, '<br>')}</div>`;
+        <div class="coach-bubble">${rendered}</div>`;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
       return div;
