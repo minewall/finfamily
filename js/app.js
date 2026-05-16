@@ -5924,10 +5924,35 @@ ${isConnected && isAdmin ? `
     let history = []; // [{role, content}]
     let isLoading = false;
     let panelWidth = parseInt(localStorage.getItem('ff_coach_width') || '380', 10);
+    let lastActivity = Date.now();
+    const INACTIVITY_MS = 4 * 60 * 60 * 1000; // 4 horas
 
     const layout = document.getElementById('app');
 
+    function resetConversation() {
+      history = [];
+      msgs.innerHTML = `
+      <div class="coach-welcome">
+        <div class="coach-avatar-lg">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div>
+        <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
+        <div class="coach-suggestions" id="coachSuggestions">
+          <button class="coach-suggestion">Qual meu maior gasto esse mês?</button>
+          <button class="coach-suggestion">Estou dentro do orçamento?</button>
+          <button class="coach-suggestion">Onde posso economizar?</button>
+          <button class="coach-suggestion">Como está minha saúde financeira?</button>
+        </div>
+      </div>`;
+      bindSuggestions();
+    }
+
     function openPanel() {
+      // Limpa só se passou muito tempo sem interação
+      if (history.length > 0 && (Date.now() - lastActivity) > INACTIVITY_MS) {
+        resetConversation();
+      }
+      lastActivity = Date.now();
       panel.classList.add('open');
       panel.setAttribute('aria-hidden', 'false');
       panel.style.width = panelWidth + 'px';
@@ -5938,7 +5963,8 @@ ${isConnected && isAdmin ? `
       input.focus();
     }
 
-    function closePanel() {
+    // Minimiza (preserva histórico). Usado em clique fora.
+    function minimizePanel() {
       panel.classList.remove('open');
       panel.setAttribute('aria-hidden', 'true');
       layout.classList.remove('coach-open');
@@ -5946,28 +5972,28 @@ ${isConnected && isAdmin ? `
       btnOpen.classList.remove('active');
     }
 
+    // Fecha de fato (limpa histórico). Usado no botão X.
+    function closePanel() {
+      minimizePanel();
+      resetConversation();
+    }
+
     btnOpen.addEventListener('click', () => {
-      panel.classList.contains('open') ? closePanel() : openPanel();
+      panel.classList.contains('open') ? minimizePanel() : openPanel();
     });
     btnClose.addEventListener('click', closePanel);
 
     btnClear.addEventListener('click', () => {
-      history = [];
-      msgs.innerHTML = document.getElementById('coachSuggestions') ? msgs.innerHTML : '';
-      msgs.innerHTML = `
-      <div class="coach-welcome">
-        <div class="coach-avatar-lg">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
-        </div>
-        <p>Conversa reiniciada. Como posso ajudar?</p>
-        <div class="coach-suggestions" id="coachSuggestions">
-          <button class="coach-suggestion">Qual meu maior gasto esse mês?</button>
-          <button class="coach-suggestion">Estou dentro do orçamento?</button>
-          <button class="coach-suggestion">Onde posso economizar?</button>
-          <button class="coach-suggestion">Como está minha saúde financeira?</button>
-        </div>
-      </div>`;
-      bindSuggestions();
+      resetConversation();
+      lastActivity = Date.now();
+    });
+
+    // Click outside → minimiza (preserva conversa)
+    document.addEventListener('mousedown', (e) => {
+      if (!panel.classList.contains('open')) return;
+      if (panel.contains(e.target)) return;
+      if (btnOpen.contains(e.target)) return; // toggle já trata
+      minimizePanel();
     });
 
     // ── Drag to resize ────────────────────────────────────────────
@@ -6121,6 +6147,7 @@ FORMATO DA RESPOSTA (importante):
     async function sendMessage(text) {
       if (!text.trim() || isLoading) return;
 
+      lastActivity = Date.now();
       isLoading = true;
       sendBtn.disabled = true;
       statusEl.textContent = 'Pensando…';
