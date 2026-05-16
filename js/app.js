@@ -5714,19 +5714,12 @@ ${isConnected && isAdmin ? `
     <span class="card-title">🤖 AI Coach — Configuração</span>
   </div>
 
-  <div style="margin-bottom:16px">
-    <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Chave de API</div>
-    <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;line-height:1.6">
-      Salva apenas no seu navegador — nunca enviada a nenhum servidor nosso.
-      <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);margin-left:4px">Obter chave →</a>
+  <div style="margin-bottom:16px;padding:12px;background:var(--green-dim,rgba(34,197,94,.08));border-radius:8px;border:1px solid rgba(34,197,94,.2)">
+    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px">✓ Coach via Supabase Edge Function</div>
+    <div style="font-size:12px;color:var(--text-3);line-height:1.6">
+      A chave Anthropic fica armazenada com segurança no servidor Supabase — nunca exposta no browser.<br>
+      Para ativar, configure o secret <code style="background:var(--bg-elevated);padding:1px 4px;border-radius:3px">ANTHROPIC_API_KEY</code> no painel Supabase e faça o deploy da Edge Function.
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <input type="password" id="claudeApiKeyInput" class="form-input" style="flex:1;font-family:var(--mono);font-size:12px"
-        placeholder="sk-ant-api03-…" value="${savedKey}" autocomplete="off" />
-      <button class="btn-primary" id="saveApiKeyBtn">Salvar</button>
-      ${savedKey ? `<button class="btn-secondary" id="clearApiKeyBtn" style="color:var(--red)">Remover</button>` : ''}
-    </div>
-    ${savedKey ? `<div style="font-size:11px;color:var(--green);margin-top:6px">✓ Chave configurada — AI Coach disponível</div>` : ''}
   </div>
 
   <div style="border-top:1px solid var(--border);padding-top:16px">
@@ -5745,18 +5738,6 @@ ${isConnected && isAdmin ? `
   </div>
 </div>`;
 
-    document.getElementById('saveApiKeyBtn')?.addEventListener('click', () => {
-      const key = document.getElementById('claudeApiKeyInput')?.value.trim();
-      if (!key) { toast('Digite a chave antes de salvar', 'error'); return; }
-      Store.updateSettings({ claudeApiKey: key });
-      toast('Chave salva com sucesso', 'success');
-      renderConfigSobre(content);
-    });
-    document.getElementById('clearApiKeyBtn')?.addEventListener('click', () => {
-      Store.updateSettings({ claudeApiKey: '' });
-      toast('Chave removida', 'info');
-      renderConfigSobre(content);
-    });
     document.getElementById('saveModelBtn')?.addEventListener('click', () => {
       const sel = document.querySelector('input[name="claudeModel"]:checked')?.value;
       if (!sel) return;
@@ -6105,14 +6086,11 @@ INSTRUÇÕES:
     }
 
     // ── Send message ──────────────────────────────────────────────
+    const COACH_PROXY_URL = 'https://lpudgulhnfuwdttetwdn.supabase.co/functions/v1/claude-proxy';
+    const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
+
     async function sendMessage(text) {
       if (!text.trim() || isLoading) return;
-
-      const apiKey = Store.get().settings?.claudeApiKey;
-      if (!apiKey) {
-        appendMsg('assistant', '⚠️ Chave de API do Claude não configurada. Acesse **Configurações → Sobre** para inserir sua chave.');
-        return;
-      }
 
       isLoading = true;
       sendBtn.disabled = true;
@@ -6128,13 +6106,11 @@ INSTRUÇÕES:
       try {
         let res;
         try {
-          res = await fetch('https://api.anthropic.com/v1/messages', {
+          res = await fetch(COACH_PROXY_URL, {
             method: 'POST',
             headers: {
-              'x-api-key': apiKey.trim(),
-              'anthropic-version': '2023-06-01',
               'content-type': 'application/json',
-              'anthropic-dangerous-allow-browser': 'true',
+              'authorization': `Bearer ${SUPABASE_ANON}`,
             },
             body: JSON.stringify({
               model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
@@ -6144,15 +6120,16 @@ INSTRUÇÕES:
             }),
           });
         } catch (netErr) {
-          throw new Error(`Falha de rede (CORS ou sem conexão). Verifique o console do browser (F12 → Network) para detalhes. Erro: ${netErr.message}`);
+          throw new Error(`Sem conexão com o servidor. Verifique sua internet. (${netErr.message})`);
         }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          const msg = err.error?.message || `HTTP ${res.status}`;
-          if (res.status === 401) throw new Error('Chave de API inválida ou expirada. Verifique em Configurações → Sobre.');
-          if (res.status === 402 || res.status === 529) throw new Error('Conta sem créditos. Adicione créditos em console.anthropic.com.');
+          const msg = err.error?.message || err.error || `HTTP ${res.status}`;
+          if (res.status === 401) throw new Error('Edge Function não autorizada. Verifique o deploy.');
+          if (res.status === 402 || res.status === 529) throw new Error('Conta Anthropic sem créditos. Adicione em console.anthropic.com.');
           if (res.status === 429) throw new Error('Limite de requisições atingido. Aguarde um momento.');
+          if (res.status === 500 && msg.includes('ANTHROPIC_API_KEY')) throw new Error('Chave Anthropic não configurada na Edge Function. Configure o secret ANTHROPIC_API_KEY no Supabase.');
           throw new Error(msg);
         }
 
