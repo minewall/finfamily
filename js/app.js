@@ -888,33 +888,53 @@ ${filtered.map(r => {
     container.innerHTML = `
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Total ${year}</span><span class="kpi-icon">💰</span></div>
-    <div class="kpi-value green">${Utils.currency(totalAno)}</div>
-    <div class="card-sub">Soma de todas as receitas</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Total ${year}</div>
+      <div class="kpi-value green">${Utils.currency(totalAno)}</div>
+      <div class="kpi-sub">Soma de todas as receitas</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
-    <div class="kpi-header"><span class="kpi-label">Média Mensal</span><span class="kpi-icon">📈</span></div>
-    <div class="kpi-value" style="color:var(--teal)">${Utils.currency(media)}</div>
-    <div class="card-sub">Meta mínima: <strong>${Utils.currency((Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita))}</strong></div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Média Mensal</div>
+      <div class="kpi-value" style="color:var(--teal)">${Utils.currency(media)}</div>
+      <div class="kpi-sub">Meta: ${Utils.currency((Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita))}</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-header"><span class="kpi-label">Meses OK</span><span class="kpi-icon">✅</span></div>
-    <div class="kpi-value accent">${yrRec.filter(v => v >= (Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita)).length}/12</div>
-    <div class="card-sub">Atingiram a meta mínima</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Meses OK</div>
+      <div class="kpi-value accent">${yrRec.filter(v => v >= (Store.getActiveMetaReceitaMensal() ?? Store.get().settings.metaReceita)).length}/12</div>
+      <div class="kpi-sub">Atingiram a meta mínima</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim)">
-    <div class="kpi-header"><span class="kpi-label">Melhor Mês</span><span class="kpi-icon">🏆</span></div>
-    <div class="kpi-value" style="color:var(--blue)">${Utils.currency(Math.max(...yrRec))}</div>
-    <div class="card-sub">${Utils.months[yrRec.indexOf(Math.max(...yrRec))]}</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Melhor Mês</div>
+      <div class="kpi-value" style="color:var(--blue)">${Utils.currency(Math.max(...yrRec))}</div>
+      <div class="kpi-sub">${Utils.months[yrRec.indexOf(Math.max(...yrRec))]} ${year}</div>
+    </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--${statusCol});--kpi-bg:var(--${statusCol}-dim, #14B8A618)">
-    <div class="kpi-header"><span class="kpi-label">Valor Futuro</span><span class="kpi-icon">🔮</span></div>
-    <div class="kpi-value" style="color:var(--${statusCol})">${Utils.currency(valorFuturo)}</div>
-    <div class="card-sub">${valorFuturo === 0 ? '<span style="color:var(--text-4)">Nenhum recebimento futuro previsto — cadastre contratos ou recebimentos futuros</span>' : `Projeção ${year}: <strong>${Utils.currency(projecaoAno)}</strong>`}</div>
-    <div class="progress-bar" style="margin-top:8px"><div class="progress-fill ${statusCol}" style="width:${Math.min(pctMeta,1)*100}%"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:4px">
-      <span>${(pctMeta*100).toFixed(0)}% da meta anual</span>
-      <span>${Utils.currency(metaAnual)}</span>
+  <div class="kpi-card" style="--kpi-color:var(--${statusCol});--kpi-bg:var(--${statusCol}-dim,rgba(245,158,11,.12));grid-column:span 2">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body" style="flex:1">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <div class="kpi-label">Valor Futuro</div>
+          <div class="kpi-value" style="color:var(--${statusCol})">${Utils.currency(valorFuturo)}</div>
+          <div class="kpi-sub">${valorFuturo === 0 ? 'Nenhum recebimento futuro previsto' : `Projeção ${year}: ${Utils.currency(projecaoAno)}`}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="kpi-label">Meta Anual</div>
+          <div style="font-size:14px;font-weight:600;font-family:var(--mono);color:var(--text-1)">${Utils.currency(metaAnual)}</div>
+          <div class="kpi-sub">${(pctMeta*100).toFixed(0)}% atingido</div>
+        </div>
+      </div>
+      <div class="progress-bar" style="margin-top:10px"><div class="progress-fill ${statusCol}" style="width:${Math.min(pctMeta,1)*100}%"></div></div>
     </div>
   </div>
 </div>
@@ -1950,19 +1970,28 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Receita p/ Contratos (mês)</span><span class="kpi-icon">📈</span></div>
-    <div class="kpi-value" style="color:var(--green)">${Utils.currency(totReceitaMes)}</div>
-    <div class="card-sub">${Utils.pct(receitaMes > 0 ? totReceitaMes / receitaMes : 0)} da receita do mês</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Receita via Contratos</div>
+      <div class="kpi-value" style="color:var(--green)">${Utils.currency(totReceitaMes)}</div>
+      <div class="kpi-sub">${Utils.pct(receitaMes > 0 ? totReceitaMes / receitaMes : 0)} da receita do mês</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-header"><span class="kpi-label">Despesa p/ Contratos (mês)</span><span class="kpi-icon">📉</span></div>
-    <div class="kpi-value" style="color:var(--red)">${Utils.currency(totDespesaMes)}</div>
-    <div class="card-sub">${Utils.pct(despesaMes > 0 ? totDespesaMes / despesaMes : 0)} da despesa do mês</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 22 17 22 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Despesa via Contratos</div>
+      <div class="kpi-value" style="color:var(--red)">${Utils.currency(totDespesaMes)}</div>
+      <div class="kpi-sub">${Utils.pct(despesaMes > 0 ? totDespesaMes / despesaMes : 0)} da despesa do mês</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-header"><span class="kpi-label">Contratos</span><span class="kpi-icon">📑</span></div>
-    <div class="kpi-value">${rows.filter(r => r.status === 'ativo').length} <span style="font-size:14px;color:var(--text-3)">ativos</span></div>
-    <div class="card-sub">${rows.filter(r => r.status === 'atrasado').length} atrasado(s) · ${contratos.length} total</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Contratos Ativos</div>
+      <div class="kpi-value accent">${rows.filter(r => r.status === 'ativo').length}</div>
+      <div class="kpi-sub">${rows.filter(r => r.status === 'atrasado').length} atrasado(s) · ${contratos.length} total</div>
+    </div>
   </div>
 </div>
 
@@ -2538,30 +2567,45 @@ ${contratos.length === 0 ? `
 <!-- KPIs -->
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-header"><span class="kpi-label">Patrimônio Total</span><span class="kpi-icon">💎</span></div>
-    <div class="kpi-value accent">${Utils.currency(total)}</div>
-    <div class="card-sub">Reservas + Outros Ativos (BRL)</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Patrimônio Total</div>
+      <div class="kpi-value accent">${Utils.currency(total)}</div>
+      <div class="kpi-sub">Reservas + Ativos em BRL</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:#14B8A6;--kpi-bg:#14B8A618">
-    <div class="kpi-header"><span class="kpi-label">Total em Reservas</span><span class="kpi-icon">🏦</span></div>
-    <div class="kpi-value" style="color:#14B8A6">${Utils.currency(totalInv)}</div>
-    <div class="card-sub">${metaRes ? `Meta: ${Utils.currency(metaRes.target)} · <span style="color:${pctMeta>=100?'var(--green)':'var(--amber)'}">⬤ ${pctMeta}% atingido</span>` : `${investimentos.length} investimento${investimentos.length!==1?'s':''}`}</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 22V9M3 9l9-7 9 7M3 9h18M21 22V9M9 22v-5h6v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Total em Reservas</div>
+      <div class="kpi-value" style="color:#14B8A6">${Utils.currency(totalInv)}</div>
+      <div class="kpi-sub">${metaRes ? `${pctMeta}% da meta · ${Utils.currency(metaRes.target)}` : `${investimentos.length} investimento${investimentos.length!==1?'s':''}`}</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Rendimento Est./ano</span><span class="kpi-icon">📈</span></div>
-    <div class="kpi-value green">${Utils.currency(rendimento)}</div>
-    <div class="card-sub">Projeção anual líquida após IR</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Rendimento Est./ano</div>
+      <div class="kpi-value green">${Utils.currency(rendimento)}</div>
+      <div class="kpi-sub">Projeção anual líquida após IR</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim)">
-    <div class="kpi-header"><span class="kpi-label">Outros Ativos</span><span class="kpi-icon">📊</span></div>
-    <div class="kpi-value" style="color:var(--blue)">${Utils.currency(totalAtiv)}</div>
-    <div class="card-sub">${ativos.length} ativo${ativos.length!==1?'s':''} (Crypto, FIAT…)</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="18" y="3" width="4" height="18" rx="1" stroke="currentColor" stroke-width="2"/><rect x="10" y="8" width="4" height="13" rx="1" stroke="currentColor" stroke-width="2"/><rect x="2" y="13" width="4" height="8" rx="1" stroke="currentColor" stroke-width="2"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Outros Ativos</div>
+      <div class="kpi-value" style="color:var(--blue)">${Utils.currency(totalAtiv)}</div>
+      <div class="kpi-sub">${ativos.length} ativo${ativos.length!==1?'s':''} (Crypto, FIAT…)</div>
+    </div>
   </div>
   ${totalFutPend > 0 ? `
   <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim,#F59E0B18)">
-    <div class="kpi-header"><span class="kpi-label">Recebimentos Futuros</span><span class="kpi-icon">📅</span></div>
-    <div class="kpi-value" style="color:var(--amber)">${Utils.currency(totalFutPend)}</div>
-    <div class="card-sub">${futuros.filter(f=>f.status!=='recebido').length} pendente${futuros.filter(f=>f.status!=='recebido').length!==1?'s':''}</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Recebimentos Futuros</div>
+      <div class="kpi-value" style="color:var(--amber)">${Utils.currency(totalFutPend)}</div>
+      <div class="kpi-sub">${futuros.filter(f=>f.status!=='recebido').length} pendente${futuros.filter(f=>f.status!=='recebido').length!==1?'s':''}</div>
+    </div>
   </div>` : ''}
 </div>
 
@@ -2675,22 +2719,31 @@ ${(() => {
   <button class="btn-primary" id="btnAddPassivo">+ Novo Passivo</button>
 </div>
 ${totalPass > 0 ? `
-<div class="kpi-grid mb-4" style="grid-template-columns:repeat(3,1fr)">
+<div class="kpi-grid mb-4">
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-header"><span class="kpi-label">Total Passivo</span><span class="kpi-icon">⚠️</span></div>
-    <div class="kpi-value" style="color:var(--red)">${Utils.currency(totalPass)}</div>
-    <div class="card-sub">${passivos.filter(p=>p.status!=='quitado').length} dívida(s) em aberto</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Total Passivo</div>
+      <div class="kpi-value" style="color:var(--red)">${Utils.currency(totalPass)}</div>
+      <div class="kpi-sub">${passivos.filter(p=>p.status!=='quitado').length} dívida(s) em aberto</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-header"><span class="kpi-label">Patrimônio Líquido</span><span class="kpi-icon">⚖️</span></div>
-    <div class="kpi-value" style="color:${total-totalPass>=0?'var(--accent)':'var(--red)'}">${Utils.currency(total - totalPass)}</div>
-    <div class="card-sub">Ativos − Passivos</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="currentColor" stroke-width="2"/><line x1="12" y1="12" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="10" y1="14" x2="14" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Patrimônio Líquido</div>
+      <div class="kpi-value" style="color:${total-totalPass>=0?'var(--accent)':'var(--red)'}">${Utils.currency(total - totalPass)}</div>
+      <div class="kpi-sub">Ativos − Passivos</div>
+    </div>
   </div>
   ${totalEco > 0 ? `
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Economia Negociada</span><span class="kpi-icon">💰</span></div>
-    <div class="kpi-value" style="color:var(--green)">${Utils.currency(totalEco)}</div>
-    <div class="card-sub">Desconto obtido nos acordos</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Economia Negociada</div>
+      <div class="kpi-value" style="color:var(--green)">${Utils.currency(totalEco)}</div>
+      <div class="kpi-sub">Desconto obtido nos acordos</div>
+    </div>
   </div>` : ''}
 </div>` : ''}
 ${passivos.length === 0
@@ -3197,19 +3250,28 @@ ${futuros.length === 0
     container.innerHTML = `
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header"><span class="kpi-label">Receita Total ${year}</span></div>
-    <div class="kpi-value green">${Utils.currency(totalRec)}</div>
-    <div class="card-sub">Média: ${Utils.currency(mediaRec)}/mês</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Receita Total ${year}</div>
+      <div class="kpi-value green">${Utils.currency(totalRec)}</div>
+      <div class="kpi-sub">Média: ${Utils.currency(mediaRec)}/mês</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-header"><span class="kpi-label">Despesa Total ${year}</span></div>
-    <div class="kpi-value red">${Utils.currency(totalDesp)}</div>
-    <div class="card-sub">Média: ${Utils.currency(mediaDesp)}/mês</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Despesa Total ${year}</div>
+      <div class="kpi-value red">${Utils.currency(totalDesp)}</div>
+      <div class="kpi-sub">Média: ${Utils.currency(mediaDesp)}/mês</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:${totalSaldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${totalSaldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-header"><span class="kpi-label">Saldo do Ano</span></div>
-    <div class="kpi-value ${totalSaldo>=0?'accent':'red'}">${Utils.currency(Math.abs(totalSaldo))}</div>
-    <div class="card-sub">${totalSaldo>=0?'Sobrou no ano':'Déficit no ano'}</div>
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body">
+      <div class="kpi-label">Saldo do Ano</div>
+      <div class="kpi-value ${totalSaldo>=0?'accent':'red'}">${Utils.currency(Math.abs(totalSaldo))}</div>
+      <div class="kpi-sub">${totalSaldo>=0?'Sobrou no ano':'Déficit no ano'}</div>
+    </div>
   </div>
 </div>
 
