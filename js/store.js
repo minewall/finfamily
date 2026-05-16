@@ -406,6 +406,7 @@ const Store = (function () {
   }
 
   function save(data) {
+    data._syncedAt = Date.now(); // timestamp para resolução de conflito
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { console.warn('Store: cannot save', e); }
     // Hybrid sync: push to Supabase in background

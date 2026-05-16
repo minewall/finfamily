@@ -4295,16 +4295,28 @@ ${isConnected && isAdmin ? `
         }
 
         const cloudData = await SupabaseSync.pullFromCloud();
-        if (cloudData && cloudData.despesas) {
+        const localTs = Store.get()._syncedAt || 0;
+        const cloudTs = cloudData?._syncedAt  || 0;
+
+        if (cloudData && cloudData.despesas && cloudTs >= localTs) {
+          // Nuvem mais recente (ou igual) → nuvem ganha
           localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));
-          // Re-init store from freshly saved localStorage
           Store.init();
-          if (syncDot)   { syncDot.style.background = 'var(--green)'; }
-          if (syncLabel) { syncLabel.textContent = ctx && ctx.role !== 'admin' ? `Conectado (${ctx.role})` : 'Sincronizado'; }
-          console.log('FinFamily: dados sincronizados da nuvem, role:', ctx?.role);
+          if (syncDot)   syncDot.style.background = 'var(--green)';
+          if (syncLabel) syncLabel.textContent = ctx?.role && ctx.role !== 'admin'
+            ? `Conectado (${ctx.role})` : 'Sincronizado';
+          console.log('FinFamily: nuvem ganhou (cloud', new Date(cloudTs).toISOString(), ')');
+        } else if (cloudData && cloudData.despesas && localTs > cloudTs) {
+          // Local mais recente → local ganha, push para sincronizar
+          if (!ctx || ctx.role !== 'member') SupabaseSync.schedulePush(Store.get());
+          if (syncDot)   syncDot.style.background = 'var(--amber)';
+          if (syncLabel) syncLabel.textContent = 'Sincronizando…';
+          console.log('FinFamily: local ganhou (local', new Date(localTs).toISOString(),
+            '> cloud', new Date(cloudTs).toISOString(), ')');
         } else {
+          // Sem dados na nuvem → push local
           if (!ctx || ctx.role === 'admin') SupabaseSync.schedulePush(Store.get());
-          console.log('FinFamily: dados locais (nuvem vazia ou sem conexão)');
+          console.log('FinFamily: nuvem vazia, enviando dados locais');
         }
 
         // Apply member-role restrictions after data is settled
