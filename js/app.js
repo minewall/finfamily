@@ -5626,11 +5626,15 @@ ${isConnected && isAdmin ? `
     let isLoading = false;
     let panelWidth = parseInt(localStorage.getItem('ff_coach_width') || '380', 10);
 
+    const layout = document.getElementById('app');
+
     function openPanel() {
       panel.classList.add('open');
       panel.setAttribute('aria-hidden', 'false');
-      sidebar.classList.add('icon-only');
       panel.style.width = panelWidth + 'px';
+      layout.classList.add('coach-open');
+      sidebar.classList.add('icon-only');
+      layout.style.setProperty('--coach-panel-w', panelWidth + 'px');
       btnOpen.classList.add('active');
       input.focus();
     }
@@ -5638,6 +5642,7 @@ ${isConnected && isAdmin ? `
     function closePanel() {
       panel.classList.remove('open');
       panel.setAttribute('aria-hidden', 'true');
+      layout.classList.remove('coach-open');
       sidebar.classList.remove('icon-only');
       btnOpen.classList.remove('active');
     }
@@ -5678,6 +5683,7 @@ ${isConnected && isAdmin ? `
       const delta = startX - e.clientX;
       const newW = Math.min(640, Math.max(300, startW + delta));
       panel.style.width = newW + 'px';
+      layout.style.setProperty('--coach-panel-w', newW + 'px');
       panelWidth = newW;
     });
     document.addEventListener('mouseup', () => {

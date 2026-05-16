@@ -108,6 +108,18 @@ body { background: var(--bg-base); color: var(--text-1); }
   grid-template-columns: var(--sidebar-w) 1fr;
   height: 100vh;
   overflow: hidden;
+  transition: grid-template-columns .25s cubic-bezier(.4,0,.2,1);
+}
+/* Coach open: shrink sidebar + give space for coach panel */
+.layout.coach-open {
+  grid-template-columns: 56px 1fr;
+}
+.layout.coach-open .main {
+  margin-right: var(--coach-panel-w, 380px);
+  transition: margin-right .25s cubic-bezier(.4,0,.2,1);
+}
+.main {
+  transition: margin-right .25s cubic-bezier(.4,0,.2,1);
 }
 
 /* ── SIDEBAR ────────────────────────────────────────────────────── */
