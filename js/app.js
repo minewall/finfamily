@@ -3796,28 +3796,355 @@ ${(() => {
     });
   }
 
-  // ── SIMULAÇÕES (placeholder) ────────────────────────────────────
+  // ── SIMULAÇÕES ──────────────────────────────────────────────────
   function renderSimulacoes(container) {
+    const saldo  = Store.sumReceitas(getMonth(), getYear()) - Store.sumDespesas(getMonth(), getYear());
+    const patrimonio = Store.totalAtivos();
+
     container.innerHTML = `
-<div class="empty-state" style="min-height:60vh">
-  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" opacity="0.25"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <div style="font-size:18px;font-weight:700;color:var(--text-2);margin-top:4px">Simulações</div>
-  <p>Simule cenários de investimento, pagamento de dívidas e planejamento de longo prazo. Em desenvolvimento.</p>
-  <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center">
-    <div class="card card-sm" style="min-width:160px;text-align:center;opacity:.6">
-      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">Juros Compostos</div>
-      <div style="font-size:11px;color:var(--text-3)">Em breve</div>
+<div class="section-header mb-6">
+  <div>
+    <div class="section-title">Simulações</div>
+    <div class="section-sub">Calcule cenários financeiros com base nos seus dados reais</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs mb-6" id="simTabs">
+  <button class="tab active" data-sim="juros">Juros Compostos</button>
+  <button class="tab" data-sim="amortizacao">Amortização SAC</button>
+  <button class="tab" data-sim="fire">FIRE / Independência</button>
+  <button class="tab" data-sim="meta">Simulador de Meta</button>
+</div>
+
+<div id="simContent"></div>`;
+
+    function renderJuros() {
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Parâmetros</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group">
+        <label class="form-label">Capital Inicial (R$)</label>
+        <input class="form-input" id="jCapital" type="number" value="${Math.max(patrimonio,1000).toFixed(0)}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Aporte Mensal (R$)</label>
+        <input class="form-input" id="jAporte" type="number" value="${Math.max(saldo,0).toFixed(0)}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Taxa de Juros ao Mês (%)</label>
+        <input class="form-input" id="jTaxa" type="number" value="1.0" step="0.01" min="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Período (meses)</label>
+        <input class="form-input" id="jMeses" type="number" value="120" min="1" max="600">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Imposto de Renda (%)</label>
+        <input class="form-input" id="jIR" type="number" value="15" min="0" max="30">
+      </div>
     </div>
-    <div class="card card-sm" style="min-width:160px;text-align:center;opacity:.6">
-      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">Amortização</div>
-      <div style="font-size:11px;color:var(--text-3)">Em breve</div>
-    </div>
-    <div class="card card-sm" style="min-width:160px;text-align:center;opacity:.6">
-      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">FIRE / Independência</div>
-      <div style="font-size:11px;color:var(--text-3)">Em breve</div>
-    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcJuros">Calcular</button>
+  </div>
+  <div id="jResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Resultado</span></div>
+    <div id="jResultBody"></div>
+    <div class="chart-wrap" style="margin-top:16px"><canvas id="chartJuros" class="chart-canvas" height="220"></canvas></div>
   </div>
 </div>`;
+      document.getElementById('btnCalcJuros').addEventListener('click', () => {
+        const C = parseFloat(document.getElementById('jCapital').value) || 0;
+        const A = parseFloat(document.getElementById('jAporte').value) || 0;
+        const i = (parseFloat(document.getElementById('jTaxa').value) || 1) / 100;
+        const n = parseInt(document.getElementById('jMeses').value) || 120;
+        const ir = (parseFloat(document.getElementById('jIR').value) || 15) / 100;
+        // Compound growth month by month
+        let saldoAcc = C, totalAportado = C;
+        const labels = [], dataAcc = [], dataAport = [];
+        for (let m = 1; m <= n; m++) {
+          saldoAcc = saldoAcc * (1 + i) + A;
+          totalAportado += A;
+          if (m % Math.max(1, Math.floor(n/24)) === 0 || m === n) {
+            labels.push(`${m}m`);
+            dataAcc.push(parseFloat(saldoAcc.toFixed(2)));
+            dataAport.push(parseFloat(totalAportado.toFixed(2)));
+          }
+        }
+        const rendimentoBruto = saldoAcc - totalAportado;
+        const rendimentoLiq = rendimentoBruto * (1 - ir);
+        const totalLiq = totalAportado + rendimentoLiq;
+        document.getElementById('jResult').style.display = '';
+        document.getElementById('jResultBody').innerHTML = `
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Montante Bruto</div><div class="kpi-value green">${Utils.currency(saldoAcc)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Montante Líquido (após IR)</div><div class="kpi-value accent">${Utils.currency(totalLiq)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Total Aportado</div><div class="kpi-value" style="color:var(--teal)">${Utils.currency(totalAportado)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Rendimento Líquido</div><div class="kpi-value" style="color:var(--amber)">${Utils.currency(rendimentoLiq)}</div></div>
+  </div>
+</div>`;
+        if (window._chartJuros) window._chartJuros.destroy();
+        window._chartJuros = Charts.Line(document.getElementById('chartJuros'),
+          { labels, datasets: [
+            { label: 'Montante', values: dataAcc, color: '#7367F0', fill: true },
+            { label: 'Aportado', values: dataAport, color: '#22C55E', dashed: true },
+          ]}, { height: 220 });
+      });
+    }
+
+    function renderAmortizacao() {
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Parâmetros do Financiamento</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group">
+        <label class="form-label">Valor Financiado (R$)</label>
+        <input class="form-input" id="aValor" type="number" value="300000" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Taxa de Juros ao Mês (%)</label>
+        <input class="form-input" id="aTaxa" type="number" value="0.8" step="0.01" min="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prazo (meses)</label>
+        <input class="form-input" id="aPrazo" type="number" value="360" min="1" max="600">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amortização Extra Mensal (R$)</label>
+        <input class="form-input" id="aExtra" type="number" value="0" min="0">
+      </div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcAmort">Calcular</button>
+  </div>
+  <div id="aResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Tabela SAC</span></div>
+    <div id="aResultBody"></div>
+  </div>
+</div>`;
+      document.getElementById('btnCalcAmort').addEventListener('click', () => {
+        const PV = parseFloat(document.getElementById('aValor').value) || 300000;
+        const i  = (parseFloat(document.getElementById('aTaxa').value) || 0.8) / 100;
+        const n  = parseInt(document.getElementById('aPrazo').value) || 360;
+        const extra = parseFloat(document.getElementById('aExtra').value) || 0;
+        const amortBase = PV / n;
+        let saldoD = PV, totalJuros = 0, mes = 0;
+        const rows = [];
+        while (saldoD > 0.01 && mes < n) {
+          mes++;
+          const juros = saldoD * i;
+          const amort = Math.min(amortBase + extra, saldoD);
+          const parcela = juros + amort;
+          saldoD = Math.max(0, saldoD - amort);
+          totalJuros += juros;
+          if (mes <= 6 || mes % 12 === 0 || saldoD < 1) {
+            rows.push({ mes, parcela, amort, juros, saldo: saldoD });
+          }
+        }
+        const economiaExtra = extra > 0 ? (() => {
+          let s2 = PV, j2 = 0, m2 = 0;
+          const amBase2 = PV / n;
+          while (s2 > 0.01 && m2 < n) { m2++; j2 += s2*i; s2 = Math.max(0,s2-amBase2); }
+          return { meses: n - mes, juros: j2 - totalJuros };
+        })() : null;
+        document.getElementById('aResult').style.display = '';
+        document.getElementById('aResultBody').innerHTML = `
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Total de Juros</div><div class="kpi-value red">${Utils.currency(totalJuros)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Prazo Real</div><div class="kpi-value accent">${mes} meses</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Custo Total</div><div class="kpi-value green">${Utils.currency(PV + totalJuros)}</div></div>
+  </div>
+</div>
+${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon">${Utils.icon.check}</span><div class="alert-text"><div class="alert-title">Amortização extra economiza ${Utils.currency(economiaExtra.juros)} em juros e quita ${economiaExtra.meses} meses antes</div></div></div>` : ''}
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>Mês</th><th class="num">Parcela</th><th class="num">Amortização</th><th class="num">Juros</th><th class="num">Saldo</th></tr></thead>
+  <tbody>${rows.map(r => `<tr><td>${r.mes}</td><td class="num">${Utils.currency(r.parcela)}</td><td class="num">${Utils.currency(r.amort)}</td><td class="num negative">${Utils.currency(r.juros)}</td><td class="num">${Utils.currency(r.saldo)}</td></tr>`).join('')}</tbody>
+</table></div>`;
+      });
+    }
+
+    function renderFIRE() {
+      const totalInv = Store.totalAtivos();
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Minha Situação</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group">
+        <label class="form-label">Patrimônio Atual (R$)</label>
+        <input class="form-input" id="fPatrim" type="number" value="${Math.max(totalInv,0).toFixed(0)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Poupança Mensal (R$)</label>
+        <input class="form-input" id="fPoupanca" type="number" value="${Math.max(saldo,0).toFixed(0)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Despesa Mensal Desejada na IF (R$)</label>
+        <input class="form-input" id="fDespesa" type="number" value="${Store.sumDespesas(getMonth(),getYear()).toFixed(0)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Retorno Real Anual (%)</label>
+        <input class="form-input" id="fRetorno" type="number" value="6" step="0.5">
+        <span class="form-hint">Retorno após inflação. IPCA histórico ~4%, CDI ~10%.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Regra de Retirada (%/ano)</label>
+        <input class="form-input" id="fSWR" type="number" value="4" step="0.5">
+        <span class="form-hint">4% = Regra dos 25x (Trinity Study). 3% = mais conservador.</span>
+      </div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcFIRE">Calcular</button>
+  </div>
+  <div id="fResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Resultado FIRE</span></div>
+    <div id="fResultBody"></div>
+    <div class="chart-wrap" style="margin-top:16px"><canvas id="chartFIRE" class="chart-canvas" height="200"></canvas></div>
+  </div>
+</div>`;
+      document.getElementById('btnCalcFIRE').addEventListener('click', () => {
+        const P0   = parseFloat(document.getElementById('fPatrim').value) || 0;
+        const aporte = parseFloat(document.getElementById('fPoupanca').value) || 0;
+        const despIF = parseFloat(document.getElementById('fDespesa').value) || 5000;
+        const r    = (parseFloat(document.getElementById('fRetorno').value) || 6) / 100;
+        const swr  = (parseFloat(document.getElementById('fSWR').value) || 4) / 100;
+        const alvo = despIF * 12 / swr;
+        const iMes = Math.pow(1 + r, 1/12) - 1;
+        let saldoF = P0, meses = 0;
+        const labels = [], data = [];
+        while (saldoF < alvo && meses < 600) {
+          meses++;
+          saldoF = saldoF * (1 + iMes) + aporte;
+          if (meses % 12 === 0) { labels.push(`Ano ${meses/12}`); data.push(parseFloat(saldoF.toFixed(0))); }
+        }
+        const anos = Math.floor(meses/12), mesesRest = meses % 12;
+        const anoAtingimento = new Date().getFullYear() + anos;
+        document.getElementById('fResult').style.display = '';
+        document.getElementById('fResultBody').innerHTML = `
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Patrimônio Alvo (${(swr*100).toFixed(0)}% SWR)</div><div class="kpi-value accent">${Utils.currency(alvo)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Prazo para IF</div><div class="kpi-value green">${anos} anos ${mesesRest > 0 ? mesesRest+'m' : ''}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Ano de Atingimento</div><div class="kpi-value" style="color:var(--blue)">${meses < 600 ? anoAtingimento : '> '+anoAtingimento}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Renda Mensal Passiva</div><div class="kpi-value" style="color:var(--teal)">${Utils.currency(despIF)}</div></div>
+  </div>
+</div>`;
+        if (window._chartFIRE) window._chartFIRE.destroy();
+        window._chartFIRE = Charts.Line(document.getElementById('chartFIRE'),
+          { labels, datasets: [
+            { label: 'Patrimônio', values: data, color: '#7367F0', fill: true },
+            { label: 'Alvo', values: Array(labels.length).fill(alvo), color: '#22C55E', dashed: true },
+          ]}, { height: 200 });
+      });
+    }
+
+    function renderMetaSim() {
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Simular Meta</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group">
+        <label class="form-label">Descrição da Meta</label>
+        <input class="form-input" id="mDesc" type="text" placeholder="Ex: Viagem para Europa, Casa própria…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor Necessário (R$)</label>
+        <input class="form-input" id="mValor" type="number" value="30000" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Já tenho guardado (R$)</label>
+        <input class="form-input" id="mJaTenho" type="number" value="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Consigo poupar por mês (R$)</label>
+        <input class="form-input" id="mAporte" type="number" value="${Math.max(saldo*0.5,0).toFixed(0)}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rendimento mensal (%)</label>
+        <input class="form-input" id="mTaxa" type="number" value="1.0" step="0.01" min="0">
+      </div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcMeta">Calcular</button>
+  </div>
+  <div id="mResult" class="card" style="display:none">
+    <div id="mResultBody"></div>
+    <div class="chart-wrap" style="margin-top:16px"><canvas id="chartMeta" class="chart-canvas" height="200"></canvas></div>
+  </div>
+</div>`;
+      document.getElementById('btnCalcMeta').addEventListener('click', () => {
+        const desc  = document.getElementById('mDesc').value || 'Meta';
+        const alvo  = parseFloat(document.getElementById('mValor').value) || 30000;
+        const base  = parseFloat(document.getElementById('mJaTenho').value) || 0;
+        const aporte = parseFloat(document.getElementById('mAporte').value) || 1000;
+        const i    = (parseFloat(document.getElementById('mTaxa').value) || 1) / 100;
+        let s = base, meses = 0;
+        const labels = [], data = [];
+        while (s < alvo && meses < 600) {
+          meses++;
+          s = s * (1 + i) + aporte;
+          labels.push(`${meses}m`);
+          data.push(parseFloat(Math.min(s, alvo * 1.05).toFixed(0)));
+        }
+        const anos = Math.floor(meses/12), mr = meses % 12;
+        const prazoTexto = anos > 0 ? `${anos} ano${anos>1?'s':''} e ${mr} mês${mr>1?'es':''}` : `${meses} meses`;
+        const atingimento = new Date(); atingimento.setMonth(atingimento.getMonth() + meses);
+        const dtFmt = atingimento.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        document.getElementById('mResult').style.display = '';
+        document.getElementById('mResultBody').innerHTML = `
+<div class="card-header"><span class="card-title">${desc}</span></div>
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Prazo</div><div class="kpi-value accent">${meses < 600 ? prazoTexto : 'Não atingível'}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Previsão de Conclusão</div><div class="kpi-value green" style="font-size:15px">${meses < 600 ? dtFmt : '—'}</div></div>
+  </div>
+</div>
+<div class="progress-bar progress-lg mb-4" style="margin-top:4px"><div class="progress-fill" style="width:${Math.min((base/alvo)*100,100).toFixed(1)}%;background:var(--accent)"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:16px">
+  <span>Já guardado: ${Utils.currency(base)}</span><span>Alvo: ${Utils.currency(alvo)}</span>
+</div>`;
+        if (window._chartMeta) window._chartMeta.destroy();
+        const step = Math.max(1, Math.floor(meses/24));
+        const lFiltered = labels.filter((_,idx) => idx % step === 0 || idx === labels.length-1);
+        const dFiltered = data.filter((_,idx) => idx % step === 0 || idx === data.length-1);
+        window._chartMeta = Charts.Line(document.getElementById('chartMeta'),
+          { labels: lFiltered, datasets: [
+            { label: 'Acumulado', values: dFiltered, color: '#7367F0', fill: true },
+            { label: 'Alvo', values: Array(lFiltered.length).fill(alvo), color: '#22C55E', dashed: true },
+          ]}, { height: 200 });
+      });
+    }
+
+    const renders = { juros: renderJuros, amortizacao: renderAmortizacao, fire: renderFIRE, meta: renderMetaSim };
+    renderJuros();
+
+    container.querySelector('#simTabs').addEventListener('click', e => {
+      const btn = e.target.closest('[data-sim]');
+      if (!btn) return;
+      container.querySelectorAll('#simTabs .tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renders[btn.dataset.sim]?.();
+    });
   }
 
   // ── INIT ───────────────────────────────────────────────────────
