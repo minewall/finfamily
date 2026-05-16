@@ -4889,18 +4889,34 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
       return `há ${d}d`;
     }
 
+    function truncate(str, n) {
+      return str.length <= n ? str : str.slice(0, n) + '…';
+    }
+
     function buildInbox() {
       const msgs = Recados.getAll().filter(r => r.to === eu || r.to === 'Todos');
       if (!msgs.length) return `<div class="recados-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.5"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.5"/></svg><div>Nenhum recado recebido</div></div>`;
       return msgs.map(r => {
         const linked = r.linked_id && r.linked_type ? `<span class="recado-link-badge">${{'despesa':'📊 Despesa','receita':'💰 Receita','contrato':'📑 Contrato'}[r.linked_type]||r.linked_type}</span>` : '';
-        return `<div class="recado-item${r.read ? '' : ' recado-unread'}" data-id="${r.id}">
-  <div class="recado-avatar" style="background:${Utils.personColor(r.from)}">${Utils.personInitial(r.from)}</div>
-  <div class="recado-body">
-    <div class="recado-meta"><span class="recado-from">${r.from}</span>${linked}<span class="recado-time">${fmtRelTime(r.created_at)}</span>${r.to==='Todos'?'<span class="recado-to-badge">Para todos</span>':''}</div>
-    <div class="recado-content">${r.content}</div>
+        const toBadge = r.to === 'Todos' ? '<span class="recado-to-badge">Para todos</span>' : '';
+        return `<div class="recado-item recado-collapsed${r.read ? '' : ' recado-unread'}" data-id="${r.id}">
+  <div class="recado-row-summary" style="display:flex;align-items:center;gap:10px;cursor:pointer;width:100%">
+    <div class="recado-avatar" style="background:${Utils.personColor(r.from)};flex-shrink:0">${Utils.personInitial(r.from)}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="recado-from">${r.from}</span>${toBadge}${linked}
+        <span class="recado-time" style="margin-left:auto">${fmtRelTime(r.created_at)}</span>
+      </div>
+      <div class="recado-preview" style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${truncate(r.content, 80)}</div>
+    </div>
+    <svg class="recado-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:var(--text-4);transition:transform .2s"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-  <button class="btn-ghost recado-del" data-del="${r.id}" title="Apagar" style="color:var(--text-4);flex-shrink:0">✕</button>
+  <div class="recado-expanded-body" style="display:none;padding:10px 0 2px 42px">
+    <div class="recado-content" style="white-space:pre-wrap">${r.content}</div>
+    <div style="margin-top:8px">
+      <button class="btn-ghost recado-del" data-del="${r.id}" style="color:var(--red);font-size:11px;padding:2px 6px">Apagar</button>
+    </div>
+  </div>
 </div>`;
       }).join('');
     }
@@ -4910,13 +4926,24 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
       if (!msgs.length) return `<div class="recados-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.5"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" stroke-width="1.5"/></svg><div>Nenhum recado enviado</div></div>`;
       return msgs.map(r => {
         const statusIcon = r.read ? `<span style="color:var(--green);font-size:11px" title="Lido">✓✓</span>` : `<span style="color:var(--text-4);font-size:11px" title="Não lido">✓</span>`;
-        return `<div class="recado-item" data-id="${r.id}">
-  <div class="recado-avatar" style="background:${Utils.personColor(r.to === 'Todos' ? 'Família' : r.to)}">${r.to === 'Todos' ? '👥' : Utils.personInitial(r.to)}</div>
-  <div class="recado-body">
-    <div class="recado-meta"><span class="recado-from">Para: ${r.to}</span>${statusIcon}<span class="recado-time">${fmtRelTime(r.created_at)}</span></div>
-    <div class="recado-content">${r.content}</div>
+        return `<div class="recado-item recado-collapsed" data-id="${r.id}">
+  <div class="recado-row-summary" style="display:flex;align-items:center;gap:10px;cursor:pointer;width:100%">
+    <div class="recado-avatar" style="background:${Utils.personColor(r.to === 'Todos' ? 'Família' : r.to)};flex-shrink:0">${r.to === 'Todos' ? '👥' : Utils.personInitial(r.to)}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="recado-from">Para: ${r.to}</span>${statusIcon}
+        <span class="recado-time" style="margin-left:auto">${fmtRelTime(r.created_at)}</span>
+      </div>
+      <div class="recado-preview" style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${truncate(r.content, 80)}</div>
+    </div>
+    <svg class="recado-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:var(--text-4);transition:transform .2s"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-  <button class="btn-ghost recado-del" data-del="${r.id}" title="Apagar" style="color:var(--text-4);flex-shrink:0">✕</button>
+  <div class="recado-expanded-body" style="display:none;padding:10px 0 2px 42px">
+    <div class="recado-content" style="white-space:pre-wrap">${r.content}</div>
+    <div style="margin-top:8px">
+      <button class="btn-ghost recado-del" data-del="${r.id}" style="color:var(--red);font-size:11px;padding:2px 6px">Apagar</button>
+    </div>
+  </div>
 </div>`;
       }).join('');
     }
@@ -4930,14 +4957,21 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
 
     function attachHandlers() {
       container.querySelectorAll('.recado-item[data-id]').forEach(item => {
-        if (activeTab === 'inbox' && !item.classList.contains('recado-unread') === false) {
-          item.addEventListener('click', e => {
-            if (e.target.closest('.recado-del')) return;
+        const summary = item.querySelector('.recado-row-summary');
+        const body    = item.querySelector('.recado-expanded-body');
+        const chevron = item.querySelector('.recado-chevron');
+        if (!summary || !body) return;
+        summary.addEventListener('click', e => {
+          if (e.target.closest('.recado-del')) return;
+          const open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : 'block';
+          if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+          if (!open && activeTab === 'inbox' && item.classList.contains('recado-unread')) {
             Recados.markRead(item.dataset.id);
             item.classList.remove('recado-unread');
             updateRecadosBadge();
-          });
-        }
+          }
+        });
       });
       container.querySelectorAll('.recado-del').forEach(btn => {
         btn.addEventListener('click', e => {
