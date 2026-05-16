@@ -1080,12 +1080,24 @@ ${filtered.map(r => {
 
     const yrDesp = Store.yearlyMonthly(year, 'despesa');
 
+    const familyCtx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
+    const isMember  = familyCtx && familyCtx.role === 'member';
+
     container.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Despesas — ${periodLabel}</div>
   <div class="section-sub">${despesas.length} lançamentos · total: <strong>${Utils.currency(total)}</strong></div></div>
-  <button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>
+  ${isMember
+    ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
+    : `<button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>`}
 </div>
+${isMember ? `
+<div class="card mb-4" style="border-color:var(--amber)30;background:var(--amber)08">
+  <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Você está no modo Membro — veja apenas suas despesas e rateios.
+  </div>
+</div>` : ''}
 ${periodToggleHTML('ff_desp_period', period)}
 
 <div class="chart-grid mb-6">
@@ -1243,7 +1255,10 @@ ${periodToggleHTML('ff_desp_period', period)}
     }
     attachDespDeleteHandlers();
 
-    document.getElementById('btnAddDesp')?.addEventListener('click', () => openAddDespesa(container));
+    document.getElementById('btnAddDesp')?.addEventListener('click', () => {
+      if (isMember && familyCtx?.pessoaName) openMemberDespesa(familyCtx.pessoaName, () => renderDespesas(container));
+      else openAddDespesa(container);
+    });
     bindPeriodToggle(container, 'ff_desp_period', () => renderDespesas(container));
   }
 
@@ -3434,6 +3449,65 @@ ${(() => {
   }
 
   // ══════════════════════════════════════════════════════════════
+  // MEMBER DESPESA — formulário simplificado (perfil Membro)
+  // ══════════════════════════════════════════════════════════════
+  function openMemberDespesa(pessoaName, onSaved) {
+    const cats = Store.categoriesOrdered().filter(([k]) => k !== 'receita');
+    const html = `
+<div style="margin-bottom:12px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:6px">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  Lançamento como <strong>${pessoaName}</strong> — visível para toda a família
+</div>
+<div class="form-grid">
+  <div class="form-group form-full">
+    <label class="form-label">Descrição</label>
+    <input class="form-input" id="fMDesc" placeholder="Ex: Lanche, Material escolar…" autocomplete="off"/>
+  </div>
+  <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fMAmt" type="number" step="0.01" placeholder="0,00"/></div>
+  <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="fMDate" type="date" value="${new Date().toISOString().slice(0,10)}"/></div>
+  <div class="form-group"><label class="form-label">Categoria</label>
+    <select class="form-select" id="fMCat">${cats.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select>
+  </div>
+  <div class="form-group"><label class="form-label">Sub-categoria</label><select class="form-select" id="fMSub"></select></div>
+  <div class="form-group"><label class="form-label">Pagamento</label>
+    <select class="form-select" id="fMPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select>
+  </div>
+</div>`;
+
+    Modal.open('Lançar Despesa', html, () => {
+      const desc   = document.getElementById('fMDesc').value.trim();
+      const amount = parseFloat(document.getElementById('fMAmt').value);
+      const date   = document.getElementById('fMDate').value;
+      const cat    = document.getElementById('fMCat').value;
+      const sub    = document.getElementById('fMSub').value;
+      const pay    = document.getElementById('fMPay').value;
+      if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
+      const d = new Date(date);
+      Store.addDespesa({
+        desc, amount, date, category: cat, sub, pay,
+        month: d.getMonth()+1, year: d.getFullYear(),
+        responsavel: pessoaName,
+        split: [{ person: pessoaName, valor: amount, share: 100 }],
+      });
+      // Push imediato para a nuvem para que o admin veja
+      if (typeof SupabaseSync !== 'undefined') SupabaseSync.schedulePush(Store.get());
+      toast('Despesa lançada!', 'success');
+      Modal.close();
+      if (onSaved) onSaved();
+    });
+
+    setTimeout(() => {
+      const updateSubs = () => {
+        const subs = Store.SUBCATEGORIES[document.getElementById('fMCat')?.value] || [];
+        const sel  = document.getElementById('fMSub');
+        if (sel) sel.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+      };
+      updateSubs();
+      document.getElementById('fMCat')?.addEventListener('change', updateSubs);
+    }, 0);
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // EDIT MODALS — Despesa & Receita
   // ══════════════════════════════════════════════════════════════
   function openEditDespesa(id, onSaved) {
@@ -4214,6 +4288,12 @@ ${isConnected && isAdmin ? `
       (async () => {
         await SupabaseSync.acceptPendingInvite();
         const ctx = await SupabaseSync.resolveFamilyContext();
+
+        // Se admin, garante que user_data tem family_id vinculado (para editores/membros lerem)
+        if (!ctx || ctx.role === 'admin') {
+          await SupabaseSync.ensureFamilyIdLinked();
+        }
+
         const cloudData = await SupabaseSync.pullFromCloud();
         if (cloudData && cloudData.despesas) {
           localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));

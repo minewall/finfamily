@@ -211,6 +211,19 @@ const SupabaseSync = (function () {
 
   function getFamilyContext() { return _family; }
 
+  // Garante que user_data do admin tem family_id preenchido, para que
+  // editores/membros consigam ler via RLS. Roda silenciosamente no login.
+  async function ensureFamilyIdLinked() {
+    if (!_client || !_user) return;
+    const group = await getFamilyGroup();
+    if (!group) return; // admin sem grupo ainda — ok
+    await _client
+      .from('user_data')
+      .update({ family_id: group.id })
+      .eq('user_id', _user.id)
+      .is('family_id', null); // só atualiza se ainda não está vinculado
+  }
+
   // ── AUTH ──────────────────────────────────────────────────────────
   async function signUp(email, password) {
     if (!_client) return { error: 'SDK não carregado' };
@@ -245,5 +258,6 @@ const SupabaseSync = (function () {
     getUser, isConnected, hasPendingSync, onStatusChange,
     createOrGetFamilyGroup, getFamilyGroup, getFamilyMembers,
     inviteMember, removeMember, acceptPendingInvite, resolveFamilyContext, getFamilyContext,
+    ensureFamilyIdLinked,
   };
 })();
