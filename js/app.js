@@ -240,7 +240,37 @@ const App = (function () {
       pontual:              { label: 'Pontual / Eventual',    color: 'var(--teal)',   desc: 'Evento único' },
     };
 
+    const heroGreeting = (() => {
+      const h = new Date().getHours();
+      if (h < 12) return 'Bom dia';
+      if (h < 18) return 'Boa tarde';
+      return 'Boa noite';
+    })();
+    const monthLabel = `${Utils.monthsFull[month-1]} ${year}`;
+
     container.innerHTML = `
+<div class="dash-hero">
+  <div class="dash-hero-left">
+    <div class="dash-hero-greeting">${heroGreeting} 👋</div>
+    <div class="dash-hero-month">${monthLabel}</div>
+    <div class="dash-hero-sub">Resumo financeiro do período</div>
+  </div>
+  <div class="dash-hero-stats">
+    <div class="dash-hero-stat">
+      <div class="dash-hero-stat-label">Receitas</div>
+      <div class="dash-hero-stat-value pos">${Utils.currency(receita)}</div>
+    </div>
+    <div class="dash-hero-stat">
+      <div class="dash-hero-stat-label">Despesas</div>
+      <div class="dash-hero-stat-value neg">${Utils.currency(despesa)}</div>
+    </div>
+    <div class="dash-hero-stat">
+      <div class="dash-hero-stat-label">Saldo</div>
+      <div class="dash-hero-stat-value ${saldo >= 0 ? 'pos' : 'neg'}">${saldo < 0 ? '-' : ''}${Utils.currency(Math.abs(saldo))}</div>
+    </div>
+  </div>
+</div>
+
 <div class="kpi-grid">
 
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
