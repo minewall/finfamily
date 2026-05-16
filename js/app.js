@@ -152,6 +152,8 @@ const App = (function () {
 
       const container = document.getElementById('pageContainer');
       container.innerHTML = '';
+      container.scrollTop = 0;
+      document.querySelector('.main')?.scrollTo(0, 0);
       const wrap = document.createElement('div');
       wrap.className = 'page-enter';
       container.appendChild(wrap);
