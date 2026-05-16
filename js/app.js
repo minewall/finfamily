@@ -242,38 +242,57 @@ const App = (function () {
 
     container.innerHTML = `
 <div class="kpi-grid">
+
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-header">
-      <span class="kpi-label">Receitas</span>
-      <span class="kpi-icon">${Utils.icon.arrow_up}</span>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </div>
-    <div class="kpi-value green">${Utils.currency(receita)}</div>
-    <div class="kpi-change ${chgRec>=0?'up':'down'}">${chgRec>=0?'▲':'▼'} ${Math.abs(chgRec).toFixed(1)}% vs mês anterior</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Receitas — ${Utils.monthsFull[month-1]}</div>
+      <div class="kpi-value green">${Utils.currency(receita)}</div>
+      <div class="kpi-change ${chgRec>=0?'up':'down'}">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgRec>=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg>
+        ${Math.abs(chgRec).toFixed(1)}% vs mês anterior
+      </div>
+    </div>
   </div>
+
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-header">
-      <span class="kpi-label">Despesas</span>
-      <span class="kpi-icon">${Utils.icon.arrow_down}</span>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </div>
-    <div class="kpi-value red">${Utils.currency(despesa)}</div>
-    <div class="kpi-change ${chgDesp<=0?'up':'down'}">${chgDesp<=0?'▼':'▲'} ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
+      <div class="kpi-value">${Utils.currency(despesa)}</div>
+      <div class="kpi-change ${chgDesp<=0?'up':'down'}">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg>
+        ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior
+      </div>
+    </div>
   </div>
+
   <div class="kpi-card" style="--kpi-color:${saldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${saldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-header">
-      <span class="kpi-label">Saldo do Mês</span>
-      <span class="kpi-icon">📊</span>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v4H3zM3 10h18M8 10v11M16 10v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="kpi-value ${saldo>=0?'accent':'red'}">${saldo<0?'-':''}${Utils.currency(saldo)}</div>
-    <div class="card-sub">${Utils.pct(util)} da receita gasto</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Saldo do Mês</div>
+      <div class="kpi-value ${saldo>=0?'accent':'red'}">${Utils.currency(Math.abs(saldo))}</div>
+      <div class="kpi-change flat">${Utils.pct(util)} da receita comprometida</div>
+    </div>
   </div>
+
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
-    <div class="kpi-header">
-      <span class="kpi-label">Patrimônio</span>
-      <span class="kpi-icon">💎</span>
+    <div class="kpi-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="kpi-value" style="color:var(--teal)">${Utils.currency(patrimonio)}</div>
-    <div class="card-sub">Ativos totais convertidos em BRL</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Patrimônio Total</div>
+      <div class="kpi-value" style="color:var(--teal)">${Utils.currency(patrimonio)}</div>
+      <div class="kpi-change flat">Ativos convertidos em BRL</div>
+    </div>
   </div>
+
 </div>
 
 ${alerts.map(a => `
