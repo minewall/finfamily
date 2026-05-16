@@ -5411,8 +5411,17 @@ ${isConnected && isAdmin ? `
     });
   }
 
+  const CLAUDE_MODELS = [
+    { id: 'claude-haiku-4-5-20251001',  label: 'Haiku 4.5',  desc: 'Rápido · ~$0,0003/pergunta · recomendado para uso diário' },
+    { id: 'claude-sonnet-4-6',          label: 'Sonnet 4.6', desc: 'Mais inteligente · ~$0,007/pergunta · melhor para análises complexas' },
+    { id: 'claude-opus-4-7',            label: 'Opus 4.7',   desc: 'Máxima capacidade · maior custo · uso pontual' },
+  ];
+
   function renderConfigSobre(content) {
-    const savedKey = Store.get().settings?.claudeApiKey || '';
+    const settings   = Store.get().settings || {};
+    const savedKey   = settings.claudeApiKey || '';
+    const savedModel = settings.claudeModel  || 'claude-haiku-4-5-20251001';
+
     content.innerHTML = `
 <div class="section-header mb-4"><div><div class="section-title">Sobre</div></div></div>
 <div class="card mb-4">
@@ -5429,20 +5438,39 @@ ${isConnected && isAdmin ? `
 </div>
 
 <div class="card">
-  <div class="card-header" style="margin-bottom:12px">
-    <span class="card-title">🤖 AI Coach — Chave de API</span>
+  <div class="card-header" style="margin-bottom:16px">
+    <span class="card-title">🤖 AI Coach — Configuração</span>
   </div>
-  <div style="font-size:12px;color:var(--text-3);margin-bottom:12px;line-height:1.6">
-    O AI Coach usa a API do Claude (Anthropic). Insira sua chave abaixo — ela é salva localmente apenas no seu navegador e nunca é enviada a nenhum servidor nosso.
-    <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);display:inline-block;margin-top:4px">Obter chave em console.anthropic.com →</a>
+
+  <div style="margin-bottom:16px">
+    <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Chave de API</div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;line-height:1.6">
+      Salva apenas no seu navegador — nunca enviada a nenhum servidor nosso.
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);margin-left:4px">Obter chave →</a>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="password" id="claudeApiKeyInput" class="form-input" style="flex:1;font-family:var(--mono);font-size:12px"
+        placeholder="sk-ant-api03-…" value="${savedKey}" autocomplete="off" />
+      <button class="btn-primary" id="saveApiKeyBtn">Salvar</button>
+      ${savedKey ? `<button class="btn-secondary" id="clearApiKeyBtn" style="color:var(--red)">Remover</button>` : ''}
+    </div>
+    ${savedKey ? `<div style="font-size:11px;color:var(--green);margin-top:6px">✓ Chave configurada — AI Coach disponível</div>` : ''}
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <input type="password" id="claudeApiKeyInput" class="form-input" style="flex:1;font-family:var(--mono);font-size:12px"
-      placeholder="sk-ant-api03-…" value="${savedKey}" autocomplete="off" />
-    <button class="btn-primary" id="saveApiKeyBtn">Salvar</button>
-    ${savedKey ? `<button class="btn-secondary" id="clearApiKeyBtn" style="color:var(--red)">Remover</button>` : ''}
+
+  <div style="border-top:1px solid var(--border);padding-top:16px">
+    <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Modelo</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="modelSelector">
+      ${CLAUDE_MODELS.map(m => `
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid ${savedModel===m.id?'var(--accent)':'var(--border)'};background:${savedModel===m.id?'var(--accent-dim)':'transparent'};cursor:pointer;transition:border-color .15s">
+        <input type="radio" name="claudeModel" value="${m.id}" ${savedModel===m.id?'checked':''} style="margin-top:2px;accent-color:var(--accent)">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-1)">${m.label}</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:2px">${m.desc}</div>
+        </div>
+      </label>`).join('')}
+    </div>
+    <button class="btn-primary" id="saveModelBtn" style="margin-top:12px">Salvar modelo</button>
   </div>
-  ${savedKey ? `<div style="font-size:11px;color:var(--green);margin-top:8px">✓ Chave configurada — AI Coach disponível</div>` : ''}
 </div>`;
 
     document.getElementById('saveApiKeyBtn')?.addEventListener('click', () => {
@@ -5456,6 +5484,22 @@ ${isConnected && isAdmin ? `
       Store.updateSettings({ claudeApiKey: '' });
       toast('Chave removida', 'info');
       renderConfigSobre(content);
+    });
+    document.getElementById('saveModelBtn')?.addEventListener('click', () => {
+      const sel = document.querySelector('input[name="claudeModel"]:checked')?.value;
+      if (!sel) return;
+      Store.updateSettings({ claudeModel: sel });
+      const m = CLAUDE_MODELS.find(x => x.id === sel);
+      toast(`Modelo alterado para ${m?.label}`, 'success');
+      renderConfigSobre(content);
+    });
+    // Highlight selected on change
+    document.getElementById('modelSelector')?.addEventListener('change', e => {
+      document.querySelectorAll('#modelSelector label').forEach(l => {
+        const radio = l.querySelector('input[type="radio"]');
+        l.style.borderColor = radio?.checked ? 'var(--accent)' : 'var(--border)';
+        l.style.background  = radio?.checked ? 'var(--accent-dim)' : 'transparent';
+      });
     });
   }
 
@@ -5817,7 +5861,7 @@ INSTRUÇÕES:
             'anthropic-dangerous-allow-browser': 'true',
           },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
+            model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
             max_tokens: 1024,
             system: buildContext(),
             messages: history,
