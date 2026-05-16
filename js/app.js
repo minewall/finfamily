@@ -245,20 +245,25 @@ const App = (function () {
     return result.sort((a, b) => b.delta - a.delta);
   }
 
-  function anomaliasHTML(anomalias) {
+  function anomaliasHTML(anomalias, totalDesp) {
     if (!anomalias.length) return '';
+    const avgImpact = anomalias.reduce((s,a) => s + a.delta, 0) / anomalias.length;
+    const extraGasto = anomalias.reduce((s,a) => s + (a.current - a.avg), 0);
+    const pctDasDespesas = totalDesp > 0 ? (extraGasto / totalDesp * 100) : 0;
     return `
-<div class="card mb-6" style="border-left:3px solid var(--amber)">
-  <div class="card-header">
-    <span class="card-title" style="color:var(--amber)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/></svg>
-      Anomalias Detectadas
-    </span>
-    <span class="badge badge-amber">${anomalias.length} categoria${anomalias.length > 1 ? 's' : ''} acima do normal</span>
+<div class="card mb-6 anomalias-card" style="border-left:3px solid var(--amber);cursor:pointer" id="anomaliasCard">
+  <div class="card-header" style="pointer-events:none">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="color:var(--amber);flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+      <span style="font-size:13px;font-weight:600;color:var(--amber)">Anomalias Detectadas</span>
+      <span class="badge badge-amber">${anomalias.length} categoria${anomalias.length > 1 ? 's' : ''}</span>
+      <span style="font-size:12px;color:var(--text-3);margin-left:4px">· +${(avgImpact*100).toFixed(0)}% acima da média · impacto ${pctDasDespesas.toFixed(1)}% das despesas</span>
+    </div>
+    <svg id="anomaliasChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" style="color:var(--text-4);transition:transform .2s;flex-shrink:0;pointer-events:none"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div>
-  <div style="display:flex;flex-direction:column;gap:10px">
+  <div id="anomaliasBody" style="display:none;margin-top:8px;display:none;flex-direction:column;gap:10px">
     ${anomalias.map(a => {
-      const barW = Math.min((a.delta / 2) * 100, 100); // escala visual até 200%
+      const barW = Math.min((a.delta / 2) * 100, 100);
       return `<div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -1537,7 +1542,6 @@ ${filtered.map(r => {
     ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
     : `<button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>`}
 </div>
-${anomaliasHTML(anomalias)}
 ${isMember ? `
 <div class="card mb-4" style="border-color:var(--amber)30;background:var(--amber)08">
   <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber)">
@@ -1600,6 +1604,8 @@ ${periodToggleHTML('ff_desp_period', period)}
     </table>
   </div>
 </div>
+
+${anomaliasHTML(anomalias, total)}
 
 <div class="card">
   <div class="card-header">
@@ -1707,6 +1713,16 @@ ${periodToggleHTML('ff_desp_period', period)}
       else openAddDespesa(container);
     });
     bindPeriodToggle(container, 'ff_desp_period', () => renderDespesas(container));
+
+    // Anomalias card toggle
+    document.getElementById('anomaliasCard')?.addEventListener('click', () => {
+      const body    = document.getElementById('anomaliasBody');
+      const chevron = document.getElementById('anomaliasChevron');
+      if (!body) return;
+      const open = body.style.display === 'flex';
+      body.style.display = open ? 'none' : 'flex';
+      if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+    });
   }
 
   // ── Helper: seção de rateio reutilizável em modais de despesa ──
