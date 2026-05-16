@@ -1555,18 +1555,17 @@ body.sidebar-open { overflow: hidden; }
 
 /* ── RECADOS ───────────────────────────────────────────────────────── */
 .recado-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 0;
+  display: block;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
-  transition: background .15s;
-  cursor: pointer;
   border-radius: 6px;
+  transition: background .15s;
 }
 .recado-item:last-child { border-bottom: none; }
-.recado-item.recado-unread { background: var(--accent)08; }
-.recado-item.recado-unread .recado-content { font-weight: 500; color: var(--text-1); }
+.recado-item:hover { background: var(--bg-2); }
+.recado-item.recado-unread { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.recado-item.recado-unread .recado-from { font-weight: 700; color: var(--text-1); }
+.recado-item.recado-unread .recado-preview { color: var(--text-2); font-weight: 500; }
 .recado-avatar {
   width: 36px; height: 36px;
   border-radius: 50%;
