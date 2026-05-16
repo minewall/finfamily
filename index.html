@@ -45,7 +45,7 @@
           <span class="nav-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>
           </span>
-          <span class="nav-text">Dashboard</span>
+          <span class="nav-text">Visão Geral</span>
         </a>
         <a href="#lancamentos" class="nav-item" data-page="lancamentos">
           <span class="nav-icon">
@@ -66,27 +66,27 @@
         </a>
         <a href="#despesas" class="nav-item" data-page="despesas">
           <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
           <span class="nav-text">Despesas</span>
         </a>
-        <a href="#metas" class="nav-item" data-page="metas">
+        <a href="#contas" class="nav-item" data-page="contas">
           <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 22V9M3 9l9-7 9 7M3 9h18M21 22V9M9 22v-5h6v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
-          <span class="nav-text">Metas</span>
+          <span class="nav-text">Contas</span>
+        </a>
+        <a href="#cartoes" class="nav-item" data-page="cartoes">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="15" r="1" fill="currentColor"/></svg>
+          </span>
+          <span class="nav-text">Cartões</span>
         </a>
         <a href="#contratos" class="nav-item" data-page="contratos">
           <span class="nav-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2"/><path d="M8 13h8M8 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
           <span class="nav-text">Contratos</span>
-        </a>
-        <a href="#contas" class="nav-item" data-page="contas">
-          <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="15" r="1" fill="currentColor"/></svg>
-          </span>
-          <span class="nav-text">Contas & Cartões</span>
         </a>
       </div>
 
@@ -118,23 +118,42 @@
       </div>
 
       <div class="nav-section">
-        <span class="nav-label">Patrimônio</span>
+        <span class="nav-label">Planejamento</span>
         <a href="#reserva" class="nav-item" data-page="reserva">
           <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
-          <span class="nav-text">Reserva & Patrimônio</span>
+          <span class="nav-text">Patrimônio</span>
         </a>
+        <a href="#metas" class="nav-item" data-page="metas">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span class="nav-text">Metas</span>
+        </a>
+        <a href="#investimentos" class="nav-item" data-page="investimentos">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Investimentos</span>
+        </a>
+        <a href="#simulacoes" class="nav-item" data-page="simulacoes">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Simulações</span>
+          <span class="nav-badge blue">Em breve</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-label">Sistema</span>
         <a href="#comparativo" class="nav-item" data-page="comparativo">
           <span class="nav-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
           <span class="nav-text">Comparativo</span>
         </a>
-      </div>
-
-      <div class="nav-section">
-        <span class="nav-label">Sistema</span>
         <a href="#config" class="nav-item" data-page="config">
           <span class="nav-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
@@ -163,7 +182,7 @@
       <button class="sidebar-toggle" id="sidebarToggle" title="Menu">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-title" id="pageTitle">Visão Geral</div>
       <div class="topbar-actions">
         <div id="syncBadge" title="Status de sincronização" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-4);cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border)">
           <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-4);flex-shrink:0"></span>
@@ -204,10 +223,10 @@
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="js/supabase-client.js?v=65"></script>
-<script src="js/store.js?v=65"></script>
-<script src="js/charts.js?v=65"></script>
-<script src="js/app.js?v=65"></script>
+<script src="js/supabase-client.js?v=66"></script>
+<script src="js/store.js?v=66"></script>
+<script src="js/charts.js?v=66"></script>
+<script src="js/app.js?v=66"></script>
 
 </body>
 </html>

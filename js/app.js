@@ -110,17 +110,20 @@ const App = (function () {
     current: 'dashboard',
     pages: {},
     titles: {
-      dashboard:   'Dashboard',
-      lancamentos: 'Lançamentos',
-      receitas:    'Receitas',
-      despesas:    'Despesas',
-      metas:       'Metas & Projetos',
-      contratos:   'Contratos',
-      contas:      'Contas & Cartões',
-      reserva:     'Reserva & Investimentos',
-      patrimonio:  'Patrimônio & Investimentos',
-      comparativo: 'Comparativo Mensal',
-      config:      'Configurações',
+      dashboard:     'Visão Geral',
+      lancamentos:   'Lançamentos',
+      receitas:      'Receitas',
+      despesas:      'Despesas',
+      contas:        'Contas Bancárias',
+      cartoes:       'Cartões de Crédito',
+      contratos:     'Contratos',
+      reserva:       'Patrimônio',
+      metas:         'Metas & Projetos',
+      investimentos: 'Investimentos',
+      simulacoes:    'Simulações',
+      patrimonio:    'Patrimônio & Investimentos',
+      comparativo:   'Comparativo Mensal',
+      config:        'Configurações',
     },
     init() {
       window.addEventListener('hashchange', () => this.route());
@@ -3772,6 +3775,51 @@ ${(() => {
     });
   }
 
+  // ── CARTÕES (rota separada — renderiza seção de cartões da página Contas) ──
+  function renderCartoes(container) {
+    renderContas(container);
+    // scroll to credit cards section after render
+    requestAnimationFrame(() => {
+      const labels = container.querySelectorAll('[class*="section-label"]');
+      const cartoesLabel = [...labels].find(el => el.textContent.includes('Cartões'));
+      if (cartoesLabel) cartoesLabel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // ── INVESTIMENTOS (extrai seção de investimentos do Patrimônio) ─
+  function renderInvestimentos(container) {
+    renderReserva(container);
+    // scroll to investments table after render
+    requestAnimationFrame(() => {
+      const invSection = container.querySelector('#investimentos-section, [data-section="investimentos"]');
+      if (invSection) invSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // ── SIMULAÇÕES (placeholder) ────────────────────────────────────
+  function renderSimulacoes(container) {
+    container.innerHTML = `
+<div class="empty-state" style="min-height:60vh">
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" opacity="0.25"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div style="font-size:18px;font-weight:700;color:var(--text-2);margin-top:4px">Simulações</div>
+  <p>Simule cenários de investimento, pagamento de dívidas e planejamento de longo prazo. Em desenvolvimento.</p>
+  <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center">
+    <div class="card card-sm" style="min-width:160px;text-align:center;opacity:.6">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">Juros Compostos</div>
+      <div style="font-size:11px;color:var(--text-3)">Em breve</div>
+    </div>
+    <div class="card card-sm" style="min-width:160px;text-align:center;opacity:.6">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">Amortização</div>
+      <div style="font-size:11px;color:var(--text-3)">Em breve</div>
+    </div>
+    <div class="card card-sm" style="min-width:160px;text-align:center;opacity:.6">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">FIRE / Independência</div>
+      <div style="font-size:11px;color:var(--text-3)">Em breve</div>
+    </div>
+  </div>
+</div>`;
+  }
+
   // ── INIT ───────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════
   // PAGE: CONFIGURAÇÕES
@@ -4451,17 +4499,20 @@ ${isConnected && isAdmin ? `
     Modal.init();
 
     // Register pages
-    Router.register('dashboard',  renderDashboard);
-    Router.register('lancamentos',renderLancamentos);
-    Router.register('receitas',   renderReceitas);
-    Router.register('despesas',   renderDespesas);
-    Router.register('metas',      renderMetas);
-    Router.register('contratos',  renderContratos);
-    Router.register('contas',     renderContas);
-    Router.register('reserva',    renderReserva);
-    Router.register('patrimonio', renderPatrimonio);
-    Router.register('comparativo',renderComparativo);
-    Router.register('config',     renderConfig);
+    Router.register('dashboard',     renderDashboard);
+    Router.register('lancamentos',   renderLancamentos);
+    Router.register('receitas',      renderReceitas);
+    Router.register('despesas',      renderDespesas);
+    Router.register('contas',        renderContas);
+    Router.register('cartoes',       renderCartoes);
+    Router.register('contratos',     renderContratos);
+    Router.register('reserva',       renderReserva);
+    Router.register('metas',         renderMetas);
+    Router.register('investimentos', renderInvestimentos);
+    Router.register('simulacoes',    renderSimulacoes);
+    Router.register('patrimonio',    renderPatrimonio);
+    Router.register('comparativo',   renderComparativo);
+    Router.register('config',        renderConfig);
 
     // Month / Year selectors
     document.getElementById('globalMonth').addEventListener('change', () => Router.navigate(Router.current));
@@ -4511,7 +4562,7 @@ ${isConnected && isAdmin ? `
 
   // Hides nav sections not accessible to 'member' role users
   function _applyMemberNav() {
-    const HIDDEN_PAGES = ['receitas','metas','contratos','contas','reserva','comparativo'];
+    const HIDDEN_PAGES = ['receitas','metas','contratos','contas','cartoes','reserva','investimentos','simulacoes','comparativo'];
     HIDDEN_PAGES.forEach(page => {
       const el = document.querySelector(`[data-page="${page}"]`);
       if (el) el.style.display = 'none';
