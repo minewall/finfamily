@@ -4267,6 +4267,15 @@ ${isConnected && isAdmin ? `
     // New entry button
     document.getElementById('btnNovaEntrada').addEventListener('click', openNovaEntrada);
 
+    // Logout button
+    document.getElementById('btnLogout')?.addEventListener('click', async () => {
+      if (!confirm('Sair da conta?')) return;
+      if (typeof SupabaseSync !== 'undefined') await SupabaseSync.signOut();
+      sessionStorage.removeItem('ff_auth');
+      sessionStorage.removeItem('ff_user_email');
+      window.location.replace('login.html');
+    });
+
     // Sidebar toggle (mobile) + overlay + auto-close
     function sidebarClose() {
       document.getElementById('sidebar').classList.remove('open');
