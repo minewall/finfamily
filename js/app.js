@@ -7475,29 +7475,105 @@ ${isConnected && isAdmin ? `
       const desp  = Store.sumDespesas(month, year);
       const saldo = rec - desp;
       const util  = rec > 0 ? ((desp / rec) * 100).toFixed(1) : '0';
-      const catMap = Store.despesasByCategory(month, year);
-      const topCats = Object.entries(catMap).sort((a,b) => b[1]-a[1]).slice(0,6)
-        .map(([k,v]) => `  - ${Store.CATEGORIES[k]?.label||k}: R$ ${v.toFixed(2)}`).join('\n');
+
+      // ── Despesas detalhadas: por categoria → subcategoria → top descrições ──
+      const despesasMes = Store.despesasByMonth(month, year);
+      const catAgg = {}; // { catKey: { total, subs: { subName: { total, items: [{desc, amount, pessoa}] } } } }
+      despesasMes.forEach(d => {
+        const ck = d.category || 'outros';
+        if (!catAgg[ck]) catAgg[ck] = { total: 0, subs: {} };
+        catAgg[ck].total += d.amount;
+        const sk = d.sub || '(sem subcat)';
+        if (!catAgg[ck].subs[sk]) catAgg[ck].subs[sk] = { total: 0, items: [] };
+        catAgg[ck].subs[sk].total += d.amount;
+        catAgg[ck].subs[sk].items.push({ desc: d.desc, amount: d.amount, pessoa: d.person || d.responsavel || '—', date: d.date });
+      });
+      const catEntries = Object.entries(catAgg).sort((a,b) => b[1].total - a[1].total).slice(0, 8);
+      const despesasDetalhadas = catEntries.length === 0 ? '  (sem despesas)' : catEntries.map(([ck, info]) => {
+        const catLabel = Store.CATEGORIES[ck]?.label || ck;
+        const subs = Object.entries(info.subs).sort((a,b) => b[1].total - a[1].total).slice(0, 5);
+        const subStr = subs.map(([sk, sub]) => {
+          const topItems = sub.items.sort((a,b) => b.amount - a.amount).slice(0, 3)
+            .map(i => `      · ${i.desc} (${i.pessoa}): R$ ${i.amount.toFixed(2)}`).join('\n');
+          return `    - ${sk}: R$ ${sub.total.toFixed(2)}\n${topItems}`;
+        }).join('\n');
+        return `  ▸ ${catLabel}: R$ ${info.total.toFixed(2)}\n${subStr}`;
+      }).join('\n');
+
+      // ── Receitas detalhadas: por pessoa → top descrições ──
+      const recsMes = Store.receitasByMonth(month, year);
+      const recByPerson = {};
+      recsMes.forEach(r => {
+        const p = r.person || r.responsavel || 'Sem responsável';
+        if (!recByPerson[p]) recByPerson[p] = { total: 0, items: [] };
+        recByPerson[p].total += r.amount;
+        recByPerson[p].items.push({ desc: r.desc, amount: r.amount });
+      });
+      const receitasDetalhadas = Object.entries(recByPerson).length === 0 ? '  (sem receitas)' :
+        Object.entries(recByPerson).sort((a,b) => b[1].total - a[1].total).map(([p, info]) => {
+          const top = info.items.sort((a,b) => b.amount - a.amount).slice(0, 3)
+            .map(i => `    · ${i.desc}: R$ ${i.amount.toFixed(2)}`).join('\n');
+          return `  ▸ ${p}: R$ ${info.total.toFixed(2)}\n${top}`;
+        }).join('\n');
+
+      // ── Despesas por pessoa (quem gasta o quê) ──
+      const despPorPessoa = {};
+      despesasMes.forEach(d => {
+        const p = d.person || d.responsavel || 'Sem responsável';
+        if (!despPorPessoa[p]) despPorPessoa[p] = 0;
+        despPorPessoa[p] += d.amount;
+      });
+      const despPessoaStr = Object.entries(despPorPessoa).sort((a,b) => b[1] - a[1])
+        .map(([p,v]) => {
+          const recP = recByPerson[p]?.total || 0;
+          const saldoP = recP - v;
+          return `  - ${p}: gastou R$ ${v.toFixed(2)}${recP ? ` / recebeu R$ ${recP.toFixed(2)} → saldo R$ ${saldoP.toFixed(2)}` : ''}`;
+        }).join('\n') || '  (sem despesas atribuídas)';
+
+      // ── Estrutura de categorias e subcategorias disponíveis ──
+      const catSubMap = data.subcategorias || {};
+      const estruturaCats = Object.entries(Store.CATEGORIES || {})
+        .filter(([k]) => k !== 'receita')
+        .map(([k, v]) => {
+          const subs = (catSubMap[k] || []).slice(0, 8);
+          return `  ▸ ${v.label} (${k}): ${subs.length ? subs.join(', ') : 'sem subcategorias'}`;
+        }).join('\n');
+
+      // ── Pessoas cadastradas ──
+      const pessoas = data.pessoas || Store.PESSOAS || [];
+      const pessoasStr = pessoas.length ? pessoas.join(', ') : 'nenhuma';
+
       const metas = data.metas || [];
-      const metasAtivas = metas.filter(m => !m.concluida).length;
+      const metasAtivas = metas.filter(m => !m.concluida);
+      const metasStr = metasAtivas.length === 0 ? '  (nenhuma meta ativa)' :
+        metasAtivas.slice(0, 5).map(m => {
+          const target = m.target ? `R$ ${m.target.toFixed(2)}` : '—';
+          const atual  = m.atual  ? `R$ ${m.atual.toFixed(2)}`  : 'R$ 0,00';
+          return `  - ${m.label} (${m.type || 'objetivo'}): alvo ${target}, atual ${atual}${m.deadline ? `, prazo ${m.deadline}` : ''}`;
+        }).join('\n');
+
       const contratos = Store.getContratos().filter(c => c.active !== false);
+      const contratosResumo = contratos.length === 0 ? '  (sem contratos ativos)' :
+        contratos.slice(0, 8).map(c => `  - ${c.label}: ${c.kind === 'receita' ? '+' : '-'}R$ ${c.valorParcela.toFixed(2)}/${c.periodicidade === 'anual' ? 'ano' : 'mês'} (${c.category}/${c.sub || '—'})`).join('\n');
+
       const anomalias = detectAnomalias(month, year);
       const anomStr = anomalias.length
         ? anomalias.slice(0,3).map(a => `  - ${a.label}: +${(a.delta*100).toFixed(0)}% acima da média`).join('\n')
         : '  Nenhuma anomalia detectada';
-      const recs = Store.receitasByMonth(month, year);
-      const recByPerson = {};
-      recs.forEach(r => { recByPerson[r.person] = (recByPerson[r.person]||0)+r.amount; });
-      const recStr = Object.entries(recByPerson).map(([p,v]) => `  - ${p}: R$ ${v.toFixed(2)}`).join('\n') || '  Sem receitas';
+
       const settings = data.settings || {};
       const limiteGasto = settings.limiteGasto ? (settings.limiteGasto*100).toFixed(0)+'%' : '80%';
       const metaRecMensal = settings.metaReceita ? `R$ ${settings.metaReceita.toFixed(2)}` : 'não definida';
       const pessoa = currentPessoa();
       const userName = pessoa || 'usuário';
 
+      // Patrimônio resumido
+      const patTotal = Store.totalAtivos();
+
       return `Você é o AI Coach financeiro do FinFamily, um assistente especializado em finanças pessoais e familiares. Você tem acesso ao contexto financeiro completo do usuário abaixo.
 
-USUÁRIO: ${userName}
+USUÁRIO LOGADO: ${userName}
+PESSOAS DA FAMÍLIA: ${pessoasStr}
 MÊS DE REFERÊNCIA: ${Utils.monthsFull[month-1]} ${year}
 
 === RESUMO DO MÊS ===
@@ -7506,18 +7582,25 @@ Despesas: R$ ${desp.toFixed(2)}
 Saldo: R$ ${saldo.toFixed(2)} (${saldo >= 0 ? 'positivo' : 'NEGATIVO'})
 Comprometimento da receita: ${util}% (limite configurado: ${limiteGasto})
 Meta de receita mensal: ${metaRecMensal}
+Patrimônio total estimado: R$ ${patTotal.toFixed(2)}
 
-=== RECEITAS POR PESSOA ===
-${recStr}
+=== RECEITAS DETALHADAS (por pessoa, top 3 lançamentos) ===
+${receitasDetalhadas}
 
-=== TOP DESPESAS POR CATEGORIA ===
-${topCats || '  Sem despesas registradas'}
+=== DESPESAS DETALHADAS (categoria → subcategoria → top 3 lançamentos) ===
+${despesasDetalhadas}
 
-=== METAS FINANCEIRAS ===
-${metasAtivas} meta(s) ativa(s) de ${metas.length} no total
+=== SALDO POR PESSOA ===
+${despPessoaStr}
 
-=== CONTRATOS RECORRENTES ===
-${contratos.length} contrato(s) ativo(s)
+=== ESTRUTURA DE CATEGORIAS DISPONÍVEIS (use ao sugerir lançamentos) ===
+${estruturaCats}
+
+=== METAS ATIVAS ===
+${metasStr}
+
+=== CONTRATOS RECORRENTES (${contratos.length} ativos) ===
+${contratosResumo}
 
 === ANOMALIAS DETECTADAS ===
 ${anomStr}
