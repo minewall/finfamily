@@ -143,7 +143,48 @@ const SupabaseSync = (function () {
       .insert(row)
       .select()
       .single();
-    return { data, error };
+    if (error) return { data, error };
+
+    // Dispara e-mail de convite via Edge Function (não bloqueia em caso de falha:
+    // a linha em family_members já existe, então acceptPendingInvite vai amarrar
+    // quando o usuário fizer login pelo próprio caminho).
+    const emailResult = await _sendInviteEmail(email, role, pessoaName, group);
+    return { data, error: null, emailResult };
+  }
+
+  async function _sendInviteEmail(email, role, pessoaName, group) {
+    try {
+      const inviterName =
+        _user?.user_metadata?.full_name ||
+        _user?.user_metadata?.name ||
+        _user?.email ||
+        'Alguém';
+      const payload = {
+        email,
+        role,
+        pessoaName,
+        inviterName,
+        familyName: group?.name || null,
+        redirectTo: 'https://minewall.github.io/finfamily/login.html',
+      };
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/family-invite`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok && !body?.alreadyExists) {
+        console.warn('[inviteMember] email failed', body);
+        return { sent: false, alreadyExists: false, error: body?.error?.message || 'falha ao enviar e-mail' };
+      }
+      return body;
+    } catch (e) {
+      console.warn('[inviteMember] email exception', e);
+      return { sent: false, alreadyExists: false, error: e.message };
+    }
   }
 
   async function removeMember(memberId) {

@@ -5410,11 +5410,17 @@ ${isConnected && isAdmin ? `
         if (role === 'member' && !pessoaName) return toast('Selecione a pessoa local para o membro', 'error');
         const btn = document.getElementById('btnInvite');
         btn.disabled = true; btn.textContent = 'Enviando…';
-        const { error } = await SupabaseSync.inviteMember(email, role, pessoaName);
+        const { error, emailResult } = await SupabaseSync.inviteMember(email, role, pessoaName);
         btn.disabled = false; btn.textContent = 'Convidar';
         if (error) return toast(typeof error === 'string' ? error : (error.message || 'Erro ao convidar'), 'error');
         document.getElementById('fInviteEmail').value = '';
-        toast(`Convite registrado para ${email}`, 'success');
+        if (emailResult?.sent) {
+          toast(`Convite enviado para ${email} — pedimos para verificar o e-mail.`, 'success');
+        } else if (emailResult?.alreadyExists) {
+          toast(`${email} já tem conta. O vínculo é feito no próximo login dela.`, 'info');
+        } else {
+          toast(`Convite registrado para ${email}, mas o e-mail não foi enviado. Avise manualmente.`, 'error');
+        }
         _loadFamilyMembers();
       });
     }
