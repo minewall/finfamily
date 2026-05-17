@@ -1840,29 +1840,165 @@ const Store = (function () {
     'assessorias.Outros':                 'variavel_opcional',
   };
 
-  function getSubcatTipo(cat, sub) {
-    const userMap = (_data.settings && _data.settings.subcatTipo) || {};
-    const key = `${cat}.${sub}`;
-    return userMap[key] || _DEFAULT_SUBTYPES[key] || 'variavel_opcional';
+  // ── TIPOS (5 defaults + customizáveis) ─────────────────────────
+  const TIPOS_BUILTIN = [
+    { id: 'essencial',    label: 'Essencial',    color: '#EF4444', icon: '🔴', comportamento: 'essencial',    desc: 'Não posso viver sem isso este mês',                  ordem: 1, builtin: true },
+    { id: 'obrigatorio',  label: 'Obrigatório',  color: '#A78BFA', icon: '⚖️', comportamento: 'obrigatorio',  desc: 'Saída imposta por terceiros (pensão, multa, IR)',     ordem: 2, builtin: true },
+    { id: 'comprometido', label: 'Comprometido', color: '#F59E0B', icon: '🟡', comportamento: 'comprometido', desc: 'Posso cortar mas com custo (multa, perda, dor)',      ordem: 3, builtin: true },
+    { id: 'opcional',     label: 'Opcional',     color: '#22C55E', icon: '🟢', comportamento: 'opcional',     desc: 'Posso cortar amanhã sem grande impacto',              ordem: 4, builtin: true },
+    { id: 'eventual',     label: 'Eventual',     color: '#0EA5E9', icon: '⏱️', comportamento: 'eventual',     desc: 'Não é mensal — vem de vez em quando',                 ordem: 5, builtin: true },
+  ];
+
+  // Mapeia chaves antigas hardcoded → ids do novo modelo
+  const _TIPO_MIGRATION = {
+    fixa_essencial:         'essencial',
+    fixa_comprometida:      'comprometido',
+    variavel_comprometida:  'comprometido',
+    variavel_opcional:      'opcional',
+    pontual:                'eventual',
+  };
+
+  function _ensureTipos() {
+    if (!_data.tipos || !Array.isArray(_data.tipos) || _data.tipos.length === 0) {
+      _data.tipos = TIPOS_BUILTIN.map(t => ({ ...t }));
+    } else {
+      // Garante que builtins ainda existam (caso usuário tenha persistido versão antiga)
+      const ids = new Set(_data.tipos.map(t => t.id));
+      TIPOS_BUILTIN.forEach(b => {
+        if (!ids.has(b.id)) _data.tipos.push({ ...b });
+      });
+    }
   }
 
-  function setSubcatTipo(cat, sub, tipo) {
-    if (!_data.settings) _data.settings = {};
-    if (!_data.settings.subcatTipo) _data.settings.subcatTipo = {};
-    _data.settings.subcatTipo[`${cat}.${sub}`] = tipo;
+  function getTipos() { _ensureTipos(); return _data.tipos.slice().sort((a,b) => (a.ordem||999) - (b.ordem||999)); }
+  function getTipoById(id) { _ensureTipos(); return _data.tipos.find(t => t.id === id) || null; }
+  function addTipo({ label, descricao, color, icon, comportamento }) {
+    _ensureTipos();
+    if (!label) throw new Error('Nome obrigatório');
+    if (!['essencial','obrigatorio','comprometido','opcional','eventual'].includes(comportamento || 'opcional')) {
+      throw new Error('Comportamento inválido');
+    }
+    let id = (label || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    while (_data.tipos.some(t => t.id === id)) id = id + '_' + Math.random().toString(36).slice(2,4);
+    const maxOrdem = _data.tipos.reduce((m,t) => Math.max(m, t.ordem||0), 0);
+    const novo = {
+      id, label, desc: descricao || '',
+      color: color || '#7C6EF8',
+      icon: icon || '✦',
+      comportamento: comportamento || 'opcional',
+      ordem: maxOrdem + 1,
+      builtin: false,
+    };
+    _data.tipos.push(novo);
+    persist();
+    return novo;
+  }
+  function updateTipo(id, patch) {
+    _ensureTipos();
+    const t = _data.tipos.find(x => x.id === id);
+    if (!t) return null;
+    if (t.builtin) {
+      // Builtins não podem mudar id, label, builtin nem comportamento (preserva semântica)
+      const allowed = { color: patch.color, icon: patch.icon, desc: patch.desc, ordem: patch.ordem };
+      Object.keys(allowed).forEach(k => { if (allowed[k] === undefined) delete allowed[k]; });
+      Object.assign(t, allowed);
+    } else {
+      Object.assign(t, patch);
+    }
+    persist();
+    return t;
+  }
+  function deleteTipo(id) {
+    _ensureTipos();
+    const t = _data.tipos.find(x => x.id === id);
+    if (!t) return;
+    if (t.builtin) throw new Error('Tipos default não podem ser removidos');
+    // Reatribui categorias/subcategorias que usavam este tipo → opcional
+    const fallback = 'opcional';
+    const map = (_data.settings && _data.settings.subcatTipo) || {};
+    Object.keys(map).forEach(k => { if (map[k] === id) map[k] = fallback; });
+    const catMap = (_data.settings && _data.settings.catTipo) || {};
+    Object.keys(catMap).forEach(k => { if (catMap[k] === id) catMap[k] = fallback; });
+    _data.tipos = _data.tipos.filter(x => x.id !== id);
     persist();
   }
 
+  function _normalizeTipoLegacy(value) {
+    if (!value) return null;
+    return _TIPO_MIGRATION[value] || value;
+  }
+
+  // Tipo de uma categoria: respeita override no settings.catTipo, fallback 'opcional'
+  function getCatTipo(cat) {
+    const map = (_data.settings && _data.settings.catTipo) || {};
+    return _normalizeTipoLegacy(map[cat]) || 'opcional';
+  }
+  function setCatTipo(cat, tipoId) {
+    if (!_data.settings) _data.settings = {};
+    if (!_data.settings.catTipo) _data.settings.catTipo = {};
+    _data.settings.catTipo[cat] = tipoId;
+    persist();
+  }
+
+  // Tipo de uma subcategoria: respeita settings.subcatTipo, senão herda da categoria
+  function getSubcatTipo(cat, sub) {
+    const userMap = (_data.settings && _data.settings.subcatTipo) || {};
+    const k = `${cat}.${sub}`;
+    if (userMap[k]) return _normalizeTipoLegacy(userMap[k]);
+    if (_DEFAULT_SUBTYPES[k]) return _normalizeTipoLegacy(_DEFAULT_SUBTYPES[k]);
+    return getCatTipo(cat);
+  }
+  function setSubcatTipo(cat, sub, tipoId) {
+    if (!_data.settings) _data.settings = {};
+    if (!_data.settings.subcatTipo) _data.settings.subcatTipo = {};
+    _data.settings.subcatTipo[`${cat}.${sub}`] = tipoId;
+    persist();
+  }
+  function clearSubcatTipoOverride(cat, sub) {
+    const map = (_data.settings && _data.settings.subcatTipo) || {};
+    delete map[`${cat}.${sub}`];
+    persist();
+  }
+
+  // Resolve o tipo efetivo de UMA despesa: override no lançamento > subcat > cat > 'opcional'
+  function getDespesaTipo(d) {
+    if (d.tipoOverride) return _normalizeTipoLegacy(d.tipoOverride);
+    return getSubcatTipo(d.category, d.sub || '');
+  }
+
   function sumDespesasByTipo(month, year) {
-    const totals = { fixa_essencial: 0, fixa_comprometida: 0, variavel_comprometida: 0, variavel_opcional: 0, pontual: 0 };
+    _ensureTipos();
+    const totals = {};
+    _data.tipos.forEach(t => { totals[t.id] = 0; });
     _data.despesas
       .filter(d => d.month === month && d.year === year && d.category !== 'cartoes' && d.category !== 'receita')
       .forEach(d => {
-        const tipo = getSubcatTipo(d.category, d.sub || '');
-        if (totals[tipo] !== undefined) totals[tipo] += d.amount;
-        else totals.variavel_opcional += d.amount;
+        const tipoId = getDespesaTipo(d);
+        if (totals[tipoId] !== undefined) totals[tipoId] += d.amount;
+        else totals.opcional = (totals.opcional || 0) + d.amount;
       });
     return totals;
+  }
+
+  // Poder de Escolha: receitas - (essencial + obrigatório + comprometido)
+  function calcPoderDeEscolha(month, year) {
+    _ensureTipos();
+    const rec = sumReceitas(month, year);
+    const byTipo = sumDespesasByTipo(month, year);
+    let pisoSobrevivencia = 0;
+    _data.tipos.forEach(t => {
+      if (['essencial','obrigatorio','comprometido'].includes(t.comportamento)) {
+        pisoSobrevivencia += byTipo[t.id] || 0;
+      }
+    });
+    return {
+      receitas: rec,
+      pisoSobrevivencia,
+      poderDeEscolha: rec - pisoSobrevivencia,
+      pct: rec > 0 ? (rec - pisoSobrevivencia) / rec : 0,
+    };
   }
 
   // Restricts in-memory data to what a 'member' role user should see.
@@ -1906,7 +2042,9 @@ const Store = (function () {
     descSuggestions, receitaSuggestions,
     categoriesOrdered, getCategoryOrder, setCategoryOrder,
     addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos, markAllPastParcelas,
-    getSubcatTipo, setSubcatTipo, sumDespesasByTipo,
+    getSubcatTipo, setSubcatTipo, clearSubcatTipoOverride, sumDespesasByTipo,
+    getTipos, getTipoById, addTipo, updateTipo, deleteTipo,
+    getCatTipo, setCatTipo, getDespesaTipo, calcPoderDeEscolha,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData,
     getProximasParcelas,

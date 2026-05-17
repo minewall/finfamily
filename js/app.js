@@ -447,13 +447,10 @@ const App = (function () {
     const yrReceitas = Store.yearlyMonthly(year, 'receita');
     const yrDespesas = Store.yearlyMonthly(year, 'despesa');
     const tipoDesp = Store.sumDespesasByTipo(month, year);
-    const TIPO_INFO = {
-      fixa_essencial:       { label: 'Fixa Essencial',        color: 'var(--red)',    desc: 'Não dá pra cortar' },
-      fixa_comprometida:    { label: 'Fixa Comprometida',     color: 'var(--amber)',  desc: 'Custo para cancelar' },
-      variavel_comprometida:{ label: 'Variável Comprometida', color: 'var(--accent)', desc: 'Difícil de cortar' },
-      variavel_opcional:    { label: 'Variável Opcional',     color: 'var(--green)',  desc: 'Pode cortar' },
-      pontual:              { label: 'Pontual / Eventual',    color: 'var(--teal)',   desc: 'Evento único' },
-    };
+    const _tiposList = Store.getTipos();
+    const TIPO_INFO = {};
+    _tiposList.forEach(t => { TIPO_INFO[t.id] = { label: t.label, color: t.color, desc: t.desc, comportamento: t.comportamento, icon: t.icon }; });
+    const poder = Store.calcPoderDeEscolha(month, year);
 
     const heroGreeting = (() => {
       const h = new Date().getHours();
@@ -6555,6 +6552,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   <aside class="card" style="padding:8px">
     ${[
       ['categorias', '🗂', 'Categorias'],
+      ['tipos',      '🏷️', 'Tipos'],
       ['pessoas',    '👥', 'Grupo Familiar'],
       ['cotacoes',   '💱', 'Cotações'],
       ['aparencia',  '🎨', 'Aparência'],
@@ -6582,6 +6580,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
 
     const content = document.getElementById('configContent');
     if      (section === 'categorias') renderConfigCategorias(content);
+    else if (section === 'tipos')      renderConfigTipos(content);
     else if (section === 'pessoas')    renderConfigPessoas(content);
     else if (section === 'cotacoes')   renderConfigCotacoes(content);
     else if (section === 'aparencia')  renderConfigAparencia(content);
@@ -6589,6 +6588,203 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     else if (section === 'perfil')     renderConfigPerfil(content);
     else if (section === 'senha')      renderConfigSenha(content);
     else                                renderConfigSobre(content);
+  }
+
+  function renderConfigTipos(content) {
+    const tipos = Store.getTipos();
+    const cats = Store.categoriesOrdered();
+    const COMPORT = {
+      essencial:    { label: 'Essencial',    desc: 'Não posso viver sem isso este mês — sai do Poder de Escolha' },
+      obrigatorio:  { label: 'Obrigatório',  desc: 'Imposição externa (pensão, multa, IR) — sai do Poder de Escolha' },
+      comprometido: { label: 'Comprometido', desc: 'Tem custo de cancelar — sai do Poder de Escolha' },
+      opcional:     { label: 'Opcional',     desc: 'Posso cortar amanhã sem dor — entra no Poder de Escolha' },
+      eventual:     { label: 'Eventual',     desc: 'Não é mensal, pontual — entra no Poder de Escolha' },
+    };
+
+    // Conta categorias por tipo
+    const catsPorTipo = {};
+    tipos.forEach(t => { catsPorTipo[t.id] = []; });
+    cats.forEach(c => {
+      const tid = Store.getCatTipo(c.key);
+      if (!catsPorTipo[tid]) catsPorTipo[tid] = [];
+      catsPorTipo[tid].push(c);
+    });
+
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div>
+    <div class="section-title">Tipos</div>
+    <div class="section-sub">Classifique suas categorias por comportamento. Define o que entra no <strong>Poder de Escolha</strong> mensal.</div>
+  </div>
+  <button class="btn-primary" id="btnAddTipo">+ Novo Tipo</button>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px">
+${tipos.map(t => {
+  const info = COMPORT[t.comportamento] || COMPORT.opcional;
+  const catsAqui = catsPorTipo[t.id] || [];
+  return `
+  <div class="card" style="border-top:3px solid ${t.color};position:relative">
+    ${!t.builtin ? `<button class="btn-ghost" style="position:absolute;top:10px;right:10px;font-size:11px;color:var(--text-4)" data-del-tipo="${t.id}" title="Remover">✕</button>` : ''}
+    <button class="btn-ghost" style="position:absolute;top:10px;right:${t.builtin?10:36}px;font-size:11px;color:var(--text-4)" data-edit-tipo="${t.id}" title="Editar">✏</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:22px">${t.icon || '✦'}</span>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-1)">${t.label}${t.builtin?' <span style="font-size:10px;color:var(--text-4);font-weight:500">padrão</span>':''}</div>
+        <div style="font-size:11px;color:${t.color};font-weight:600;text-transform:uppercase;letter-spacing:.06em">${info.label}</div>
+      </div>
+    </div>
+    ${t.desc ? `<div style="font-size:12px;color:var(--text-3);margin-bottom:10px;line-height:1.45">${t.desc}</div>` : ''}
+    <div style="font-size:11px;color:var(--text-4);margin-top:8px">${catsAqui.length} categoria${catsAqui.length===1?'':'s'}</div>
+    ${catsAqui.length > 0 ? `<div style="font-size:12px;color:var(--text-2);line-height:1.6;margin-top:4px">${catsAqui.slice(0,6).map(c => `<span style="display:inline-block;background:${c.color}20;color:${c.color};padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0;font-size:11px;font-weight:600">${c.label}</span>`).join('')}${catsAqui.length>6?` <span style="color:var(--text-4);font-size:11px">+${catsAqui.length-6}</span>`:''}</div>` : ''}
+  </div>`;
+}).join('')}
+</div>
+
+<div class="section-header mb-3" style="margin-top:28px">
+  <div>
+    <div class="section-title" style="font-size:14px">Atribuição de categorias</div>
+    <div class="section-sub">Clique no badge pra trocar o tipo de cada categoria. As subcategorias herdam (mas podem ser sobrescritas em Categorias).</div>
+  </div>
+</div>
+<div class="card" style="padding:0">
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Categoria</th><th>Tipo atual</th><th></th></tr></thead>
+    <tbody>
+    ${cats.map(c => {
+      const tid = Store.getCatTipo(c.key);
+      const t = Store.getTipoById(tid) || tipos[0];
+      return `
+      <tr>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.color};margin-right:8px;vertical-align:middle"></span><strong>${c.label}</strong></td>
+        <td><span style="display:inline-block;background:${t.color}20;color:${t.color};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">${t.icon||''} ${t.label}</span></td>
+        <td style="text-align:right"><button class="btn-xs" data-set-cat-tipo="${c.key}">Trocar</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>
+</div>`;
+
+    document.getElementById('btnAddTipo')?.addEventListener('click', () => _openTipoModal(null, () => renderConfigTipos(content)));
+
+    content.addEventListener('click', e => {
+      const edit = e.target.closest('[data-edit-tipo]');
+      if (edit) { const t = tipos.find(x => x.id === edit.dataset.editTipo); if (t) _openTipoModal(t, () => renderConfigTipos(content)); return; }
+      const del = e.target.closest('[data-del-tipo]');
+      if (del) {
+        if (!confirm('Remover este tipo? Categorias que o usam voltam pra "Opcional".')) return;
+        try { Store.deleteTipo(del.dataset.delTipo); renderConfigTipos(content); toast('Tipo removido', 'success'); }
+        catch (err) { toast(err.message, 'error'); }
+        return;
+      }
+      const setCat = e.target.closest('[data-set-cat-tipo]');
+      if (setCat) {
+        const catKey = setCat.dataset.setCatTipo;
+        const cat = cats.find(c => c.key === catKey);
+        if (cat) _openSelectTipoForCat(cat, () => renderConfigTipos(content));
+      }
+    });
+  }
+
+  function _openTipoModal(tipo, onSaved) {
+    const isEdit = !!tipo;
+    const t = tipo || {};
+    const isBuiltin = !!t.builtin;
+    const COMPORT_OPTS = [
+      ['essencial',    '🔴 Essencial',    'Não posso viver sem isso este mês'],
+      ['obrigatorio',  '⚖️ Obrigatório',   'Imposição externa (pensão, multa, IR)'],
+      ['comprometido', '🟡 Comprometido', 'Posso cortar mas com custo de cancelar'],
+      ['opcional',     '🟢 Opcional',     'Posso cortar amanhã sem dor'],
+      ['eventual',     '⏱️ Eventual',     'Não é mensal — pontual'],
+    ];
+    const COLORS = ['#EF4444','#A78BFA','#F59E0B','#22C55E','#0EA5E9','#7C6EF8','#14B8A6','#EC4899','#F97316','#06B6D4'];
+    const html = `
+<div class="form-grid">
+  <div class="form-group form-full">
+    <label class="form-label">Nome</label>
+    <input class="form-input" id="fTLabel" value="${t.label || ''}" ${isBuiltin ? 'disabled style="opacity:0.6"' : ''} placeholder="Ex.: Qualidade de Vida">
+    ${isBuiltin ? '<div style="font-size:11px;color:var(--text-4);margin-top:4px">Tipos padrão não podem ser renomeados</div>' : ''}
+  </div>
+  <div class="form-group form-full">
+    <label class="form-label">Descrição</label>
+    <input class="form-input" id="fTDesc" value="${t.desc || ''}" placeholder="Quando esse tipo se aplica? Ex.: itens que melhoram meu dia mas posso cortar">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Ícone</label>
+    <input class="form-input" id="fTIcon" value="${t.icon || '✦'}" maxlength="2" placeholder="🎯">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Cor</label>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+      ${COLORS.map(c => `<label style="cursor:pointer"><input type="radio" name="fTColor" value="${c}" ${(t.color===c||(!t.color&&c===COLORS[5]))?'checked':''} style="display:none"><span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:${c};border:2px solid ${t.color===c?'#fff':'transparent'};box-shadow:0 0 0 2px ${t.color===c?c:'transparent'}"></span></label>`).join('')}
+    </div>
+  </div>
+  <div class="form-group form-full">
+    <label class="form-label">Comportamento Minewall ${isBuiltin?'<span style="font-size:11px;color:var(--text-4);font-weight:500">(não editável em tipo padrão)</span>':''}</label>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+      ${COMPORT_OPTS.map(([v,l,d]) => `
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:${isBuiltin?'default':'pointer'};${(t.comportamento||'opcional')===v?'background:var(--bg-elevated);border-color:var(--accent)':''}">
+          <input type="radio" name="fTComp" value="${v}" ${(t.comportamento||'opcional')===v?'checked':''} ${isBuiltin?'disabled':''}>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-1)">${l}</div>
+            <div style="font-size:11px;color:var(--text-3)">${d}</div>
+          </div>
+        </label>`).join('')}
+    </div>
+  </div>
+</div>`;
+    Modal.open(isEdit ? `Editar Tipo — ${t.label}` : 'Novo Tipo', html, () => {
+      const label = document.getElementById('fTLabel').value.trim();
+      const descricao = document.getElementById('fTDesc').value.trim();
+      const icon = document.getElementById('fTIcon').value.trim() || '✦';
+      const colorEl = document.querySelector('input[name="fTColor"]:checked');
+      const compEl = document.querySelector('input[name="fTComp"]:checked');
+      const color = colorEl ? colorEl.value : '#7C6EF8';
+      const comportamento = compEl ? compEl.value : 'opcional';
+      try {
+        if (isEdit) {
+          const patch = { icon, color, desc: descricao };
+          if (!isBuiltin) { patch.label = label; patch.comportamento = comportamento; }
+          Store.updateTipo(t.id, patch);
+          toast('Tipo atualizado', 'success');
+        } else {
+          if (!label) return toast('Informe o nome', 'error');
+          Store.addTipo({ label, descricao, color, icon, comportamento });
+          toast('Tipo criado', 'success');
+        }
+      } catch (err) { return toast(err.message, 'error'); }
+      Modal.close();
+      if (onSaved) onSaved();
+    });
+  }
+
+  function _openSelectTipoForCat(cat, onSaved) {
+    const tipos = Store.getTipos();
+    const current = Store.getCatTipo(cat.key);
+    const html = `
+<div class="form-group form-full">
+  <label class="form-label">Tipo da categoria "${cat.label}"</label>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+    ${tipos.map(t => `
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;${current===t.id?'background:var(--bg-elevated);border-color:'+t.color:''}">
+      <input type="radio" name="catTipo" value="${t.id}" ${current===t.id?'checked':''}>
+      <span style="font-size:18px">${t.icon||'✦'}</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:${t.color}">${t.label}</div>
+        <div style="font-size:11px;color:var(--text-3)">${t.desc || ''}</div>
+      </div>
+    </label>`).join('')}
+  </div>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px">Subcategorias dessa categoria que não tinham tipo próprio herdam essa escolha.</div>`;
+    Modal.open('Mover categoria de tipo', html, () => {
+      const sel = document.querySelector('input[name="catTipo"]:checked');
+      if (!sel) return Modal.close();
+      Store.setCatTipo(cat.key, sel.value);
+      Modal.close();
+      toast(`"${cat.label}" movida pra ${Store.getTipoById(sel.value)?.label}`, 'success');
+      if (onSaved) onSaved();
+    });
   }
 
   function renderConfigCategorias(content) {
@@ -7542,8 +7738,20 @@ ${isConnected && isAdmin ? `
         .filter(([k]) => k !== 'receita')
         .map(([k, v]) => {
           const subs = (catSubMap[k] || []).slice(0, 8);
-          return `  ▸ ${v.label} (${k}): ${subs.length ? subs.join(', ') : 'sem subcategorias'}`;
+          const tipoId = Store.getCatTipo ? Store.getCatTipo(k) : 'opcional';
+          const tipo = Store.getTipoById ? Store.getTipoById(tipoId) : null;
+          const tipoLabel = tipo ? ` · tipo: ${tipo.label}` : '';
+          return `  ▸ ${v.label} (${k})${tipoLabel}: ${subs.length ? subs.join(', ') : 'sem subcategorias'}`;
         }).join('\n');
+
+      // ── Tipos customizáveis + Poder de Escolha ──
+      const tipos = (typeof Store.getTipos === 'function') ? Store.getTipos() : [];
+      const tiposStr = tipos.length === 0 ? '  (modelo legado)' :
+        tipos.map(t => `  - ${t.icon||'•'} ${t.label} [${t.comportamento}]: ${t.desc || '—'}`).join('\n');
+      const poder = (typeof Store.calcPoderDeEscolha === 'function') ? Store.calcPoderDeEscolha(month, year) : null;
+      const poderStr = poder ?
+        `Receitas R$ ${poder.receitas.toFixed(2)} − piso de sobrevivência R$ ${poder.pisoSobrevivencia.toFixed(2)} = **Poder de Escolha** R$ ${poder.poderDeEscolha.toFixed(2)} (${(poder.pct*100).toFixed(0)}% da receita).`
+        : '';
 
       // ── Pessoas cadastradas ──
       const pessoas = data.pessoas || Store.PESSOAS || [];
@@ -7687,6 +7895,12 @@ Saldo: R$ ${saldo.toFixed(2)} (${saldo >= 0 ? 'positivo' : 'NEGATIVO'})
 Comprometimento da receita: ${util}% (limite configurado: ${limiteGasto})
 Meta de receita mensal: ${metaRecMensal}
 Patrimônio total estimado: R$ ${patTotal.toFixed(2)}
+
+=== PODER DE ESCOLHA (Método Minewall) ===
+${poderStr || '  (cálculo indisponível)'}
+
+=== TIPOS CADASTRADOS (use para entender o que é cortável/essencial pro usuário) ===
+${tiposStr}
 
 === RESUMO ANUAL (${year}) ===
 Receita total no ano: R$ ${totalRecAno.toFixed(2)}
