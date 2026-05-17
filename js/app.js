@@ -7570,6 +7570,104 @@ ${isConnected && isAdmin ? `
       // Patrimônio resumido
       const patTotal = Store.totalAtivos();
 
+      // ── Histórico anual (totais mês a mês do ano corrente) ──
+      const yrRec  = Store.yearlyMonthly(year, 'receita');
+      const yrDesp = Store.yearlyMonthly(year, 'despesa');
+      const histStr = yrRec.map((r, i) => {
+        const d = yrDesp[i] || 0;
+        if (r === 0 && d === 0) return null;
+        return `  ${Utils.months[i]}: rec R$ ${r.toFixed(2)} / desp R$ ${d.toFixed(2)} / saldo R$ ${(r-d).toFixed(2)}`;
+      }).filter(Boolean).join('\n') || '  (sem dados)';
+      const totalRecAno  = yrRec.reduce((a,b)=>a+b, 0);
+      const totalDespAno = yrDesp.reduce((a,b)=>a+b, 0);
+
+      // Mês anterior comparativo
+      const prevM = month > 1 ? month - 1 : 12;
+      const prevY = month > 1 ? year      : year - 1;
+      const prevRec = Store.sumReceitas(prevM, prevY);
+      const prevDesp = Store.sumDespesas(prevM, prevY);
+      const chgRec  = prevRec  > 0 ? (((rec  - prevRec)  / prevRec)  * 100).toFixed(1) : 'n/d';
+      const chgDesp = prevDesp > 0 ? (((desp - prevDesp) / prevDesp) * 100).toFixed(1) : 'n/d';
+
+      // ── Contas bancárias ──
+      const contas = data.contas || [];
+      const contasStr = contas.length === 0 ? '  (sem contas)' :
+        contas.map(c => `  - ${c.banco} ${c.nome} (${c.tipo}): R$ ${(c.saldo||0).toFixed(2)}`).join('\n');
+      const totalContas = contas.reduce((s,c) => s + (c.saldo||0), 0);
+
+      // ── Cartões de crédito ──
+      const cartoes = data.cartoes || [];
+      const cartoesStr = cartoes.length === 0 ? '  (sem cartões)' :
+        cartoes.map(cc => {
+          const usado = (cc.parcelas || []).reduce((s,p) => s + (p.parcela||0), 0);
+          const livre = (cc.limit||0) - usado;
+          return `  - ${cc.banco} ${cc.name}: limite R$ ${(cc.limit||0).toFixed(2)} / usado R$ ${usado.toFixed(2)} / disponível R$ ${livre.toFixed(2)} (fecha dia ${cc.closingDay||'?'}, vence ${cc.dueDay||'?'})`;
+        }).join('\n');
+
+      // ── Investimentos detalhados ──
+      const reservas = data.reservas || [];
+      const reservasStr = reservas.length === 0 ? '  (sem investimentos)' :
+        reservas.slice(0, 12).map(r => {
+          const val = r.valorAtual || r.valorInvestido || 0;
+          return `  - ${r.nome} (${r.tipo || '—'}): R$ ${val.toFixed(2)}${r.rendimento ? ` @ ${r.rendimento}% a.a.` : ''}${r.carencia ? ` 🔒 até ${r.carencia}` : ''}`;
+        }).join('\n');
+      const totalInv = reservas.reduce((s,r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
+
+      // ── Veículos ──
+      const veiculos = (typeof Store.getVeiculos === 'function') ? Store.getVeiculos() : [];
+      const veiculosStr = veiculos.length === 0 ? '  (sem veículos)' :
+        veiculos.map(v => {
+          const val = Store.veiculoValorEstimado(v);
+          const custo = Store.veiculoCustoAnual(v);
+          return `  - ${v.marca||''} ${v.modelo||''} (${v.ano||'?'}): valor R$ ${val.toFixed(2)} / custo anual R$ ${custo.toFixed(2)}`;
+        }).join('\n');
+
+      // ── Imóveis ──
+      const imoveis = (typeof Store.getImoveis === 'function') ? Store.getImoveis() : [];
+      const imoveisStr = imoveis.length === 0 ? '  (sem imóveis)' :
+        imoveis.map(im => {
+          const val = Store.imovelValorEstimado(im);
+          const eq  = Store.imovelEquity(im);
+          const flux = (im.aluguelMensal || 0) - (im.condominioMensal || 0) - (im.manutencaoMensal || 0) - (im.parcelaFinanciamento || 0) - ((im.iptuAnual || 0) / 12);
+          const extra = [];
+          if (im.financiado) extra.push(`saldo devedor R$ ${(im.saldoDevedor||0).toFixed(2)}, equity R$ ${eq.toFixed(2)}`);
+          if (im.alugado) extra.push(`aluguel R$ ${im.aluguelMensal.toFixed(2)}/mês, fluxo líquido R$ ${flux.toFixed(2)}/mês`);
+          return `  - ${im.apelido || im.endereco || 'imóvel'} (${im.tipo}): valor R$ ${val.toFixed(2)}${extra.length ? ' · ' + extra.join(' · ') : ''}`;
+        }).join('\n');
+
+      // ── Financiamentos ──
+      const fins = (typeof Store.getFinanciamentos === 'function') ? Store.getFinanciamentos() : [];
+      const finsStr = fins.length === 0 ? '  (sem financiamentos)' :
+        fins.map(f => {
+          const saldo = Store.financiamentoSaldoDevedor(f);
+          const prox = Math.min((f.parcelasPagas||0)+1, f.prazo||0);
+          const parc = prox > 0 ? Store.financiamentoParcelaNa(f, prox) : 0;
+          return `  - ${f.label} (${f.sistema?.toUpperCase()}, ${f.type}): saldo devedor R$ ${saldo.toFixed(2)} / próx parcela R$ ${parc.toFixed(2)} (${f.parcelasPagas||0}/${f.prazo} pagas, taxa ${(f.taxaMensal||0).toFixed(2)}% a.m.)`;
+        }).join('\n');
+      const totalDevedorFin = (typeof Store.totalFinanciamentosDevedor === 'function') ? Store.totalFinanciamentosDevedor() : 0;
+
+      // ── Passivos ──
+      const passivos = (typeof Store.getPassivos === 'function') ? Store.getPassivos() : [];
+      const passivosAtivos = passivos.filter(p => p.status !== 'quitado');
+      const passivosStr = passivosAtivos.length === 0 ? '  (sem passivos)' :
+        passivosAtivos.slice(0, 8).map(p => `  - ${p.descricao || p.tipo}: R$ ${(p.valorAcordado || p.valorOriginal || 0).toFixed(2)} (${p.status || 'pendente'})`).join('\n');
+      const totalPass = (typeof Store.totalPassivos === 'function') ? Store.totalPassivos() : 0;
+
+      // ── Reembolsos ──
+      const reembPend = (typeof Store.getReembolsosPendentes === 'function') ? Store.getReembolsosPendentes() : [];
+      const reembStr = reembPend.length === 0 ? '  (sem pendências)' :
+        reembPend.slice(0, 6).map(d => {
+          const r = d.reembolso || {};
+          return `  - ${d.desc}: R$ ${(r.valor || d.amount).toFixed(2)} (de ${r.de||'?'} → ${r.para||'?'})`;
+        }).join('\n');
+      const totalReemb = reembPend.reduce((s,d) => s + ((d.reembolso?.valor) || d.amount || 0), 0);
+
+      // ── Recebimentos futuros ──
+      const recFut = (data.recebimentosFuturos || []).filter(f => f.status !== 'recebido');
+      const recFutStr = recFut.length === 0 ? '  (sem previsões)' :
+        recFut.slice(0, 6).map(f => `  - ${f.descricao}: R$ ${(f.valor||0).toFixed(2)} previsto ${Utils.monthsFull[(f.mes||1)-1]} ${f.ano}`).join('\n');
+      const totalRecFut = recFut.reduce((s,f) => s + (f.valor||0), 0);
+
       return `Você é o AI Coach financeiro do FinFamily, um assistente especializado em finanças pessoais e familiares. Você tem acesso ao contexto financeiro completo do usuário abaixo.
 
 USUÁRIO LOGADO: ${userName}
@@ -7577,12 +7675,17 @@ PESSOAS DA FAMÍLIA: ${pessoasStr}
 MÊS DE REFERÊNCIA: ${Utils.monthsFull[month-1]} ${year}
 
 === RESUMO DO MÊS ===
-Receitas: R$ ${rec.toFixed(2)}
-Despesas: R$ ${desp.toFixed(2)}
+Receitas: R$ ${rec.toFixed(2)} (vs mês anterior: ${chgRec === 'n/d' ? 'n/d' : chgRec + '%'})
+Despesas: R$ ${desp.toFixed(2)} (vs mês anterior: ${chgDesp === 'n/d' ? 'n/d' : chgDesp + '%'})
 Saldo: R$ ${saldo.toFixed(2)} (${saldo >= 0 ? 'positivo' : 'NEGATIVO'})
 Comprometimento da receita: ${util}% (limite configurado: ${limiteGasto})
 Meta de receita mensal: ${metaRecMensal}
 Patrimônio total estimado: R$ ${patTotal.toFixed(2)}
+
+=== RESUMO ANUAL (${year}) ===
+Receita total no ano: R$ ${totalRecAno.toFixed(2)}
+Despesa total no ano: R$ ${totalDespAno.toFixed(2)}
+Saldo acumulado: R$ ${(totalRecAno - totalDespAno).toFixed(2)}
 
 === RECEITAS DETALHADAS (por pessoa, top 3 lançamentos) ===
 ${receitasDetalhadas}
@@ -7602,10 +7705,41 @@ ${metasStr}
 === CONTRATOS RECORRENTES (${contratos.length} ativos) ===
 ${contratosResumo}
 
+=== HISTÓRICO MENSAL ${year} ===
+${histStr}
+
+=== CONTAS BANCÁRIAS (total: R$ ${totalContas.toFixed(2)}) ===
+${contasStr}
+
+=== CARTÕES DE CRÉDITO ===
+${cartoesStr}
+
+=== INVESTIMENTOS (total: R$ ${totalInv.toFixed(2)}) ===
+${reservasStr}
+
+=== VEÍCULOS ===
+${veiculosStr}
+
+=== IMÓVEIS ===
+${imoveisStr}
+
+=== FINANCIAMENTOS (saldo devedor total: R$ ${totalDevedorFin.toFixed(2)}) ===
+${finsStr}
+
+=== PASSIVOS / DÍVIDAS (total: R$ ${totalPass.toFixed(2)}) ===
+${passivosStr}
+
+=== REEMBOLSOS PENDENTES (total: R$ ${totalReemb.toFixed(2)}) ===
+${reembStr}
+
+=== RECEBIMENTOS FUTUROS PREVISTOS (total: R$ ${totalRecFut.toFixed(2)}) ===
+${recFutStr}
+
 === ANOMALIAS DETECTADAS ===
 ${anomStr}
 
 INSTRUÇÕES:
+- Você tem acesso COMPLETO aos dados acima: lançamentos detalhados, contas, cartões, investimentos, veículos, imóveis, financiamentos, passivos, reembolsos e histórico mensal do ano. Use esses dados para responder com precisão — nunca diga "não tenho essa informação" se ela está acima.
 - Seja MUITO objetivo. Vá direto ao ponto, sem rodeios nem introduções.
 - Resposta padrão: 1 a 3 frases curtas. Só estenda se o usuário pedir detalhes.
 - Não repita o que o usuário disse, não comece com "Ótima pergunta", "Entendi", "Vamos lá", etc.
