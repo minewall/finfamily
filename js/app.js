@@ -6734,7 +6734,7 @@ ${tipos.map(t => {
     </div>
   </div>
   <div class="form-group form-full">
-    <label class="form-label">Comportamento Minewall ${isBuiltin?'<span style="font-size:11px;color:var(--text-4);font-weight:500">(não editável em tipo padrão)</span>':''}</label>
+    <label class="form-label">Comportamento financeiro ${isBuiltin?'<span style="font-size:11px;color:var(--text-4);font-weight:500">(não editável em tipo padrão)</span>':''}</label>
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
       ${COMPORT_OPTS.map(([v,l,d]) => `
         <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:${isBuiltin?'default':'pointer'};${(t.comportamento||'opcional')===v?'background:var(--bg-elevated);border-color:var(--accent)':''}">
@@ -7910,7 +7910,7 @@ Comprometimento da receita: ${util}% (limite configurado: ${limiteGasto})
 Meta de receita mensal: ${metaRecMensal}
 Patrimônio total estimado: R$ ${patTotal.toFixed(2)}
 
-=== PODER DE ESCOLHA (Método Minewall) ===
+=== PODER DE ESCOLHA ===
 ${poderStr || '  (cálculo indisponível)'}
 
 === TIPOS CADASTRADOS (use para entender o que é cortável/essencial pro usuário) ===

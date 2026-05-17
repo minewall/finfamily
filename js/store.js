@@ -1004,7 +1004,8 @@ const Store = (function () {
     }, 0);
     const fromVeiculos = (_data.veiculos || []).reduce((sum, v) => sum + veiculoValorEstimado(v), 0);
     const fromImoveis  = (_data.imoveis  || []).reduce((sum, im) => sum + imovelValorEstimado(im), 0);
-    return fromAtivos + fromReserva + fromVeiculos + fromImoveis;
+    const fromEquip    = (_data.equipamentos || []).reduce((sum, e) => sum + equipamentoValorEstimado(e), 0);
+    return fromAtivos + fromReserva + fromVeiculos + fromImoveis + fromEquip;
   }
 
   // ── VEÍCULOS ────────────────────────────────────────────────────
