@@ -1378,33 +1378,132 @@ body.sidebar-open { overflow: hidden; }
 .comp-budget  { font-size: 12px; color: var(--text-3); }
 
 /* ── CREDIT CARD VISUAL ─────────────────────────────────────────── */
+/* Credit card — skeuomorphic, sempre com contraste alto (texto branco) */
 .cc-card {
-  border-radius: 14px;
-  padding: 22px;
-  background: linear-gradient(135deg, #1A1E2E, #252B40);
-  border: 1px solid var(--border-2);
+  --cc-grad-from: #4338CA;
+  --cc-grad-to:   #7C3AED;
+  border-radius: 16px;
+  padding: 22px 24px;
+  background: linear-gradient(135deg, var(--cc-grad-from), var(--cc-grad-to));
+  color: #fff;
   position: relative;
   overflow: hidden;
-  min-height: 160px;
+  min-height: 210px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-shadow: 0 6px 18px rgba(67, 56, 202, 0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
 }
+.cc-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(67, 56, 202, 0.32), inset 0 1px 0 rgba(255,255,255,0.18); }
+.cc-card.card-gold { --cc-grad-from: #B45309; --cc-grad-to: #F59E0B; box-shadow: 0 6px 18px rgba(180, 83, 9, 0.28), inset 0 1px 0 rgba(255,255,255,0.14); }
+.cc-card.card-platinum { --cc-grad-from: #334155; --cc-grad-to: #64748B; box-shadow: 0 6px 18px rgba(51, 65, 85, 0.32), inset 0 1px 0 rgba(255,255,255,0.14); }
+.cc-card.card-black { --cc-grad-from: #0F172A; --cc-grad-to: #1E293B; box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10); }
+
+/* Decoração: círculos translúcidos no canto superior direito */
 .cc-card::before {
   content: '';
   position: absolute;
-  top: -40px; right: -40px;
-  width: 180px; height: 180px;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
   border-radius: 50%;
-  background: var(--accent-glow);
+  background: rgba(255,255,255,0.08);
 }
-.cc-card.card-gold::before { background: rgba(245,158,11,.15); }
-.cc-bank { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; }
-.cc-limit-label { font-size: 11px; color: var(--text-3); }
-.cc-limit-value { font-size: 22px; font-weight: 800; font-family: var(--mono); color: var(--text-1); }
-.cc-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
-.cc-meta-label { font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; }
-.cc-meta-value { font-size: 14px; font-weight: 600; color: var(--text-2); }
+.cc-card::after {
+  content: '';
+  position: absolute;
+  top: 20px; right: -90px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+
+.cc-card > * { position: relative; z-index: 1; }
+
+/* Chip + bandeira (decorativos) */
+.cc-chip {
+  width: 32px;
+  height: 24px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #FCD34D 0%, #D97706 100%);
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+  position: relative;
+}
+.cc-chip::before, .cc-chip::after {
+  content: '';
+  position: absolute;
+  left: 6px; right: 6px;
+  height: 1px;
+  background: rgba(0,0,0,0.2);
+}
+.cc-chip::before { top: 8px; }
+.cc-chip::after  { top: 14px; }
+
+.cc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.cc-bank-block { flex: 1; min-width: 0; }
+.cc-bank { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; }
+.cc-name { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.cc-limit-block { margin-top: 8px; }
+.cc-limit-label { font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; }
+.cc-limit-value { font-size: 24px; font-weight: 800; font-family: var(--mono); color: #fff; letter-spacing: -0.5px; }
+
+/* Barra de uso (sobre o cartão) */
+.cc-usage { margin-top: 10px; }
+.cc-usage-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.2);
+  overflow: hidden;
+}
+.cc-usage-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 999px;
+  transition: width var(--t-base);
+}
+.cc-usage-fill.warn  { background: #FCD34D; }
+.cc-usage-fill.over  { background: #FCA5A5; }
+.cc-usage-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
+  font-family: var(--mono);
+}
+.cc-usage-meta .used { color: #fff; font-weight: 600; }
+
+.cc-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px 12px;
+  padding-top: 14px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.18);
+}
+.cc-meta-label { font-size: 9px; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+.cc-meta-value { font-size: 13px; font-weight: 700; color: #fff; font-family: var(--mono); }
+.cc-meta-value.pos { color: #86EFAC; }
+.cc-meta-value.neg { color: #FCA5A5; }
+
+/* Botão de fechar no canto */
+.cc-card .btn-ghost {
+  color: rgba(255,255,255,0.7) !important;
+  background: rgba(0,0,0,0.15);
+  border-radius: 50%;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.cc-card .btn-ghost:hover { color: #fff !important; background: rgba(0,0,0,0.25); }
 
 /* ── INSTALLMENT TIMELINE ───────────────────────────────────────── */
 .timeline-item {

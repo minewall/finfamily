@@ -2243,31 +2243,30 @@ ${objetivos.length === 0 ? '' : `
 </div>`}
 
 ${indicadores.filter(m => m.type !== 'reserva').length ? `
-<div class="card">
+<div class="table-section">
   <div class="card-header"><span class="card-title">Performance por mês — ${year}</span></div>
-  <div style="overflow-x:auto">
-    <table class="table" style="width:100%;min-width:720px;font-size:12px">
+  <div class="table-wrap">
+    <table class="data-table">
       <thead><tr>
-        <th style="text-align:left;white-space:nowrap">Meta</th>
-        ${Utils.months.map(m => `<th style="text-align:right;white-space:nowrap">${m}</th>`).join('')}
-        <th style="text-align:right;white-space:nowrap">Total/Proj</th>
-        <th style="text-align:right;white-space:nowrap">Alvo</th>
+        <th>Meta</th>
+        ${Utils.months.map(m => `<th class="num">${m}</th>`).join('')}
+        <th class="num">Total/Proj</th>
+        <th class="num">Alvo</th>
       </tr></thead>
       <tbody>
       ${indicadores.filter(m => m.type !== 'reserva').map(m => {
         const perf = Store.getMetaPerformance(m.id, year, month);
         const isLimit = m.type === 'limite_desp';
-        const valorRef = m.period === 'anual' ? perf.projecaoAnual : perf.target * 12;
         return `<tr>
           <td><strong>${m.label}</strong><div style="font-size:10px;color:var(--text-4)">${m.period==='anual'?'Anual':'Mensal'}</div></td>
-          ${perf.byMonth.map((v, i) => {
+          ${perf.byMonth.map((v) => {
             const cmp = m.period === 'mensal' ? perf.target : (perf.target / 12);
             const okv = isLimit ? v <= cmp : v >= cmp;
-            const cls = v === 0 ? 'var(--text-4)' : (okv ? 'var(--green)' : 'var(--red)');
-            return `<td style="text-align:right;font-family:var(--mono);color:${cls};white-space:nowrap">${v?Utils.currency(v).replace('R$ ',''):'—'}</td>`;
+            const cls = v === 0 ? 'muted' : (okv ? 'positive' : 'negative');
+            return `<td class="num ${cls}">${v?Utils.currency(v).replace('R$ ',''):'—'}</td>`;
           }).join('')}
-          <td style="text-align:right;font-family:var(--mono);font-weight:700;white-space:nowrap">${Utils.currency(m.period==='anual'?perf.projecaoAnual:perf.byMonth.reduce((a,b)=>a+b,0))}</td>
-          <td style="text-align:right;font-family:var(--mono);color:var(--text-3);white-space:nowrap">${Utils.currency(m.period==='anual'?perf.target:perf.target*12)}</td>
+          <td class="num fw-700">${Utils.currency(m.period==='anual'?perf.projecaoAnual:perf.byMonth.reduce((a,b)=>a+b,0))}</td>
+          <td class="num muted">${Utils.currency(m.period==='anual'?perf.target:perf.target*12)}</td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -2740,20 +2739,27 @@ ${contratos.length === 0 ? `
   // ══════════════════════════════════════════════════════════════
   // PAGE: CONTAS & CARTÕES
   // ══════════════════════════════════════════════════════════════
-  function renderContas(container) {
+  function renderContas(container, mode = 'all') {
     const cartoes = Store.get().cartoes;
     const contas  = Store.get().contas || [];
     const month = getMonth(), year = getYear();
+    const showContas  = mode === 'all' || mode === 'contas';
+    const showCartoes = mode === 'all' || mode === 'cartoes';
+    const headerTitle = mode === 'cartoes' ? 'Cartões de Crédito' : mode === 'contas' ? 'Contas Bancárias' : 'Contas & Cartões';
+    const headerSub   = mode === 'cartoes' ? 'Gerencie seus cartões de crédito e parcelamentos'
+                       : mode === 'contas' ? 'Gerencie suas contas bancárias'
+                       : 'Gerencie suas contas bancárias e cartões de crédito';
 
     container.innerHTML = `
 <div class="section-header mb-6">
-  <div><div class="section-title">Contas & Cartões</div><div class="section-sub">Gerencie suas contas bancárias e cartões de crédito</div></div>
+  <div><div class="section-title">${headerTitle}</div><div class="section-sub">${headerSub}</div></div>
   <div class="flex gap-2">
-    <button class="btn-secondary" id="btnAddConta">+ Nova Conta</button>
-    <button class="btn-primary"   id="btnAddCartao">+ Novo Cartão</button>
+    ${showContas ? `<button class="btn-secondary" id="btnAddConta">+ Nova Conta</button>` : ''}
+    ${showCartoes ? `<button class="btn-primary" id="btnAddCartao">+ Novo Cartão</button>` : ''}
   </div>
 </div>
 
+${showContas ? `
 <div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Contas Bancárias</div>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
   ${contas.length ? contas.map(ct => `
@@ -2766,33 +2772,42 @@ ${contratos.length === 0 ? `
     <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:${ct.cor}">${Utils.currency(ct.saldo)}</div>
   </div>`).join('') : '<div class="empty-state"><p>Nenhuma conta cadastrada</p></div>'}
 </div>
+` : ''}
 
-<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Cartões de Crédito</div>
+${showCartoes ? `
+${mode === 'all' ? '<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Cartões de Crédito</div>' : ''}
 
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:28px">
   ${cartoes.map(cc => {
     const totalParcelas = cc.parcelas.reduce((a,p)=>a+p.parcela,0);
     const usado = totalParcelas;
     const livre = cc.limit - usado;
+    const pct = Math.min(100, Math.round(usado / cc.limit * 100));
+    const usageClass = pct > 80 ? 'over' : pct > 60 ? 'warn' : '';
+    const cardClass = cc.color === 'gold' ? 'card-gold' : cc.color === 'black' ? 'card-black' : cc.color === 'platinum' ? 'card-platinum' : '';
     return `
-    <div class="cc-card ${cc.color==='gold'?'card-gold':''}" style="position:relative">
-      <button class="btn-ghost" style="position:absolute;top:10px;right:10px;font-size:11px;color:rgba(255,255,255,.4)" data-del-cartao="${cc.id}">✕</button>
-      <div>
-        <div class="cc-bank">${cc.banco}</div>
-        <div style="font-size:18px;font-weight:800;color:var(--text-1);margin-top:4px">${cc.name}</div>
+    <div class="cc-card ${cardClass}">
+      <button class="btn-ghost" style="position:absolute;top:12px;right:12px;font-size:11px" data-del-cartao="${cc.id}" title="Remover">✕</button>
+      <div class="cc-top">
+        <div class="cc-bank-block">
+          <div class="cc-bank">${cc.banco}</div>
+          <div class="cc-name">${cc.name}</div>
+        </div>
+        <div class="cc-chip"></div>
       </div>
-      <div>
+      <div class="cc-limit-block">
         <div class="cc-limit-label">Limite</div>
         <div class="cc-limit-value">${Utils.currency(cc.limit)}</div>
-        <div class="progress-bar" style="margin:8px 0">
-          <div class="progress-fill ${usado/cc.limit>0.8?'red':usado/cc.limit>0.6?'amber':''}" style="width:${Math.round(usado/cc.limit*100)}%;background:${cc.color==='gold'?'var(--amber)':'var(--accent)'}"></div>
+        <div class="cc-usage">
+          <div class="cc-usage-bar"><div class="cc-usage-fill ${usageClass}" style="width:${pct}%"></div></div>
+          <div class="cc-usage-meta"><span class="used">${pct}% usado</span><span>${Utils.currency(usado)} de ${Utils.currency(cc.limit)}</span></div>
         </div>
-        <div class="cc-bottom">
-          <div><div class="cc-meta-label">Comprometido</div><div class="cc-meta-value" style="color:var(--red)">${Utils.currency(usado)}</div></div>
-          <div><div class="cc-meta-label">Disponível</div><div class="cc-meta-value" style="color:var(--green)">${Utils.currency(livre)}</div></div>
-          <div><div class="cc-meta-label">Fecha dia</div><div class="cc-meta-value">${cc.closingDay}</div></div>
-          <div><div class="cc-meta-label">Vence dia</div><div class="cc-meta-value">${cc.dueDay}</div></div>
-        </div>
+      </div>
+      <div class="cc-bottom">
+        <div><div class="cc-meta-label">Compr.</div><div class="cc-meta-value neg">${Utils.currency(usado)}</div></div>
+        <div><div class="cc-meta-label">Disp.</div><div class="cc-meta-value pos">${Utils.currency(livre)}</div></div>
+        <div><div class="cc-meta-label">Fecha</div><div class="cc-meta-value">dia ${cc.closingDay}</div></div>
+        <div><div class="cc-meta-label">Vence</div><div class="cc-meta-value">dia ${cc.dueDay}</div></div>
       </div>
     </div>`;
   }).join('')}
@@ -2856,7 +2871,8 @@ ${contratos.length === 0 ? `
       </tbody>
     </table>
   </div>
-</div>`;
+</div>
+` : ''}`;
 
     // Event handlers
     container.querySelectorAll('[data-del-conta]').forEach(btn =>
@@ -4388,25 +4404,14 @@ ${topCats.length ? `
     });
   }
 
-  // ── CARTÕES (rota separada — renderiza seção de cartões da página Contas) ──
+  // ── CARTÕES (rota separada — só seção de cartões) ──
   function renderCartoes(container) {
-    renderContas(container);
-    // scroll to credit cards section after render
-    requestAnimationFrame(() => {
-      const labels = container.querySelectorAll('[class*="section-label"]');
-      const cartoesLabel = [...labels].find(el => el.textContent.includes('Cartões'));
-      if (cartoesLabel) cartoesLabel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    renderContas(container, 'cartoes');
   }
 
-  // ── INVESTIMENTOS (extrai seção de investimentos do Patrimônio) ─
+  // ── INVESTIMENTOS (alias de Patrimônio enquanto não separamos) ──
   function renderInvestimentos(container) {
     renderReserva(container);
-    // scroll to investments table after render
-    requestAnimationFrame(() => {
-      const invSection = container.querySelector('#investimentos-section, [data-section="investimentos"]');
-      if (invSection) invSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
   }
 
   // ── SIMULAÇÕES ──────────────────────────────────────────────────
@@ -4823,18 +4828,18 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
       const r = d.reembolso;
       const val = r.valor || d.amount;
       return `<tr>
-        <td style="padding:10px 12px">
-          <div style="font-weight:500;font-size:13px">${d.desc}</div>
+        <td>
+          <div style="font-weight:500">${d.desc}</div>
           <div style="font-size:11px;color:var(--text-4)">${d.date} · ${d.category}</div>
         </td>
-        <td style="padding:10px 12px;font-size:12px;color:var(--text-3)">${r.para} → ${r.de}</td>
-        <td style="padding:10px 12px;font-family:var(--font-mono,monospace);font-size:13px;color:var(--amber);text-align:right">${Utils.currency(val)}</td>
-        <td style="padding:10px 12px;text-align:center">
+        <td class="muted" style="font-size:12px">${r.para} → ${r.de}</td>
+        <td class="num" style="color:var(--amber)">${Utils.currency(val)}</td>
+        <td style="text-align:center">
           ${isPendente
-            ? `<span style="background:rgba(245,158,11,.15);color:var(--amber);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600">pendente</span>`
-            : `<span style="background:rgba(34,197,94,.15);color:var(--green);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600">pago em ${r.paidAt||''}</span>`}
+            ? `<span class="badge badge-amber">pendente</span>`
+            : `<span class="badge badge-green">pago em ${r.paidAt||''}</span>`}
         </td>
-        <td style="padding:10px 12px;text-align:right">
+        <td style="text-align:right">
           ${isPendente
             ? `<button class="btn btn-sm btn-outline" data-mark-paid="${d.id}" style="font-size:11px;padding:4px 10px">Marcar pago</button>`
             : ''}
@@ -4857,34 +4862,34 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
           <div class="kpi-value" style="color:var(--amber)">${Utils.currency(totalPendente)}</div>
         </div>
       </div>` : ''}
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-header"><span>Pendentes de pagamento</span></div>
+      <div class="table-section mb-6">
+        <div class="card-header"><span class="card-title">Pendentes de pagamento</span></div>
         ${pendentes.length === 0
           ? `<div style="padding:32px;text-align:center;color:var(--text-4);font-size:13px">Nenhum reembolso pendente 🎉</div>`
-          : `<table style="width:100%;border-collapse:collapse">
-              <thead><tr style="border-bottom:1px solid var(--border)">
-                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">Despesa</th>
-                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">De → Para</th>
-                <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text-4);font-weight:500">Valor</th>
-                <th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text-4);font-weight:500">Status</th>
+          : `<div class="table-wrap"><table class="data-table">
+              <thead><tr>
+                <th>Despesa</th>
+                <th>De → Para</th>
+                <th class="num">Valor</th>
+                <th style="text-align:center">Status</th>
                 <th></th>
               </tr></thead>
               <tbody>${pendentes.map(d => rowHTML(d, true)).join('')}</tbody>
-            </table>`}
+            </table></div>`}
       </div>
       ${pagos.length > 0 ? `
-      <div class="card">
-        <div class="card-header"><span>Histórico — pagos</span></div>
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr style="border-bottom:1px solid var(--border)">
-            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">Despesa</th>
-            <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text-4);font-weight:500">De → Para</th>
-            <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text-4);font-weight:500">Valor</th>
-            <th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--text-4);font-weight:500">Status</th>
+      <div class="table-section">
+        <div class="card-header"><span class="card-title">Histórico — pagos</span></div>
+        <div class="table-wrap"><table class="data-table">
+          <thead><tr>
+            <th>Despesa</th>
+            <th>De → Para</th>
+            <th class="num">Valor</th>
+            <th style="text-align:center">Status</th>
             <th></th>
           </tr></thead>
           <tbody>${pagos.map(d => rowHTML(d, false)).join('')}</tbody>
-        </table>
+        </table></div>
       </div>` : ''}
     `;
 
@@ -5856,7 +5861,7 @@ ${isConnected && isAdmin ? `
     Router.register('lancamentos',   renderLancamentos);
     Router.register('receitas',      renderReceitas);
     Router.register('despesas',      renderDespesas);
-    Router.register('contas',        renderContas);
+    Router.register('contas',        (c) => renderContas(c, 'contas'));
     Router.register('cartoes',       renderCartoes);
     Router.register('contratos',     renderContratos);
     Router.register('reserva',       renderReserva);
