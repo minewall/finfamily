@@ -20,7 +20,8 @@ serve(async (req) => {
     }
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // Nome sem prefixo SUPABASE_ porque o CLI rejeita esse prefixo nos secrets.
+    const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY');
     if (!SUPABASE_URL || !SERVICE_KEY) {
       return json(500, { error: { type: 'config', message: 'SUPABASE_URL ou SERVICE_ROLE_KEY ausente' } });
     }
