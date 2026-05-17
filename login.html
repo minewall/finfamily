@@ -11,6 +11,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
+      /* Haile brand tokens (sincronizados com css/main.css) */
+      --haile-violet:       #7367F0;
+      --haile-teal:         #06B6D4;
+      --haile-prosperity:   #10B981;
+      --haile-alert:        #C92764;
+      --haile-night:        #0B1020;
+      --haile-cloud:        #F8FAFC;
+
       --bg:           #0d0f14;
       --bg-card:      #13161e;
       --bg-elevated:  #1a1d27;
@@ -18,10 +26,10 @@
       --text-1:       #f1f3f9;
       --text-2:       #a0a8c0;
       --text-3:       #6b7494;
-      --accent:       #7C6EF8;
-      --accent-dim:   #7c6ef815;
-      --green:        #22C55E;
-      --red:          #EF4444;
+      --accent:       var(--haile-violet);
+      --accent-dim:   rgba(115, 103, 240, 0.10);
+      --green:        var(--haile-prosperity);
+      --red:          var(--haile-alert);
     }
 
     body {

@@ -12,7 +12,35 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 input, select, textarea { font-family: inherit; }
 svg { display: block; flex-shrink: 0; }
 
-/* ── DESIGN TOKENS ──────────────────────────────────────────────── */
+/* ── HAILE BRAND TOKENS ─────────────────────────────────────────── */
+/* Fonte canônica dos valores. Variáveis legadas abaixo são apelidos. */
+:root {
+  /* Violeta Haile — tecnologia premium */
+  --haile-violet:       #7367F0;
+  --haile-violet-light: #9990FF;
+  --haile-violet-dark:  #5B4FCE;
+
+  /* Teal AI — IA e elementos interativos */
+  --haile-teal:         #06B6D4;
+  --haile-teal-light:   #22D3EE;
+  --haile-teal-dark:    #0891B2;
+
+  /* Prosperidade — positivo, ganhos */
+  --haile-prosperity:       #10B981;
+  --haile-prosperity-light: #34D399;
+  --haile-prosperity-dark:  #059669;
+
+  /* Neutros */
+  --haile-night: #0B1020;
+  --haile-slate: #334155;
+  --haile-mist:  #94A3B8;
+  --haile-cloud: #F8FAFC;
+
+  /* Alerta — rosa menos clínico */
+  --haile-alert: #C92764;
+}
+
+/* ── DESIGN TOKENS (apelidos legados → tokens Haile) ─────────────── */
 :root {
   /* Backgrounds — Vuexy dark palette */
   --bg-base:     #25293C;
@@ -22,24 +50,24 @@ svg { display: block; flex-shrink: 0; }
   --bg-hover:    #3A4066;
   --bg-active:   #3F4570;
 
-  /* Accent palette — Vuexy purple #7367F0 */
-  --accent:      #7367F0;
-  --accent-2:    #9E95F5;
+  /* Accent palette → Violeta Haile */
+  --accent:      var(--haile-violet);
+  --accent-2:    var(--haile-violet-light);
   --accent-dim:  rgba(115, 103, 240, 0.16);
   --accent-glow: rgba(115, 103, 240, 0.35);
   --accent-grad: linear-gradient(72.47deg, #7367F0 22.16%, rgba(115,103,240,.7) 76.47%);
 
-  /* Semantic colors */
-  --green:       #22C55E;
-  --green-dim:   rgba(34, 197, 94, 0.12);
-  --red:         #C92764;
+  /* Semantic colors → tokens Haile */
+  --green:       var(--haile-prosperity);
+  --green-dim:   rgba(16, 185, 129, 0.12);
+  --red:         var(--haile-alert);
   --red-dim:     rgba(201, 39, 100, 0.12);
   --amber:       #F59E0B;
   --amber-dim:   rgba(245, 158, 11, 0.12);
   --blue:        #3B82F6;
   --blue-dim:    rgba(59, 130, 246, 0.12);
-  --teal:        #14B8A6;
-  --teal-dim:    rgba(20, 184, 166, 0.12);
+  --teal:        var(--haile-teal);
+  --teal-dim:    rgba(6, 182, 212, 0.12);
   --pink:        #EC4899;
   --pink-dim:    rgba(236, 72, 153, 0.12);
   --orange:      #F97316;
