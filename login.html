@@ -26,20 +26,33 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background: var(--bg);
+      background: #051018 url('assets/login-bg.jpg') center center / cover no-repeat fixed;
       color: var(--text-1);
       min-height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
+      justify-content: flex-start;
+      padding: 24px 6vw;
+      position: relative;
+    }
+    /* Gradiente sutil pra reforçar contraste do card sobre o background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: linear-gradient(90deg, rgba(5,16,24,0.78) 0%, rgba(5,16,24,0.55) 35%, rgba(5,16,24,0) 60%);
+      pointer-events: none; z-index: 0;
     }
 
-    .login-wrap { width: 100%; max-width: 380px; }
+    .login-wrap { width: 100%; max-width: 380px; position: relative; z-index: 1; }
+    .card { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: rgba(15, 23, 36, 0.78); }
+
+    @media (max-width: 720px) {
+      body { justify-content: center; padding: 24px; }
+      body::before { background: linear-gradient(180deg, rgba(5,16,24,0.55) 0%, rgba(5,16,24,0.85) 70%); }
+    }
 
     .brand {
-      display: flex; align-items: center; gap: 12px;
-      justify-content: center; margin-bottom: 40px;
+      display: none; /* o background já provê branding visual */
     }
     .brand-icon {
       width: 44px; height: 44px; border-radius: 12px;
