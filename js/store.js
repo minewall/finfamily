@@ -1002,7 +1002,49 @@ const Store = (function () {
     const fromReserva = (_data.reservas || []).reduce((sum, r) => {
       return sum + (r.valorAtual || r.valorInvestido || 0);
     }, 0);
-    return fromAtivos + fromReserva;
+    const fromVeiculos = (_data.veiculos || []).reduce((sum, v) => sum + (v.valorAtual || 0), 0);
+    return fromAtivos + fromReserva + fromVeiculos;
+  }
+
+  // ── VEÍCULOS ────────────────────────────────────────────────────
+  function _ensureVeiculos() {
+    if (!_data.veiculos) { _data.veiculos = []; }
+  }
+  function getVeiculos() { _ensureVeiculos(); return _data.veiculos; }
+  function addVeiculo(v) {
+    _ensureVeiculos();
+    const novo = { id: 'v' + Date.now(), createdAt: new Date().toISOString(), ...v };
+    _data.veiculos.push(novo);
+    persist();
+    return novo;
+  }
+  function updateVeiculo(id, patch) {
+    _ensureVeiculos();
+    const v = _data.veiculos.find(x => x.id === id);
+    if (!v) return null;
+    Object.assign(v, patch);
+    persist();
+    return v;
+  }
+  function deleteVeiculo(id) {
+    _ensureVeiculos();
+    _data.veiculos = _data.veiculos.filter(x => x.id !== id);
+    persist();
+  }
+  // Recalcula valor atual aplicando depreciação linear sobre o tempo decorrido
+  function veiculoValorEstimado(v) {
+    if (!v.valorCompra || !v.dataCompra) return v.valorAtual || 0;
+    if (v.valorAtual) return v.valorAtual; // valor manual prevalece
+    const meses = Math.max(0, (Date.now() - new Date(v.dataCompra).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+    const taxa = (v.depreciacaoAnualPct || 10) / 100;
+    const fator = Math.pow(1 - taxa, meses / 12);
+    return Math.max(0, v.valorCompra * fator);
+  }
+  function veiculoCustoAnual(v) {
+    return (v.ipvaAnual || 0) + (v.seguroAnual || 0) + ((v.manutencaoMensal || 0) * 12);
+  }
+  function totalVeiculos() {
+    return (_data.veiculos || []).reduce((s, v) => s + veiculoValorEstimado(v), 0);
   }
 
   // ── CONTRATOS ──────────────────────────────────────────────────
@@ -1025,10 +1067,11 @@ const Store = (function () {
     _removeLancamentosByContrato(c.id);
 
     const base = new Date(c.dataInicio + 'T12:00:00');
+    const stepMeses = c.periodicidade === 'anual' ? 12 : 1;
     const entries = [];
     for (let i = 0; i < c.parcelas; i++) {
       const dt = new Date(base);
-      dt.setMonth(dt.getMonth() + i);
+      dt.setMonth(dt.getMonth() + i * stepMeses);
       // Aplica diaVencimento se informado
       if (c.diaVencimento) {
         const lastDay = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
@@ -1641,6 +1684,7 @@ const Store = (function () {
     addReserva, updateReserva, deleteReserva,
     addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
+    getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, totalVeiculos,
     updateSettings,
     receitasByMonth, despesasByMonth,
     sumReceitas, sumDespesas,

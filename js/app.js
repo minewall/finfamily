@@ -3199,6 +3199,54 @@ ${ativos.length > 0 ? `
   <button class="btn-xs" id="btnAddAtivo" style="margin-left:12px">+ Ativo</button>
 </div>`}
 
+<!-- Veículos -->
+${(() => {
+  const veiculos = Store.getVeiculos();
+  return `
+<div class="section-header mb-4" style="margin-top:32px">
+  <div><div class="section-title">Veículos</div><div class="section-sub">Carros, motos e outros — depreciação automática e custos anuais</div></div>
+  <button class="btn-primary" id="btnAddVeiculo">+ Novo Veículo</button>
+</div>
+${veiculos.length === 0
+  ? `<div class="card mb-6" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum veículo cadastrado.</div>`
+  : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:24px">
+  ${veiculos.map(v => {
+    const valEst = Store.veiculoValorEstimado(v);
+    const desvalorizacao = v.valorCompra - valEst;
+    const desvalPct = v.valorCompra > 0 ? (desvalorizacao / v.valorCompra) * 100 : 0;
+    const custoAnual = Store.veiculoCustoAnual(v);
+    const idade = v.dataCompra ? ((Date.now() - new Date(v.dataCompra).getTime()) / (1000*60*60*24*365.25)).toFixed(1) : '—';
+    return `
+  <div class="card" style="border-top:3px solid var(--accent);position:relative">
+    <button class="btn-ghost" style="position:absolute;top:10px;right:10px;font-size:11px;color:var(--text-4)" data-del-veiculo="${v.id}" title="Remover">✕</button>
+    <button class="btn-ghost" style="position:absolute;top:10px;right:36px;font-size:11px;color:var(--text-4)" data-edit-veiculo="${v.id}" title="Editar">✏</button>
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${v.marca||'—'} ${v.modelo||''}</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:8px">${v.apelido || v.modelo || 'Veículo'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:12px">
+      <div><div style="color:var(--text-4)">Ano</div><div style="font-weight:600">${v.ano || '—'}</div></div>
+      <div><div style="color:var(--text-4)">Idade</div><div style="font-weight:600">${idade}a</div></div>
+      <div><div style="color:var(--text-4)">Valor compra</div><div style="font-weight:600">${Utils.currency(v.valorCompra||0)}</div></div>
+      <div><div style="color:var(--text-4)">Valor estimado</div><div style="font-weight:700;color:var(--accent);font-family:var(--mono)">${Utils.currency(valEst)}</div></div>
+    </div>
+    ${desvalorizacao > 0 ? `<div style="font-size:11px;color:var(--red);margin-bottom:8px">▼ ${Utils.currency(desvalorizacao)} (${desvalPct.toFixed(1)}%) de depreciação</div>` : ''}
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
+      <div style="font-size:11px;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px">Custo anual</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div><div style="color:var(--text-4)">IPVA</div><div style="font-weight:600">${Utils.currency(v.ipvaAnual||0)}</div></div>
+        <div><div style="color:var(--text-4)">Seguro</div><div style="font-weight:600">${Utils.currency(v.seguroAnual||0)}</div></div>
+        <div><div style="color:var(--text-4)">Manutenção/mês</div><div style="font-weight:600">${Utils.currency(v.manutencaoMensal||0)}</div></div>
+        <div><div style="color:var(--text-4)">Total/ano</div><div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(custoAnual)}</div></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+      ${v.ipvaAnual > 0 ? `<button class="btn-xs" data-prog-ipva="${v.id}">Programar IPVA</button>` : ''}
+      ${v.seguroAnual > 0 ? `<button class="btn-xs" data-prog-seguro="${v.id}">Programar Seguro</button>` : ''}
+    </div>
+  </div>`;
+  }).join('')}
+</div>`}`;
+})()}
+
 <!-- Passivos -->
 ${(() => {
   const passivos = Store.getPassivos();
@@ -3375,6 +3423,36 @@ ${futuros.length === 0
     document.getElementById('btnAddFuturo')?.addEventListener('click', () => openFuturoModal2(re));
     document.getElementById('btnAddPassivo')?.addEventListener('click', () => openPassivoModal(null, re));
     document.getElementById('btnAddAtivo')?.addEventListener('click', () => openAtivoModal(null, re));
+    document.getElementById('btnAddVeiculo')?.addEventListener('click', () => openVeiculoModal(null, re));
+
+    // Veículos: editar / remover / programar IPVA-Seguro (delegação)
+    container.addEventListener('click', e => {
+      const editBtn = e.target.closest('[data-edit-veiculo]');
+      if (editBtn) {
+        const v = Store.getVeiculos().find(x => x.id === editBtn.dataset.editVeiculo);
+        if (v) openVeiculoModal(v, re);
+        return;
+      }
+      const delBtn = e.target.closest('[data-del-veiculo]');
+      if (delBtn) {
+        if (!confirm('Remover este veículo?')) return;
+        Store.deleteVeiculo(delBtn.dataset.delVeiculo);
+        re(); toast('Veículo removido', 'success');
+        return;
+      }
+      const ipvaBtn = e.target.closest('[data-prog-ipva]');
+      if (ipvaBtn) {
+        const v = Store.getVeiculos().find(x => x.id === ipvaBtn.dataset.progIpva);
+        if (v) _programarCustoVeiculo(v, 'ipva', re);
+        return;
+      }
+      const segBtn = e.target.closest('[data-prog-seguro]');
+      if (segBtn) {
+        const v = Store.getVeiculos().find(x => x.id === segBtn.dataset.progSeguro);
+        if (v) _programarCustoVeiculo(v, 'seguro', re);
+        return;
+      }
+    });
     document.getElementById('btnEditRates')?.addEventListener('click', () => {
       const html = `<div class="form-grid">
         <div class="form-group"><label class="form-label">USD → BRL</label><input class="form-input" id="fUSD" type="number" step="0.01" value="${usdBrl}"/></div>
@@ -3644,6 +3722,95 @@ ${futuros.length === 0
   }
 
   // ── Modal: Ativo (crypto/FIAT) ────────────────────────────────
+  function openVeiculoModal(veiculo, onSaved) {
+    const isEdit = !!veiculo;
+    const v = veiculo || {};
+    const hoje = new Date().toISOString().slice(0, 10);
+    const html = `
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="fVMarca" placeholder="Ex.: Toyota" value="${v.marca||''}"></div>
+  <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="fVModelo" placeholder="Ex.: Corolla XEi" value="${v.modelo||''}"></div>
+  <div class="form-group"><label class="form-label">Apelido (opcional)</label><input class="form-input" id="fVApelido" placeholder="Ex.: Carro da Mari" value="${v.apelido||''}"></div>
+  <div class="form-group"><label class="form-label">Ano</label><input class="form-input" id="fVAno" type="number" value="${v.ano || new Date().getFullYear()}" min="1980" max="${new Date().getFullYear()+1}"></div>
+  <div class="form-group"><label class="form-label">Placa (opcional)</label><input class="form-input" id="fVPlaca" placeholder="ABC-1D23" value="${v.placa||''}"></div>
+  <div class="form-group"><label class="form-label">Cor (opcional)</label><input class="form-input" id="fVCor" placeholder="Branca" value="${v.cor||''}"></div>
+  <div class="form-group"><label class="form-label">Valor de compra (R$)</label><input class="form-input" id="fVValor" type="number" step="100" value="${v.valorCompra||''}"></div>
+  <div class="form-group"><label class="form-label">Data da compra</label><input class="form-input" id="fVData" type="date" value="${v.dataCompra||hoje}"></div>
+  <div class="form-group"><label class="form-label">Valor atual (R$) — opcional</label><input class="form-input" id="fVValorAtual" type="number" step="100" value="${v.valorAtual||''}" placeholder="Calcula auto se vazio"></div>
+  <div class="form-group"><label class="form-label">Depreciação anual (%)</label><input class="form-input" id="fVDeprec" type="number" step="0.5" value="${v.depreciacaoAnualPct || 10}" min="0" max="50"></div>
+  <div class="form-group"><label class="form-label">IPVA anual (R$)</label><input class="form-input" id="fVIPVA" type="number" step="50" value="${v.ipvaAnual||''}"></div>
+  <div class="form-group"><label class="form-label">Seguro anual (R$)</label><input class="form-input" id="fVSeguro" type="number" step="50" value="${v.seguroAnual||''}"></div>
+  <div class="form-group"><label class="form-label">Manutenção mensal estimada (R$)</label><input class="form-input" id="fVManut" type="number" step="50" value="${v.manutencaoMensal||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fVNotes" value="${v.notes||''}"></div>
+</div>`;
+    Modal.open(isEdit ? 'Editar Veículo' : 'Novo Veículo', html, () => {
+      const data = {
+        marca:                document.getElementById('fVMarca').value.trim(),
+        modelo:               document.getElementById('fVModelo').value.trim(),
+        apelido:              document.getElementById('fVApelido').value.trim(),
+        ano:                  parseInt(document.getElementById('fVAno').value) || null,
+        placa:                document.getElementById('fVPlaca').value.trim(),
+        cor:                  document.getElementById('fVCor').value.trim(),
+        valorCompra:          parseFloat(document.getElementById('fVValor').value) || 0,
+        dataCompra:           document.getElementById('fVData').value,
+        valorAtual:           parseFloat(document.getElementById('fVValorAtual').value) || 0,
+        depreciacaoAnualPct:  parseFloat(document.getElementById('fVDeprec').value) || 10,
+        ipvaAnual:            parseFloat(document.getElementById('fVIPVA').value) || 0,
+        seguroAnual:          parseFloat(document.getElementById('fVSeguro').value) || 0,
+        manutencaoMensal:     parseFloat(document.getElementById('fVManut').value) || 0,
+        notes:                document.getElementById('fVNotes').value.trim(),
+      };
+      if (!data.marca || !data.modelo) return toast('Preencha marca e modelo', 'error');
+      if (!data.valorCompra) return toast('Informe o valor de compra', 'error');
+      if (isEdit) { Store.updateVeiculo(veiculo.id, data); toast('Veículo atualizado', 'success'); }
+      else        { Store.addVeiculo(data);                 toast('Veículo cadastrado', 'success'); }
+      Modal.close();
+      if (onSaved) onSaved();
+    });
+  }
+
+  // Cria contrato recorrente anual com o IPVA ou Seguro do veículo
+  function _programarCustoVeiculo(v, tipo, onDone) {
+    const valor = tipo === 'ipva' ? v.ipvaAnual : v.seguroAnual;
+    if (!valor) return toast(`Cadastre o valor do ${tipo.toUpperCase()} primeiro`, 'error');
+    const label = tipo === 'ipva' ? `IPVA ${v.modelo || v.apelido}` : `Seguro ${v.modelo || v.apelido}`;
+    const hoje = new Date();
+    const html = `
+<div class="form-grid">
+  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPVLabel" value="${label}"></div>
+  <div class="form-group"><label class="form-label">Valor anual (R$)</label><input class="form-input" id="fPVValor" type="number" step="50" value="${valor}"></div>
+  <div class="form-group"><label class="form-label">Mês de cobrança</label><select class="form-input" id="fPVMes">${Utils.monthsFull.map((m,i)=>`<option value="${i+1}"${i===hoje.getMonth()?' selected':''}>${m}</option>`).join('')}</select></div>
+  <div class="form-group"><label class="form-label">Dia do mês</label><input class="form-input" id="fPVDia" type="number" min="1" max="28" value="10"></div>
+  <div class="form-group"><label class="form-label">Repetir por (anos)</label><input class="form-input" id="fPVAnos" type="number" min="1" max="10" value="5"></div>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px">Será criado um contrato anual de despesa categoria "Transporte".</div>`;
+    Modal.open(`Programar ${tipo.toUpperCase()} — ${v.modelo || v.apelido}`, html, () => {
+      const lbl   = document.getElementById('fPVLabel').value.trim() || label;
+      const val   = parseFloat(document.getElementById('fPVValor').value) || valor;
+      const mes   = parseInt(document.getElementById('fPVMes').value) || 1;
+      const dia   = parseInt(document.getElementById('fPVDia').value) || 10;
+      const anos  = parseInt(document.getElementById('fPVAnos').value) || 5;
+      const ano   = hoje.getFullYear();
+      const ini   = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      const fimD  = new Date(ano + anos, mes - 1, dia);
+      const fim   = fimD.toISOString().slice(0, 10);
+      Store.addContrato({
+        label: lbl, kind: 'despesa', responsavel: currentPessoa(),
+        category: 'transporte', sub: tipo === 'ipva' ? 'IPVA' : 'Seguro',
+        dataInicio: ini, dataFim: fim,
+        valorParcela: val, parcelas: anos, entrada: 0,
+        diaVencimento: dia, pay: 'transferencia',
+        notes: `Gerado a partir do veículo cadastrado: ${v.marca} ${v.modelo}.`,
+        active: true,
+        // Periodicidade anual — campo opcional usado pelo gerador de lançamentos
+        periodicidade: 'anual',
+      });
+      Modal.close();
+      toast(`${tipo.toUpperCase()} programado por ${anos} anos`, 'success');
+      if (onDone) onDone();
+    });
+  }
+
   function openAtivoModal(ativo, onSaved) {
     const isEdit = !!ativo;
     const TYPES = ['Crypto','Token','FIAT BR','FIAT EUR'];
