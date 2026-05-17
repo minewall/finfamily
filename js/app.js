@@ -4939,6 +4939,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
       const hoje = new Date();
       const futuro = new Date(hoje); futuro.setMonth(futuro.getMonth() + 12);
       const dataAlvoDefault = futuro.toISOString().slice(0, 10);
+      const reservaTotal = Store.totalAtivos();
       document.getElementById('simContent').innerHTML = `
 <div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
   <div class="card">
@@ -4956,6 +4957,17 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
           <option value="poup">Poupança</option>
         </select>
       </div>
+      ${reservaTotal > 0 ? `
+      <div class="form-group" style="background:var(--bg-elevated);border-radius:8px;padding:12px;border-left:3px solid var(--accent)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label class="form-label" style="margin-bottom:0">Usar parte da reserva</label>
+          <span style="font-size:12px;color:var(--text-3);font-family:var(--mono)">disponível: <strong style="color:var(--accent)">${Utils.currency(reservaTotal)}</strong></span>
+        </div>
+        <input class="form-input" id="vUsarReserva" type="range" min="0" max="${Math.floor(reservaTotal)}" value="0" step="100" style="padding:0">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:4px;font-family:var(--mono)">
+          <span>R$ 0</span><span id="vUsarReservaVal" style="font-weight:700;color:var(--text-1)">R$ 0,00</span><span>${Utils.currency(reservaTotal)}</span>
+        </div>
+      </div>` : ''}
     </div>
     <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcViagem">Calcular aporte mensal</button>
   </div>
@@ -4964,11 +4976,20 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
     <div id="vResultBody"></div>
   </div>
 </div>`;
+      // Atualização viva do label do slider
+      const slider = document.getElementById('vUsarReserva');
+      if (slider) {
+        slider.addEventListener('input', () => {
+          document.getElementById('vUsarReservaVal').textContent = Utils.currency(parseFloat(slider.value) || 0);
+        });
+      }
+
       document.getElementById('btnCalcViagem').addEventListener('click', async () => {
         const destino = document.getElementById('vDestino').value.trim() || 'Viagem';
         const fv      = parseFloat(document.getElementById('vCusto').value) || 0;
         const data    = document.getElementById('vData').value;
         const opcao   = document.getElementById('vTaxa').value;
+        const reservaUsada = parseFloat(document.getElementById('vUsarReserva')?.value) || 0;
         if (!fv || !data) return toast('Preencha custo e data', 'error');
         const dAlvo = new Date(data);
         const hojeD = new Date();
@@ -4976,50 +4997,99 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
 
         const rates = await MarketRates.get();
         const taxasAnuais = {
-          cdi100: rates.cdi,
-          cdi110: rates.cdi * 1.10,
-          cdi90:  rates.cdi * 0.90,
-          selic:  rates.selic,
-          poup:   rates.poupanca,
+          cdi100: rates.cdi, cdi110: rates.cdi * 1.10, cdi90: rates.cdi * 0.90,
+          selic:  rates.selic, poup: rates.poupanca,
         };
         const taxaAnual = taxasAnuais[opcao];
         const i = annualToMonthly(taxaAnual);
-        const pmt = pmtForFV(fv, i, meses);
-        // Projeção mês a mês
-        let acc = 0; const rows = [];
+
+        // Cenário A: só aportes (sem reserva)
+        const pmtA = pmtForFV(fv, i, meses);
+        const totalAportadoA = pmtA * meses;
+
+        // Cenário B: usa parte da reserva + aportes do resto
+        const capitalCresce = reservaUsada * Math.pow(1 + i, meses);
+        const faltaFV = Math.max(0, fv - capitalCresce);
+        const pmtB = faltaFV > 0 ? pmtForFV(faltaFV, i, meses) : 0;
+        const totalAportadoB = pmtB * meses;
+
+        // Custo de oportunidade: a reserva, se ficasse rendendo, teria virado capitalCresce
+        const oportunidadePerdida = capitalCresce - reservaUsada;
+        // Economia em aportes (cenário B vs A) — comparação em valor nominal
+        const economiaAportes = totalAportadoA - totalAportadoB - reservaUsada;
+
+        // Projeção do cenário escolhido (B se reservaUsada > 0, senão A)
+        const pmtEscolhido = reservaUsada > 0 ? pmtB : pmtA;
+        let acc = reservaUsada; const rows = [];
         for (let m = 1; m <= meses; m++) {
-          acc = acc * (1 + i) + pmt;
-          rows.push({ m, aporte: pmt, acc });
+          acc = acc * (1 + i) + pmtEscolhido;
+          rows.push({ m, aporte: pmtEscolhido, acc });
         }
-        const totalAportado = pmt * meses;
-        const rendimento = fv - totalAportado;
 
         document.getElementById('vResult').style.display = '';
+        const usandoReserva = reservaUsada > 0;
         document.getElementById('vResultBody').innerHTML = `
 <div class="kpi-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
-    <div class="kpi-body"><div class="kpi-label">Aporte mensal</div><div class="kpi-value accent" style="font-size:22px">${Utils.currency(pmt)}</div></div>
+    <div class="kpi-body"><div class="kpi-label">Aporte mensal</div><div class="kpi-value accent" style="font-size:22px">${Utils.currency(pmtEscolhido)}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
-    <div class="kpi-body"><div class="kpi-label">Total aportado</div><div class="kpi-value" style="color:var(--teal);font-size:18px">${Utils.currency(totalAportado)}</div></div>
+    <div class="kpi-body"><div class="kpi-label">Total aportado</div><div class="kpi-value" style="color:var(--teal);font-size:18px">${Utils.currency(pmtEscolhido * meses)}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
-    <div class="kpi-body"><div class="kpi-label">Rendimento</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(rendimento)}</div></div>
+    <div class="kpi-body"><div class="kpi-label">Rendimento</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(fv - pmtEscolhido*meses - reservaUsada)}</div></div>
   </div>
 </div>
 <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
-  Em <strong>${meses} meses</strong> com <strong>${taxaAnual.toFixed(2)}% a.a.</strong> você acumula <strong>${Utils.currency(fv)}</strong>.
+  Em <strong>${meses} meses</strong> com <strong>${taxaAnual.toFixed(2)}% a.a.</strong>${usandoReserva ? ` usando <strong>${Utils.currency(reservaUsada)}</strong> da reserva` : ''} você acumula <strong>${Utils.currency(fv)}</strong>.
 </div>
-<button class="btn-primary" id="vSaveBtn" style="margin-bottom:16px">→ Converter em meta + aporte programado</button>
+
+${usandoReserva ? `
+<div style="background:var(--bg-elevated);border-radius:8px;padding:14px;margin-bottom:14px">
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">Comparação: usar reserva vs aporte total</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div style="font-size:11px;color:var(--text-4);margin-bottom:4px">Sem usar reserva</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(pmtA)}/mês</div>
+      <div style="font-size:11px;color:var(--text-3)">Reserva continua rendendo</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text-4);margin-bottom:4px">Usando ${Utils.currency(reservaUsada)}</div>
+      <div style="font-size:16px;font-weight:700;color:var(--accent);font-family:var(--mono)">${Utils.currency(pmtB)}/mês</div>
+      <div style="font-size:11px;color:var(--text-3)">Aporte cai ${Utils.currency(pmtA - pmtB)}/mês</div>
+    </div>
+  </div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-2);line-height:1.6">
+    Você abre mão de <strong style="color:var(--red)">${Utils.currency(oportunidadePerdida)}</strong> que a reserva renderia, mas reduz o aporte total em <strong style="color:var(--green)">${Utils.currency((pmtA - pmtB) * meses)}</strong> ao longo dos ${meses} meses.
+    ${i > 0 ? '<br><em style="color:var(--text-3)">Como o rendimento é o mesmo nos dois cenários, financeiramente é equivalente — a escolha é entre liquidez (manter reserva) e fluxo de caixa (aliviar aportes).</em>' : ''}
+  </div>
+</div>` : ''}
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+  <button class="btn-primary" id="vSaveBtn">→ Converter em meta + aporte</button>
+  <button class="btn-coach" id="vCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Coach
+  </button>
+</div>
+
 <div class="table-wrap" style="max-height:260px;overflow-y:auto"><table class="data-table">
   <thead><tr><th>Mês</th><th class="num">Aporte</th><th class="num">Saldo acumulado</th></tr></thead>
   <tbody>${rows.filter((_,k) => k%Math.max(1, Math.floor(meses/12))===0 || k === meses-1).map(r => `<tr><td>${r.m}</td><td class="num">${Utils.currency(r.aporte)}</td><td class="num positive">${Utils.currency(r.acc)}</td></tr>`).join('')}</tbody>
 </table></div>`;
+
         document.getElementById('vSaveBtn').addEventListener('click', () => {
           _gerarMetaELancamento({
             titulo: destino, valorAlvo: fv, prazoMeses: meses,
-            aporteMensal: pmt, taxaUsadaPct: taxaAnual.toFixed(2),
+            aporteMensal: pmtEscolhido, taxaUsadaPct: taxaAnual.toFixed(2),
           });
+        });
+        document.getElementById('vCoachBtn').addEventListener('click', () => {
+          const msg = `Simulei uma viagem: "${destino}", custo R$ ${fv.toFixed(2)} em ${meses} meses, aplicando em ${opcao} (${taxaAnual.toFixed(2)}% a.a.).
+Aporte mensal sem usar reserva: R$ ${pmtA.toFixed(2)}.
+${usandoReserva ? `Se eu usar R$ ${reservaUsada.toFixed(2)} da minha reserva (tenho R$ ${reservaTotal.toFixed(2)} disponível), aporte cai pra R$ ${pmtB.toFixed(2)}/mês.` : `Minha reserva total disponível é R$ ${reservaTotal.toFixed(2)}.`}
+Considerando meu fluxo de caixa atual e a perda de liquidez, qual sua recomendação?`;
+          window.FFCoach?.ask(msg);
         });
       });
     }
@@ -5035,6 +5105,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         if (v > 0) { totalDesp += v; mesesContados++; }
       }
       const despMedia = mesesContados ? Math.round(totalDesp / mesesContados) : 5000;
+      const reservaTotal = Store.totalAtivos();
 
       document.getElementById('simContent').innerHTML = `
 <div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
@@ -5068,50 +5139,82 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         const aporte = parseFloat(document.getElementById('rAporte').value) || 500;
         const opcao  = document.getElementById('rTaxa').value;
         const alvo   = desp * multi;
+        const falta  = Math.max(0, alvo - reservaTotal);
 
         const rates = await MarketRates.get();
         const taxasAnuais = { cdi100: rates.cdi, cdi90: rates.cdi*0.9, selic: rates.selic, poup: rates.poupanca };
         const taxaAnual = taxasAnuais[opcao];
         const i = annualToMonthly(taxaAnual);
-        const meses = nForFV(alvo, aporte, i);
+        const meses = falta > 0 ? nForFV(falta, aporte, i) : 0;
 
-        // Projeção
-        let acc = 0; const rows = [];
+        // Projeção (a partir da reserva atual)
+        let acc = reservaTotal; const rows = [];
         for (let m = 1; m <= meses; m++) { acc = acc * (1 + i) + aporte; rows.push({ m, acc }); }
+
+        const cobertura = reservaTotal / desp;
+        const jaCompleta = reservaTotal >= alvo;
 
         document.getElementById('rResult').style.display = '';
         document.getElementById('rResultBody').innerHTML = `
+${reservaTotal > 0 ? `
+<div class="alert-strip ${jaCompleta ? 'success' : 'info'} mb-4">
+  <span class="alert-icon">${jaCompleta ? Utils.icon.check : Utils.icon.info}</span>
+  <div class="alert-text">
+    <div class="alert-title">Você já tem ${Utils.currency(reservaTotal)} guardado</div>
+    <div class="alert-sub">Cobre ${cobertura.toFixed(1)} meses de despesa atual. ${jaCompleta ? 'Meta já atingida! 🎉' : `Falta ${Utils.currency(falta)} para completar ${multi} meses.`}</div>
+  </div>
+</div>` : ''}
 <div class="kpi-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
     <div class="kpi-body"><div class="kpi-label">Valor alvo</div><div class="kpi-value accent" style="font-size:20px">${Utils.currency(alvo)}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
-    <div class="kpi-body"><div class="kpi-label">Tempo para completar</div><div class="kpi-value" style="color:var(--teal);font-size:20px">${meses} meses</div></div>
+    <div class="kpi-body"><div class="kpi-label">Tempo para completar</div><div class="kpi-value" style="color:var(--teal);font-size:20px">${jaCompleta ? '✓' : meses + ' meses'}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
-    <div class="kpi-body"><div class="kpi-label">Rendimento total</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(alvo - aporte*meses)}</div></div>
+    <div class="kpi-body"><div class="kpi-label">Rendimento estimado</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(Math.max(0, alvo - reservaTotal - aporte*meses))}</div></div>
   </div>
 </div>
 <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
-  Aportando <strong>${Utils.currency(aporte)}/mês</strong> a <strong>${taxaAnual.toFixed(2)}% a.a.</strong>, você cobre <strong>${multi} meses</strong> de despesa em <strong>~${meses} meses</strong>.
+  ${jaCompleta
+    ? `Você já tem ${cobertura.toFixed(1)} meses cobertos — pode focar em outros objetivos.`
+    : `Aportando <strong>${Utils.currency(aporte)}/mês</strong> a <strong>${taxaAnual.toFixed(2)}% a.a.</strong>, você completa a reserva em <strong>~${meses} meses</strong>.`}
 </div>
-<button class="btn-primary" id="rSaveBtn" style="margin-bottom:16px">→ Converter em meta + aporte programado</button>
-<div class="table-wrap" style="max-height:260px;overflow-y:auto"><table class="data-table">
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+  ${!jaCompleta ? `<button class="btn-primary" id="rSaveBtn">→ Converter em meta + aporte</button>` : ''}
+  <button class="btn-coach" id="rCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Coach
+  </button>
+</div>
+${!jaCompleta ? `<div class="table-wrap" style="max-height:260px;overflow-y:auto"><table class="data-table">
   <thead><tr><th>Mês</th><th class="num">Saldo acumulado</th></tr></thead>
   <tbody>${rows.filter((_,k) => k%Math.max(1, Math.floor(meses/12))===0 || k === meses-1).map(r => `<tr><td>${r.m}</td><td class="num positive">${Utils.currency(r.acc)}</td></tr>`).join('')}</tbody>
-</table></div>`;
-        document.getElementById('rSaveBtn').addEventListener('click', () => {
+</table></div>` : ''}`;
+
+        const btnSave = document.getElementById('rSaveBtn');
+        if (btnSave) btnSave.addEventListener('click', () => {
           _gerarMetaELancamento({
             titulo: `Reserva de emergência (${multi} meses)`,
             valorAlvo: alvo, prazoMeses: meses, aporteMensal: aporte,
             taxaUsadaPct: taxaAnual.toFixed(2),
           });
         });
+        document.getElementById('rCoachBtn').addEventListener('click', () => {
+          const msg = `Estou planejando minha reserva de emergência.
+Despesa mensal média: R$ ${desp.toFixed(2)} (últimos ${mesesContados || 0} meses).
+Meta: cobrir ${multi} meses = R$ ${alvo.toFixed(2)}.
+Reserva atual: R$ ${reservaTotal.toFixed(2)} (${cobertura.toFixed(1)} meses cobertos).
+${jaCompleta ? 'Já atingi a meta — vale aumentar pra 12 meses ou direcionar pra investimentos de longo prazo?' : `Falta R$ ${falta.toFixed(2)}. Aportando R$ ${aporte.toFixed(2)}/mês a ${taxaAnual.toFixed(2)}% a.a. levaria ~${meses} meses.`}
+Considerando meu cenário, qual sua recomendação?`;
+          window.FFCoach?.ask(msg);
+        });
       });
     }
 
     // ── COMPRA: à vista vs parcelado ───────────────────────────────
     function renderCompra() {
+      const reservaTotal = Store.totalAtivos();
       document.getElementById('simContent').innerHTML = `
 <div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
   <div class="card">
@@ -5132,6 +5235,13 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         </select>
         <div style="font-size:11px;color:var(--text-3);margin-top:4px">Onde você renderia o dinheiro se pagar à vista</div>
       </div>
+      ${reservaTotal > 0 ? `
+      <div class="form-group" style="background:var(--bg-elevated);border-radius:8px;padding:12px;border-left:3px solid var(--accent)">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-1);cursor:pointer">
+          <input type="checkbox" id="cUsarReserva"> Usar reserva pra pagar à vista
+        </label>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;font-family:var(--mono)">Reserva disponível: <strong style="color:var(--accent)">${Utils.currency(reservaTotal)}</strong></div>
+      </div>` : ''}
     </div>
     <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcCompra">Comparar</button>
   </div>
@@ -5147,7 +5257,11 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         const pmt   = parseFloat(document.getElementById('cParc').value) || 0;
         const n     = parseInt(document.getElementById('cQtd').value) || 0;
         const opcao = document.getElementById('cTaxa').value;
+        const usarReserva = !!document.getElementById('cUsarReserva')?.checked;
         if (!vista || !pmt || !n) return toast('Preencha preço à vista, parcela e nº', 'error');
+        if (usarReserva && reservaTotal < vista) {
+          return toast(`Reserva insuficiente: ${Utils.currency(reservaTotal)} < ${Utils.currency(vista)}`, 'error');
+        }
 
         const rates = await MarketRates.get();
         const taxasAnuais = { cdi100: rates.cdi, cdi90: rates.cdi*0.9, selic: rates.selic, poup: rates.poupanca };
@@ -5214,10 +5328,23 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
   </div>
 </div>
 
-<div style="display:flex;gap:8px;flex-wrap:wrap">
+${usarReserva ? `
+<div style="background:var(--bg-elevated);border-radius:8px;padding:14px;margin-bottom:14px;border-left:3px solid var(--amber)">
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">Cenário: pagar à vista usando reserva</div>
+  <div style="font-size:13px;color:var(--text-2);line-height:1.6">
+    Sua reserva cai de <strong>${Utils.currency(reservaTotal)}</strong> para <strong>${Utils.currency(reservaTotal - vista)}</strong>.
+    Você economiza <strong style="color:var(--green)">${Utils.currency(totalNominal - vista)}</strong> em juros do parcelado,
+    mas abre mão de <strong style="color:var(--red)">${Utils.currency(fvAplicacao - pmt*n + (vista * (Math.pow(1+i, n) - 1)))}</strong> de rendimento que a reserva geraria nos próximos ${n} meses.
+  </div>
+</div>` : ''}
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
   ${vistaMelhor
     ? `<button class="btn-primary" id="cSaveMeta">→ Criar meta "Juntar ${Utils.currency(vista)} para ${desc}"</button>`
     : `<button class="btn-primary" id="cSaveContrato">→ Criar contrato com as ${n} parcelas</button>`}
+  <button class="btn-coach" id="cCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Coach
+  </button>
 </div>`;
 
         const btnMeta = document.getElementById('cSaveMeta');
@@ -5251,6 +5378,17 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
             active: true,
           });
           toast(`Contrato de ${n}× ${Utils.currency(pmt)} criado`, 'success');
+        });
+
+        document.getElementById('cCoachBtn').addEventListener('click', () => {
+          const msg = `Estou em dúvida sobre uma compra: "${desc}".
+À vista: R$ ${vista.toFixed(2)}. Parcelado: ${n}× R$ ${pmt.toFixed(2)} (total R$ ${totalNominal.toFixed(2)}).
+Juros implícitos do parcelamento: ${jAnual.toFixed(2)}% a.a. vs minha taxa de oportunidade ${taxaAnual.toFixed(2)}% a.a.
+Valor presente do parcelado: R$ ${vp.toFixed(2)} (${vistaMelhor ? 'à vista é melhor' : 'parcelado é melhor'} na minha taxa).
+Reserva disponível: R$ ${reservaTotal.toFixed(2)}.
+${usarReserva ? `Pensei em usar a reserva pra pagar à vista — reserva cairia pra R$ ${(reservaTotal - vista).toFixed(2)}.` : ''}
+Considerando meu fluxo e liquidez, o que recomenda?`;
+          window.FFCoach?.ask(msg);
         });
       });
     }
@@ -6759,6 +6897,16 @@ FORMATO DA RESPOSTA (importante):
       });
     }
     bindSuggestions();
+
+    // Expõe API mínima pra outros módulos abrirem o Coach com um prompt pronto
+    window.FFCoach = {
+      ask(text) {
+        openPanel();
+        // Pequeno delay pra garantir que o painel pintou antes de submeter
+        setTimeout(() => sendMessage(text), 120);
+      },
+      open: openPanel,
+    };
   }
 
   // Hides nav sections not accessible to 'member' role users
