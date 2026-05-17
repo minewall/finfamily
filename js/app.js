@@ -4762,9 +4762,216 @@ ${topCats.length ? `
     renderContas(container, 'cartoes');
   }
 
-  // ── INVESTIMENTOS (alias de Patrimônio enquanto não separamos) ──
-  function renderInvestimentos(container) {
-    renderReserva(container);
+  // ── INVESTIMENTOS (aba dedicada — comparador + curva patrimonial) ─
+  async function renderInvestimentos(container) {
+    const reservas = Store.get().reservas || [];
+    const totalInvestido = reservas.reduce((s, r) => s + (r.valorInvestido || 0), 0);
+    const totalAtual     = reservas.reduce((s, r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
+    const ganho          = totalAtual - totalInvestido;
+    const rendPct        = totalInvestido > 0 ? (ganho / totalInvestido) * 100 : 0;
+
+    // Saldo médio mensal sobrando (últimos 6 meses) para sugerir aporte
+    const hojeD = new Date();
+    let saldoSomado = 0, mesesUsados = 0;
+    for (let k = 0; k < 6; k++) {
+      const d = new Date(hojeD); d.setMonth(d.getMonth() - k);
+      const rec  = Store.sumReceitas(d.getMonth() + 1, d.getFullYear());
+      const desp = Store.sumDespesas(d.getMonth() + 1, d.getFullYear());
+      if (rec > 0 || desp > 0) { saldoSomado += (rec - desp); mesesUsados++; }
+    }
+    const saldoMedio = mesesUsados ? Math.max(0, Math.round(saldoSomado / mesesUsados)) : 500;
+
+    container.innerHTML = `
+<div class="section-header mb-6">
+  <div>
+    <div class="section-title">Investimentos</div>
+    <div class="section-sub">Compare produtos de renda fixa e projete seu patrimônio</div>
+  </div>
+</div>
+
+<!-- Resumo do portfólio atual -->
+${reservas.length > 0 ? `
+<div class="kpi-grid mb-6">
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Total investido</div><div class="kpi-value accent">${Utils.currency(totalInvestido)}</div><div class="kpi-sub">${reservas.length} aplicações</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Valor atual</div><div class="kpi-value" style="color:var(--teal)">${Utils.currency(totalAtual)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:${ganho>=0?'var(--green)':'var(--red)'};--kpi-bg:${ganho>=0?'var(--green-dim)':'var(--red-dim)'}">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Ganho</div><div class="kpi-value" style="color:${ganho>=0?'var(--green)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div><div class="kpi-sub">${rendPct.toFixed(1)}% acumulado</div></div>
+  </div>
+</div>` : ''}
+
+<!-- Header de taxas -->
+<div class="rates-strip card mb-6" id="invRatesStrip">
+  <div style="padding:14px;font-size:12px;color:var(--text-3)">Carregando taxas de referência…</div>
+</div>
+
+<!-- Comparador -->
+<div class="chart-grid mb-6" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Comparar produtos</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group"><label class="form-label">Capital inicial (R$)</label><input class="form-input" id="ivCap" type="number" step="100" value="${Math.round(totalInvestido || 1000)}"></div>
+      <div class="form-group"><label class="form-label">Aporte mensal (R$)</label><input class="form-input" id="ivAporte" type="number" step="50" value="${saldoMedio}"><div style="font-size:11px;color:var(--text-3);margin-top:4px">Sugerido pelo saldo médio (${mesesUsados ? `${mesesUsados} meses` : 'sem dados'})</div></div>
+      <div class="form-group"><label class="form-label">Horizonte (anos)</label><input class="form-input" id="ivAnos" type="number" min="1" max="40" value="10"></div>
+      <div class="form-group"><label class="form-label">Inflação esperada (% a.a.)</label><input class="form-input" id="ivInfl" type="number" step="0.1" value="4.5"><div style="font-size:11px;color:var(--text-3);margin-top:4px">Para produtos IPCA+ e cálculo de poder de compra</div></div>
+      <div class="form-group"><label class="form-label">IR estimado (%)</label><input class="form-input" id="ivIR" type="number" step="1" value="15"><div style="font-size:11px;color:var(--text-3);margin-top:4px">15% após 2 anos. LCI/LCA são isentas.</div></div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCompInv">Comparar</button>
+  </div>
+  <div id="ivCompResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Evolução comparada</span></div>
+    <div id="ivCompBody"></div>
+  </div>
+</div>
+
+<!-- Calculadora reversa -->
+<div class="chart-grid mb-6" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Quanto preciso aportar?</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group"><label class="form-label">Quero ter (R$)</label><input class="form-input" id="ivAlvo" type="number" step="1000" value="100000"></div>
+      <div class="form-group"><label class="form-label">Em quantos anos?</label><input class="form-input" id="ivAlvoAnos" type="number" min="1" max="40" value="10"></div>
+      <div class="form-group"><label class="form-label">Capital atual (R$)</label><input class="form-input" id="ivAlvoCap" type="number" step="100" value="0"></div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnRevInv">Calcular aporte por produto</button>
+  </div>
+  <div id="ivRevResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Aporte mensal necessário</span></div>
+    <div id="ivRevBody"></div>
+  </div>
+</div>`;
+
+    // Header de taxas
+    const rates = await MarketRates.get();
+    document.getElementById('invRatesStrip').innerHTML = `
+<div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap">
+  <div style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">SELIC</div><div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono)">${rates.selic.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div></div>
+  <div style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">CDI</div><div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono)">${rates.cdi.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div></div>
+  <div style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Poupança</div><div style="font-size:18px;font-weight:800;color:var(--text-2);font-family:var(--mono)">${rates.poupanca.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div></div>
+  <div style="flex:2;min-width:240px;padding:14px 16px"><div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Premissas dos produtos</div><div style="font-size:12px;color:var(--text-2);line-height:1.5"><strong>CDB</strong> 100% CDI · <strong>LCI/LCA</strong> 90% CDI (isento IR) · <strong>Tesouro Selic</strong> ~SELIC · <strong>IPCA+</strong> IPCA + 6% a.a.</div></div>
+</div>`;
+
+    // Lista de produtos a comparar
+    function _produtos(inflPct) {
+      return [
+        { key: 'poup',   nome: 'Poupança',         taxa: rates.poupanca, isento: true,  color: '#9CA3AF' },
+        { key: 'selic',  nome: 'Tesouro Selic',    taxa: rates.selic,    isento: false, color: '#0EA5E9' },
+        { key: 'cdb',    nome: 'CDB 100% CDI',     taxa: rates.cdi,      isento: false, color: '#7367F0' },
+        { key: 'lci',    nome: 'LCI/LCA 90% CDI',  taxa: rates.cdi*0.9,  isento: true,  color: '#22C55E' },
+        { key: 'ipca',   nome: 'Tesouro IPCA+',    taxa: inflPct + 6,    isento: false, color: '#F59E0B' },
+      ];
+    }
+
+    function _evolucao(pv, pmt, anualPct, meses, ir) {
+      const i = annualToMonthly(anualPct);
+      const serie = [];
+      let saldo = pv, totalAportado = pv;
+      for (let m = 1; m <= meses; m++) {
+        saldo = saldo * (1 + i) + pmt;
+        totalAportado += pmt;
+        serie.push(saldo);
+      }
+      const rendimentoBruto = saldo - totalAportado;
+      const rendimentoLiq = rendimentoBruto * (1 - ir);
+      const totalLiq = totalAportado + rendimentoLiq;
+      return { serie, totalAportado, saldoBruto: saldo, rendimentoBruto, rendimentoLiq, totalLiq };
+    }
+
+    document.getElementById('btnCompInv').addEventListener('click', () => {
+      const pv     = parseFloat(document.getElementById('ivCap').value) || 0;
+      const pmt    = parseFloat(document.getElementById('ivAporte').value) || 0;
+      const anos   = parseInt(document.getElementById('ivAnos').value) || 10;
+      const inflPct= parseFloat(document.getElementById('ivInfl').value) || 4.5;
+      const irPct  = (parseFloat(document.getElementById('ivIR').value) || 15) / 100;
+      const meses  = anos * 12;
+      const inflM  = annualToMonthly(inflPct);
+      const produtos = _produtos(inflPct);
+
+      const resultados = produtos.map(p => {
+        const r = _evolucao(pv, pmt, p.taxa, meses, p.isento ? 0 : irPct);
+        // Poder de compra (descontando inflação)
+        const poderCompra = r.totalLiq / Math.pow(1 + inflM, meses);
+        return { ...p, ...r, poderCompra };
+      });
+      // Ordena por totalLiq desc
+      resultados.sort((a, b) => b.totalLiq - a.totalLiq);
+      const melhor = resultados[0];
+
+      document.getElementById('ivCompResult').style.display = '';
+      const labels = Array.from({ length: anos }, (_, k) => `${k+1}a`);
+      // Pega valor da série a cada 12 meses
+      const datasetsLine = resultados.map(r => ({
+        label: r.nome,
+        values: Array.from({ length: anos }, (_, k) => parseFloat(r.serie[(k+1)*12 - 1].toFixed(2))),
+        color: r.color,
+      }));
+
+      document.getElementById('ivCompBody').innerHTML = `
+<div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
+  Em <strong>${anos} anos</strong> com capital ${Utils.currency(pv)} + aporte ${Utils.currency(pmt)}/mês:
+  o melhor produto é <strong style="color:${melhor.color}">${melhor.nome}</strong>, acumulando <strong>${Utils.currency(melhor.totalLiq)}</strong> líquidos.
+</div>
+<div class="chart-wrap" style="margin-bottom:16px"><canvas id="chartInvComp" class="chart-canvas" height="240"></canvas></div>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>Produto</th><th class="num">Taxa</th><th class="num">Total aportado</th><th class="num">Bruto</th><th class="num">Líquido (após IR)</th><th class="num">Poder de compra</th></tr></thead>
+  <tbody>${resultados.map(r => `
+    <tr style="${r === melhor ? 'background:rgba(34,197,94,0.06)' : ''}">
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span><strong>${r.nome}</strong>${r.isento ? ' <span style="font-size:10px;color:var(--green)">isento IR</span>' : ''}</td>
+      <td class="num">${r.taxa.toFixed(2)}% a.a.</td>
+      <td class="num">${Utils.currency(r.totalAportado)}</td>
+      <td class="num">${Utils.currency(r.saldoBruto)}</td>
+      <td class="num positive fw-700">${Utils.currency(r.totalLiq)}</td>
+      <td class="num muted">${Utils.currency(r.poderCompra)}</td>
+    </tr>`).join('')}</tbody>
+</table></div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px">
+  "Poder de compra" desconta inflação de ${inflPct}% a.a. — mostra quanto seu dinheiro valeria em poder aquisitivo de hoje.
+</div>`;
+      if (window._chartInvComp) window._chartInvComp.destroy();
+      window._chartInvComp = Charts.Line(document.getElementById('chartInvComp'),
+        { labels, datasets: datasetsLine }, { height: 240 });
+    });
+
+    document.getElementById('btnRevInv').addEventListener('click', () => {
+      const alvo  = parseFloat(document.getElementById('ivAlvo').value) || 0;
+      const anos  = parseInt(document.getElementById('ivAlvoAnos').value) || 10;
+      const cap   = parseFloat(document.getElementById('ivAlvoCap').value) || 0;
+      const inflPct = parseFloat(document.getElementById('ivInfl').value) || 4.5;
+      const meses = anos * 12;
+      const produtos = _produtos(inflPct);
+      const linhas = produtos.map(p => {
+        const i = annualToMonthly(p.taxa);
+        const capCresce = cap * Math.pow(1 + i, meses);
+        const falta = Math.max(0, alvo - capCresce);
+        const pmt = falta > 0 ? pmtForFV(falta, i, meses) : 0;
+        return { ...p, pmt, capCresce };
+      });
+      linhas.sort((a, b) => a.pmt - b.pmt);
+      const menor = linhas[0];
+
+      document.getElementById('ivRevResult').style.display = '';
+      document.getElementById('ivRevBody').innerHTML = `
+<div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
+  Para acumular <strong>${Utils.currency(alvo)}</strong> em <strong>${anos} anos</strong>${cap > 0 ? ` partindo de ${Utils.currency(cap)}` : ''}:
+  o menor aporte é com <strong style="color:${menor.color}">${menor.nome}</strong> = <strong>${Utils.currency(menor.pmt)}/mês</strong>.
+</div>
+<div class="table-wrap"><table class="data-table">
+  <thead><tr><th>Produto</th><th class="num">Taxa</th><th class="num">Aporte mensal</th><th class="num">Total aportado</th></tr></thead>
+  <tbody>${linhas.map(l => `
+    <tr style="${l === menor ? 'background:rgba(34,197,94,0.06)' : ''}">
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${l.color};margin-right:8px;vertical-align:middle"></span><strong>${l.nome}</strong></td>
+      <td class="num">${l.taxa.toFixed(2)}% a.a.</td>
+      <td class="num positive fw-700">${Utils.currency(l.pmt)}</td>
+      <td class="num">${Utils.currency(l.pmt * meses)}</td>
+    </tr>`).join('')}</tbody>
+</table></div>`;
+    });
   }
 
   // ── FINANCIAMENTOS ─────────────────────────────────────────────
