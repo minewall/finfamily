@@ -564,12 +564,12 @@ const App = (function () {
       <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:${saldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${saldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v4H3zM3 10h18M8 10v11M16 10v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="kpi-card" style="--kpi-color:${poder.poderDeEscolha>=0?'var(--green)':'var(--red)'};--kpi-bg:${poder.poderDeEscolha>=0?'var(--green-dim)':'var(--red-dim)'}">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 6 6 1-4.5 4 1 6L12 16l-5.5 3 1-6L3 9l6-1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Saldo do Mês</div>
-      <div class="kpi-value ${saldo>=0?'accent':'red'}">${saldo<0?'-':''}${Utils.currency(Math.abs(saldo))}</div>
-      <div class="kpi-change ${chgRec>=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgRec>=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> receita ${Math.abs(chgRec).toFixed(1)}% vs mês ant.</div>
+      <div class="kpi-label">Poder de Escolha</div>
+      <div class="kpi-value" style="color:${poder.poderDeEscolha>=0?'var(--green)':'var(--red)'}">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
+      <div class="kpi-sub">${(poder.pct*100).toFixed(0)}% da receita · piso ${Utils.currency(poder.pisoSobrevivencia)}</div>
     </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
@@ -4573,6 +4573,18 @@ ${topCats.length ? `
         <div style="font-size:11px;color:var(--green);margin-top:4px" id="eDEconomia">${d.economia?'💰 Economia: '+Utils.currency(d.economia):''}</div>
       </div>
       ${splitSectionHTML().replace(/fD/g, 'fD')}
+      ${(() => {
+        const tipoEfetivo = Store.getDespesaTipo ? Store.getDespesaTipo(d) : null;
+        const tipos = Store.getTipos ? Store.getTipos() : [];
+        return `
+      <div class="form-group form-full" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg-elevated)">
+        <label class="form-label" style="margin-bottom:6px">Tipo deste lançamento <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:normal;font-size:11px">(opcional — sobrescreve o tipo da subcategoria)</span></label>
+        <select class="form-select" id="eDTipoOverride">
+          <option value="">Herdar da subcategoria (${(Store.getTipoById && Store.getTipoById(tipoEfetivo)?.label) || tipoEfetivo || '—'})</option>
+          ${tipos.map(t => `<option value="${t.id}" ${d.tipoOverride===t.id?'selected':''}>${t.icon||''} ${t.label}</option>`).join('')}
+        </select>
+      </div>`;
+      })()}
       <div class="form-group form-full">
         <label class="form-label">Visibilidade</label>
         <div style="display:flex;gap:8px">
@@ -4620,6 +4632,7 @@ ${topCats.length ? `
       const valorOrig = temDesc ? parseFloat(document.getElementById('eDValorOriginal').value||'0') : 0;
       const economia  = temDesc && valorOrig > amount ? valorOrig - amount : 0;
       const split    = editSplitApi?.read() || null;
+      const tipoOverride = document.getElementById('eDTipoOverride')?.value || null;
       const visibilidade = document.getElementById('eDVis')?.value || 'familiar';
       const temReembolso = visibilidade === 'particular' && document.getElementById('eDReembolso')?.checked;
       const reembolsoDe  = temReembolso ? (document.getElementById('eDReembolsoDe')?.value || 'Família') : null;
@@ -4635,6 +4648,7 @@ ${topCats.length ? `
         month: dt.getMonth() + 1, year: dt.getFullYear(),
         desconto: temDesc && economia > 0, valorOriginal: valorOrig, economia,
         split: split || null,
+        tipoOverride: tipoOverride || null,
         visibilidade,
         reembolso: temReembolso ? {
           para: d.reembolso?.para || currentPessoa(),
