@@ -4414,6 +4414,76 @@ ${topCats.length ? `
     renderReserva(container);
   }
 
+  // ── MARKET RATES (BCB API + cache local 12h) ─────────────────────
+  const MarketRates = (() => {
+    const CACHE_KEY = 'ff_market_rates';
+    const TTL_MS = 12 * 60 * 60 * 1000;
+
+    async function _fetchBCB(serie) {
+      const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie}/dados/ultimos/1?formato=json`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`BCB ${serie} ${res.status}`);
+      const arr = await res.json();
+      return parseFloat(String(arr[0].valor).replace(',', '.'));
+    }
+
+    function _poupanca(selicAnual) {
+      // Regra: SELIC > 8.5% a.a. → poupança = 6.17% a.a. (0.5% am) + TR (~0)
+      //        SELIC ≤ 8.5% a.a. → poupança = 70% Meta SELIC + TR
+      if (selicAnual > 8.5) return 6.17;
+      return selicAnual * 0.7;
+    }
+
+    function _read() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        if (Date.now() - c.ts > TTL_MS) return null;
+        return c.data;
+      } catch { return null; }
+    }
+
+    async function get() {
+      const cached = _read();
+      if (cached) return cached;
+      try {
+        const [selic, cdiDiario] = await Promise.all([
+          _fetchBCB(1178), // SELIC anualizada (Meta Selic % a.a.)
+          _fetchBCB(12),   // CDI diário (% ao dia)
+        ]);
+        // Anualizar CDI: (1 + diario/100)^252 - 1
+        const cdiAnual = (Math.pow(1 + cdiDiario / 100, 252) - 1) * 100;
+        const data = {
+          selic, cdi: cdiAnual, poupanca: _poupanca(selic),
+          fetchedAt: Date.now(),
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+        return data;
+      } catch (e) {
+        console.warn('MarketRates: falha BCB, usando fallback', e);
+        return { selic: 14.75, cdi: 14.65, poupanca: 6.17, fetchedAt: Date.now(), fallback: true };
+      }
+    }
+
+    return { get };
+  })();
+
+  // Helpers financeiros
+  function annualToMonthly(annualPct) {
+    return Math.pow(1 + annualPct / 100, 1 / 12) - 1;
+  }
+  // PMT para acumular FV em n meses à taxa i (mensal). FV = PMT * ((1+i)^n - 1) / i
+  function pmtForFV(fv, i, n) {
+    if (i === 0) return fv / n;
+    return fv * i / (Math.pow(1 + i, n) - 1);
+  }
+  // n meses para acumular FV com PMT à taxa i
+  function nForFV(fv, pmt, i) {
+    if (i === 0) return Math.ceil(fv / pmt);
+    return Math.ceil(Math.log(1 + fv * i / pmt) / Math.log(1 + i));
+  }
+
   // ── SIMULAÇÕES ──────────────────────────────────────────────────
   function renderSimulacoes(container) {
     const saldo  = Store.sumReceitas(getMonth(), getYear()) - Store.sumDespesas(getMonth(), getYear());
@@ -4427,15 +4497,53 @@ ${topCats.length ? `
   </div>
 </div>
 
+<!-- HEADER DE TAXAS (BCB) -->
+<div class="rates-strip card mb-6" id="ratesStrip">
+  <div class="rates-loading" style="padding:14px;font-size:12px;color:var(--text-3)">Carregando taxas de referência…</div>
+</div>
+
 <!-- TABS -->
 <div class="tabs mb-6" id="simTabs">
-  <button class="tab active" data-sim="juros">Juros Compostos</button>
+  <button class="tab active" data-sim="viagem">Viagem</button>
+  <button class="tab" data-sim="reserva">Reserva Emergência</button>
+  <button class="tab" data-sim="juros">Juros Compostos</button>
   <button class="tab" data-sim="amortizacao">Amortização SAC</button>
   <button class="tab" data-sim="fire">FIRE / Independência</button>
   <button class="tab" data-sim="meta">Simulador de Meta</button>
 </div>
 
 <div id="simContent"></div>`;
+
+    // Popular header de taxas (assíncrono)
+    MarketRates.get().then(rates => {
+      const strip = document.getElementById('ratesStrip');
+      if (!strip) return;
+      const dt = new Date(rates.fetchedAt).toLocaleDateString('pt-BR');
+      strip.innerHTML = `
+<div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap">
+  <div class="rate-item" style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Meta SELIC</div>
+    <div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono)">${rates.selic.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div>
+  </div>
+  <div class="rate-item" style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">CDI</div>
+    <div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono)">${rates.cdi.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div>
+  </div>
+  <div class="rate-item" style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Poupança</div>
+    <div style="font-size:18px;font-weight:800;color:var(--text-2);font-family:var(--mono)">${rates.poupanca.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div>
+  </div>
+  <div class="rate-item" style="flex:2;min-width:240px;padding:14px 16px">
+    <div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Referência de produtos de renda fixa</div>
+    <div style="font-size:12px;color:var(--text-2);line-height:1.5">
+      <strong>CDB</strong> 90-110% CDI · <strong>LCI/LCA</strong> 85-95% CDI (isento IR) · <strong>Tesouro Selic</strong> ~SELIC
+    </div>
+  </div>
+</div>
+<div style="padding:8px 16px;font-size:10px;color:var(--text-4);border-top:1px solid var(--border);background:var(--bg-elevated)">
+  ${rates.fallback ? '⚠️ Fonte BCB indisponível — usando valores de referência fixos.' : `Fonte: Banco Central do Brasil · atualizado ${dt}`}
+</div>`;
+    });
 
     function renderJuros() {
       document.getElementById('simContent').innerHTML = `
@@ -4753,8 +4861,256 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
       });
     }
 
-    const renders = { juros: renderJuros, amortizacao: renderAmortizacao, fire: renderFIRE, meta: renderMetaSim };
-    renderJuros();
+    // ── helper compartilhado: aplicar conversões ───────────────────
+    function _gerarMetaELancamento(opts) {
+      // opts: { titulo, valorAlvo, prazoMeses, aporteMensal, taxaUsadaPct }
+      const dataAlvo = (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + opts.prazoMeses);
+        return d.toISOString().slice(0, 10);
+      })();
+      const html = `
+        <div class="form-grid" style="grid-template-columns:1fr">
+          <div class="form-group">
+            <label class="form-label">Salvar como…</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cnvMeta" checked> Meta (acompanhamento)</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cnvLanc" checked> Aporte programado mensal</label>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="cnvTitulo" value="${opts.titulo}"></div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label class="form-label">Valor alvo (R$)</label><input class="form-input" id="cnvAlvo" type="number" value="${opts.valorAlvo.toFixed(2)}" step="0.01"></div>
+            <div class="form-group"><label class="form-label">Aporte mensal (R$)</label><input class="form-input" id="cnvAporte" type="number" value="${opts.aporteMensal.toFixed(2)}" step="0.01"></div>
+          </div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label class="form-label">Data alvo</label><input class="form-input" id="cnvData" type="date" value="${dataAlvo}"></div>
+            <div class="form-group"><label class="form-label">Categoria do aporte</label>
+              <select class="form-input" id="cnvCat"><option value="financeiro">Desp. Financeiras</option><option value="pessoal">Pessoal</option><option value="lazer">Lazer</option></select>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:8px">Aporte considera ${opts.taxaUsadaPct}% a.a. — você pode ajustar valores antes de salvar.</div>`;
+      Modal.open('Converter simulação em ações', html, () => {
+        const fazerMeta = document.getElementById('cnvMeta').checked;
+        const fazerLanc = document.getElementById('cnvLanc').checked;
+        const titulo   = document.getElementById('cnvTitulo').value.trim() || opts.titulo;
+        const alvo     = parseFloat(document.getElementById('cnvAlvo').value) || opts.valorAlvo;
+        const aporte   = parseFloat(document.getElementById('cnvAporte').value) || opts.aporteMensal;
+        const data     = document.getElementById('cnvData').value || dataAlvo;
+        const cat      = document.getElementById('cnvCat').value;
+        if (!fazerMeta && !fazerLanc) return toast('Selecione ao menos uma opção', 'error');
+        if (fazerMeta) {
+          Store.get().metas.push({
+            id: '_' + Date.now(),
+            label: titulo, type: 'objetivo', period: 'pontual',
+            target: alvo, deadline: data, atual: 0,
+            origem: 'simulacao',
+          });
+          Store.persist();
+        }
+        if (fazerLanc) {
+          const hoje = new Date().toISOString().slice(0, 10);
+          Store.addContrato({
+            label: `Aporte — ${titulo}`,
+            kind: 'despesa',
+            responsavel: currentPessoa(),
+            category: cat,
+            sub: 'Aporte programado',
+            dataInicio: hoje,
+            dataFim: data,
+            valorParcela: aporte,
+            parcelas: opts.prazoMeses,
+            entrada: 0,
+            diaVencimento: new Date().getDate(),
+            pay: 'transferencia',
+            notes: `Aporte gerado pela Simulação. Alvo: ${Utils.currency(alvo)} em ${opts.prazoMeses} meses.`,
+            active: true,
+          });
+        }
+        Modal.close();
+        toast(`${fazerMeta && fazerLanc ? 'Meta + aporte criados' : fazerMeta ? 'Meta criada' : 'Aporte programado'}`, 'success');
+      });
+    }
+
+    // ── VIAGEM ─────────────────────────────────────────────────────
+    function renderViagem() {
+      const hoje = new Date();
+      const futuro = new Date(hoje); futuro.setMonth(futuro.getMonth() + 12);
+      const dataAlvoDefault = futuro.toISOString().slice(0, 10);
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Planejar viagem</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group"><label class="form-label">Destino</label><input class="form-input" id="vDestino" placeholder="Ex.: Bariloche em julho" value="Próxima viagem"></div>
+      <div class="form-group"><label class="form-label">Custo total estimado (R$)</label><input class="form-input" id="vCusto" type="number" value="8000" step="100" min="100"></div>
+      <div class="form-group"><label class="form-label">Data alvo</label><input class="form-input" id="vData" type="date" value="${dataAlvoDefault}"></div>
+      <div class="form-group"><label class="form-label">Aplicação</label>
+        <select class="form-input" id="vTaxa">
+          <option value="cdi100">CDB 100% CDI</option>
+          <option value="cdi110">CDB 110% CDI (premium)</option>
+          <option value="cdi90">LCI/LCA 90% CDI (isento IR)</option>
+          <option value="selic">Tesouro Selic</option>
+          <option value="poup">Poupança</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcViagem">Calcular aporte mensal</button>
+  </div>
+  <div id="vResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Resultado</span></div>
+    <div id="vResultBody"></div>
+  </div>
+</div>`;
+      document.getElementById('btnCalcViagem').addEventListener('click', async () => {
+        const destino = document.getElementById('vDestino').value.trim() || 'Viagem';
+        const fv      = parseFloat(document.getElementById('vCusto').value) || 0;
+        const data    = document.getElementById('vData').value;
+        const opcao   = document.getElementById('vTaxa').value;
+        if (!fv || !data) return toast('Preencha custo e data', 'error');
+        const dAlvo = new Date(data);
+        const hojeD = new Date();
+        const meses = Math.max(1, Math.round((dAlvo - hojeD) / (30.44 * 24 * 3600 * 1000)));
+
+        const rates = await MarketRates.get();
+        const taxasAnuais = {
+          cdi100: rates.cdi,
+          cdi110: rates.cdi * 1.10,
+          cdi90:  rates.cdi * 0.90,
+          selic:  rates.selic,
+          poup:   rates.poupanca,
+        };
+        const taxaAnual = taxasAnuais[opcao];
+        const i = annualToMonthly(taxaAnual);
+        const pmt = pmtForFV(fv, i, meses);
+        // Projeção mês a mês
+        let acc = 0; const rows = [];
+        for (let m = 1; m <= meses; m++) {
+          acc = acc * (1 + i) + pmt;
+          rows.push({ m, aporte: pmt, acc });
+        }
+        const totalAportado = pmt * meses;
+        const rendimento = fv - totalAportado;
+
+        document.getElementById('vResult').style.display = '';
+        document.getElementById('vResultBody').innerHTML = `
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Aporte mensal</div><div class="kpi-value accent" style="font-size:22px">${Utils.currency(pmt)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Total aportado</div><div class="kpi-value" style="color:var(--teal);font-size:18px">${Utils.currency(totalAportado)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Rendimento</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(rendimento)}</div></div>
+  </div>
+</div>
+<div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
+  Em <strong>${meses} meses</strong> com <strong>${taxaAnual.toFixed(2)}% a.a.</strong> você acumula <strong>${Utils.currency(fv)}</strong>.
+</div>
+<button class="btn-primary" id="vSaveBtn" style="margin-bottom:16px">→ Converter em meta + aporte programado</button>
+<div class="table-wrap" style="max-height:260px;overflow-y:auto"><table class="data-table">
+  <thead><tr><th>Mês</th><th class="num">Aporte</th><th class="num">Saldo acumulado</th></tr></thead>
+  <tbody>${rows.filter((_,k) => k%Math.max(1, Math.floor(meses/12))===0 || k === meses-1).map(r => `<tr><td>${r.m}</td><td class="num">${Utils.currency(r.aporte)}</td><td class="num positive">${Utils.currency(r.acc)}</td></tr>`).join('')}</tbody>
+</table></div>`;
+        document.getElementById('vSaveBtn').addEventListener('click', () => {
+          _gerarMetaELancamento({
+            titulo: destino, valorAlvo: fv, prazoMeses: meses,
+            aporteMensal: pmt, taxaUsadaPct: taxaAnual.toFixed(2),
+          });
+        });
+      });
+    }
+
+    // ── RESERVA DE EMERGÊNCIA ──────────────────────────────────────
+    function renderReserva2() {
+      // Média de despesas dos últimos 6 meses
+      const hoje = new Date();
+      let totalDesp = 0, mesesContados = 0;
+      for (let k = 0; k < 6; k++) {
+        const d = new Date(hoje); d.setMonth(d.getMonth() - k);
+        const v = Store.sumDespesas(d.getMonth() + 1, d.getFullYear());
+        if (v > 0) { totalDesp += v; mesesContados++; }
+      }
+      const despMedia = mesesContados ? Math.round(totalDesp / mesesContados) : 5000;
+
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Reserva de emergência</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group"><label class="form-label">Despesa mensal média (R$)</label><input class="form-input" id="rDespMes" type="number" value="${despMedia}" step="100"><div style="font-size:11px;color:var(--text-3);margin-top:4px">${mesesContados ? `Calculado dos últimos ${mesesContados} meses` : 'Sem dados — informe um valor estimado'}</div></div>
+      <div class="form-group"><label class="form-label">Cobertura desejada</label>
+        <select class="form-input" id="rMulti"><option value="3">3 meses (mínimo)</option><option value="6" selected>6 meses (recomendado)</option><option value="12">12 meses (conservador)</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Aporte mensal disponível (R$)</label><input class="form-input" id="rAporte" type="number" value="500" step="50" min="10"></div>
+      <div class="form-group"><label class="form-label">Aplicação</label>
+        <select class="form-input" id="rTaxa">
+          <option value="cdi100" selected>CDB 100% CDI (liquidez diária)</option>
+          <option value="cdi90">LCI/LCA 90% CDI (carência 90d)</option>
+          <option value="selic">Tesouro Selic</option>
+          <option value="poup">Poupança</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcReserva">Calcular tempo até completar</button>
+  </div>
+  <div id="rResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Resultado</span></div>
+    <div id="rResultBody"></div>
+  </div>
+</div>`;
+      document.getElementById('btnCalcReserva').addEventListener('click', async () => {
+        const desp   = parseFloat(document.getElementById('rDespMes').value) || despMedia;
+        const multi  = parseInt(document.getElementById('rMulti').value) || 6;
+        const aporte = parseFloat(document.getElementById('rAporte').value) || 500;
+        const opcao  = document.getElementById('rTaxa').value;
+        const alvo   = desp * multi;
+
+        const rates = await MarketRates.get();
+        const taxasAnuais = { cdi100: rates.cdi, cdi90: rates.cdi*0.9, selic: rates.selic, poup: rates.poupanca };
+        const taxaAnual = taxasAnuais[opcao];
+        const i = annualToMonthly(taxaAnual);
+        const meses = nForFV(alvo, aporte, i);
+
+        // Projeção
+        let acc = 0; const rows = [];
+        for (let m = 1; m <= meses; m++) { acc = acc * (1 + i) + aporte; rows.push({ m, acc }); }
+
+        document.getElementById('rResult').style.display = '';
+        document.getElementById('rResultBody').innerHTML = `
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Valor alvo</div><div class="kpi-value accent" style="font-size:20px">${Utils.currency(alvo)}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Tempo para completar</div><div class="kpi-value" style="color:var(--teal);font-size:20px">${meses} meses</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Rendimento total</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(alvo - aporte*meses)}</div></div>
+  </div>
+</div>
+<div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
+  Aportando <strong>${Utils.currency(aporte)}/mês</strong> a <strong>${taxaAnual.toFixed(2)}% a.a.</strong>, você cobre <strong>${multi} meses</strong> de despesa em <strong>~${meses} meses</strong>.
+</div>
+<button class="btn-primary" id="rSaveBtn" style="margin-bottom:16px">→ Converter em meta + aporte programado</button>
+<div class="table-wrap" style="max-height:260px;overflow-y:auto"><table class="data-table">
+  <thead><tr><th>Mês</th><th class="num">Saldo acumulado</th></tr></thead>
+  <tbody>${rows.filter((_,k) => k%Math.max(1, Math.floor(meses/12))===0 || k === meses-1).map(r => `<tr><td>${r.m}</td><td class="num positive">${Utils.currency(r.acc)}</td></tr>`).join('')}</tbody>
+</table></div>`;
+        document.getElementById('rSaveBtn').addEventListener('click', () => {
+          _gerarMetaELancamento({
+            titulo: `Reserva de emergência (${multi} meses)`,
+            valorAlvo: alvo, prazoMeses: meses, aporteMensal: aporte,
+            taxaUsadaPct: taxaAnual.toFixed(2),
+          });
+        });
+      });
+    }
+
+    const renders = { viagem: renderViagem, reserva: renderReserva2, juros: renderJuros, amortizacao: renderAmortizacao, fire: renderFIRE, meta: renderMetaSim };
+    renderViagem();
 
     container.querySelector('#simTabs').addEventListener('click', e => {
       const btn = e.target.closest('[data-sim]');
