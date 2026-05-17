@@ -4506,6 +4506,7 @@ ${topCats.length ? `
 <div class="tabs mb-6" id="simTabs">
   <button class="tab active" data-sim="viagem">Viagem</button>
   <button class="tab" data-sim="reserva">Reserva Emergência</button>
+  <button class="tab" data-sim="compra">Compra: à vista vs parcelado</button>
   <button class="tab" data-sim="juros">Juros Compostos</button>
   <button class="tab" data-sim="amortizacao">Amortização SAC</button>
   <button class="tab" data-sim="fire">FIRE / Independência</button>
@@ -5109,7 +5110,152 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
       });
     }
 
-    const renders = { viagem: renderViagem, reserva: renderReserva2, juros: renderJuros, amortizacao: renderAmortizacao, fire: renderFIRE, meta: renderMetaSim };
+    // ── COMPRA: à vista vs parcelado ───────────────────────────────
+    function renderCompra() {
+      document.getElementById('simContent').innerHTML = `
+<div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Comparar opções</span></div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group"><label class="form-label">O que você vai comprar?</label><input class="form-input" id="cDesc" placeholder="Ex.: Geladeira nova" value="Compra"></div>
+      <div class="form-group"><label class="form-label">Preço à vista (R$)</label><input class="form-input" id="cVista" type="number" value="5000" step="100" min="1"></div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label class="form-label">Valor da parcela (R$)</label><input class="form-input" id="cParc" type="number" value="500" step="10" min="1"></div>
+        <div class="form-group"><label class="form-label">Nº de parcelas</label><input class="form-input" id="cQtd" type="number" value="12" min="1" max="60"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Taxa de oportunidade (a.a.)</label>
+        <select class="form-input" id="cTaxa">
+          <option value="cdi100">CDB 100% CDI</option>
+          <option value="cdi90">LCI/LCA 90% CDI (isento IR)</option>
+          <option value="selic">Tesouro Selic</option>
+          <option value="poup">Poupança</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">Onde você renderia o dinheiro se pagar à vista</div>
+      </div>
+    </div>
+    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcCompra">Comparar</button>
+  </div>
+  <div id="cResult" class="card" style="display:none">
+    <div class="card-header"><span class="card-title">Recomendação</span></div>
+    <div id="cResultBody"></div>
+  </div>
+</div>`;
+
+      document.getElementById('btnCalcCompra').addEventListener('click', async () => {
+        const desc  = document.getElementById('cDesc').value.trim() || 'Compra';
+        const vista = parseFloat(document.getElementById('cVista').value) || 0;
+        const pmt   = parseFloat(document.getElementById('cParc').value) || 0;
+        const n     = parseInt(document.getElementById('cQtd').value) || 0;
+        const opcao = document.getElementById('cTaxa').value;
+        if (!vista || !pmt || !n) return toast('Preencha preço à vista, parcela e nº', 'error');
+
+        const rates = await MarketRates.get();
+        const taxasAnuais = { cdi100: rates.cdi, cdi90: rates.cdi*0.9, selic: rates.selic, poup: rates.poupanca };
+        const taxaAnual = taxasAnuais[opcao];
+        const i = annualToMonthly(taxaAnual);
+
+        // Total nominal pago no parcelado
+        const totalNominal = pmt * n;
+        // Juro implícito no parcelado: encontrar j tal que vista = PMT * (1-(1+j)^-n)/j
+        // Resolvemos por bissecção.
+        function pvParcelado(j) {
+          if (j === 0) return pmt * n;
+          return pmt * (1 - Math.pow(1 + j, -n)) / j;
+        }
+        let lo = 0, hi = 1, mid = 0;
+        for (let k = 0; k < 60; k++) {
+          mid = (lo + hi) / 2;
+          if (pvParcelado(mid) > vista) lo = mid; else hi = mid;
+        }
+        const jMensal = mid;
+        const jAnual = (Math.pow(1 + jMensal, 12) - 1) * 100;
+
+        // Valor presente das parcelas descontado pela taxa de oportunidade
+        const vp = pvParcelado(i);
+        const diff = vp - vista; // positivo = parcelado custa mais em VP
+        const vistaMelhor = diff > 0;
+
+        // Quanto rende se aplicar a diferença mês a mês (cenário "à vista + aplicar o que sobrou")
+        // Cenário alternativo: paga à vista hoje; nos próximos n meses, em vez de parcela, aplica o pmt
+        // Após n meses, terá: pmt * ((1+i)^n - 1)/i (rendimento futuro)
+        const fvAplicacao = pmt * (Math.pow(1 + i, n) - 1) / i;
+
+        document.getElementById('cResult').style.display = '';
+        const corVista = vistaMelhor ? 'var(--green)' : 'var(--red)';
+        const corParc  = vistaMelhor ? 'var(--red)'  : 'var(--green)';
+
+        document.getElementById('cResultBody').innerHTML = `
+<div class="alert-strip ${vistaMelhor ? 'success' : 'warning'} mb-4">
+  <span class="alert-icon">${vistaMelhor ? Utils.icon.check : Utils.icon.warn}</span>
+  <div class="alert-text">
+    <div class="alert-title">${vistaMelhor ? 'À vista é melhor' : 'Parcelado pode valer a pena'}</div>
+    <div class="alert-sub">${vistaMelhor
+      ? `Valor presente do parcelado é <strong>${Utils.currency(Math.abs(diff))}</strong> maior que à vista.`
+      : `Valor presente do parcelado é <strong>${Utils.currency(Math.abs(diff))}</strong> menor — o dinheiro à vista vale mais aplicado.`}</div>
+  </div>
+</div>
+
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+  <div class="kpi-card" style="--kpi-color:${corVista};--kpi-bg:var(--green-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">À vista (hoje)</div><div class="kpi-value" style="color:${corVista};font-size:20px">${Utils.currency(vista)}</div><div class="kpi-sub">Pago de uma vez</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:${corParc};--kpi-bg:var(--red-dim);padding:14px">
+    <div class="kpi-body"><div class="kpi-label">Parcelado (total)</div><div class="kpi-value" style="color:${corParc};font-size:20px">${Utils.currency(totalNominal)}</div><div class="kpi-sub">${n}× de ${Utils.currency(pmt)}</div></div>
+  </div>
+</div>
+
+<div style="background:var(--bg-elevated);border-radius:8px;padding:14px;margin-bottom:14px">
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">Decomposição</div>
+  <div style="display:grid;gap:6px;font-size:13px">
+    <div style="display:flex;justify-content:space-between"><span>Juros implícitos do parcelamento</span><strong>${jAnual.toFixed(2)}% a.a.</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>Sua taxa de oportunidade</span><strong>${taxaAnual.toFixed(2)}% a.a.</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>Valor presente do parcelado</span><strong>${Utils.currency(vp)}</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>Se pagar à vista e aplicar ${Utils.currency(pmt)}/mês por ${n}m</span><strong>${Utils.currency(fvAplicacao)} em ${n} meses</strong></div>
+  </div>
+</div>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+  ${vistaMelhor
+    ? `<button class="btn-primary" id="cSaveMeta">→ Criar meta "Juntar ${Utils.currency(vista)} para ${desc}"</button>`
+    : `<button class="btn-primary" id="cSaveContrato">→ Criar contrato com as ${n} parcelas</button>`}
+</div>`;
+
+        const btnMeta = document.getElementById('cSaveMeta');
+        if (btnMeta) btnMeta.addEventListener('click', () => {
+          // Sugere prazo de ~6 meses como default; usuário ajusta no modal
+          const sugerido = pmtForFV(vista, i, 6);
+          _gerarMetaELancamento({
+            titulo: `Juntar para ${desc}`,
+            valorAlvo: vista, prazoMeses: 6, aporteMensal: sugerido,
+            taxaUsadaPct: taxaAnual.toFixed(2),
+          });
+        });
+        const btnCont = document.getElementById('cSaveContrato');
+        if (btnCont) btnCont.addEventListener('click', () => {
+          const hoje = new Date().toISOString().slice(0, 10);
+          const fim = (() => { const d = new Date(); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); })();
+          Store.addContrato({
+            label: desc,
+            kind: 'despesa',
+            responsavel: currentPessoa(),
+            category: 'financeiro',
+            sub: 'Compra parcelada',
+            dataInicio: hoje,
+            dataFim: fim,
+            valorParcela: pmt,
+            parcelas: n,
+            entrada: 0,
+            diaVencimento: new Date().getDate(),
+            pay: 'cartao',
+            notes: `Contrato gerado pela Simulação de Compra. Total nominal: ${Utils.currency(totalNominal)}.`,
+            active: true,
+          });
+          toast(`Contrato de ${n}× ${Utils.currency(pmt)} criado`, 'success');
+        });
+      });
+    }
+
+    const renders = { viagem: renderViagem, reserva: renderReserva2, compra: renderCompra, juros: renderJuros, amortizacao: renderAmortizacao, fire: renderFIRE, meta: renderMetaSim };
     renderViagem();
 
     container.querySelector('#simTabs').addEventListener('click', e => {
