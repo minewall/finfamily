@@ -4250,6 +4250,11 @@ ${topCats.length ? `
         ],
       }, { height: 165 });
 
+      // ── Reembolsos embedded no Meu Painel ─────────────────────────
+      const reembWrap = document.createElement('div');
+      container.appendChild(reembWrap);
+      renderReembolsos(reembWrap, 'embedded');
+
       let saldoAcc2 = 0;
       Charts.Line(document.getElementById('chartMeuSaldo'), {
         labels: Utils.months,
@@ -6231,12 +6236,13 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   // ══════════════════════════════════════════════════════════════
   // PAGE: REEMBOLSOS
   // ══════════════════════════════════════════════════════════════
-  function renderReembolsos(container) {
+  function renderReembolsos(container, mode = 'standalone') {
     const pendentes = Store.getReembolsosPendentes();
     const todos = Store.get().despesas.filter(d => d.reembolso);
     const pagos = todos.filter(d => d.reembolso.status === 'pago');
 
     const totalPendente = pendentes.reduce((s,d) => s + (d.reembolso.valor || d.amount), 0);
+    const embedded = mode === 'embedded';
 
     function rowHTML(d, isPendente) {
       const r = d.reembolso;
@@ -6262,9 +6268,9 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     }
 
     container.innerHTML = `
-      <div class="page-header">
-        <h1 class="page-title">Reembolsos</h1>
-      </div>
+      ${embedded
+        ? `<div class="section-header mb-4" style="margin-top:32px"><div><div class="section-title">Reembolsos</div><div class="section-sub">Despesas que estão sendo reembolsadas por outra pessoa</div></div></div>`
+        : `<div class="page-header"><h1 class="page-title">Reembolsos</h1></div>`}
       ${pendentes.length > 0 ? `
       <div class="kpi-grid" style="margin-bottom:20px">
         <div class="card kpi-card">
@@ -6311,7 +6317,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       btn.addEventListener('click', () => {
         Store.marcarReembolsoPago(btn.dataset.markPaid);
         updateReembolsosBadge();
-        renderReembolsos(container);
+        renderReembolsos(container, mode);
         toast('Reembolso marcado como pago!', 'success');
       });
     });
