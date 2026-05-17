@@ -6963,7 +6963,7 @@ ${isConnected && isAdmin ? `
 <div class="section-header mb-4" style="margin-top:32px">
   <div>
     <div class="section-title">Acesso na Nuvem</div>
-    <div class="section-sub">Convide membros da família para acessar o FinFamily</div>
+    <div class="section-sub">Convide membros da família para acessar o Haile</div>
   </div>
 </div>
 <div class="card" style="padding:16px 20px;margin-bottom:12px">
@@ -7130,7 +7130,7 @@ ${isConnected && isAdmin ? `
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `finfamily-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `haile-backup-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast('Backup exportado', 'success');
@@ -7359,7 +7359,7 @@ ${isConnected && isAdmin ? `
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
     <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px">📊</div>
     <div>
-      <div style="font-size:18px;font-weight:800">FinFamily</div>
+      <div style="font-size:18px;font-weight:800">Haile</div>
       <div style="font-size:12px;color:var(--text-3)">v1.2.0 · Gestão financeira familiar</div>
     </div>
   </div>
@@ -7458,18 +7458,18 @@ ${isConnected && isAdmin ? `
           if (syncDot)   syncDot.style.background = 'var(--green)';
           if (syncLabel) syncLabel.textContent = ctx?.role && ctx.role !== 'admin'
             ? `Conectado (${ctx.role})` : 'Sincronizado';
-          console.log('FinFamily: nuvem ganhou (cloud', new Date(cloudTs).toISOString(), ')');
+          console.log('Haile: nuvem ganhou (cloud', new Date(cloudTs).toISOString(), ')');
         } else if (cloudData && cloudData.despesas && localTs > cloudTs) {
           // Local mais recente → local ganha, push para sincronizar
           if (!ctx || ctx.role !== 'member') SupabaseSync.schedulePush(Store.get());
           if (syncDot)   syncDot.style.background = 'var(--amber)';
           if (syncLabel) syncLabel.textContent = 'Sincronizando…';
-          console.log('FinFamily: local ganhou (local', new Date(localTs).toISOString(),
+          console.log('Haile: local ganhou (local', new Date(localTs).toISOString(),
             '> cloud', new Date(cloudTs).toISOString(), ')');
         } else {
           // Sem dados na nuvem → push local
           if (!ctx || ctx.role === 'admin') SupabaseSync.schedulePush(Store.get());
-          console.log('FinFamily: nuvem vazia, enviando dados locais');
+          console.log('Haile: nuvem vazia, enviando dados locais');
         }
 
         // Apply member-role restrictions after data is settled
@@ -7896,7 +7896,7 @@ ${isConnected && isAdmin ? `
         recFut.slice(0, 6).map(f => `  - ${f.descricao}: R$ ${(f.valor||0).toFixed(2)} previsto ${Utils.monthsFull[(f.mes||1)-1]} ${f.ano}`).join('\n');
       const totalRecFut = recFut.reduce((s,f) => s + (f.valor||0), 0);
 
-      return `Você é o AI Coach financeiro do FinFamily, um assistente especializado em finanças pessoais e familiares. Você tem acesso ao contexto financeiro completo do usuário abaixo.
+      return `Você é o AI Coach financeiro do Haile, um assistente especializado em finanças pessoais e familiares. Você tem acesso ao contexto financeiro completo do usuário abaixo.
 
 USUÁRIO LOGADO: ${userName}
 PESSOAS DA FAMÍLIA: ${pessoasStr}
