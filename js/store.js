@@ -1002,8 +1002,9 @@ const Store = (function () {
     const fromReserva = (_data.reservas || []).reduce((sum, r) => {
       return sum + (r.valorAtual || r.valorInvestido || 0);
     }, 0);
-    const fromVeiculos = (_data.veiculos || []).reduce((sum, v) => sum + (v.valorAtual || 0), 0);
-    return fromAtivos + fromReserva + fromVeiculos;
+    const fromVeiculos = (_data.veiculos || []).reduce((sum, v) => sum + veiculoValorEstimado(v), 0);
+    const fromImoveis  = (_data.imoveis  || []).reduce((sum, im) => sum + imovelValorEstimado(im), 0);
+    return fromAtivos + fromReserva + fromVeiculos + fromImoveis;
   }
 
   // ── VEÍCULOS ────────────────────────────────────────────────────
@@ -1045,6 +1046,60 @@ const Store = (function () {
   }
   function totalVeiculos() {
     return (_data.veiculos || []).reduce((s, v) => s + veiculoValorEstimado(v), 0);
+  }
+
+  // ── IMÓVEIS ─────────────────────────────────────────────────────
+  function _ensureImoveis() {
+    if (!_data.imoveis) { _data.imoveis = []; }
+  }
+  function getImoveis() { _ensureImoveis(); return _data.imoveis; }
+  function addImovel(im) {
+    _ensureImoveis();
+    const novo = { id: 'im' + Date.now(), createdAt: new Date().toISOString(), ...im };
+    _data.imoveis.push(novo);
+    persist();
+    return novo;
+  }
+  function updateImovel(id, patch) {
+    _ensureImoveis();
+    const im = _data.imoveis.find(x => x.id === id);
+    if (!im) return null;
+    Object.assign(im, patch);
+    persist();
+    return im;
+  }
+  function deleteImovel(id) {
+    _ensureImoveis();
+    _data.imoveis = _data.imoveis.filter(x => x.id !== id);
+    persist();
+  }
+  // Aplica valorização anual sobre o tempo decorrido se valorAtual não foi setado manualmente
+  function imovelValorEstimado(im) {
+    if (!im.valorCompra || !im.dataCompra) return im.valorAtual || 0;
+    if (im.valorAtual) return im.valorAtual;
+    const meses = Math.max(0, (Date.now() - new Date(im.dataCompra).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+    const taxa = (im.valorizacaoAnualPct || 0) / 100; // default 0% (conservador)
+    return im.valorCompra * Math.pow(1 + taxa, meses / 12);
+  }
+  function imovelEquity(im) {
+    return imovelValorEstimado(im) - (im.saldoDevedor || 0);
+  }
+  function imovelCustoAnual(im) {
+    return (im.iptuAnual || 0)
+      + ((im.condominioMensal || 0) * 12)
+      + ((im.manutencaoMensal || 0) * 12)
+      + ((im.parcelaFinanciamento || 0) * 12);
+  }
+  function imovelReceitaAnual(im) {
+    return (im.aluguelMensal || 0) * 12;
+  }
+  function imovelRentabilidadeAluguel(im) {
+    const val = imovelValorEstimado(im);
+    if (!val || !im.aluguelMensal) return 0;
+    return (im.aluguelMensal * 12) / val;
+  }
+  function totalImoveis() {
+    return (_data.imoveis || []).reduce((s, im) => s + imovelValorEstimado(im), 0);
   }
 
   // ── CONTRATOS ──────────────────────────────────────────────────
@@ -1685,6 +1740,7 @@ const Store = (function () {
     addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
     getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, totalVeiculos,
+    getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
     updateSettings,
     receitasByMonth, despesasByMonth,
     sumReceitas, sumDespesas,

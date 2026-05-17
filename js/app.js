@@ -3199,6 +3199,82 @@ ${ativos.length > 0 ? `
   <button class="btn-xs" id="btnAddAtivo" style="margin-left:12px">+ Ativo</button>
 </div>`}
 
+<!-- Imóveis -->
+${(() => {
+  const imoveis = Store.getImoveis();
+  return `
+<div class="section-header mb-4" style="margin-top:32px">
+  <div><div class="section-title">Imóveis</div><div class="section-sub">Casa, apartamento, sala — equity, rentabilidade e custos recorrentes</div></div>
+  <button class="btn-primary" id="btnAddImovel">+ Novo Imóvel</button>
+</div>
+${imoveis.length === 0
+  ? `<div class="card mb-6" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum imóvel cadastrado.</div>`
+  : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;margin-bottom:24px">
+  ${imoveis.map(im => {
+    const valEst = Store.imovelValorEstimado(im);
+    const valoriz = valEst - (im.valorCompra || 0);
+    const valorizPct = im.valorCompra > 0 ? (valoriz / im.valorCompra) * 100 : 0;
+    const equity = Store.imovelEquity(im);
+    const custoAnual = Store.imovelCustoAnual(im);
+    const receitaAnual = Store.imovelReceitaAnual(im);
+    const rentab = Store.imovelRentabilidadeAluguel(im);
+    const fluxoMensal = (im.aluguelMensal || 0) - (im.condominioMensal || 0) - (im.manutencaoMensal || 0) - (im.parcelaFinanciamento || 0) - ((im.iptuAnual || 0) / 12);
+    const tipoLabel = { casa: 'Casa', apartamento: 'Apartamento', sala: 'Sala comercial', terreno: 'Terreno', outro: 'Outro' };
+    return `
+  <div class="card" style="border-top:3px solid var(--teal);position:relative">
+    <button class="btn-ghost" style="position:absolute;top:10px;right:10px;font-size:11px;color:var(--text-4)" data-del-imovel="${im.id}" title="Remover">✕</button>
+    <button class="btn-ghost" style="position:absolute;top:10px;right:36px;font-size:11px;color:var(--text-4)" data-edit-imovel="${im.id}" title="Editar">✏</button>
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${tipoLabel[im.tipo] || 'Imóvel'}${im.alugado ? ' · Alugado' : ''}${im.financiado ? ' · Financiado' : ''}</div>
+    <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${im.apelido || im.endereco || 'Imóvel'}</div>
+    ${im.endereco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${im.endereco}</div>` : '<div style="margin-bottom:10px"></div>'}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:12px">
+      <div><div style="color:var(--text-4)">Valor compra</div><div style="font-weight:600">${Utils.currency(im.valorCompra||0)}</div></div>
+      <div><div style="color:var(--text-4)">Valor atual</div><div style="font-weight:700;color:var(--teal);font-family:var(--mono)">${Utils.currency(valEst)}</div></div>
+    </div>
+    ${valoriz !== 0 ? `<div style="font-size:11px;color:${valoriz>=0?'var(--green)':'var(--red)'};margin-bottom:8px">${valoriz>=0?'▲':'▼'} ${Utils.currency(Math.abs(valoriz))} (${valorizPct.toFixed(1)}%) ${valoriz>=0?'de valorização':'de desvalorização'}</div>` : ''}
+
+    ${im.financiado ? `
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
+      <div style="font-size:11px;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px">Financiamento</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div><div style="color:var(--text-4)">Saldo devedor</div><div style="font-weight:600;color:var(--red)">${Utils.currency(im.saldoDevedor||0)}</div></div>
+        <div><div style="color:var(--text-4)">Equity</div><div style="font-weight:700;color:var(--green);font-family:var(--mono)">${Utils.currency(equity)}</div></div>
+        <div style="grid-column:1/-1"><div style="color:var(--text-4)">Parcela mensal</div><div style="font-weight:600">${Utils.currency(im.parcelaFinanciamento||0)}</div></div>
+      </div>
+    </div>` : ''}
+
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
+      <div style="font-size:11px;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px">Custos recorrentes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div><div style="color:var(--text-4)">IPTU/ano</div><div style="font-weight:600">${Utils.currency(im.iptuAnual||0)}</div></div>
+        <div><div style="color:var(--text-4)">Condomínio/mês</div><div style="font-weight:600">${Utils.currency(im.condominioMensal||0)}</div></div>
+        <div><div style="color:var(--text-4)">Manutenção/mês</div><div style="font-weight:600">${Utils.currency(im.manutencaoMensal||0)}</div></div>
+        <div><div style="color:var(--text-4)">Custo total/ano</div><div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(custoAnual)}</div></div>
+      </div>
+    </div>
+
+    ${im.alugado ? `
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
+      <div style="font-size:11px;color:var(--text-4);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px">Aluguel</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div><div style="color:var(--text-4)">Aluguel/mês</div><div style="font-weight:600;color:var(--green)">${Utils.currency(im.aluguelMensal||0)}</div></div>
+        <div><div style="color:var(--text-4)">Rentab./ano</div><div style="font-weight:700;color:var(--green);font-family:var(--mono)">${(rentab*100).toFixed(2)}%</div></div>
+        <div style="grid-column:1/-1"><div style="color:var(--text-4)">Fluxo mensal líquido</div><div style="font-weight:700;color:${fluxoMensal>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${fluxoMensal>=0?'+':''}${Utils.currency(fluxoMensal)}</div></div>
+      </div>
+    </div>` : ''}
+
+    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+      ${im.iptuAnual > 0 ? `<button class="btn-xs" data-prog-iptu="${im.id}">Programar IPTU</button>` : ''}
+      ${im.condominioMensal > 0 ? `<button class="btn-xs" data-prog-cond="${im.id}">Programar Condomínio</button>` : ''}
+      ${im.financiado && im.parcelaFinanciamento > 0 ? `<button class="btn-xs" data-prog-fin="${im.id}">Programar Parcela</button>` : ''}
+      ${im.alugado && im.aluguelMensal > 0 ? `<button class="btn-xs btn-green" data-prog-alug="${im.id}">Programar Aluguel</button>` : ''}
+    </div>
+  </div>`;
+  }).join('')}
+</div>`}`;
+})()}
+
 <!-- Veículos -->
 ${(() => {
   const veiculos = Store.getVeiculos();
@@ -3424,34 +3500,31 @@ ${futuros.length === 0
     document.getElementById('btnAddPassivo')?.addEventListener('click', () => openPassivoModal(null, re));
     document.getElementById('btnAddAtivo')?.addEventListener('click', () => openAtivoModal(null, re));
     document.getElementById('btnAddVeiculo')?.addEventListener('click', () => openVeiculoModal(null, re));
+    document.getElementById('btnAddImovel')?.addEventListener('click', () => openImovelModal(null, re));
 
-    // Veículos: editar / remover / programar IPVA-Seguro (delegação)
+    // Veículos + Imóveis: delegação para editar/remover/programar
     container.addEventListener('click', e => {
-      const editBtn = e.target.closest('[data-edit-veiculo]');
-      if (editBtn) {
-        const v = Store.getVeiculos().find(x => x.id === editBtn.dataset.editVeiculo);
-        if (v) openVeiculoModal(v, re);
-        return;
-      }
-      const delBtn = e.target.closest('[data-del-veiculo]');
-      if (delBtn) {
-        if (!confirm('Remover este veículo?')) return;
-        Store.deleteVeiculo(delBtn.dataset.delVeiculo);
-        re(); toast('Veículo removido', 'success');
-        return;
-      }
-      const ipvaBtn = e.target.closest('[data-prog-ipva]');
-      if (ipvaBtn) {
-        const v = Store.getVeiculos().find(x => x.id === ipvaBtn.dataset.progIpva);
-        if (v) _programarCustoVeiculo(v, 'ipva', re);
-        return;
-      }
-      const segBtn = e.target.closest('[data-prog-seguro]');
-      if (segBtn) {
-        const v = Store.getVeiculos().find(x => x.id === segBtn.dataset.progSeguro);
-        if (v) _programarCustoVeiculo(v, 'seguro', re);
-        return;
-      }
+      const editV = e.target.closest('[data-edit-veiculo]');
+      if (editV) { const v = Store.getVeiculos().find(x => x.id === editV.dataset.editVeiculo); if (v) openVeiculoModal(v, re); return; }
+      const delV = e.target.closest('[data-del-veiculo]');
+      if (delV) { if (!confirm('Remover este veículo?')) return; Store.deleteVeiculo(delV.dataset.delVeiculo); re(); toast('Veículo removido', 'success'); return; }
+      const ipva = e.target.closest('[data-prog-ipva]');
+      if (ipva) { const v = Store.getVeiculos().find(x => x.id === ipva.dataset.progIpva); if (v) _programarCustoVeiculo(v, 'ipva', re); return; }
+      const seg = e.target.closest('[data-prog-seguro]');
+      if (seg) { const v = Store.getVeiculos().find(x => x.id === seg.dataset.progSeguro); if (v) _programarCustoVeiculo(v, 'seguro', re); return; }
+
+      const editI = e.target.closest('[data-edit-imovel]');
+      if (editI) { const im = Store.getImoveis().find(x => x.id === editI.dataset.editImovel); if (im) openImovelModal(im, re); return; }
+      const delI = e.target.closest('[data-del-imovel]');
+      if (delI) { if (!confirm('Remover este imóvel?')) return; Store.deleteImovel(delI.dataset.delImovel); re(); toast('Imóvel removido', 'success'); return; }
+      const iptu = e.target.closest('[data-prog-iptu]');
+      if (iptu) { const im = Store.getImoveis().find(x => x.id === iptu.dataset.progIptu); if (im) _programarCustoImovel(im, 'iptu', re); return; }
+      const cond = e.target.closest('[data-prog-cond]');
+      if (cond) { const im = Store.getImoveis().find(x => x.id === cond.dataset.progCond); if (im) _programarCustoImovel(im, 'condominio', re); return; }
+      const fin  = e.target.closest('[data-prog-fin]');
+      if (fin)  { const im = Store.getImoveis().find(x => x.id === fin.dataset.progFin); if (im) _programarCustoImovel(im, 'financiamento', re); return; }
+      const alug = e.target.closest('[data-prog-alug]');
+      if (alug) { const im = Store.getImoveis().find(x => x.id === alug.dataset.progAlug); if (im) _programarCustoImovel(im, 'aluguel', re); return; }
     });
     document.getElementById('btnEditRates')?.addEventListener('click', () => {
       const html = `<div class="form-grid">
@@ -3807,6 +3880,118 @@ ${futuros.length === 0
       });
       Modal.close();
       toast(`${tipo.toUpperCase()} programado por ${anos} anos`, 'success');
+      if (onDone) onDone();
+    });
+  }
+
+  function openImovelModal(imovel, onSaved) {
+    const isEdit = !!imovel;
+    const im = imovel || {};
+    const hoje = new Date().toISOString().slice(0, 10);
+    const TIPOS = [['casa','Casa'],['apartamento','Apartamento'],['sala','Sala comercial'],['terreno','Terreno'],['outro','Outro']];
+    const html = `
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Tipo</label>
+    <select class="form-select" id="fIMTipo">${TIPOS.map(([v,l])=>`<option value="${v}"${im.tipo===v?' selected':''}>${l}</option>`).join('')}</select>
+  </div>
+  <div class="form-group"><label class="form-label">Apelido</label><input class="form-input" id="fIMApelido" placeholder="Ex.: Casa da família" value="${im.apelido||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="fIMEnd" placeholder="Rua, número, cidade" value="${im.endereco||''}"></div>
+  <div class="form-group"><label class="form-label">Valor de compra (R$)</label><input class="form-input" id="fIMValor" type="number" step="1000" value="${im.valorCompra||''}"></div>
+  <div class="form-group"><label class="form-label">Data da compra</label><input class="form-input" id="fIMData" type="date" value="${im.dataCompra||hoje}"></div>
+  <div class="form-group"><label class="form-label">Valor atual (R$) — opcional</label><input class="form-input" id="fIMValorAtual" type="number" step="1000" value="${im.valorAtual||''}" placeholder="Calcula auto se vazio"></div>
+  <div class="form-group"><label class="form-label">Valorização anual (%)</label><input class="form-input" id="fIMValoriz" type="number" step="0.5" value="${im.valorizacaoAnualPct||0}" min="-10" max="20"></div>
+
+  <div class="form-group form-full">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-1);cursor:pointer;margin-bottom:6px">
+      <input type="checkbox" id="fIMFinanciado" ${im.financiado?'checked':''}> Imóvel financiado
+    </label>
+  </div>
+  <div class="form-group"><label class="form-label">Saldo devedor (R$)</label><input class="form-input" id="fIMSaldo" type="number" step="1000" value="${im.saldoDevedor||''}"></div>
+  <div class="form-group"><label class="form-label">Parcela do financiamento (R$/mês)</label><input class="form-input" id="fIMParc" type="number" step="50" value="${im.parcelaFinanciamento||''}"></div>
+
+  <div class="form-group"><label class="form-label">IPTU anual (R$)</label><input class="form-input" id="fIMIPTU" type="number" step="50" value="${im.iptuAnual||''}"></div>
+  <div class="form-group"><label class="form-label">Condomínio mensal (R$)</label><input class="form-input" id="fIMCond" type="number" step="10" value="${im.condominioMensal||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Manutenção mensal estimada (R$)</label><input class="form-input" id="fIMManut" type="number" step="10" value="${im.manutencaoMensal||''}"></div>
+
+  <div class="form-group form-full">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-1);cursor:pointer;margin-bottom:6px">
+      <input type="checkbox" id="fIMAlugado" ${im.alugado?'checked':''}> Imóvel alugado (recebo aluguel)
+    </label>
+  </div>
+  <div class="form-group form-full"><label class="form-label">Aluguel mensal recebido (R$)</label><input class="form-input" id="fIMAluguel" type="number" step="50" value="${im.aluguelMensal||''}"></div>
+
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fIMNotes" value="${im.notes||''}"></div>
+</div>`;
+    Modal.open(isEdit ? 'Editar Imóvel' : 'Novo Imóvel', html, () => {
+      const data = {
+        tipo:                 document.getElementById('fIMTipo').value,
+        apelido:              document.getElementById('fIMApelido').value.trim(),
+        endereco:             document.getElementById('fIMEnd').value.trim(),
+        valorCompra:          parseFloat(document.getElementById('fIMValor').value) || 0,
+        dataCompra:           document.getElementById('fIMData').value,
+        valorAtual:           parseFloat(document.getElementById('fIMValorAtual').value) || 0,
+        valorizacaoAnualPct:  parseFloat(document.getElementById('fIMValoriz').value) || 0,
+        financiado:           document.getElementById('fIMFinanciado').checked,
+        saldoDevedor:         parseFloat(document.getElementById('fIMSaldo').value) || 0,
+        parcelaFinanciamento: parseFloat(document.getElementById('fIMParc').value) || 0,
+        iptuAnual:            parseFloat(document.getElementById('fIMIPTU').value) || 0,
+        condominioMensal:     parseFloat(document.getElementById('fIMCond').value) || 0,
+        manutencaoMensal:     parseFloat(document.getElementById('fIMManut').value) || 0,
+        alugado:              document.getElementById('fIMAlugado').checked,
+        aluguelMensal:        parseFloat(document.getElementById('fIMAluguel').value) || 0,
+        notes:                document.getElementById('fIMNotes').value.trim(),
+      };
+      if (!data.apelido && !data.endereco) return toast('Informe um apelido ou endereço', 'error');
+      if (!data.valorCompra) return toast('Informe o valor de compra', 'error');
+      if (isEdit) { Store.updateImovel(imovel.id, data); toast('Imóvel atualizado', 'success'); }
+      else        { Store.addImovel(data);               toast('Imóvel cadastrado', 'success'); }
+      Modal.close();
+      if (onSaved) onSaved();
+    });
+  }
+
+  function _programarCustoImovel(im, tipo, onDone) {
+    const cfg = {
+      iptu:          { valor: im.iptuAnual,            label: `IPTU ${im.apelido||im.endereco||'imóvel'}`,        kind: 'despesa', cat: 'moradia', sub: 'IPTU',          period: 'anual',  defaultAnos: 5 },
+      condominio:    { valor: im.condominioMensal,     label: `Condomínio ${im.apelido||im.endereco||'imóvel'}`,  kind: 'despesa', cat: 'moradia', sub: 'Condomínio',    period: 'mensal', defaultAnos: 2 },
+      financiamento: { valor: im.parcelaFinanciamento, label: `Parcela financ. ${im.apelido||im.endereco||''}`,   kind: 'despesa', cat: 'moradia', sub: 'Financiamento', period: 'mensal', defaultAnos: 30 },
+      aluguel:       { valor: im.aluguelMensal,        label: `Aluguel ${im.apelido||im.endereco||'imóvel'}`,     kind: 'receita', cat: 'receita', sub: 'Aluguel',       period: 'mensal', defaultAnos: 2 },
+    }[tipo];
+    if (!cfg || !cfg.valor) return toast('Cadastre o valor primeiro no imóvel', 'error');
+
+    const hoje = new Date();
+    const labelPeriodo = cfg.period === 'anual' ? 'Ano' : 'Mês';
+    const html = `
+<div class="form-grid">
+  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPILabel" value="${cfg.label}"></div>
+  <div class="form-group"><label class="form-label">Valor (R$/${cfg.period==='anual'?'ano':'mês'})</label><input class="form-input" id="fPIValor" type="number" step="50" value="${cfg.valor}"></div>
+  ${cfg.period === 'anual'
+    ? `<div class="form-group"><label class="form-label">Mês de cobrança</label><select class="form-input" id="fPIMes">${Utils.monthsFull.map((m,i)=>`<option value="${i+1}"${i===hoje.getMonth()?' selected':''}>${m}</option>`).join('')}</select></div>`
+    : `<div class="form-group"><label class="form-label">Mês de início</label><select class="form-input" id="fPIMes">${Utils.monthsFull.map((m,i)=>`<option value="${i+1}"${i===hoje.getMonth()?' selected':''}>${m}</option>`).join('')}</select></div>`}
+  <div class="form-group"><label class="form-label">Dia</label><input class="form-input" id="fPIDia" type="number" min="1" max="28" value="${cfg.period==='anual'?10:5}"></div>
+  <div class="form-group"><label class="form-label">Repetir por (${cfg.period==='anual'?'anos':'meses'})</label><input class="form-input" id="fPIQtd" type="number" min="1" max="${cfg.period==='anual'?40:360}" value="${cfg.period==='anual'?cfg.defaultAnos:cfg.defaultAnos*12}"></div>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px">Será criado um contrato ${cfg.period} de ${cfg.kind} (categoria ${cfg.cat}).</div>`;
+    Modal.open(`Programar ${tipo} — ${im.apelido||im.endereco||'imóvel'}`, html, () => {
+      const lbl   = document.getElementById('fPILabel').value.trim() || cfg.label;
+      const val   = parseFloat(document.getElementById('fPIValor').value) || cfg.valor;
+      const mes   = parseInt(document.getElementById('fPIMes').value) || 1;
+      const dia   = parseInt(document.getElementById('fPIDia').value) || 5;
+      const qtd   = parseInt(document.getElementById('fPIQtd').value) || 1;
+      const ano   = hoje.getFullYear();
+      const ini   = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      Store.addContrato({
+        label: lbl, kind: cfg.kind, responsavel: currentPessoa(),
+        category: cfg.cat, sub: cfg.sub,
+        dataInicio: ini,
+        valorParcela: val, parcelas: qtd, entrada: 0,
+        diaVencimento: dia, pay: cfg.kind === 'receita' ? 'transferencia' : 'transferencia',
+        notes: `Gerado a partir do imóvel cadastrado.`,
+        active: true,
+        periodicidade: cfg.period,
+      });
+      Modal.close();
+      toast(`${cfg.label} programado`, 'success');
       if (onDone) onDone();
     });
   }
