@@ -3055,7 +3055,6 @@ ${mode === 'all' ? '<div class="section-label mb-3" style="font-size:11px;font-w
   </div>
   <div class="flex gap-2">
     <button class="btn-secondary" id="btnEditRates">✏️ Cotações</button>
-    <button class="btn-secondary" id="btnAddFuturo">+ Recebimento Futuro</button>
     <button class="btn-primary"   id="btnAddInv">+ Novo Investimento</button>
   </div>
 </div>
@@ -3422,29 +3421,7 @@ ${passivos.length === 0
 </div>`}`;
 })()}
 
-<!-- Recebimentos Futuros -->
-<div class="section-header mb-4"><div class="section-title">Recebimentos Futuros Previstos</div></div>
-${futuros.length === 0
-  ? `<div class="card" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum recebimento futuro cadastrado.</div>`
-  : `<div class="card">
-  ${futuros.map(f => {
-    const mes = `${MESES_LABEL[(f.mes||1)-1]} ${f.ano||''}`;
-    return `
-  <div class="stat-row">
-    <div>
-      <div class="stat-row-label">${f.descricao}</div>
-      <div style="font-size:11px;color:var(--text-4)">Previsto: ${mes}</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span style="font-weight:700;font-size:14px;color:${f.status==='recebido'?'var(--green)':'var(--text-1)'}">${Utils.currency(f.valor)}</span>
-      ${f.status!=='recebido'
-        ? `<button class="btn-xs btn-green" data-action="rec-recebido" data-id="${f.id}">✓</button>`
-        : `<span class="badge badge-green">Recebido</span>`}
-      <button class="btn-xs btn-red" data-action="del-futuro" data-id="${f.id}">✕</button>
-    </div>
-  </div>`;
-  }).join('')}
-</div>`}`;
+`;
 
     // ── Charts ────────────────────────────────────────────────────
     requestAnimationFrame(() => {
@@ -3497,7 +3474,6 @@ ${futuros.length === 0
     const re = () => renderReservaPatrimonio(container);
 
     document.getElementById('btnAddInv')?.addEventListener('click', () => openInvModal(null, re));
-    document.getElementById('btnAddFuturo')?.addEventListener('click', () => openFuturoModal2(re));
     document.getElementById('btnAddPassivo')?.addEventListener('click', () => openPassivoModal(null, re));
     document.getElementById('btnAddAtivo')?.addEventListener('click', () => openAtivoModal(null, re));
     document.getElementById('btnAddVeiculo')?.addEventListener('click', () => openVeiculoModal(null, re));
