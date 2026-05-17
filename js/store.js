@@ -1102,6 +1102,160 @@ const Store = (function () {
     return (_data.imoveis || []).reduce((s, im) => s + imovelValorEstimado(im), 0);
   }
 
+  // ── FINANCIAMENTOS ──────────────────────────────────────────────
+  function _ensureFinanciamentos() {
+    if (!_data.financiamentos) { _data.financiamentos = []; }
+  }
+  function getFinanciamentos() { _ensureFinanciamentos(); return _data.financiamentos; }
+  function addFinanciamento(f) {
+    _ensureFinanciamentos();
+    const novo = { id: 'fin' + Date.now(), createdAt: new Date().toISOString(), parcelasPagas: 0, ...f };
+    _data.financiamentos.push(novo);
+    persist();
+    return novo;
+  }
+  function updateFinanciamento(id, patch) {
+    _ensureFinanciamentos();
+    const f = _data.financiamentos.find(x => x.id === id);
+    if (!f) return null;
+    Object.assign(f, patch);
+    persist();
+    return f;
+  }
+  function deleteFinanciamento(id) {
+    _ensureFinanciamentos();
+    _data.financiamentos = _data.financiamentos.filter(x => x.id !== id);
+    persist();
+  }
+
+  // Cálculo de parcela e saldo devedor — sistemas SAC e Price
+  function financiamentoParcelaInicial(f) {
+    const PV = f.valorFinanciado || 0;
+    const i  = (f.taxaMensal || 0) / 100;
+    const n  = f.prazo || 0;
+    if (!PV || !n) return 0;
+    if (f.sistema === 'sac') {
+      // Primeira parcela do SAC: amortização + juros sobre saldo total
+      return (PV / n) + PV * i;
+    }
+    // Price (padrão): PMT constante
+    if (i === 0) return PV / n;
+    return PV * i / (1 - Math.pow(1 + i, -n));
+  }
+  function financiamentoParcelaNa(f, k) {
+    // Valor da k-ésima parcela (1-indexed)
+    const PV = f.valorFinanciado || 0;
+    const i  = (f.taxaMensal || 0) / 100;
+    const n  = f.prazo || 0;
+    if (!PV || !n || k < 1 || k > n) return 0;
+    if (f.sistema === 'sac') {
+      const amort = PV / n;
+      const saldoAnterior = PV - amort * (k - 1);
+      return amort + saldoAnterior * i;
+    }
+    return financiamentoParcelaInicial(f);
+  }
+  function financiamentoSaldoDevedor(f) {
+    const PV = f.valorFinanciado || 0;
+    const i  = (f.taxaMensal || 0) / 100;
+    const n  = f.prazo || 0;
+    const k  = Math.min(f.parcelasPagas || 0, n);
+    if (!PV) return 0;
+    if (k >= n) return 0;
+    if (f.sistema === 'sac') {
+      return PV - (PV / n) * k;
+    }
+    // Price: saldo = PMT * (1 - (1+i)^(k-n)) / i — equivalente abaixo
+    if (i === 0) return PV - (PV / n) * k;
+    const PMT = financiamentoParcelaInicial(f);
+    // saldo após k pagamentos = PV*(1+i)^k - PMT*((1+i)^k - 1)/i
+    return PV * Math.pow(1 + i, k) - PMT * (Math.pow(1 + i, k) - 1) / i;
+  }
+  function financiamentoTotalPago(f) {
+    const k = f.parcelasPagas || 0;
+    if (f.sistema === 'sac') {
+      let s = 0;
+      for (let j = 1; j <= k; j++) s += financiamentoParcelaNa(f, j);
+      return s;
+    }
+    return financiamentoParcelaInicial(f) * k;
+  }
+  function financiamentoTotalRestante(f) {
+    const n = f.prazo || 0;
+    const k = f.parcelasPagas || 0;
+    if (f.sistema === 'sac') {
+      let s = 0;
+      for (let j = k + 1; j <= n; j++) s += financiamentoParcelaNa(f, j);
+      return s;
+    }
+    return financiamentoParcelaInicial(f) * (n - k);
+  }
+  function financiamentoTotalJuros(f) {
+    const PV = f.valorFinanciado || 0;
+    const n = f.prazo || 0;
+    if (f.sistema === 'sac') {
+      let s = 0;
+      for (let j = 1; j <= n; j++) s += financiamentoParcelaNa(f, j);
+      return s - PV;
+    }
+    return financiamentoParcelaInicial(f) * n - PV;
+  }
+  // CET anual aproximado: (1 + taxaMensal)^12 - 1
+  function financiamentoCETAnual(f) {
+    const i = (f.taxaMensal || 0) / 100;
+    return (Math.pow(1 + i, 12) - 1) * 100;
+  }
+  // Simula amortização extra: estratégia 'prazo' reduz meses, 'parcela' reduz valor
+  function financiamentoAntecipar(f, valorExtra, estrategia) {
+    const i = (f.taxaMensal || 0) / 100;
+    const k = f.parcelasPagas || 0;
+    const n = f.prazo || 0;
+    const saldoAtual = financiamentoSaldoDevedor(f);
+    if (valorExtra >= saldoAtual) {
+      return { quitacao: true, mesesEconomizados: n - k, jurosEconomizados: financiamentoTotalRestante(f) - saldoAtual };
+    }
+    const novoSaldo = saldoAtual - valorExtra;
+    const restante = n - k;
+    if (estrategia === 'prazo') {
+      // Mantém a parcela, recalcula prazo
+      const PMT = financiamentoParcelaInicial(f);
+      if (f.sistema === 'sac') {
+        // SAC: amortização é PV/n; manter PMT é mais complexo. Aproximamos por equivalente Price.
+      }
+      if (i === 0 || PMT <= novoSaldo * i) {
+        return { quitacao: false, mesesEconomizados: 0, jurosEconomizados: 0 };
+      }
+      const novosMeses = Math.ceil(Math.log(PMT / (PMT - novoSaldo * i)) / Math.log(1 + i));
+      const jurosOriginais = financiamentoTotalRestante(f) - saldoAtual;
+      const jurosNovo = PMT * novosMeses - novoSaldo;
+      return {
+        quitacao: false,
+        mesesEconomizados: Math.max(0, restante - novosMeses),
+        jurosEconomizados: Math.max(0, jurosOriginais - jurosNovo),
+        novosMeses,
+        novaParcela: PMT,
+      };
+    }
+    // estrategia 'parcela': mantém prazo, recalcula parcela
+    let novaParcela;
+    if (i === 0) novaParcela = novoSaldo / restante;
+    else novaParcela = novoSaldo * i / (1 - Math.pow(1 + i, -restante));
+    const PMTOriginal = financiamentoParcelaInicial(f);
+    const jurosOriginais = financiamentoTotalRestante(f) - saldoAtual;
+    const jurosNovo = novaParcela * restante - novoSaldo;
+    return {
+      quitacao: false,
+      mesesEconomizados: 0,
+      jurosEconomizados: Math.max(0, jurosOriginais - jurosNovo),
+      novosMeses: restante,
+      novaParcela,
+      reducaoParcela: PMTOriginal - novaParcela,
+    };
+  }
+  function totalFinanciamentosDevedor() {
+    return (_data.financiamentos || []).reduce((s, f) => s + financiamentoSaldoDevedor(f), 0);
+  }
+
   // ── CONTRATOS ──────────────────────────────────────────────────
   function _ensureContratos() {
     if (!_data.contratos) { _data.contratos = []; persist(); }
@@ -1741,6 +1895,8 @@ const Store = (function () {
     deleteAtivo, updateAtivo,
     getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, totalVeiculos,
     getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
+    getFinanciamentos, addFinanciamento, updateFinanciamento, deleteFinanciamento,
+    financiamentoParcelaInicial, financiamentoParcelaNa, financiamentoSaldoDevedor, financiamentoTotalPago, financiamentoTotalRestante, financiamentoTotalJuros, financiamentoCETAnual, financiamentoAntecipar, totalFinanciamentosDevedor,
     updateSettings,
     receitasByMonth, despesasByMonth,
     sumReceitas, sumDespesas,

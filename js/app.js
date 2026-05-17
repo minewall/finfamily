@@ -120,6 +120,7 @@ const App = (function () {
       reserva:       'Patrimônio',
       metas:         'Metas & Projetos',
       investimentos: 'Investimentos',
+      financiamentos: 'Financiamentos',
       simulacoes:    'Simulações',
       patrimonio:    'Patrimônio & Investimentos',
       comparativo:   'Comparativo Mensal',
@@ -4766,6 +4767,244 @@ ${topCats.length ? `
     renderReserva(container);
   }
 
+  // ── FINANCIAMENTOS ─────────────────────────────────────────────
+  function renderFinanciamentos(container) {
+    const fins = Store.getFinanciamentos();
+    const totalDevedor = Store.totalFinanciamentosDevedor();
+    const TIPO_LABEL = { imovel: 'Imóvel', veiculo: 'Veículo', pessoal: 'Pessoal', estudantil: 'Estudantil', empresarial: 'Empresarial' };
+    const TIPO_COLOR = { imovel: 'var(--teal)', veiculo: 'var(--accent)', pessoal: 'var(--amber)', estudantil: 'var(--green)', empresarial: 'var(--red)' };
+
+    container.innerHTML = `
+<div class="section-header mb-6">
+  <div>
+    <div class="section-title">Financiamentos</div>
+    <div class="section-sub">Imóveis, veículos e outros — controle de saldo devedor, juros e antecipação</div>
+  </div>
+  <button class="btn-primary" id="btnAddFin">+ Novo Financiamento</button>
+</div>
+
+${fins.length > 0 ? `
+<div class="kpi-grid mb-6">
+  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Total a pagar (saldo devedor)</div><div class="kpi-value red">${Utils.currency(totalDevedor)}</div><div class="kpi-sub">${fins.length} financiamento${fins.length>1?'s':''} ativo${fins.length>1?'s':''}</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Próxima parcela total/mês</div><div class="kpi-value accent">${Utils.currency(fins.reduce((s,f)=>{
+      const k = Math.min((f.parcelasPagas||0)+1, f.prazo||0);
+      return s + (k > 0 ? Store.financiamentoParcelaNa(f, k) : 0);
+    }, 0))}</div><div class="kpi-sub">soma das próximas parcelas</div></div>
+  </div>
+</div>` : ''}
+
+${fins.length === 0
+  ? `<div class="card" style="text-align:center;padding:40px;color:var(--text-4)">Nenhum financiamento cadastrado.<br><br>Clique em <strong>+ Novo Financiamento</strong> para começar.</div>`
+  : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px">
+    ${fins.map(f => {
+      const parcelaInicial = Store.financiamentoParcelaInicial(f);
+      const proxK = Math.min((f.parcelasPagas||0)+1, f.prazo||0);
+      const proxParcela = proxK > 0 ? Store.financiamentoParcelaNa(f, proxK) : 0;
+      const saldo = Store.financiamentoSaldoDevedor(f);
+      const totalPago = Store.financiamentoTotalPago(f);
+      const totalRestante = Store.financiamentoTotalRestante(f);
+      const totalJuros = Store.financiamentoTotalJuros(f);
+      const cet = Store.financiamentoCETAnual(f);
+      const progresso = f.prazo ? ((f.parcelasPagas||0) / f.prazo) * 100 : 0;
+      const cor = TIPO_COLOR[f.type] || 'var(--accent)';
+      return `
+    <div class="card" style="border-top:3px solid ${cor};position:relative">
+      <button class="btn-ghost" style="position:absolute;top:10px;right:10px;font-size:11px;color:var(--text-4)" data-del-fin="${f.id}" title="Remover">✕</button>
+      <button class="btn-ghost" style="position:absolute;top:10px;right:36px;font-size:11px;color:var(--text-4)" data-edit-fin="${f.id}" title="Editar">✏</button>
+      <div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${TIPO_LABEL[f.type] || f.type} · ${f.sistema === 'sac' ? 'SAC' : 'Price'}</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${f.label}</div>
+      ${f.banco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${f.banco}</div>` : '<div style="margin-bottom:10px"></div>'}
+
+      <div class="progress-bar" style="margin-bottom:6px"><div class="progress-fill" style="width:${progresso}%;background:${cor}"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:14px">
+        <span>${f.parcelasPagas||0}/${f.prazo} pagas (${progresso.toFixed(0)}%)</span>
+        <span>Taxa ${(f.taxaMensal||0).toFixed(2)}% a.m. · CET ${cet.toFixed(2)}% a.a.</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;font-size:12px;margin-bottom:12px">
+        <div><div style="color:var(--text-4)">Próxima parcela</div><div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(proxParcela)}</div></div>
+        <div><div style="color:var(--text-4)">Parcela inicial</div><div style="font-weight:600;font-family:var(--mono)">${Utils.currency(parcelaInicial)}</div></div>
+        <div><div style="color:var(--text-4)">Saldo devedor</div><div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(saldo)}</div></div>
+        <div><div style="color:var(--text-4)">Já pago</div><div style="font-weight:600;color:var(--green);font-family:var(--mono)">${Utils.currency(totalPago)}</div></div>
+        <div><div style="color:var(--text-4)">Falta pagar (nominal)</div><div style="font-weight:600;font-family:var(--mono)">${Utils.currency(totalRestante)}</div></div>
+        <div><div style="color:var(--text-4)">Total juros do contrato</div><div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(totalJuros)}</div></div>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-xs" data-pagar-fin="${f.id}">+1 parcela paga</button>
+        <button class="btn-xs" data-tabela-fin="${f.id}">Ver tabela</button>
+        <button class="btn-xs" data-antec-fin="${f.id}">Simular antecipação</button>
+        <button class="btn-xs" data-prog-fin-c="${f.id}">Programar lançamento</button>
+      </div>
+    </div>`;
+    }).join('')}
+  </div>`}`;
+
+    const re = () => renderFinanciamentos(container);
+    document.getElementById('btnAddFin')?.addEventListener('click', () => openFinanciamentoModal(null, re));
+
+    container.addEventListener('click', e => {
+      const editBtn = e.target.closest('[data-edit-fin]');
+      if (editBtn) { const f = fins.find(x => x.id === editBtn.dataset.editFin); if (f) openFinanciamentoModal(f, re); return; }
+      const delBtn = e.target.closest('[data-del-fin]');
+      if (delBtn) { if (!confirm('Remover este financiamento?')) return; Store.deleteFinanciamento(delBtn.dataset.delFin); re(); toast('Removido', 'success'); return; }
+      const pagBtn = e.target.closest('[data-pagar-fin]');
+      if (pagBtn) {
+        const f = fins.find(x => x.id === pagBtn.dataset.pagarFin);
+        if (f) { Store.updateFinanciamento(f.id, { parcelasPagas: Math.min((f.parcelasPagas||0)+1, f.prazo) }); re(); toast('Parcela contabilizada', 'success'); }
+        return;
+      }
+      const tabBtn = e.target.closest('[data-tabela-fin]');
+      if (tabBtn) { const f = fins.find(x => x.id === tabBtn.dataset.tabelaFin); if (f) _showTabelaFinanciamento(f); return; }
+      const antBtn = e.target.closest('[data-antec-fin]');
+      if (antBtn) { const f = fins.find(x => x.id === antBtn.dataset.antecFin); if (f) _showAntecipacaoModal(f, re); return; }
+      const progBtn = e.target.closest('[data-prog-fin-c]');
+      if (progBtn) { const f = fins.find(x => x.id === progBtn.dataset.progFinC); if (f) _programarParcelaFin(f, re); return; }
+    });
+  }
+
+  function openFinanciamentoModal(financiamento, onSaved) {
+    const isEdit = !!financiamento;
+    const f = financiamento || {};
+    const TIPOS = [['imovel','Imóvel'],['veiculo','Veículo'],['pessoal','Pessoal'],['estudantil','Estudantil'],['empresarial','Empresarial']];
+    const hoje = new Date().toISOString().slice(0, 10);
+    const html = `
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Tipo</label>
+    <select class="form-select" id="fFNTipo">${TIPOS.map(([v,l])=>`<option value="${v}"${f.type===v?' selected':''}>${l}</option>`).join('')}</select>
+  </div>
+  <div class="form-group"><label class="form-label">Sistema</label>
+    <select class="form-select" id="fFNSistema">
+      <option value="price"${f.sistema==='price'?' selected':''}>Price (parcela fixa)</option>
+      <option value="sac"${f.sistema==='sac'?' selected':''}>SAC (parcela decrescente)</option>
+    </select>
+  </div>
+  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fFNLabel" placeholder="Ex.: Apto Vila Mariana" value="${f.label||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Banco / Credor</label><input class="form-input" id="fFNBanco" placeholder="Caixa, Itaú, Santander..." value="${f.banco||''}"></div>
+  <div class="form-group"><label class="form-label">Valor financiado (R$)</label><input class="form-input" id="fFNValor" type="number" step="1000" value="${f.valorFinanciado||''}"></div>
+  <div class="form-group"><label class="form-label">Taxa de juros mensal (%)</label><input class="form-input" id="fFNTaxa" type="number" step="0.01" value="${f.taxaMensal||''}" placeholder="Ex.: 0.8"></div>
+  <div class="form-group"><label class="form-label">Prazo (meses)</label><input class="form-input" id="fFNPrazo" type="number" step="1" min="1" max="600" value="${f.prazo||''}" placeholder="Ex.: 360"></div>
+  <div class="form-group"><label class="form-label">Parcelas já pagas</label><input class="form-input" id="fFNPagas" type="number" step="1" min="0" value="${f.parcelasPagas||0}"></div>
+  <div class="form-group"><label class="form-label">Data do contrato</label><input class="form-input" id="fFNData" type="date" value="${f.dataInicio||hoje}"></div>
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fFNNotes" value="${f.notes||''}"></div>
+</div>`;
+    Modal.open(isEdit ? 'Editar Financiamento' : 'Novo Financiamento', html, () => {
+      const data = {
+        type:             document.getElementById('fFNTipo').value,
+        sistema:          document.getElementById('fFNSistema').value,
+        label:            document.getElementById('fFNLabel').value.trim(),
+        banco:            document.getElementById('fFNBanco').value.trim(),
+        valorFinanciado:  parseFloat(document.getElementById('fFNValor').value) || 0,
+        taxaMensal:       parseFloat(document.getElementById('fFNTaxa').value) || 0,
+        prazo:            parseInt(document.getElementById('fFNPrazo').value) || 0,
+        parcelasPagas:    parseInt(document.getElementById('fFNPagas').value) || 0,
+        dataInicio:       document.getElementById('fFNData').value,
+        notes:            document.getElementById('fFNNotes').value.trim(),
+      };
+      if (!data.label) return toast('Informe a descrição', 'error');
+      if (!data.valorFinanciado || !data.prazo) return toast('Preencha valor e prazo', 'error');
+      if (isEdit) { Store.updateFinanciamento(financiamento.id, data); toast('Financiamento atualizado', 'success'); }
+      else        { Store.addFinanciamento(data);                      toast('Financiamento cadastrado', 'success'); }
+      Modal.close();
+      if (onSaved) onSaved();
+    });
+  }
+
+  function _showTabelaFinanciamento(f) {
+    const n = f.prazo || 0;
+    const rows = [];
+    let saldo = f.valorFinanciado || 0;
+    let totalJuros = 0;
+    for (let k = 1; k <= n; k++) {
+      const parcela = Store.financiamentoParcelaNa(f, k);
+      const juros = saldo * (f.taxaMensal/100 || 0);
+      const amort = parcela - juros;
+      saldo = Math.max(0, saldo - amort);
+      totalJuros += juros;
+      if (k <= 6 || k % Math.max(1, Math.floor(n/24)) === 0 || k === n || saldo < 1) {
+        rows.push({ k, parcela, juros, amort, saldo, pago: k <= (f.parcelasPagas||0) });
+      }
+    }
+    const html = `
+<div class="table-wrap" style="max-height:60vh;overflow-y:auto"><table class="data-table">
+  <thead><tr><th>#</th><th class="num">Parcela</th><th class="num">Juros</th><th class="num">Amortização</th><th class="num">Saldo</th></tr></thead>
+  <tbody>${rows.map(r => `
+    <tr style="${r.pago?'opacity:0.5':''}">
+      <td>${r.k}${r.pago?' ✓':''}</td>
+      <td class="num">${Utils.currency(r.parcela)}</td>
+      <td class="num negative">${Utils.currency(r.juros)}</td>
+      <td class="num positive">${Utils.currency(r.amort)}</td>
+      <td class="num">${Utils.currency(r.saldo)}</td>
+    </tr>`).join('')}</tbody>
+  <tfoot><tr><td class="fw-700">Total juros</td><td colspan="4" class="num fw-700 negative">${Utils.currency(totalJuros)}</td></tr></tfoot>
+</table></div>`;
+    Modal.open(`${f.label} — tabela ${f.sistema === 'sac' ? 'SAC' : 'Price'}`, html, () => Modal.close(), { okText: 'Fechar' });
+  }
+
+  function _showAntecipacaoModal(f, onDone) {
+    const saldoAtual = Store.financiamentoSaldoDevedor(f);
+    const html = `
+<div class="form-grid">
+  <div class="form-group form-full" style="background:var(--bg-elevated);border-radius:8px;padding:12px">
+    <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px">Saldo devedor atual</div>
+    <div style="font-size:20px;font-weight:800;color:var(--red);font-family:var(--mono)">${Utils.currency(saldoAtual)}</div>
+  </div>
+  <div class="form-group"><label class="form-label">Valor a amortizar (R$)</label><input class="form-input" id="fANValor" type="number" step="1000" value="${Math.round(saldoAtual*0.1)}"></div>
+  <div class="form-group"><label class="form-label">Estratégia</label>
+    <select class="form-select" id="fANEstrat">
+      <option value="prazo">Reduzir prazo (manter parcela)</option>
+      <option value="parcela">Reduzir parcela (manter prazo)</option>
+    </select>
+  </div>
+</div>
+<div id="anResult" style="margin-top:12px"></div>
+<div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn-secondary" id="btnAnCalc">Calcular</button></div>`;
+    Modal.open(`Antecipar — ${f.label}`, html, () => Modal.close(), { okText: 'Fechar' });
+    setTimeout(() => {
+      const btn = document.getElementById('btnAnCalc');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const v = parseFloat(document.getElementById('fANValor').value) || 0;
+        const est = document.getElementById('fANEstrat').value;
+        if (!v) return toast('Informe um valor', 'error');
+        const r = Store.financiamentoAntecipar(f, v, est);
+        const html = r.quitacao
+          ? `<div class="alert-strip success"><div class="alert-text"><div class="alert-title">Quitação total!</div><div class="alert-sub">Você economiza <strong>${Utils.currency(r.jurosEconomizados)}</strong> em juros e ${r.mesesEconomizados} parcelas.</div></div></div>`
+          : `<div class="alert-strip success"><div class="alert-text"><div class="alert-title">Economia da antecipação</div><div class="alert-sub">${est === 'prazo'
+              ? `Reduz <strong>${r.mesesEconomizados} meses</strong> do prazo (novo total: ${r.novosMeses}). Mantém parcela em ${Utils.currency(r.novaParcela)}.`
+              : `Parcela cai de ${Utils.currency(Store.financiamentoParcelaInicial(f))} para <strong>${Utils.currency(r.novaParcela)}</strong> (economia ${Utils.currency(r.reducaoParcela)}/mês).`} Você economiza <strong style="color:var(--green)">${Utils.currency(r.jurosEconomizados)}</strong> em juros.</div></div></div>`;
+        document.getElementById('anResult').innerHTML = html;
+      });
+    }, 50);
+  }
+
+  function _programarParcelaFin(f, onDone) {
+    const prox = Math.min((f.parcelasPagas||0)+1, f.prazo);
+    const valor = Store.financiamentoParcelaNa(f, prox);
+    const restante = f.prazo - (f.parcelasPagas||0);
+    if (!valor || restante <= 0) return toast('Financiamento já quitado', 'info');
+    const cat = f.type === 'imovel' ? 'moradia' : f.type === 'veiculo' ? 'transporte' : 'financeiro';
+    const hoje = new Date();
+    Store.addContrato({
+      label: `Parcela ${f.label}`,
+      kind: 'despesa', responsavel: currentPessoa(),
+      category: cat, sub: 'Financiamento',
+      dataInicio: hoje.toISOString().slice(0, 10),
+      valorParcela: valor, parcelas: restante, entrada: 0,
+      diaVencimento: hoje.getDate(), pay: 'transferencia',
+      notes: `Gerado a partir do financiamento "${f.label}". Sistema ${f.sistema?.toUpperCase()}, taxa ${f.taxaMensal}% a.m.`,
+      active: true,
+      periodicidade: 'mensal',
+    });
+    toast(`Contrato de ${restante} parcelas criado`, 'success');
+    if (onDone) onDone();
+  }
+
   // ── MARKET RATES (BCB API + cache local 12h) ─────────────────────
   const MarketRates = (() => {
     const CACHE_KEY = 'ff_market_rates';
@@ -6865,6 +7104,7 @@ ${isConnected && isAdmin ? `
     Router.register('reserva',       renderReserva);
     Router.register('metas',         renderMetas);
     Router.register('investimentos', renderInvestimentos);
+    Router.register('financiamentos', renderFinanciamentos);
     Router.register('simulacoes',    renderSimulacoes);
     Router.register('patrimonio',    renderPatrimonio);
     Router.register('comparativo',   renderComparativo);
@@ -7263,7 +7503,7 @@ FORMATO DA RESPOSTA (importante):
 
   // Hides nav sections not accessible to 'member' role users
   function _applyMemberNav() {
-    const HIDDEN_PAGES = ['receitas','metas','contratos','contas','cartoes','reserva','investimentos','simulacoes','comparativo'];
+    const HIDDEN_PAGES = ['receitas','metas','contratos','contas','cartoes','reserva','investimentos','simulacoes','comparativo','financiamentos'];
     HIDDEN_PAGES.forEach(page => {
       const el = document.querySelector(`[data-page="${page}"]`);
       if (el) el.style.display = 'none';
