@@ -1842,7 +1842,7 @@ body.sidebar-open { overflow: hidden; }
 .btn-xs {
   padding: 3px 8px;
   font-size: 11px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text-2);
@@ -1855,6 +1855,27 @@ body.sidebar-open { overflow: hidden; }
 .btn-xs.btn-red:hover { background: var(--red-dim); }
 .btn-xs.btn-green { border-color: var(--green); color: var(--green); }
 .btn-xs.btn-green:hover { background: var(--green-dim); }
+
+/* ── ICON BUTTONS (ações em tabelas e cards) ─────────────────────── */
+.btn-icon-sm {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.btn-icon-sm:hover                { background: var(--bg-hover); color: var(--text-1); }
+.btn-icon-sm.danger               { color: var(--red); }
+.btn-icon-sm.danger:hover         { background: var(--red-dim); color: var(--red); }
+.btn-icon-sm.success              { color: var(--green); }
+.btn-icon-sm.success:hover        { background: var(--green-dim); color: var(--green); }
+.btn-icon-sm.warning              { color: var(--amber); }
+.btn-icon-sm.warning:hover        { background: var(--amber-dim); color: var(--amber); }
 
 /* ── CALENDÁRIO DE LANÇAMENTOS ─────────────────────────────────────── */
 .cal-grid {
