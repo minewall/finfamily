@@ -154,10 +154,13 @@ const SupabaseSync = (function () {
 
   async function _sendInviteEmail(email, role, pessoaName, group) {
     try {
+      // Prefer display name from Store settings, then auth metadata, then email
+      const storeSettings = (typeof Store !== 'undefined') ? Store.get()?.settings : null;
       const inviterName =
+        storeSettings?.displayName ||
         _user?.user_metadata?.full_name ||
         _user?.user_metadata?.name ||
-        _user?.email ||
+        _user?.email?.split('@')[0] ||
         'Alguém';
       const payload = {
         email,

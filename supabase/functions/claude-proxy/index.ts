@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { model, messages, system, max_tokens } = await req.json();
+    const { model, messages, system, max_tokens, tools, tool_choice } = await req.json();
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
@@ -24,7 +24,20 @@ serve(async (req) => {
     const usedModel = model || 'claude-haiku-4-5-20251001';
     const msgCount = Array.isArray(messages) ? messages.length : 0;
     const sysLen = typeof system === 'string' ? system.length : 0;
-    console.log(`[claude-proxy] → model=${usedModel} msgs=${msgCount} sysChars=${sysLen} maxTokens=${max_tokens || 1024}`);
+    const hasTools = Array.isArray(tools) && tools.length > 0;
+    console.log(`[claude-proxy] → model=${usedModel} msgs=${msgCount} sysChars=${sysLen} maxTokens=${max_tokens || 1024} tools=${hasTools ? tools.length : 0}`);
+
+    const body: Record<string, unknown> = {
+      model: usedModel,
+      max_tokens: max_tokens || 1024,
+      system,
+      messages,
+    };
+
+    if (hasTools) {
+      body.tools = tools;
+      if (tool_choice) body.tool_choice = tool_choice;
+    }
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -33,12 +46,7 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      body: JSON.stringify({
-        model: usedModel,
-        max_tokens: max_tokens || 1024,
-        system,
-        messages,
-      }),
+      body: JSON.stringify(body),
     });
 
     const rawText = await res.text();
