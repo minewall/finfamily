@@ -30,15 +30,11 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
-        <div class="brand-icon">
-          <img class="brand-mark-dark" src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:26px;height:auto;display:block">
-          <img class="brand-mark-light" src="assets/svg/haile-mark-indigo-deep.svg" alt="Haile" style="width:26px;height:auto;display:block">
-        </div>
-        <div class="brand-text">
-          <img class="brand-wordmark-dark" src="assets/svg/haile-wordmark-white.svg" alt="Haile" style="height:22px;width:auto;display:block">
-          <img class="brand-wordmark-light" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" style="height:22px;width:auto;display:block">
-          <span class="brand-sub" style="margin-top:2px">Seu coach financeiro</span>
-        </div>
+        <img class="brand-wordmark-dark" src="assets/svg/haile-wordmark-white.svg" alt="Haile" style="height:28px;width:auto;display:block">
+        <img class="brand-wordmark-light" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:block">
+        <!-- Versão mark (Hai) — exibida automaticamente quando sidebar entra em modo icon-only -->
+        <img class="brand-mark-dark" src="assets/svg/haile-mark-white.svg" alt="Haile" style="height:28px;width:auto;display:none">
+        <img class="brand-mark-light" src="assets/svg/haile-mark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:none">
       </div>
     </div>
 
@@ -201,6 +197,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <div class="topbar-title" id="pageTitle">Visão Geral</div>
+      <div id="topbarMonthPickerSlot"></div>
       <div class="topbar-actions">
         <div id="syncBadge" title="Status de sincronização" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-4);cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border)">
           <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-4);flex-shrink:0"></span>
@@ -241,8 +238,8 @@
   <div class="coach-resize-handle" id="coachResizeHandle"></div>
   <div class="coach-header">
     <div style="display:flex;align-items:center;gap:10px">
-      <div class="coach-avatar" style="display:flex;align-items:center;justify-content:center">
-        <svg width="20" height="20" viewBox="0 0 100 100"><path d="M30 70 Q50 20 70 70" stroke="currentColor" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50" cy="35" r="8" fill="currentColor"/></svg>
+      <div class="coach-avatar" style="display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:22px;height:auto;display:block">
       </div>
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--text-1)">Haile</div>

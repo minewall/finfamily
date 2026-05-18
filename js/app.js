@@ -170,10 +170,11 @@ const App = (function () {
       wrap.className = 'page-enter';
       container.appendChild(wrap);
       this.pages[page](wrap);
-      // Páginas month-aware: insere picker mês/ano no topo
-      if (MONTH_AWARE_PAGES.has(page)) {
-        // espera o render (alguns renderizadores são async via requestAnimationFrame)
-        requestAnimationFrame(() => renderPageMonthPicker(wrap));
+      // Picker mês/ano vai no slot do header — visível só em páginas month-aware
+      const slot = document.getElementById('topbarMonthPickerSlot');
+      if (slot) {
+        slot.innerHTML = '';
+        if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(slot);
       }
     },
     register(name, fn) { this.pages[name] = fn; },
@@ -7762,8 +7763,8 @@ ${isConnected && isAdmin ? `
       history = [];
       msgs.innerHTML = `
       <div class="coach-welcome">
-        <div class="coach-avatar-lg">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z" stroke="currentColor" stroke-width="2"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
+        <div class="coach-avatar-lg" style="overflow:hidden">
+          <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
         </div>
         <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
         <div class="coach-suggestions" id="coachSuggestions">

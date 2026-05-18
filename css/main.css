@@ -343,17 +343,15 @@ body { background: var(--bg-base); color: var(--text-1); }
 }
 .month-select:focus { border-color: var(--accent); }
 
-/* Page-level month/year picker (no topo das páginas month-aware) */
+/* Month/year picker no header (slot #topbarMonthPickerSlot) */
 .page-month-picker {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: var(--bg-card);
+  gap: 2px;
+  background: var(--bg-elevated);
   border: 1px solid var(--border-2);
   border-radius: var(--radius-md);
-  padding: 4px;
-  margin-bottom: var(--space-lg);
-  box-shadow: var(--shadow-sm);
+  padding: 2px;
 }
 .page-mp-arrow {
   width: 28px; height: 28px;
@@ -407,6 +405,16 @@ body { background: var(--bg-base); color: var(--text-1); }
 [data-theme="light"] .brand-mark-dark,
 [data-theme="light"] .brand-wordmark-dark { display: none !important; }
 
+/* Sidebar collapsed (icon-only): troca wordmark pelo mark Hai */
+.sidebar:not(.icon-only) .brand-mark-dark,
+.sidebar:not(.icon-only) .brand-mark-light { display: none !important; }
+[data-theme="dark"]  .sidebar.icon-only .brand-wordmark-dark,
+[data-theme="dark"]  .sidebar.icon-only .brand-wordmark-light,
+[data-theme="light"] .sidebar.icon-only .brand-wordmark-dark,
+[data-theme="light"] .sidebar.icon-only .brand-wordmark-light { display: none !important; }
+[data-theme="dark"]  .sidebar.icon-only .brand-mark-dark   { display: block !important; }
+[data-theme="light"] .sidebar.icon-only .brand-mark-light  { display: block !important; }
+
 /* ── MAIN AREA ──────────────────────────────────────────────────── */
 .main {
   display: flex;
@@ -448,10 +456,13 @@ body { background: var(--bg-base); color: var(--text-1); }
   font-size: 15px;
   font-weight: 600;
   color: var(--text-1);
-  flex: 1;
+  flex: 0 0 auto;
 }
 
-.topbar-actions { display: flex; gap: 8px; align-items: center; }
+#topbarMonthPickerSlot { display: flex; align-items: center; margin-left: 8px; }
+#topbarMonthPickerSlot:empty { display: none; }
+
+.topbar-actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
 
 .page-container {
   flex: 1;
