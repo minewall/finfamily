@@ -1691,7 +1691,11 @@ const Store = (function () {
 
   function _ensureOnboarding() {
     if (!_data.onboarding) {
-      _data.onboarding = { completed: false, completedAt: null, answers: {} };
+      // Usuários com dados existentes pulam o onboarding automaticamente
+      const hasData = (_data.receitas && _data.receitas.length > 0)
+        || (_data.despesas && _data.despesas.length > 0)
+        || (_data.contas && _data.contas.length > 0);
+      _data.onboarding = { completed: hasData, completedAt: hasData ? new Date().toISOString() : null, answers: {} };
     }
   }
 
