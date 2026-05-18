@@ -97,6 +97,8 @@ const App = (function () {
       if (onSave) document.getElementById('modalSave').addEventListener('click', onSave);
       this.overlay.classList.add('open');
       this.overlay.setAttribute('aria-hidden', 'false');
+      // Upgrade lucide icons inside modal
+      if (typeof upgradeIcons === 'function') upgradeIcons(document.getElementById('modal'));
     },
     close() {
       this.overlay.classList.remove('open');
@@ -106,6 +108,23 @@ const App = (function () {
   };
 
   // ── ROUTER ────────────────────────────────────────────────────
+  // ── Lucide Icons helper ────────────────────────────────────────
+  // Renderiza um placeholder <i data-lucide="..."> que vai virar SVG quando
+  // lucide.createIcons() rodar. Use em templates HTML/string.
+  function icon(name, opts = {}) {
+    const size = opts.size || 16;
+    const cls = opts.class || '';
+    const color = opts.color ? `color:${opts.color};` : '';
+    const style = `width:${size}px;height:${size}px;${color}${opts.style || ''}`;
+    return `<i data-lucide="${name}" class="lucide-icon ${cls}" style="${style}"></i>`;
+  }
+  // Chama createIcons() no escopo dado (default: document).
+  function upgradeIcons(root) {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try { window.lucide.createIcons({ root: root || document.body }); } catch (_) {}
+    }
+  }
+
   // Páginas cujo conteúdo depende do mês/ano selecionado.
   // Outras páginas (Patrimônio, Financiamentos, Investimentos, Metas, Contratos,
   // Cartões, Contas, Simulações, Recados, Reembolsos, Config) não mostram picker.
@@ -176,6 +195,7 @@ const App = (function () {
         slot.innerHTML = '';
         if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(slot);
       }
+      upgradeIcons(); // converte placeholders <i data-lucide> em SVGs
     },
     register(name, fn) { this.pages[name] = fn; },
   };

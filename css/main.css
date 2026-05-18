@@ -381,6 +381,10 @@ body { background: var(--bg-base); color: var(--text-1); }
 .page-mp-select:focus { background: var(--bg-elevated); }
 .page-mp-year { font-family: var(--mono); min-width: 56px; text-align: center; }
 
+/* Lucide icons inline (substituem <i data-lucide>) */
+.lucide-icon { display: inline-block; vertical-align: middle; }
+.lucide-icon svg { width: 100%; height: 100%; stroke-width: 2; }
+
 .theme-btn {
   width: 32px;
   height: 32px;
