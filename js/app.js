@@ -7837,8 +7837,9 @@ ${isConnected && isAdmin ? `
     })();
 
     // Reveal admin nav item if user has admin role in Supabase
-    (async () => {
-      if (typeof SupabaseSync === 'undefined' || !SupabaseSync.isConnected()) return;
+    // Delay to let auth session load before checking
+    setTimeout(async () => {
+      if (typeof SupabaseSync === 'undefined') return;
       try {
         const token = await SupabaseSync.getAccessToken();
         if (!token) return;
@@ -7848,7 +7849,7 @@ ${isConnected && isAdmin ? `
           if (el) el.style.display = '';
         }
       } catch { /* not admin — nav stays hidden */ }
-    })();
+    }, 1500);
 
     // Init routing
     Router.init();
