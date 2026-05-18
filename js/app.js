@@ -1049,7 +1049,7 @@ ${filtered.map(d => {
   const c = d.contratoId ? Store.getContratoById(d.contratoId) : null;
   const paidState = d.paid === true ? 'on' : d.paid === false ? 'off' : (new Date(d.date+'T23:59:59') <= new Date() ? 'auto' : '');
   const isFuture = (d.year||0)*12+(d.month||0) > year*12+month;
-  return `<tr${isFuture ? ' style="opacity:0.55"' : ''}>
+  return `<tr class="row-clickable${isFuture ? '" style="opacity:0.55"' : '"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length ? ` <span class="badge badge-accent" style="font-size:10px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">👥 ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
@@ -1058,8 +1058,7 @@ ${filtered.map(d => {
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card)">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
-    <button class="btn-icon-sm" data-edit-desp="${d.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-    <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+    <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
   </td>
 </tr>`;}).join('')}
 </tbody>
@@ -1087,7 +1086,7 @@ ${filtered.map(r => {
   const c = r.contratoId ? Store.getContratoById(r.contratoId) : null;
   const paidState = r.paid === true ? 'on' : r.paid === false ? 'off' : (new Date(r.date+'T23:59:59') <= new Date() ? 'auto' : '');
   const isFuture = (r.year||0)*12+(r.month||0) > year*12+month;
-  return `<tr${isFuture ? ' style="opacity:0.55"' : ''}>
+  return `<tr class="row-clickable${isFuture ? '" style="opacity:0.55"' : '"'} data-row-rec="${r.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${r.desc}</td>
   <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
@@ -1096,8 +1095,7 @@ ${filtered.map(r => {
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido ✓':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
-    <button class="btn-icon-sm" data-edit-rec="${r.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-    <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+    <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
   </td>
 </tr>`;}).join('')}
 </tbody>
@@ -1168,12 +1166,16 @@ ${filtered.map(r => {
           toast('Receita removida', 'success');
         });
       });
-      container.querySelectorAll('[data-edit-desp]').forEach(btn => {
-        btn.addEventListener('click', () => openEditDespesa(btn.dataset.editDesp, refilter));
-      });
-      container.querySelectorAll('[data-edit-rec]').forEach(btn => {
-        btn.addEventListener('click', () => openEditReceita(btn.dataset.editRec, refilter));
-      });
+      container.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const tr = e.target.closest('tr[data-row-desp]');
+        if (tr) openEditDespesa(tr.dataset.rowDesp, refilter);
+      }, { capture: false });
+      container.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const tr = e.target.closest('tr[data-row-rec]');
+        if (tr) openEditReceita(tr.dataset.rowRec, refilter);
+      }, { capture: false });
       container.querySelectorAll('[data-paid-desp]').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.dataset.paidDesp;
@@ -1500,15 +1502,14 @@ ${filtered.map(r => {
     <table class="data-table">
       <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th></tr></thead>
       <tbody>
-        ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr>
+        ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr class="row-clickable" data-row-rec="${r.id}">
           <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
           <td>${r.desc}</td>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
           <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
           <td style="white-space:nowrap">
-            <button class="btn-icon-sm" data-edit-rec="${r.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-            <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+            <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
           </td>
         </tr>`).join('')}
       </tbody>
@@ -1555,8 +1556,10 @@ ${filtered.map(r => {
         toast('Receita removida', 'success');
       });
     });
-    container.querySelectorAll('[data-edit-rec]').forEach(btn => {
-      btn.addEventListener('click', () => openEditReceita(btn.dataset.editRec, () => renderReceitas(container)));
+    container.addEventListener('click', e => {
+      if (e.target.closest('button')) return;
+      const tr = e.target.closest('tr[data-row-rec]');
+      if (tr) openEditReceita(tr.dataset.rowRec, () => renderReceitas(container));
     });
 
     document.getElementById('btnAddRec')?.addEventListener('click', () => openAddReceita(container));
@@ -1778,7 +1781,7 @@ ${anomaliasHTML(anomalias, total)}
       const tot = filtered.reduce((a,d) => a+d.amount, 0);
       return `<table class="data-table">
 <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-cat</th><th>Pagamento</th><th class="num">Valor</th><th></th></tr></thead>
-<tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{const isFut=(d.year||0)*12+(d.month||0)>year*12+month;return`<tr${isFut?' style="opacity:0.55"':''}>
+<tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{const isFut=(d.year||0)*12+(d.month||0)>year*12+month;return`<tr class="row-clickable${isFut?' style="opacity:0.55"':'"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
   <td style="font-weight:500">${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">💰 desc.</span>`:''}</td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
@@ -1786,8 +1789,7 @@ ${anomaliasHTML(anomalias, total)}
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td style="white-space:nowrap">
-    <button class="btn-icon-sm" data-edit-desp="${d.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-    <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+    <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
   </td>
 </tr>`}).join('')}</tbody>
 <tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td><td></td></tr></tfoot>
@@ -1847,8 +1849,10 @@ ${anomaliasHTML(anomalias, total)}
           toast('Despesa removida', 'success');
         });
       });
-      container.querySelectorAll('[data-edit-desp]').forEach(btn => {
-        btn.addEventListener('click', () => openEditDespesa(btn.dataset.editDesp, () => renderDespesas(container)));
+      container.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const tr = e.target.closest('tr[data-row-desp]');
+        if (tr) openEditDespesa(tr.dataset.rowDesp, () => renderDespesas(container));
       });
     }
     attachDespDeleteHandlers();
@@ -3510,7 +3514,7 @@ ${passivos.length === 0
           : p.valorOriginal && p.valorProposta
           ? ((1 - p.valorProposta/p.valorOriginal)*100).toFixed(0) + '% prop.'
           : '';
-        return `<tr>
+        return `<tr class="row-clickable" data-action="edit-passivo" data-id="${p.id}">
           <td>
             <div style="font-weight:600;color:var(--text-1)">${desc}</div>
             ${p.notes ? `<div style="font-size:11px;color:var(--text-4)">${p.notes}</div>` : ''}
@@ -3528,10 +3532,9 @@ ${passivos.length === 0
           <td><span class="badge" style="background:${STATUS_COLOR[st]}20;color:${STATUS_COLOR[st]}">${STATUS_LABEL[st]||st}</span></td>
           <td style="font-size:12px;color:var(--text-4)">${dataRef}</td>
           <td style="white-space:nowrap">
-            ${st !== 'quitado' && st !== 'acordado' ? `<button class="btn-icon-sm" data-action="passivo-contrato" data-id="${p.id}" title="Gerar contrato">${icon(\'file-text\', {size:14})}</button>` : ''}
-            ${st !== 'quitado' ? `<button class="btn-icon-sm warning" data-action="passivo-despesa" data-id="${p.id}" title="Lançar em despesas">${icon(\'receipt\', {size:14})}</button>` : ''}
-            <button class="btn-icon-sm" data-action="edit-passivo" data-id="${p.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-            <button class="btn-icon-sm danger" data-action="del-passivo" data-id="${p.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+            ${st !== 'quitado' && st !== 'acordado' ? `<button class="btn-icon-sm" data-action="passivo-contrato" data-id="${p.id}" title="Gerar contrato">${icon('file-text', {size:14})}</button>` : ''}
+            ${st !== 'quitado' ? `<button class="btn-icon-sm warning" data-action="passivo-despesa" data-id="${p.id}" title="Lançar em despesas">${icon('receipt', {size:14})}</button>` : ''}
+            <button class="btn-icon-sm danger" data-action="del-passivo" data-id="${p.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
           </td>
         </tr>`;
       }).join('')}

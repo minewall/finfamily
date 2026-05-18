@@ -1003,6 +1003,8 @@ table.data-table tbody tr {
 }
 table.data-table tbody tr:last-child { border-bottom: none; }
 table.data-table tbody tr:hover { background: var(--bg-hover); }
+table.data-table tbody tr.row-clickable { cursor: pointer; }
+table.data-table tbody tr.row-clickable td:last-child { cursor: default; }
 
 table.data-table tbody td {
   padding: 11px 14px;
