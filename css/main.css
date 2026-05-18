@@ -343,6 +343,46 @@ body { background: var(--bg-base); color: var(--text-1); }
 }
 .month-select:focus { border-color: var(--accent); }
 
+/* Page-level month/year picker (no topo das páginas month-aware) */
+.page-month-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+.page-mp-arrow {
+  width: 28px; height: 28px;
+  border: none; background: transparent;
+  color: var(--text-2);
+  font-size: 18px; font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.page-mp-arrow:hover { background: var(--bg-hover); color: var(--haile-indigo); }
+.page-mp-select {
+  background: transparent;
+  border: none;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  appearance: none;
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition: background var(--t-fast);
+}
+.page-mp-select:hover { background: var(--bg-hover); }
+.page-mp-select:focus { background: var(--bg-elevated); }
+.page-mp-year { font-family: var(--mono); min-width: 56px; text-align: center; }
+
 .theme-btn {
   width: 32px;
   height: 32px;

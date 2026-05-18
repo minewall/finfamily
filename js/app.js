@@ -106,6 +106,17 @@ const App = (function () {
   };
 
   // ── ROUTER ────────────────────────────────────────────────────
+  // Páginas cujo conteúdo depende do mês/ano selecionado.
+  // Outras páginas (Patrimônio, Financiamentos, Investimentos, Metas, Contratos,
+  // Cartões, Contas, Simulações, Recados, Reembolsos, Config) não mostram picker.
+  const MONTH_AWARE_PAGES = new Set([
+    'dashboard',
+    'lancamentos',
+    'receitas',
+    'despesas',
+    'comparativo',
+  ]);
+
   const Router = {
     current: 'dashboard',
     pages: {},
@@ -159,6 +170,11 @@ const App = (function () {
       wrap.className = 'page-enter';
       container.appendChild(wrap);
       this.pages[page](wrap);
+      // Páginas month-aware: insere picker mês/ano no topo
+      if (MONTH_AWARE_PAGES.has(page)) {
+        // espera o render (alguns renderizadores são async via requestAnimationFrame)
+        requestAnimationFrame(() => renderPageMonthPicker(wrap));
+      }
     },
     register(name, fn) { this.pages[name] = fn; },
   };
@@ -168,6 +184,55 @@ const App = (function () {
   function getYear()  {
     const sel = document.getElementById('globalYear');
     return sel ? parseInt(sel.value, 10) : Store.get().settings.ano;
+  }
+
+  // Renderiza picker mês/ano contextual no topo de páginas month-aware.
+  // Insere ANTES do primeiro filho do container (ou na posição indicada).
+  // Sincroniza com #globalMonth/#globalYear (estado global) e dispara
+  // change neles ao mudar — Router já reage e re-renderiza a página.
+  function renderPageMonthPicker(target) {
+    if (!target || target.querySelector?.('.page-month-picker')) return;
+    const m = getMonth(), y = getYear();
+    const monthsFull = Utils.monthsFull;
+    const yearsOpts = ['2024','2025','2026','2027','2028'];
+    const html = `
+<div class="page-month-picker">
+  <button type="button" class="page-mp-arrow" data-mp-prev aria-label="Mês anterior">‹</button>
+  <select class="page-mp-select" data-mp-month>
+    ${monthsFull.map((mn,i) => `<option value="${i+1}"${i+1===m?' selected':''}>${mn}</option>`).join('')}
+  </select>
+  <select class="page-mp-select page-mp-year" data-mp-year>
+    ${yearsOpts.map(yr => `<option value="${yr}"${parseInt(yr)===y?' selected':''}>${yr}</option>`).join('')}
+  </select>
+  <button type="button" class="page-mp-arrow" data-mp-next aria-label="Próximo mês">›</button>
+</div>`;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html.trim();
+    const node = tmp.firstChild;
+    target.insertBefore(node, target.firstChild);
+
+    function syncAndReload(month, year) {
+      document.getElementById('globalMonth').value = month;
+      document.getElementById('globalYear').value = year;
+      document.getElementById('globalMonth').dispatchEvent(new Event('change'));
+    }
+
+    node.querySelector('[data-mp-month]').addEventListener('change', e => {
+      syncAndReload(parseInt(e.target.value, 10), getYear());
+    });
+    node.querySelector('[data-mp-year]').addEventListener('change', e => {
+      syncAndReload(getMonth(), parseInt(e.target.value, 10));
+    });
+    node.querySelector('[data-mp-prev]').addEventListener('click', () => {
+      let mm = getMonth(), yy = getYear();
+      mm -= 1; if (mm < 1) { mm = 12; yy -= 1; }
+      syncAndReload(mm, yy);
+    });
+    node.querySelector('[data-mp-next]').addEventListener('click', () => {
+      let mm = getMonth(), yy = getYear();
+      mm += 1; if (mm > 12) { mm = 1; yy += 1; }
+      syncAndReload(mm, yy);
+    });
   }
 
   // ── PERÍODO toggle (compartilhado entre Lançamentos/Receitas/Despesas) ──
