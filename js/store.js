@@ -400,7 +400,11 @@ const Store = (function () {
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Guard against double-stringification (parsed is still a string)
+      if (typeof parsed === 'string') return JSON.parse(parsed);
+      return parsed;
     } catch (e) { /* ignore */ }
     return null;
   }

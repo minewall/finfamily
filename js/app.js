@@ -663,8 +663,9 @@ const App = (function () {
   </div>
 </div>
 
-<div class="kpi-grid mb-6">
-  <div class="kpi-card" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
+<div class="kpi-grid mb-6" id="kpiGrid">
+  <div class="kpi-card" data-kpi-id="saude" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
+    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
     <div class="kpi-icon" style="color:${healthColor}">${healthIcon}</div>
     <div class="kpi-body">
       <div class="kpi-label">Saúde Financeira</div>
@@ -672,7 +673,8 @@ const App = (function () {
       <div class="kpi-sub">${healthLabel} · limite ${Utils.pct(limitePct)}</div>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+  <div class="kpi-card" data-kpi-id="despesas" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
       <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
@@ -680,7 +682,8 @@ const App = (function () {
       <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
     </div>
   </div>
-  <div class="kpi-card kpi-poder-escolha ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}">
+  <div class="kpi-card kpi-poder-escolha ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}" data-kpi-id="poder">
+    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
     <div class="kpi-poder-header">
       <div class="kpi-poder-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor"/></svg>
@@ -699,7 +702,8 @@ const App = (function () {
       <span>${(poder.pct*100).toFixed(0)}% da receita · piso ${Utils.currency(poder.pisoSobrevivencia)}</span>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
+  <div class="kpi-card" data-kpi-id="maior-gasto" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
+    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
       <div class="kpi-label">Maior Gasto do Mês</div>
@@ -893,6 +897,69 @@ ${renderPrevisaoCaixa(saldo)}
           datasets: [{ label: 'Saldo Projetado', values: pcValues, color: lineColor }],
         }, { height: 130 });
       }
+      initKpiDnd(container);
+    });
+  }
+
+  function initKpiDnd(container) {
+    const grid = container.querySelector('#kpiGrid');
+    if (!grid) return;
+
+    const DEFAULT_ORDER = ['saude', 'despesas', 'poder', 'maior-gasto'];
+    const saved = Store.get().settings?.kpiOrder || DEFAULT_ORDER;
+
+    // Reorder DOM nodes to match saved order
+    saved.forEach(id => {
+      const el = grid.querySelector(`[data-kpi-id="${id}"]`);
+      if (el) grid.appendChild(el);
+    });
+
+    // Drag state
+    let dragging = null;
+
+    grid.querySelectorAll('.kpi-card').forEach(card => {
+      card.setAttribute('draggable', 'true');
+
+      card.addEventListener('dragstart', e => {
+        dragging = card;
+        requestAnimationFrame(() => card.classList.add('kpi-dragging'));
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('kpi-dragging');
+        grid.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('kpi-drop-over'));
+        // Save new order
+        const order = [...grid.querySelectorAll('[data-kpi-id]')].map(c => c.dataset.kpiId);
+        Store.updateSettings({ kpiOrder: order });
+        dragging = null;
+      });
+
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (!dragging || dragging === card) return;
+        grid.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('kpi-drop-over'));
+        card.classList.add('kpi-drop-over');
+        // Determine insertion point
+        const rect = card.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        const after = e.clientX > midX;
+        if (after) {
+          card.after(dragging);
+        } else {
+          card.before(dragging);
+        }
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('kpi-drop-over');
+      });
+
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        card.classList.remove('kpi-drop-over');
+      });
     });
   }
 

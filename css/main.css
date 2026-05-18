@@ -665,6 +665,34 @@ body { background: var(--bg-base); color: var(--text-1); }
   box-shadow: 0 6px 24px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
 }
 
+/* KPI drag-and-drop */
+.kpi-card[draggable="true"] { cursor: grab; }
+.kpi-card[draggable="true"]:active { cursor: grabbing; }
+
+.kpi-drag-handle {
+  position: absolute;
+  top: 8px; right: 8px;
+  font-size: 14px;
+  color: var(--text-4);
+  opacity: 0;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  transition: opacity .15s;
+  letter-spacing: -1px;
+}
+.kpi-card:hover .kpi-drag-handle { opacity: 1; }
+
+.kpi-card.kpi-dragging {
+  opacity: .4;
+  transform: scale(.97);
+  box-shadow: none;
+}
+.kpi-card.kpi-drop-over {
+  outline: 2px dashed var(--haile-indigo);
+  outline-offset: 2px;
+}
+
 /* KPI hero "Poder de Escolha" — gradient indigo do brand book */
 .kpi-card.kpi-poder-escolha {
   background: linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-indigo-deep) 100%);
