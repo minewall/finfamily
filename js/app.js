@@ -6662,20 +6662,20 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
 <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
   <aside class="card" style="padding:8px">
     ${[
-      ['categorias', '🗂', 'Categorias'],
-      ['tipos',      '🏷️', 'Tipos'],
-      ['coach',      '✦', 'Haile Coach'],
-      ['pessoas',    '👥', 'Grupo Familiar'],
-      ['cotacoes',   '💱', 'Cotações'],
-      ['aparencia',  '🎨', 'Aparência'],
-      ['backup',     '💾', 'Backup & Dados'],
-      ['perfil',     '👤', 'Perfil'],
-      ['senha',      '🔑', 'Trocar Senha'],
-      ['sobre',      'ℹ️',  'Sobre'],
+      ['categorias', 'folder-tree',   'Categorias'],
+      ['tipos',      'tag',           'Tipos'],
+      ['coach',      'sparkles',      'Haile Coach'],
+      ['pessoas',    'users',         'Grupo Familiar'],
+      ['cotacoes',   'arrow-left-right','Cotações'],
+      ['aparencia',  'palette',       'Aparência'],
+      ['backup',     'database',      'Backup & Dados'],
+      ['perfil',     'user-round',    'Perfil'],
+      ['senha',      'key-round',     'Trocar Senha'],
+      ['sobre',      'info',          'Sobre'],
     ].map(([k, ic, l]) => `
       <button class="config-tab ${section===k?'active':''}" data-section="${k}"
         style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:none;background:${section===k?'var(--bg-elevated)':'transparent'};color:${section===k?'var(--text-1)':'var(--text-2)'};border-radius:8px;cursor:pointer;font-size:13px;font-weight:${section===k?'600':'500'};margin-bottom:2px">
-        <span style="font-size:16px">${ic}</span>
+        ${icon(ic, { size: 16 })}
         <span>${l}</span>
       </button>
     `).join('')}
@@ -6806,11 +6806,11 @@ ${tipos.map(t => {
     const t = tipo || {};
     const isBuiltin = !!t.builtin;
     const COMPORT_OPTS = [
-      ['essencial',    '🔴 Essencial',    'Não posso viver sem isso este mês'],
-      ['obrigatorio',  '⚖️ Obrigatório',   'Imposição externa (pensão, multa, IR)'],
-      ['comprometido', '🟡 Comprometido', 'Posso cortar mas com custo de cancelar'],
-      ['opcional',     '🟢 Opcional',     'Posso cortar amanhã sem dor'],
-      ['eventual',     '⏱️ Eventual',     'Não é mensal — pontual'],
+      ['essencial',    'shield-alert',  '#EF4444', 'Essencial',    'Não posso viver sem isso este mês'],
+      ['obrigatorio',  'scale',         '#A78BFA', 'Obrigatório',  'Imposição externa (pensão, multa, IR)'],
+      ['comprometido', 'lock',          '#F59E0B', 'Comprometido', 'Posso cortar mas com custo de cancelar'],
+      ['opcional',     'circle-check',  '#22C55E', 'Opcional',     'Posso cortar amanhã sem dor'],
+      ['eventual',     'calendar-days', '#0EA5E9', 'Eventual',     'Não é mensal — pontual'],
     ];
     const COLORS = ['#EF4444','#A78BFA','#F59E0B','#22C55E','#0EA5E9','#7C6EF8','#14B8A6','#EC4899','#F97316','#06B6D4'];
     const html = `
@@ -6837,12 +6837,13 @@ ${tipos.map(t => {
   <div class="form-group form-full">
     <label class="form-label">Comportamento financeiro ${isBuiltin?'<span style="font-size:11px;color:var(--text-4);font-weight:500">(não editável em tipo padrão)</span>':''}</label>
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-      ${COMPORT_OPTS.map(([v,l,d]) => `
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:${isBuiltin?'default':'pointer'};${(t.comportamento||'opcional')===v?'background:var(--bg-elevated);border-color:var(--accent)':''}">
+      ${COMPORT_OPTS.map(([v, iconName, color, label, desc]) => `
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:${isBuiltin?'default':'pointer'};${(t.comportamento||'opcional')===v?'background:var(--bg-elevated);border-color:var(--accent)':''}">
           <input type="radio" name="fTComp" value="${v}" ${(t.comportamento||'opcional')===v?'checked':''} ${isBuiltin?'disabled':''}>
+          <div style="width:28px;height:28px;border-radius:8px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(iconName, { size: 16, color })}</div>
           <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text-1)">${l}</div>
-            <div style="font-size:11px;color:var(--text-3)">${d}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-1)">${label}</div>
+            <div style="font-size:11px;color:var(--text-3)">${desc}</div>
           </div>
         </label>`).join('')}
     </div>
@@ -7035,13 +7036,13 @@ ${tipos.map(t => {
     const data = Store.get();
     const current = (data.settings && data.settings.coachPersonality) || 'profissional';
     const personalities = [
-      { key: 'profissional', icon: '◆', label: 'Profissional', short: 'CFO pessoal',
+      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
         desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
         sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
-      { key: 'mentor',       icon: '☼', label: 'Mentor', short: 'Conselho dos pais',
+      { key: 'mentor',       iconName: 'heart-handshake', label: 'Mentor', short: 'Conselho dos pais',
         desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
         sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
-      { key: 'educador',     icon: '✦', label: 'Educador', short: 'Mestre paciente',
+      { key: 'educador',     iconName: 'graduation-cap', label: 'Educador', short: 'Mestre paciente',
         desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
         sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. (poupança rende ~6,17%). Em 12 meses, a diferença gira em torno de R$ 240."' },
     ];
@@ -7059,7 +7060,7 @@ ${personalities.map(p => `
   <button class="coach-persona-card ${current === p.key ? 'active' : ''}" data-persona="${p.key}"
     style="background:${current===p.key?'var(--haile-indigo-soft)':'var(--bg-card)'};border:1px solid ${current===p.key?'var(--haile-indigo)':'var(--border)'};border-radius:var(--radius-lg);padding:18px;text-align:left;cursor:pointer;transition:all var(--t-fast);color:var(--text-1)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg, var(--haile-indigo), var(--haile-teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700">${p.icon}</div>
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg, var(--haile-indigo), var(--haile-teal));display:flex;align-items:center;justify-content:center;color:#fff">${icon(p.iconName, { size: 18, color: '#fff' })}</div>
       <div>
         <div style="font-size:14px;font-weight:700;color:${current===p.key?'var(--haile-indigo-deep)':'var(--text-1)'}">${p.label}</div>
         <div style="font-size:11px;color:var(--text-3)">${p.short}</div>
