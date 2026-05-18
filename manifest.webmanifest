@@ -1,0 +1,33 @@
+{
+  "name": "Haile - Seu coach financeiro pessoal",
+  "short_name": "Haile",
+  "description": "App brasileiro de gestão financeira familiar com AI Coach",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1020",
+  "theme_color": "#6366F1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/favicon/haile-mark-indigo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/favicon/haile-mark-ink-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/svg/haile-mark-indigo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "lang": "pt-BR",
+  "dir": "ltr"
+}

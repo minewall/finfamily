@@ -98,15 +98,28 @@ svg { display: block; flex-shrink: 0; }
   /* Layout */
   --sidebar-w: 220px;
   --topbar-h:  56px;
-  --radius:    10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 6px rgba(15,20,34,.3);
-  --shadow-md: 0 4px 18px 0 rgba(15,20,34,.45);
-  --shadow-lg: 0 8px 32px rgba(15,20,34,.55), 0 2px 8px rgba(15,20,34,.35);
-  --shadow-accent: 0 4px 18px rgba(115,103,240,.4);
+  /* Spacing — escala oficial do brand kit (base 4px) */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* Radius — escala oficial do brand kit */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius:    var(--radius-md); /* alias legado */
+
+  /* Shadows — alinhadas com cor do ink (rgba do --haile-ink) */
+  --shadow-sm: 0 1px 3px rgba(15, 16, 32, 0.18);
+  --shadow-md: 0 4px 12px rgba(15, 16, 32, 0.30);
+  --shadow-lg: 0 12px 40px rgba(15, 16, 32, 0.42), 0 4px 12px rgba(15, 16, 32, 0.28);
+  --shadow-accent: 0 4px 18px rgba(99, 102, 241, 0.40);
 
   /* Motion */
   --t: 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -344,8 +357,9 @@ body { background: var(--bg-base); color: var(--text-1); }
   flex-shrink: 0;
 }
 .theme-btn:hover { background: var(--bg-hover); color: var(--text-1); }
-[data-theme="dark"] .icon-sun { display: none; }
-[data-theme="light"] .icon-moon { display: none; }
+/* Mostra o ícone do tema OPOSTO (= "clique pra ir para esse modo") */
+[data-theme="dark"] .icon-moon { display: none; }
+[data-theme="light"] .icon-sun { display: none; }
 
 /* ── MAIN AREA ──────────────────────────────────────────────────── */
 .main {

@@ -1374,7 +1374,7 @@ ${filtered.map(r => {
   </div>
 </div>
 
-<div class="card">
+<div class="card mb-6">
   <div class="card-header">
     <span class="card-title">Receitas — ${periodLabel}</span>
     <button class="btn-secondary" id="btnAddRec">+ Nova Receita</button>
@@ -6578,6 +6578,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     ${[
       ['categorias', '🗂', 'Categorias'],
       ['tipos',      '🏷️', 'Tipos'],
+      ['coach',      '✦', 'Haile Coach'],
       ['pessoas',    '👥', 'Grupo Familiar'],
       ['cotacoes',   '💱', 'Cotações'],
       ['aparencia',  '🎨', 'Aparência'],
@@ -6606,6 +6607,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     const content = document.getElementById('configContent');
     if      (section === 'categorias') renderConfigCategorias(content);
     else if (section === 'tipos')      renderConfigTipos(content);
+    else if (section === 'coach')      renderConfigCoach(content);
     else if (section === 'pessoas')    renderConfigPessoas(content);
     else if (section === 'cotacoes')   renderConfigCotacoes(content);
     else if (section === 'aparencia')  renderConfigAparencia(content);
@@ -6938,6 +6940,65 @@ ${tipos.map(t => {
         renderConfigCategorias(document.getElementById('configContent'));
         toast(isEdit?'Categoria atualizada':'Categoria criada', 'success');
       } catch (err) { toast(err.message, 'error'); }
+    });
+  }
+
+  function renderConfigCoach(content) {
+    const data = Store.get();
+    const current = (data.settings && data.settings.coachPersonality) || 'profissional';
+    const personalities = [
+      { key: 'profissional', icon: '◆', label: 'Profissional', short: 'CFO pessoal',
+        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
+        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
+      { key: 'mentor',       icon: '☼', label: 'Mentor', short: 'Conselho dos pais',
+        desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
+        sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
+      { key: 'educador',     icon: '✦', label: 'Educador', short: 'Mestre paciente',
+        desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
+        sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. (poupança rende ~6,17%). Em 12 meses, a diferença gira em torno de R$ 240."' },
+    ];
+
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div>
+    <div class="section-title">Personalidade do Haile</div>
+    <div class="section-sub">Escolha o tom de voz com que o Coach conversa com você. Você pode mudar a qualquer momento.</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px">
+${personalities.map(p => `
+  <button class="coach-persona-card ${current === p.key ? 'active' : ''}" data-persona="${p.key}"
+    style="background:${current===p.key?'var(--haile-indigo-soft)':'var(--bg-card)'};border:1px solid ${current===p.key?'var(--haile-indigo)':'var(--border)'};border-radius:var(--radius-lg);padding:18px;text-align:left;cursor:pointer;transition:all var(--t-fast);color:var(--text-1)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg, var(--haile-indigo), var(--haile-teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700">${p.icon}</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:${current===p.key?'var(--haile-indigo-deep)':'var(--text-1)'}">${p.label}</div>
+        <div style="font-size:11px;color:var(--text-3)">${p.short}</div>
+      </div>
+      ${current === p.key ? '<div style="margin-left:auto;font-size:11px;color:var(--haile-indigo);font-weight:600">✓ Ativa</div>' : ''}
+    </div>
+    <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">${p.desc}</div>
+    <div style="font-size:11px;color:var(--text-3);font-style:italic;line-height:1.5;padding-top:10px;border-top:1px dashed var(--border)">
+      ${p.sample}
+    </div>
+  </button>
+`).join('')}
+</div>
+
+<div style="background:var(--bg-elevated);border-radius:var(--radius-md);padding:12px 14px;font-size:12px;color:var(--text-3);line-height:1.6">
+  <strong style="color:var(--text-2)">Em breve:</strong> personalidades de "guru" — coaches financeiros licenciados com tom de figuras conhecidas do mercado brasileiro. Cobrança separada.
+</div>`;
+
+    content.addEventListener('click', e => {
+      const btn = e.target.closest('[data-persona]');
+      if (!btn) return;
+      const key = btn.dataset.persona;
+      if (!data.settings) data.settings = {};
+      data.settings.coachPersonality = key;
+      Store.persist();
+      renderConfigCoach(content);
+      toast(`Personalidade alterada para ${personalities.find(p => p.key === key)?.label}`, 'success');
     });
   }
 
@@ -7534,6 +7595,21 @@ ${isConnected && isAdmin ? `
     });
 
     // Logout button
+    // Theme toggle (sidebar footer)
+    (() => {
+      const saved = localStorage.getItem('ff_theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+      const btn = document.getElementById('btnThemeToggle');
+      btn?.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('ff_theme', next);
+      });
+    })();
+
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
       if (!confirm('Sair da conta?')) return;
       if (typeof SupabaseSync !== 'undefined') await SupabaseSync.signOut();
@@ -7982,6 +8058,31 @@ ${recFutStr}
 
 === ANOMALIAS DETECTADAS ===
 ${anomStr}
+
+${(() => {
+  const personality = (data.settings && data.settings.coachPersonality) || 'profissional';
+  const personalities = {
+    profissional: `PERSONALIDADE: Profissional (CFO pessoal)
+Você é direto, técnico, sério. Como um CFO que respeita o tempo do usuário.
+Tom: claro e objetivo, sem rodeios emocionais. Cita dados, taxas e percentuais
+com naturalidade. Não usa expressões de afeto. Não celebra com exclamações.
+Trata números como evidência, não como vitória.`,
+    mentor: `PERSONALIDADE: Mentor (Conselho dos pais)
+Você é acolhedor, paciente, encorajador. Como um pai/mãe sábio que conhece a
+vida financeira do usuário desde sempre.
+Tom: caloroso, valida sentimentos antes de aconselhar, celebra conquistas com
+genuinidade. Usa "que bom", "isso é ótimo", "estou orgulhoso de você" quando
+genuíno. Nunca patroniza, nunca infantiliza. Sugere com "que tal", "podemos
+pensar em", em vez de imperativos.`,
+    educador: `PERSONALIDADE: Educador (mestre paciente)
+Você é didático, explicativo, paciente. Como um professor que ensina o "porquê"
+junto com o "o quê".
+Tom: explica conceitos sempre que oferece um conselho — não assume conhecimento
+prévio. Usa analogias do dia-a-dia. Quando cita uma decisão financeira, explica
+a regra ou matemática por trás. Convida o usuário a entender, não só a obedecer.`,
+  };
+  return personalities[personality] || personalities.profissional;
+})()}
 
 INSTRUÇÕES (tom de voz Haile):
 
