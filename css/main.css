@@ -385,6 +385,35 @@ body { background: var(--bg-base); color: var(--text-1); }
 .lucide-icon { display: inline-block; vertical-align: middle; }
 .lucide-icon svg { width: 100%; height: 100%; stroke-width: 2; }
 
+/* Grid de ícones para escolha de categoria */
+.cat-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+}
+.cat-icon-pick {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.cat-icon-pick:hover { border-color: var(--haile-indigo); color: var(--haile-indigo); }
+.cat-icon-pick.active {
+  background: var(--haile-indigo);
+  color: #fff;
+  border-color: var(--haile-indigo);
+}
+
 .theme-btn {
   width: 32px;
   height: 32px;

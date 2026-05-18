@@ -111,12 +111,25 @@ const App = (function () {
   // ── Lucide Icons helper ────────────────────────────────────────
   // Renderiza um placeholder <i data-lucide="..."> que vai virar SVG quando
   // lucide.createIcons() rodar. Use em templates HTML/string.
+  // Mapa de migração emoji → Lucide para ícones legados em localStorage
+  const _EMOJI_TO_LUCIDE = {
+    '🏠':'home','🛒':'shopping-cart','🚗':'car','❤️':'heart','👤':'user-round',
+    '🐕':'dog','🎉':'party-popper','🏦':'landmark','💳':'credit-card','👧':'baby',
+    '📚':'book-open','🎁':'gift','⚖️':'scale','💰':'banknote','📁':'tag',
+    '🐈':'cat','✈️':'plane','🎬':'film','🎮':'gamepad-2','🍔':'utensils',
+    '⛽':'fuel','💊':'pill','🏥':'stethoscope','📱':'phone','💼':'briefcase',
+    '🛍️':'shopping-bag','🎵':'music','📺':'tv','✨':'sparkles',
+  };
   function icon(name, opts = {}) {
+    // Migra emoji → Lucide se necessário; fallback pra 'tag' se nome inválido
+    let n = name || 'tag';
+    if (_EMOJI_TO_LUCIDE[n]) n = _EMOJI_TO_LUCIDE[n];
+    if (!/^[a-z0-9-]+$/.test(n)) n = 'tag';
     const size = opts.size || 16;
     const cls = opts.class || '';
     const color = opts.color ? `color:${opts.color};` : '';
     const style = `width:${size}px;height:${size}px;${color}${opts.style || ''}`;
-    return `<i data-lucide="${name}" class="lucide-icon ${cls}" style="${style}"></i>`;
+    return `<i data-lucide="${n}" class="lucide-icon ${cls}" style="${style}"></i>`;
   }
   // Chama createIcons() no escopo dado (default: document).
   function upgradeIcons(root) {
@@ -2423,7 +2436,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
         <label class="form-label">Categoria (opcional, p/ limites por categoria)</label>
         <select class="form-select" id="fMCat">
           <option value="">— Todas —</option>
-          ${cats.filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}" ${m.category===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+          ${cats.filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}" ${m.category===k?'selected':''}>${v.label}</option>`).join('')}
         </select>
       </div>
       <div class="form-group"><label class="form-label" id="fMTargetLabel">Valor Alvo (R$)</label><input class="form-input" id="fMTarget" type="number" step="100" value="${m.target||''}"/></div>
@@ -2662,7 +2675,7 @@ ${contratos.length === 0 ? `
             <td><span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span></td>
             <td>
               <div style="font-weight:600;color:var(--text-1)">${c.label}</div>
-              <div style="font-size:11px;color:var(--text-4)">${cat.icon} ${cat.label}${c.sub?' / '+c.sub:''} · ${iniStr}→${fimStr}</div>
+              <div style="font-size:11px;color:var(--text-4);display:inline-flex;align-items:center;gap:4px">${icon(cat.icon||'tag', { size: 12, color: cat.color })} ${cat.label}${c.sub?' / '+c.sub:''} · ${iniStr}→${fimStr}</div>
             </td>
             <td style="color:var(--text-2)">${c.responsavel||'—'}</td>
             <td class="num fw-700" style="font-family:var(--mono)">${Utils.currency(c.valorParcela)}</td>
@@ -2757,7 +2770,7 @@ ${contratos.length === 0 ? `
       </div>
       <div class="form-group"><label class="form-label">Categoria</label>
         <select class="form-select" id="fCCat">
-          ${cats.map(([k,v]) => `<option value="${k}" ${c.category===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+          ${cats.map(([k,v]) => `<option value="${k}" ${c.category===k?'selected':''}>${v.label}</option>`).join('')}
         </select>
       </div>
       <div class="form-group" id="fCSubGroup"><label class="form-label">Subcategoria</label>
@@ -4678,7 +4691,7 @@ ${topCats.length ? `
         <label class="form-label" style="margin-bottom:6px">Tipo deste lançamento <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:normal;font-size:11px">(opcional — sobrescreve o tipo da subcategoria)</span></label>
         <select class="form-select" id="eDTipoOverride">
           <option value="">Herdar da subcategoria (${(Store.getTipoById && Store.getTipoById(tipoEfetivo)?.label) || tipoEfetivo || '—'})</option>
-          ${tipos.map(t => `<option value="${t.id}" ${d.tipoOverride===t.id?'selected':''}>${t.icon||''} ${t.label}</option>`).join('')}
+          ${tipos.map(t => `<option value="${t.id}" ${d.tipoOverride===t.id?'selected':''}>${t.label}</option>`).join('')}
         </select>
       </div>`;
       })()}
@@ -6701,6 +6714,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     else if (section === 'perfil')     renderConfigPerfil(content);
     else if (section === 'senha')      renderConfigSenha(content);
     else                                renderConfigSobre(content);
+    upgradeIcons(container);
   }
 
   function renderConfigTipos(content) {
@@ -6799,6 +6813,7 @@ ${tipos.map(t => {
         if (tuple) _openSelectTipoForCat({ key: tuple[0], label: tuple[1].label, color: tuple[1].color, icon: tuple[1].icon }, () => renderConfigTipos(content));
       }
     });
+    upgradeIcons(content);
   }
 
   function _openTipoModal(tipo, onSaved) {
@@ -6921,7 +6936,7 @@ ${tipos.map(t => {
     <details class="card" draggable="true" data-cat-key="${key}" style="padding:0;cursor:grab">
       <summary style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none">
         <span style="font-size:16px;color:var(--text-4);cursor:grab" title="Arrastar para reordenar">⠿</span>
-        <span style="font-size:22px">${info.icon||'📁'}</span>
+        <span style="width:36px;height:36px;border-radius:10px;background:${info.color}1a;color:${info.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(info.icon || 'tag', { size: 18, color: info.color })}</span>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--text-1)">${info.label}</div>
           <div style="font-size:11px;color:var(--text-4)">key: <code>${key}</code> · ${usage} lançamento(s) · ${subs.length} subcat.</div>
@@ -7007,29 +7022,78 @@ ${tipos.map(t => {
       try { Store.deleteSubcategoria(b.dataset.cat, b.dataset.sub); renderConfigCategorias(content); toast('Subcategoria excluída', 'success'); }
       catch (err) { toast(err.message, 'error'); }
     }));
+    upgradeIcons(content);
   }
 
+  // Set curado de ícones Lucide relevantes para categorias financeiras
+  const CATEGORY_ICONS = [
+    'home','sofa','utensils','shopping-cart','shopping-bag','car','fuel','plane','train',
+    'heart','stethoscope','pill','dumbbell','smile','baby','dog','cat','book-open','graduation-cap',
+    'film','music','gamepad-2','party-popper','tv','gift','sparkles','star','cake','wine',
+    'briefcase','laptop','phone','wifi','zap','droplet','flame','wrench','hammer','spray-can',
+    'banknote','credit-card','wallet','trending-up','piggy-bank','landmark','receipt','scale','tag',
+    'sun','tree-pine','flower','globe','map-pin','umbrella','shirt','scissors','glasses',
+  ];
   function openCategoriaModal(key) {
     const isEdit = !!key;
-    const c = isEdit ? Store.CATEGORIES[key] : { label:'', icon:'📁', color:'#7C6EF8' };
+    const c = isEdit ? Store.CATEGORIES[key] : { label:'', icon:'tag', color:'#7C6EF8' };
+    // Normaliza ícone legado (emoji) → 'tag' se não estiver na lista Lucide
+    const currentIcon = CATEGORY_ICONS.includes(c.icon) ? c.icon : 'tag';
+    const COLOR_SWATCHES = ['#7C6EF8','#22C55E','#3B82F6','#EC4899','#F59E0B','#F97316','#14B8A6','#6366F1','#8B5CF6','#EF4444','#0EA5E9','#D946EF','#84CC16','#06B6D4'];
     const html = `<div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Nome</label><input class="form-input" id="fCatLabel" value="${c.label}" placeholder="Ex: Educação"/></div>
-      <div class="form-group"><label class="form-label">Ícone (emoji)</label><input class="form-input" id="fCatIcon" value="${c.icon}" maxlength="4"/></div>
-      <div class="form-group"><label class="form-label">Cor</label><input class="form-input" id="fCatColor" type="color" value="${c.color}"/></div>
+      <div class="form-group form-full">
+        <label class="form-label">Ícone</label>
+        <div class="cat-icon-grid">
+          ${CATEGORY_ICONS.map(n => `<button type="button" class="cat-icon-pick ${n === currentIcon ? 'active' : ''}" data-icon="${n}" title="${n}">${icon(n, { size: 18 })}</button>`).join('')}
+        </div>
+        <input type="hidden" id="fCatIcon" value="${currentIcon}">
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Cor</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+          ${COLOR_SWATCHES.map(col => `<button type="button" data-color="${col}" class="cat-color-pick ${col.toLowerCase() === c.color.toLowerCase() ? 'active' : ''}" style="width:28px;height:28px;border-radius:50%;background:${col};border:2px solid ${col.toLowerCase() === c.color.toLowerCase() ? '#fff' : 'transparent'};box-shadow:0 0 0 2px ${col.toLowerCase() === c.color.toLowerCase() ? col : 'transparent'};cursor:pointer"></button>`).join('')}
+        </div>
+        <input type="hidden" id="fCatColor" value="${c.color}">
+      </div>
     </div>`;
     Modal.open(isEdit?'Editar Categoria':'Nova Categoria', html, () => {
       const label = document.getElementById('fCatLabel').value.trim();
-      const icon = document.getElementById('fCatIcon').value.trim();
+      const ic = document.getElementById('fCatIcon').value.trim() || 'tag';
       const color = document.getElementById('fCatColor').value;
       if (!label) return toast('Nome obrigatório', 'error');
       try {
-        if (isEdit) Store.updateCategoria(key, { label, icon, color });
-        else Store.addCategoria({ label, icon, color });
+        if (isEdit) Store.updateCategoria(key, { label, icon: ic, color });
+        else Store.addCategoria({ label, icon: ic, color });
         Modal.close();
         renderConfigCategorias(document.getElementById('configContent'));
         toast(isEdit?'Categoria atualizada':'Categoria criada', 'success');
       } catch (err) { toast(err.message, 'error'); }
     });
+    // Interatividade: seleção de ícone e cor
+    setTimeout(() => {
+      const modal = document.getElementById('modal');
+      modal.querySelectorAll('[data-icon]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modal.querySelectorAll('[data-icon]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('fCatIcon').value = btn.dataset.icon;
+        });
+      });
+      modal.querySelectorAll('[data-color]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modal.querySelectorAll('[data-color]').forEach(b => {
+            b.classList.remove('active');
+            b.style.border = '2px solid transparent';
+            b.style.boxShadow = '0 0 0 2px transparent';
+          });
+          btn.classList.add('active');
+          btn.style.border = '2px solid #fff';
+          btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color}`;
+          document.getElementById('fCatColor').value = btn.dataset.color;
+        });
+      });
+    }, 50);
   }
 
   function renderConfigCoach(content) {
@@ -7089,6 +7153,7 @@ ${personalities.map(p => `
       renderConfigCoach(content);
       toast(`Personalidade alterada para ${personalities.find(p => p.key === key)?.label}`, 'success');
     });
+    upgradeIcons(content);
   }
 
   function renderConfigPessoas(content) {

@@ -9,20 +9,20 @@ const Store = (function () {
 
   // ── CATEGORIES ─────────────────────────────────────────────────
   const CATEGORIES = {
-    moradia:     { label: 'Moradia',             color: '#7C6EF8', icon: '🏠' },
-    alimentacao: { label: 'Alimentação',          color: '#22C55E', icon: '🛒' },
-    transporte:  { label: 'Transporte',           color: '#3B82F6', icon: '🚗' },
-    saude:       { label: 'Saúde',               color: '#EC4899', icon: '❤️' },
-    pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: '👤' },
-    dogs:        { label: 'Dogs',                color: '#F97316', icon: '🐕' },
-    lazer:       { label: 'Lazer',               color: '#14B8A6', icon: '🎉' },
-    financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: '🏦' },
-    cartoes:     { label: 'Cartões & Wallets',   color: '#8B5CF6', icon: '💳' },
-    manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: '👧' },
-    educacao:    { label: 'Educação',            color: '#06B6D4', icon: '📚' },
-    beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: '🎁' },
-    assessorias: { label: 'Assessorias',         color: '#F59E0B', icon: '⚖️' },
-    receita:     { label: 'Receita',             color: '#22C55E', icon: '💰' },
+    moradia:     { label: 'Moradia',             color: '#7C6EF8', icon: 'home' },
+    alimentacao: { label: 'Alimentação',          color: '#22C55E', icon: 'shopping-cart' },
+    transporte:  { label: 'Transporte',           color: '#3B82F6', icon: 'car' },
+    saude:       { label: 'Saúde',               color: '#EC4899', icon: 'heart' },
+    pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: 'user-round' },
+    dogs:        { label: 'Dogs',                color: '#F97316', icon: 'dog' },
+    lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
+    financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
+    cartoes:     { label: 'Cartões & Wallets',   color: '#8B5CF6', icon: 'credit-card' },
+    manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: 'baby' },
+    educacao:    { label: 'Educação',            color: '#06B6D4', icon: 'book-open' },
+    beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: 'gift' },
+    assessorias: { label: 'Assessorias',         color: '#F59E0B', icon: 'scale' },
+    receita:     { label: 'Receita',             color: '#22C55E', icon: 'banknote' },
   };
 
   const SUBCATEGORIES = {
@@ -429,6 +429,25 @@ const Store = (function () {
 
   let _data = null;
 
+  // Migra ícones legados (emoji) das categorias persistidas pro modelo Lucide.
+  function _migrateCategoryIcons() {
+    const map = {
+      '🏠':'home','🛒':'shopping-cart','🚗':'car','❤️':'heart','👤':'user-round',
+      '🐕':'dog','🎉':'party-popper','🏦':'landmark','💳':'credit-card','👧':'baby',
+      '📚':'book-open','🎁':'gift','⚖️':'scale','💰':'banknote','📁':'tag',
+    };
+    if (!_data.categorias) return;
+    let changed = false;
+    Object.entries(_data.categorias).forEach(([k, info]) => {
+      if (info && map[info.icon]) { info.icon = map[info.icon]; changed = true; }
+      else if (info && info.icon && !/^[a-z0-9-]+$/.test(info.icon)) {
+        // Ícone customizado não-Lucide (emoji desconhecido) → fallback 'tag'
+        info.icon = 'tag'; changed = true;
+      }
+    });
+    if (changed) persist();
+  }
+
   function _migrateMetas() {
     if (!_data.metas) { _data.metas = []; return; }
     const seen = new Set();
@@ -696,6 +715,7 @@ const Store = (function () {
     _cleanupBadSeed();
     _cleanupDespesas2026Q1();
     _loadEditableConfig();
+    _migrateCategoryIcons();
     _migrateMetas();
     _migrateManuelaCat();
     _migrateRobertoMarianaCat();
