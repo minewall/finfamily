@@ -724,6 +724,7 @@ const Store = (function () {
     _sweepRobertoCat();
     _sweepMarianaCat();
     _syncEditableConfig();
+    _ensureOnboarding();
     save(_data);
     return _data;
   }
@@ -1688,6 +1689,41 @@ const Store = (function () {
     persist();
   }
 
+  function _ensureOnboarding() {
+    if (!_data.onboarding) {
+      _data.onboarding = { completed: false, completedAt: null, answers: {} };
+    }
+  }
+
+  function getOnboarding() {
+    _ensureOnboarding();
+    return _data.onboarding;
+  }
+
+  function completeOnboarding(answers) {
+    _ensureOnboarding();
+    _data.onboarding.completed = true;
+    _data.onboarding.completedAt = new Date().toISOString();
+    _data.onboarding.answers = answers || {};
+    persist();
+  }
+
+  function resetOnboarding() {
+    _ensureOnboarding();
+    _data.onboarding.completed = false;
+    _data.onboarding.completedAt = null;
+    _data.onboarding.answers = {};
+    persist();
+  }
+
+  function addMeta(entry) {
+    entry.id = entry.id || newId();
+    if (!_data.metas) _data.metas = [];
+    _data.metas.push(entry);
+    persist();
+    return entry;
+  }
+
   function exportData() {
     return {
       version: 1,
@@ -2075,6 +2111,8 @@ const Store = (function () {
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
     getProfile, setProfile, getCredHash, setCredHash,
+    getOnboarding, completeOnboarding, resetOnboarding,
+    addMeta,
     applyMemberFilter,
     syncFromCloud,
   };

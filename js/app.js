@@ -7493,8 +7493,9 @@ ${isConnected && isAdmin ? `
       </select>
     </div>
   </div>
-  <div style="margin-top:20px;display:flex;gap:10px">
+  <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn-primary" id="btnSavePerfil">Salvar</button>
+    <button class="btn-secondary" id="btnRefazerOnboarding">Refazer configuração inicial</button>
   </div>
   <div id="perfilMsg" style="display:none;margin-top:10px;font-size:13px;color:var(--green)">✓ Perfil salvo</div>
 </div>`;
@@ -7516,6 +7517,11 @@ ${isConnected && isAdmin ? `
       const msg = document.getElementById('perfilMsg');
       msg.style.display = 'block';
       setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    });
+
+    document.getElementById('btnRefazerOnboarding').addEventListener('click', () => {
+      Store.resetOnboarding();
+      showOnboarding();
     });
   }
 
@@ -7851,6 +7857,241 @@ ${isConnected && isAdmin ? `
 
     // Init AI Coach
     initCoach();
+
+    // Show onboarding wizard on first access
+    if (!Store.getOnboarding().completed) {
+      setTimeout(() => showOnboarding(), 400);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ONBOARDING WIZARD
+  // ══════════════════════════════════════════════════════════════
+  function showOnboarding() {
+    const personalities = [
+      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
+        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
+        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
+      { key: 'mentor', iconName: 'heart-handshake', label: 'Mentor', short: 'Conselho dos pais',
+        desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
+        sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
+      { key: 'educador', iconName: 'graduation-cap', label: 'Educador', short: 'Mestre paciente',
+        desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
+        sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. Em 12 meses, a diferença gira em torno de R$ 240."' },
+    ];
+
+    const STEPS = [
+      {
+        key: 'familia',
+        title: 'Como é a sua família?',
+        type: 'single',
+        options: [
+          { value: 'solo',     label: 'Só eu',                    icon: 'user-round' },
+          { value: 'casal',    label: 'Eu e minha(meu) parceira(o)', icon: 'users' },
+          { value: 'filhos',   label: 'Família com filhos',        icon: 'baby' },
+          { value: 'outro',    label: 'Outro arranjo',             icon: 'heart-handshake' },
+        ],
+      },
+      {
+        key: 'patrimonio',
+        title: 'O que você já tem?',
+        type: 'multi',
+        options: [
+          { value: 'imovel',        label: 'Imóvel próprio',          icon: 'home' },
+          { value: 'veiculo',       label: 'Veículo(s)',               icon: 'car' },
+          { value: 'investimentos', label: 'Investimentos',            icon: 'trending-up' },
+          { value: 'financiamento', label: 'Financiamento ativo',      icon: 'landmark' },
+          { value: 'nenhum',        label: 'Nenhum dos anteriores',    icon: 'circle-off' },
+        ],
+      },
+      {
+        key: 'objetivo',
+        title: 'Qual é a sua prioridade financeira hoje?',
+        type: 'single',
+        options: [
+          { value: 'dividas',  label: 'Sair do vermelho / quitar dívidas', icon: 'circle-x' },
+          { value: 'reserva',  label: 'Montar reserva de emergência',       icon: 'shield' },
+          { value: 'imovel',   label: 'Comprar imóvel / veículo',           icon: 'home' },
+          { value: 'investir', label: 'Investir e crescer patrimônio',      icon: 'trending-up' },
+          { value: 'controle', label: 'Organizar e ter controle',           icon: 'layout-dashboard' },
+        ],
+      },
+      {
+        key: 'estilo',
+        title: 'Como você prefere acompanhar seus gastos?',
+        type: 'single',
+        options: [
+          { value: 'realtime', label: 'Lanço tudo em tempo real',        icon: 'zap' },
+          { value: 'mensal',   label: 'Reviso no fim do mês',            icon: 'calendar' },
+          { value: 'coach',    label: 'Quero que o Coach me lembre',      icon: 'bell' },
+        ],
+      },
+      {
+        key: 'coach',
+        title: 'Como prefere que o Haile fale com você?',
+        type: 'single',
+        options: personalities.map(p => ({ value: p.key, label: p.label, icon: p.iconName, sub: p.short, desc: p.desc })),
+      },
+      {
+        key: 'confirmacao',
+        title: 'confirmacao',
+        type: 'confirm',
+      },
+    ];
+
+    let currentStep = 0;
+    const answers = {};
+
+    const overlay = document.createElement('div');
+    overlay.id = 'onboardingOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg-base);display:flex;align-items:center;justify-content:center;padding:16px';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'max-width:560px;width:100%;background:var(--bg-card);border-radius:var(--radius-xl);padding:40px;box-shadow:var(--shadow-lg);position:relative';
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    function renderStep() {
+      const step = STEPS[currentStep];
+      const total = STEPS.length;
+      const pct = Math.round(((currentStep + 1) / total) * 100);
+      const profile = Store.getProfile();
+      const name = (profile.name && profile.name !== 'Usuário') ? profile.name : '';
+
+      let optionsHtml = '';
+      if (step.type === 'single' || step.type === 'multi') {
+        const selected = answers[step.key] || (step.type === 'multi' ? [] : null);
+        optionsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:24px 0">` +
+          step.options.map(o => {
+            const isSel = step.type === 'multi'
+              ? selected.includes(o.value)
+              : selected === o.value;
+            return `<button class="ob-opt" data-val="${o.value}"
+              style="background:${isSel ? 'var(--haile-indigo-soft)' : 'var(--bg-elevated)'};
+                     border:2px solid ${isSel ? 'var(--haile-indigo)' : 'var(--border)'};
+                     border-radius:var(--radius-lg);padding:14px 16px;text-align:left;cursor:pointer;
+                     transition:border-color .15s,background .15s;color:var(--text-1);width:100%">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:${o.desc ? '8px' : '0'}">
+                <div style="width:32px;height:32px;border-radius:50%;background:${isSel ? 'var(--haile-indigo)' : 'var(--bg-base)'};
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s">
+                  ${icon(o.icon, { size: 16, color: isSel ? '#fff' : 'var(--text-2)' })}
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:${isSel ? 'var(--haile-indigo-deep)' : 'var(--text-1)'}">${o.label}</div>
+                  ${o.sub ? `<div style="font-size:11px;color:var(--text-3)">${o.sub}</div>` : ''}
+                </div>
+              </div>
+              ${o.desc ? `<div style="font-size:11px;color:var(--text-3);line-height:1.5">${o.desc}</div>` : ''}
+            </button>`;
+          }).join('') + `</div>`;
+      } else if (step.type === 'confirm') {
+        const familiaOpt = STEPS[0].options.find(o => o.value === answers.familia);
+        const objetivoOpt = STEPS[2].options.find(o => o.value === answers.objetivo);
+        const coachOpt = personalities.find(p => p.key === answers.coach);
+        optionsHtml = `
+        <div style="margin:24px 0;display:flex;flex-direction:column;gap:10px">
+          ${familiaOpt ? `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius-md)">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon(familiaOpt.icon, { size: 16, color: '#fff' })}</div>
+            <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Família</div><div style="font-size:13px;font-weight:600;color:var(--text-1)">${familiaOpt.label}</div></div>
+          </div>` : ''}
+          ${objetivoOpt ? `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius-md)">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon(objetivoOpt.icon, { size: 16, color: '#fff' })}</div>
+            <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Prioridade</div><div style="font-size:13px;font-weight:600;color:var(--text-1)">${objetivoOpt.label}</div></div>
+          </div>` : ''}
+          ${coachOpt ? `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius-md)">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon(coachOpt.iconName, { size: 16, color: '#fff' })}</div>
+            <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Coach</div><div style="font-size:13px;font-weight:600;color:var(--text-1)">${coachOpt.label}</div></div>
+          </div>` : ''}
+        </div>`;
+      }
+
+      const isLast = currentStep === STEPS.length - 1;
+      const isFirst = currentStep === 0;
+      const titleHtml = step.type === 'confirm'
+        ? `<h2 style="font-size:22px;font-weight:800;color:var(--text-1);margin:0 0 6px">Tudo pronto${name ? ', ' + name : ''}!</h2>
+           <p style="font-size:14px;color:var(--text-2);margin:0">O Haile já está configurado para o seu perfil.</p>`
+        : `<h2 style="font-size:20px;font-weight:700;color:var(--text-1);margin:0">${step.title}</h2>`;
+
+      card.innerHTML = `
+        <div style="margin-bottom:24px">
+          <div style="font-size:11px;color:var(--haile-indigo);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">
+            haile — passo ${currentStep + 1} de ${total}
+          </div>
+          <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:var(--haile-indigo);transition:width .3s;border-radius:2px"></div>
+          </div>
+        </div>
+        ${titleHtml}
+        ${optionsHtml}
+        <div style="display:flex;justify-content:${isFirst ? 'flex-end' : 'space-between'};align-items:center;margin-top:8px;gap:10px">
+          ${isFirst ? '' : `<button id="obBack" class="btn-secondary" style="min-width:90px">Voltar</button>`}
+          <button id="obNext" class="btn-primary" style="min-width:120px">${isLast ? 'Começar' : 'Continuar'}</button>
+        </div>`;
+
+      upgradeIcons(card);
+
+      card.querySelectorAll('.ob-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.val;
+          const step = STEPS[currentStep];
+          if (step.type === 'multi') {
+            let arr = answers[step.key] || [];
+            if (val === 'nenhum') {
+              arr = arr.includes('nenhum') ? [] : ['nenhum'];
+            } else {
+              arr = arr.filter(v => v !== 'nenhum');
+              if (arr.includes(val)) arr = arr.filter(v => v !== val);
+              else arr = [...arr, val];
+            }
+            answers[step.key] = arr;
+          } else {
+            answers[step.key] = val;
+          }
+          renderStep();
+        });
+      });
+
+      card.querySelector('#obNext')?.addEventListener('click', () => {
+        const step = STEPS[currentStep];
+        if (step.type !== 'confirm') {
+          const sel = answers[step.key];
+          if (!sel || (Array.isArray(sel) && sel.length === 0)) {
+            toast('Selecione uma opção para continuar', 'error');
+            return;
+          }
+        }
+        if (isLast) {
+          completeOnboardingFlow(answers);
+        } else {
+          currentStep++;
+          renderStep();
+        }
+      });
+
+      card.querySelector('#obBack')?.addEventListener('click', () => {
+        if (currentStep > 0) { currentStep--; renderStep(); }
+      });
+    }
+
+    function completeOnboardingFlow(answers) {
+      const data = Store.get();
+      if (!data.settings) data.settings = {};
+      if (answers.coach) {
+        data.settings.coachPersonality = answers.coach;
+        Store.persist();
+      }
+      if (answers.objetivo === 'reserva') {
+        Store.addMeta({ label: 'Reserva de emergência', type: 'reserva', target: 0, atual: 0, active: true });
+      } else if (answers.objetivo === 'imovel') {
+        Store.addMeta({ label: 'Comprar imóvel', type: 'objetivo', target: 0, atual: 0, active: true });
+      }
+      Store.completeOnboarding(answers);
+      overlay.remove();
+      toast('Bem-vindo ao Haile!', 'success');
+    }
+
+    renderStep();
   }
 
   // ══════════════════════════════════════════════════════════════
