@@ -6693,13 +6693,14 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       eventual:     { label: 'Eventual',     desc: 'Não é mensal, pontual — entra no Poder de Escolha' },
     };
 
-    // Conta categorias por tipo
+    // Conta categorias por tipo (cats vem como [key, {label, color, icon}])
     const catsPorTipo = {};
     tipos.forEach(t => { catsPorTipo[t.id] = []; });
-    cats.forEach(c => {
-      const tid = Store.getCatTipo(c.key);
+    cats.forEach(([key, info]) => {
+      if (!info || key === 'receita') return;
+      const tid = Store.getCatTipo(key);
       if (!catsPorTipo[tid]) catsPorTipo[tid] = [];
-      catsPorTipo[tid].push(c);
+      catsPorTipo[tid].push({ key, label: info.label, color: info.color, icon: info.icon });
     });
 
     content.innerHTML = `
@@ -6743,14 +6744,15 @@ ${tipos.map(t => {
   <div class="table-wrap"><table class="data-table">
     <thead><tr><th>Categoria</th><th>Tipo atual</th><th></th></tr></thead>
     <tbody>
-    ${cats.map(c => {
-      const tid = Store.getCatTipo(c.key);
+    ${cats.filter(([k]) => k !== 'receita').map(([key, info]) => {
+      if (!info) return '';
+      const tid = Store.getCatTipo(key);
       const t = Store.getTipoById(tid) || tipos[0];
       return `
       <tr>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.color};margin-right:8px;vertical-align:middle"></span><strong>${c.label}</strong></td>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${info.color};margin-right:8px;vertical-align:middle"></span><strong>${info.label}</strong></td>
         <td><span style="display:inline-block;background:${t.color}20;color:${t.color};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">${t.icon||''} ${t.label}</span></td>
-        <td style="text-align:right"><button class="btn-xs" data-set-cat-tipo="${c.key}">Trocar</button></td>
+        <td style="text-align:right"><button class="btn-xs" data-set-cat-tipo="${key}">Trocar</button></td>
       </tr>`;
     }).join('')}
     </tbody>
@@ -6772,8 +6774,8 @@ ${tipos.map(t => {
       const setCat = e.target.closest('[data-set-cat-tipo]');
       if (setCat) {
         const catKey = setCat.dataset.setCatTipo;
-        const cat = cats.find(c => c.key === catKey);
-        if (cat) _openSelectTipoForCat(cat, () => renderConfigTipos(content));
+        const tuple = cats.find(([k]) => k === catKey);
+        if (tuple) _openSelectTipoForCat({ key: tuple[0], label: tuple[1].label, color: tuple[1].color, icon: tuple[1].icon }, () => renderConfigTipos(content));
       }
     });
   }
