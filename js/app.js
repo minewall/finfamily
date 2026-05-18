@@ -1540,8 +1540,8 @@ ${filtered.map(r => {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div class="stat-row-value green">${Utils.currency(rf.valor || rf.amount)}</div>
-          <button class="btn-icon-sm success" data-realizar-rf="${rf.id}" title="Realizar (vira receita)">${icon(\'check\', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-del-rf="${rf.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+          <button class="btn-icon-sm success" data-realizar-rf="${rf.id}" title="Realizar (vira receita)">${icon('check', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-del-rf="${rf.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>`;
     }).join('');
@@ -2271,9 +2271,9 @@ ${indicadores.length === 0 ? '' : `
           </div>
         </div>
         <div style="display:flex;gap:6px">
-          ${m.type==='reserva'?`<button class="btn-icon-sm" data-action="snap-meta" data-id="${m.id}" title="Marcar snapshot">${icon(\'camera\', {size:14})}</button>`:''}
-          <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+          ${m.type==='reserva'?`<button class="btn-icon-sm" data-action="snap-meta" data-id="${m.id}" title="Marcar snapshot">${icon('camera', {size:14})}</button>`:''}
+          <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon('pencil', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>
 
@@ -2350,8 +2350,8 @@ ${objetivos.length === 0 ? '' : `
       <div class="card-header">
         <span style="font-size:11px;color:var(--text-4)">🎯 Objetivo</span>
         <div style="display:flex;gap:6px">
-          <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+          <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon('pencil', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>
       <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:8px">${m.label}</div>
@@ -2708,10 +2708,10 @@ ${contratos.length === 0 ? `
             </td>
             <td><span class="badge" style="background:${STATUS_COLOR[status]}20;color:${STATUS_COLOR[status]}">${STATUS_LABEL[status]}</span></td>
             <td style="white-space:nowrap">
-              <button class="btn-icon-sm" data-action="toggle-detail" data-id="${c.id}" title="Ver parcelas">${icon(isExpanded ? \'chevron-down\' : \'chevron-right\', {size:14})}</button>
-              <button class="btn-icon-sm success" data-action="mark-past" data-id="${c.id}" title="Marcar passadas como pagas">${icon(\'check-check\', {size:14})}</button>
-              <button class="btn-icon-sm" data-action="edit-contrato" data-id="${c.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-              <button class="btn-icon-sm danger" data-action="del-contrato" data-id="${c.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+              <button class="btn-icon-sm" data-action="toggle-detail" data-id="${c.id}" title="Ver parcelas">${icon(isExpanded ? 'chevron-down' : 'chevron-right', {size:14})}</button>
+              <button class="btn-icon-sm success" data-action="mark-past" data-id="${c.id}" title="Marcar passadas como pagas">${icon('check-check', {size:14})}</button>
+              <button class="btn-icon-sm" data-action="edit-contrato" data-id="${c.id}" title="Editar">${icon('pencil', {size:14})}</button>
+              <button class="btn-icon-sm danger" data-action="del-contrato" data-id="${c.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
             </td>
           </tr>${detailRows}`;
         }).join('')
@@ -2893,7 +2893,7 @@ ${showContas ? `
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
   ${contas.length ? contas.map(ct => `
   <div class="card" style="border-top:3px solid ${ct.cor};position:relative">
-    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-conta="${ct.id}" title="Remover">${icon(\'trash-2\', {size:14})}</button>
+    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-conta="${ct.id}" title="Remover">${icon('trash-2', {size:14})}</button>
     <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${ct.banco}</div>
     <div style="font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:2px">${ct.nome}</div>
     <div style="font-size:11px;color:var(--text-4);margin-bottom:12px">${ct.tipo}</div>
@@ -2916,7 +2916,7 @@ ${mode === 'all' ? '<div class="section-label mb-3" style="font-size:11px;font-w
     const cardClass = cc.color === 'gold' ? 'card-gold' : cc.color === 'black' ? 'card-black' : cc.color === 'platinum' ? 'card-platinum' : '';
     return `
     <div class="cc-card ${cardClass}">
-      <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-cartao="${cc.id}" title="Remover">${icon(\'trash-2\', {size:14})}</button>
+      <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-cartao="${cc.id}" title="Remover">${icon('trash-2', {size:14})}</button>
       <div class="cc-top">
         <div class="cc-bank-block">
           <div class="cc-bank">${cc.banco}</div>
@@ -2964,9 +2964,9 @@ ${mode === 'all' ? '<div class="section-label mb-3" style="font-size:11px;font-w
           </div>
           <div class="timeline-value">${Utils.currency(p.parcela)}/mês</div>
           <div style="display:flex;gap:4px;margin-left:8px;align-items:center">
-            <button class="btn-icon-sm" data-action="edit-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-            <button class="btn-icon-sm success" data-action="quitar-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Quitar">${icon(\'check\', {size:14})}</button>
-            <button class="btn-icon-sm danger" data-action="del-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+            <button class="btn-icon-sm" data-action="edit-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Editar">${icon('pencil', {size:14})}</button>
+            <button class="btn-icon-sm success" data-action="quitar-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Quitar">${icon('check', {size:14})}</button>
+            <button class="btn-icon-sm danger" data-action="del-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
           </div>
         </div>`;
       }).join('') : '<div style="padding:8px 0;font-size:13px;color:var(--text-4)">Sem parcelamentos ativos</div>'}
@@ -3270,8 +3270,8 @@ ${investimentos.length === 0
         <div style="font-size:11px;color:var(--text-4);margin-top:2px">${r.tipo||''}</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn-icon-sm" data-action="edit-inv" data-id="${r.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-        <button class="btn-icon-sm danger" data-action="del-inv" data-id="${r.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+        <button class="btn-icon-sm" data-action="edit-inv" data-id="${r.id}" title="Editar">${icon('pencil', {size:14})}</button>
+        <button class="btn-icon-sm danger" data-action="del-inv" data-id="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
       </div>
     </div>
     <div style="margin:12px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
@@ -3314,8 +3314,8 @@ ${ativos.length > 0 ? `
           <div style="font-size:11px;color:var(--text-3);text-align:right">${(a.qty * a.unitPrice).toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2})} ${a.currency}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
-          <button class="btn-icon-sm" data-action="edit-ativo" data-id="${a.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-action="del-ativo" data-id="${a.id}" title="Excluir">${icon(\'trash-2\', {size:14})}</button>
+          <button class="btn-icon-sm" data-action="edit-ativo" data-id="${a.id}" title="Editar">${icon('pencil', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-action="del-ativo" data-id="${a.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>`;
     }).join('')}
@@ -3350,8 +3350,8 @@ ${imoveis.length === 0
     const tipoLabel = { casa: 'Casa', apartamento: 'Apartamento', sala: 'Sala comercial', terreno: 'Terreno', outro: 'Outro' };
     return `
   <div class="card" style="border-top:3px solid var(--teal);position:relative">
-    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-imovel="${im.id}" title="Remover">${icon(\'trash-2\', {size:14})}</button>
-    <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-imovel="${im.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
+    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-imovel="${im.id}" title="Remover">${icon('trash-2', {size:14})}</button>
+    <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-imovel="${im.id}" title="Editar">${icon('pencil', {size:14})}</button>
     <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${tipoLabel[im.tipo] || 'Imóvel'}${im.alugado ? ' · Alugado' : ''}${im.financiado ? ' · Financiado' : ''}</div>
     <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${im.apelido || im.endereco || 'Imóvel'}</div>
     ${im.endereco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${im.endereco}</div>` : '<div style="margin-bottom:10px"></div>'}
@@ -3422,8 +3422,8 @@ ${veiculos.length === 0
     const idade = v.dataCompra ? ((Date.now() - new Date(v.dataCompra).getTime()) / (1000*60*60*24*365.25)).toFixed(1) : '—';
     return `
   <div class="card" style="border-top:3px solid var(--accent);position:relative">
-    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-veiculo="${v.id}" title="Remover">${icon(\'trash-2\', {size:14})}</button>
-    <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-veiculo="${v.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
+    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-veiculo="${v.id}" title="Remover">${icon('trash-2', {size:14})}</button>
+    <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-veiculo="${v.id}" title="Editar">${icon('pencil', {size:14})}</button>
     <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${v.marca||'—'} ${v.modelo||''}</div>
     <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:8px">${v.apelido || v.modelo || 'Veículo'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:12px">
@@ -5143,8 +5143,8 @@ ${fins.length === 0
       const cor = TIPO_COLOR[f.type] || 'var(--accent)';
       return `
     <div class="card" style="border-top:3px solid ${cor};position:relative">
-      <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-fin="${f.id}" title="Remover">${icon(\'trash-2\', {size:14})}</button>
-      <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-fin="${f.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
+      <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-fin="${f.id}" title="Remover">${icon('trash-2', {size:14})}</button>
+      <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-fin="${f.id}" title="Editar">${icon('pencil', {size:14})}</button>
       <div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${TIPO_LABEL[f.type] || f.type} · ${f.sistema === 'sac' ? 'SAC' : 'Price'}</div>
       <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${f.label}</div>
       ${f.banco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${f.banco}</div>` : '<div style="margin-bottom:10px"></div>'}
@@ -6773,8 +6773,8 @@ ${tipos.map(t => {
   const catsAqui = catsPorTipo[t.id] || [];
   return `
   <div class="card" style="border-top:3px solid ${t.color};position:relative">
-    ${!t.builtin ? `<button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-tipo="${t.id}" title="Remover">${icon(\'trash-2\', {size:14})}</button>` : ''}
-    <button class="btn-icon-sm" style="position:absolute;top:8px;right:${t.builtin?10:36}px" data-edit-tipo="${t.id}" title="Editar">${icon(\'pencil\', {size:14})}</button>
+    ${!t.builtin ? `<button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-tipo="${t.id}" title="Remover">${icon('trash-2', {size:14})}</button>` : ''}
+    <button class="btn-icon-sm" style="position:absolute;top:8px;right:${t.builtin?10:36}px" data-edit-tipo="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <span style="font-size:22px">${t.icon || '✦'}</span>
       <div>
@@ -6962,7 +6962,7 @@ ${tipos.map(t => {
           <div style="font-size:11px;color:var(--text-4)">key: <code>${key}</code> · ${usage} lançamento(s) · ${subs.length} subcat.</div>
         </div>
         <span class="badge" style="background:${info.color}20;color:${info.color}">${info.color}</span>
-        <button class="btn-icon-sm" data-action="edit-cat" data-key="${key}" title="Editar">${icon(\'pencil\', {size:14})}</button>
+        <button class="btn-icon-sm" data-action="edit-cat" data-key="${key}" title="Editar">${icon('pencil', {size:14})}</button>
         ${isProtected ? '<span class="badge badge-amber" title="Reservada">🔒</span>'
           : `<button class="btn-xs btn-red" data-action="del-cat" data-key="${key}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''} title="${usage>0?'Existem lançamentos':'Excluir'}">✕</button>`}
       </summary>
@@ -7198,7 +7198,7 @@ ${personalities.map(p => `
         <div style="font-size:14px;font-weight:700;color:var(--text-1)">${p}</div>
         <div style="font-size:11px;color:var(--text-4)">${usage} receita(s) vinculada(s)</div>
       </div>
-      <button class="btn-icon-sm" data-action="ren-pessoa" data-name="${p}" title="Renomear">${icon(\'pencil\', {size:14})}</button>
+      <button class="btn-icon-sm" data-action="ren-pessoa" data-name="${p}" title="Renomear">${icon('pencil', {size:14})}</button>
       <button class="btn-xs btn-red" data-action="del-pessoa" data-name="${p}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''}>✕</button>
     </div>`;
   }).join('')}
@@ -7333,7 +7333,7 @@ ${isConnected && isAdmin ? `
         <div style="font-size:11px;color:var(--text-4)">${sub}</div>
       </div>
       <span class="badge" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]}">${ROLE_LABELS[role]||role}</span>
-      <button class="btn-icon-sm danger" data-member-id="${m.id}" title="Remover acesso">${icon(\'user-minus\', {size:14})}</button>
+      <button class="btn-icon-sm danger" data-member-id="${m.id}" title="Remover acesso">${icon('user-minus', {size:14})}</button>
     </div>`;
   }).join('')}
 </div>`;
