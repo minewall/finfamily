@@ -361,6 +361,12 @@ body { background: var(--bg-base); color: var(--text-1); }
 [data-theme="dark"] .icon-moon { display: none; }
 [data-theme="light"] .icon-sun { display: none; }
 
+/* Logo alternate: branco no dark, indigo-deep no light */
+[data-theme="dark"]  .brand-mark-light,
+[data-theme="dark"]  .brand-wordmark-light,
+[data-theme="light"] .brand-mark-dark,
+[data-theme="light"] .brand-wordmark-dark { display: none !important; }
+
 /* ── MAIN AREA ──────────────────────────────────────────────────── */
 .main {
   display: flex;
