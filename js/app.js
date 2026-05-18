@@ -29,6 +29,16 @@ const App = (function () {
       return name === 'Roberto' ? '#3B82F6' : name === 'Mariana' ? '#D946EF' : name === 'Manuela' ? '#22C55E' : '#7C6EF8';
     },
     personInitial(name) { return name ? name[0] : '?'; },
+    // Retorna URL de avatar pra pessoa. Prioridade:
+    // 1) Avatar customizado salvo em settings.pessoaAvatars[name] (URL completa)
+    // 2) DiceBear "lorelei" com seed determinístico pelo nome
+    personAvatar(name) {
+      if (!name) return null;
+      const overrides = (Store?.get?.()?.settings?.pessoaAvatars) || {};
+      if (overrides[name]) return overrides[name];
+      const seed = encodeURIComponent(name);
+      return `https://api.dicebear.com/9.x/lorelei/svg?seed=${seed}&backgroundColor=ede9fe,ddd6fe,e0e7ff,c7d2fe&radius=50`;
+    },
     fmtDate(dateStr) {
       const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
       const d = new Date(dateStr + 'T12:00:00');
@@ -887,7 +897,7 @@ ${renderPrevisaoCaixa(saldo)}
     return Object.entries(byPerson).map(([p, v]) => `
       <div class="stat-row">
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="person-avatar" style="background:${Utils.personColor(p)}">${Utils.personInitial(p)}</div>
+          <div class="person-avatar" style="background:${Utils.personColor(p)}"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></div>
           <span class="stat-row-label">${p}</span>
         </div>
         <div>
@@ -927,7 +937,7 @@ ${renderPrevisaoCaixa(saldo)}
     return entries.map(([p, v]) => `
       <div class="stat-row">
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="person-avatar" style="background:${Utils.personColor(p)}">${Utils.personInitial(p)}</div>
+          <div class="person-avatar" style="background:${Utils.personColor(p)}"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></div>
           <span class="stat-row-label">${p}</span>
         </div>
         <div>
@@ -1073,7 +1083,7 @@ ${filtered.map(r => {
   return `<tr${isFuture ? ' style="opacity:0.55"' : ''}>
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${r.desc}</td>
-  <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
+  <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
   <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
@@ -1459,7 +1469,7 @@ ${filtered.map(r => {
       </tr></thead>
       <tbody>
         ${Object.entries(byPerson).map(([p, vals]) => `<tr>
-          <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(p)}">${Utils.personInitial(p)}</span>${p}</span></td>
+          <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(p)}"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></span>${p}</span></td>
           ${vals.map(v => `<td class="num ${v>0?'positive':'muted'}">${v>0?Utils.currency(v):'—'}</td>`).join('')}
           <td class="num positive fw-700">${Utils.currency(vals.reduce((a,b)=>a+b,0))}</td>
         </tr>`).join('')}
@@ -1486,7 +1496,7 @@ ${filtered.map(r => {
         ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr>
           <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
           <td>${r.desc}</td>
-          <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}">${Utils.personInitial(r.person)}</span>${r.person}</span></td>
+          <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
           <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
           <td style="white-space:nowrap">
@@ -7173,7 +7183,7 @@ ${personalities.map(p => `
     const usage = Store.get().receitas.filter(r => r.person === p).length;
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
-      <div class="person-avatar" style="background:${Utils.personColor(p)};width:36px;height:36px;font-size:14px">${Utils.personInitial(p)}</div>
+      <div class="person-avatar" style="background:${Utils.personColor(p)};width:36px;height:36px;font-size:14px"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></div>
       <div style="flex:1">
         <div style="font-size:14px;font-weight:700;color:var(--text-1)">${p}</div>
         <div style="font-size:11px;color:var(--text-4)">${usage} receita(s) vinculada(s)</div>
