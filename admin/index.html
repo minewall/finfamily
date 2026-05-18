@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Dashboard · Haile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">Dashboard</div>
+      <div class="admin-page-sub">Visão geral da plataforma</div>
+    </div>
+    <div class="admin-topbar-actions">
+      <button class="btn btn-secondary" id="btnRefresh" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg data-lucide="refresh-cw" width="13" height="13" stroke="currentColor" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-refresh-cw"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <div id="statsGrid" class="admin-stats">
+      <div class="admin-stat-card"><div class="admin-stat-label">Carregando…</div></div>
+    </div>
+
+    <!-- Distribuição por tier -->
+    <div class="admin-table-card" style="margin-bottom:20px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Distribuição por Tier</span>
+      </div>
+      <div id="tierChart" style="padding:20px;display:flex;gap:12px;flex-wrap:wrap">
+        <div class="admin-loading">Carregando…</div>
+      </div>
+    </div>
+
+    <!-- Últimos usuários -->
+    <div class="admin-table-card">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Últimos usuários cadastrados</span>
+      </div>
+      <div class="admin-table-wrap">
+        <div id="recentUsers" class="admin-loading">Carregando…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<!-- Lucide icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('dashboard');
+
+  const ok = await Admin.boot('dashboard');
+  if (!ok) return;
+
+  document.getElementById('btnRefresh').addEventListener('click', load);
+  load();
+});
+
+async function load() {
+  try {
+    const [statsRes, usersRes] = await Promise.all([
+      SupabaseSync.adminCall('stats'),
+      SupabaseSync.adminCall('listUsers', { limit: 5 }),
+    ]);
+    renderStats(statsRes);
+    renderRecentUsers((usersRes.users || []).slice(0, 5));
+  } catch (e) {
+    Admin.toast(e.message, 'error');
+  }
+}
+
+function renderStats(s) {
+  const bt = s.by_tier || {};
+  const tierColor = { free: 'var(--text-3)', plus: 'var(--blue)', premium: 'var(--haile-indigo)', suspended: 'var(--red)' };
+  const cards = [
+    { label: 'Total de usuários', value: s.total,             color: 'var(--text-1)' },
+    { label: 'Novos (30 dias)',    value: s.new_last_30_days,  color: 'var(--green)' },
+    { label: 'Free',               value: bt.free || 0,         color: tierColor.free },
+    { label: 'Plus',               value: bt.plus || 0,         color: tierColor.plus },
+    { label: 'Premium',            value: bt.premium || 0,      color: tierColor.premium },
+    { label: 'Suspensos',          value: bt.suspended || 0,    color: tierColor.suspended },
+  ];
+
+  document.getElementById('statsGrid').innerHTML = cards.map(c => `
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">${c.label}</div>
+      <div class="admin-stat-value" style="color:${c.color}">${c.value ?? '—'}</div>
+    </div>`).join('');
+
+  // Tier bar chart
+  const total = s.total || 1;
+  const tiers = ['free','plus','premium','suspended'];
+  document.getElementById('tierChart').innerHTML = tiers.map(t => {
+    const pct = Math.round(((bt[t] || 0) / total) * 100);
+    const color = tierColor[t];
+    return `<div style="flex:1;min-width:100px;text-align:center">
+      <div style="height:80px;background:var(--bg-elevated);border-radius:8px;position:relative;overflow:hidden">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:${pct}%;background:${color};opacity:.7;border-radius:8px 8px 0 0;transition:height .4s"></div>
+      </div>
+      <div style="margin-top:6px;font-size:11px;font-weight:600;color:${color}">${bt[t] || 0}</div>
+      <div style="font-size:10px;color:var(--text-4)">${t} · ${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRecentUsers(users) {
+  if (!users.length) {
+    document.getElementById('recentUsers').innerHTML = '<div class="admin-empty">Nenhum usuário.</div>';
+    return;
+  }
+  document.getElementById('recentUsers').innerHTML = `
+    <table class="admin-table">
+      <thead><tr>
+        <th>Nome / E-mail</th><th>Role</th><th>Tier</th><th>Criado em</th>
+      </tr></thead>
+      <tbody>${users.map(u => `<tr>
+        <td>
+          <div style="font-weight:500">${u.full_name || '—'}</div>
+          <div style="font-size:11px;color:var(--text-3)">${u.email || u.id}</div>
+        </td>
+        <td><span class="badge badge-${u.role || 'user'}">${u.role || 'user'}</span></td>
+        <td><span class="badge badge-${u.tier || 'free'}">${u.tier || 'free'}</span></td>
+        <td style="color:var(--text-3);font-size:12px">${u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+</script>
+</body>
+</html>

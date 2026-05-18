@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Coach & IA · Haile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">Coach & IA</div>
+      <div class="admin-page-sub">Configurações globais do Haile Coach</div>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <div class="admin-table-card" style="padding:48px;text-align:center">
+      <svg data-lucide="bot" width="40" height="40" stroke="var(--text-4)" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-bot"/></svg>
+      <div style="margin-top:16px;font-size:15px;font-weight:600;color:var(--text-2)">Em construção</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--text-4);max-width:400px;margin-inline:auto">
+        Configurações globais do Coach — prompt base, limites de uso, modelos e personalidades padrão.
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('coach');
+  await Admin.boot('coach');
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>

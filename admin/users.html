@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Usuários · Haile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">Usuários</div>
+      <div class="admin-page-sub">Gestão de contas, tiers e roles</div>
+    </div>
+    <div class="admin-topbar-actions">
+      <input class="form-input" id="searchInput" placeholder="Filtrar por nome ou e-mail…" style="width:240px">
+      <button class="btn btn-secondary" id="btnRefresh" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg data-lucide="refresh-cw" width="13" height="13" stroke="currentColor" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-refresh-cw"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <div class="admin-table-card">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Todos os usuários</span>
+        <span id="userCount" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
+      </div>
+      <div class="admin-table-wrap">
+        <div id="usersWrap" class="admin-loading">Carregando…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+let _allUsers = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('users');
+  const ok = await Admin.boot('users');
+  if (!ok) return;
+
+  document.getElementById('btnRefresh').addEventListener('click', load);
+  document.getElementById('searchInput').addEventListener('input', applyFilter);
+  document.getElementById('usersWrap').addEventListener('click', handleAction);
+
+  load();
+});
+
+async function load() {
+  document.getElementById('usersWrap').innerHTML = '<div class="admin-loading">Carregando…</div>';
+  try {
+    const res = await SupabaseSync.adminCall('listUsers', { limit: 500 });
+    _allUsers = res.users || [];
+    applyFilter();
+  } catch (e) {
+    document.getElementById('usersWrap').innerHTML = `<div class="admin-error">${e.message}</div>`;
+  }
+}
+
+function applyFilter() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = q
+    ? _allUsers.filter(u => (u.email || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q))
+    : _allUsers;
+  document.getElementById('userCount').textContent = `${filtered.length} usuário${filtered.length !== 1 ? 's' : ''}`;
+  drawTable(filtered);
+}
+
+function drawTable(users) {
+  if (!users.length) {
+    document.getElementById('usersWrap').innerHTML = '<div class="admin-empty">Nenhum usuário encontrado.</div>';
+    return;
+  }
+  document.getElementById('usersWrap').innerHTML = `
+    <table class="admin-table" style="min-width:820px">
+      <thead><tr>
+        <th>Nome / E-mail</th>
+        <th>Role</th>
+        <th>Tier</th>
+        <th>Criado em</th>
+        <th style="text-align:right">Ações</th>
+      </tr></thead>
+      <tbody>${users.map(u => `<tr>
+        <td>
+          <div style="font-weight:500;color:var(--text-1)">${u.full_name || '—'}</div>
+          <div style="font-size:11px;color:var(--text-3)">${u.email || u.id}</div>
+        </td>
+        <td><span class="badge badge-${u.role || 'user'}">${u.role || 'user'}</span></td>
+        <td><span class="badge badge-${u.tier || 'free'}">${u.tier || 'free'}</span></td>
+        <td style="color:var(--text-3);font-size:12px">${u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+        <td style="text-align:right;white-space:nowrap;display:flex;gap:4px;justify-content:flex-end">
+          <button class="btn-xs" data-action="tier" data-id="${u.id}" data-cur="${u.tier || 'free'}">Tier</button>
+          <button class="btn-xs" data-action="role" data-id="${u.id}" data-cur="${u.role || 'user'}">Role</button>
+          <button class="btn-xs" data-action="export" data-id="${u.id}">Export</button>
+          <button class="btn-xs danger" data-action="delete" data-id="${u.id}" data-email="${u.email || u.id}">Deletar</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+async function handleAction(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const { action, id, cur, email } = btn.dataset;
+
+  if (action === 'tier') {
+    const tiers = ['free', 'plus', 'premium', 'suspended'];
+    const next = tiers[(tiers.indexOf(cur) + 1) % tiers.length];
+    if (!confirm(`Mudar tier de "${cur}" → "${next}"?`)) return;
+    try {
+      await SupabaseSync.adminCall('setTier', { userId: id, tier: next });
+      Admin.toast(`Tier atualizado para ${next}`, 'success');
+      load();
+    } catch (err) { Admin.toast(err.message, 'error'); }
+  }
+
+  if (action === 'role') {
+    const next = cur === 'admin' ? 'user' : 'admin';
+    if (!confirm(`Mudar role de "${cur}" → "${next}"?`)) return;
+    try {
+      await SupabaseSync.adminCall('setRole', { userId: id, role: next });
+      Admin.toast(`Role atualizado para ${next}`, 'success');
+      load();
+    } catch (err) { Admin.toast(err.message, 'error'); }
+  }
+
+  if (action === 'export') {
+    try {
+      const data = await SupabaseSync.adminCall('exportUser', { userId: id });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `haile-export-${id.slice(0,8)}.json` });
+      a.click();
+      URL.revokeObjectURL(url);
+      Admin.toast('Export baixado', 'success');
+    } catch (err) { Admin.toast(err.message, 'error'); }
+  }
+
+  if (action === 'delete') {
+    if (!confirm(`ATENÇÃO: deletar a conta de "${email}" e todos os dados?\n\nIrreversível.`)) return;
+    try {
+      await SupabaseSync.adminCall('deleteUser', { userId: id });
+      Admin.toast('Conta deletada', 'success');
+      load();
+    } catch (err) { Admin.toast(err.message, 'error'); }
+  }
+}
+</script>
+</body>
+</html>

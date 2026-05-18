@@ -7762,7 +7762,7 @@ ${isConnected && isAdmin ? `
     Router.register('recados',       renderRecados);
     Router.register('reembolsos',    renderReembolsos);
     Router.register('config',        renderConfig);
-    Router.register('admin',         renderAdmin);
+
 
     // Month / Year selectors
     document.getElementById('globalMonth').addEventListener('change', () => Router.navigate(Router.current));
@@ -7836,19 +7836,16 @@ ${isConnected && isAdmin ? `
       if (ySel && ySel.querySelector(`option[value="${y}"]`)) ySel.value = y;
     })();
 
-    // Reveal admin nav item if user has admin role in Supabase
-    // Delay to let auth session load before checking
+    // Reveal admin link if user has admin role
     setTimeout(async () => {
       if (typeof SupabaseSync === 'undefined') return;
       try {
         const token = await SupabaseSync.getAccessToken();
         if (!token) return;
-        const res = await SupabaseSync.adminCall('stats');
-        if (res) {
-          const el = document.getElementById('navAdmin');
-          if (el) el.style.display = '';
-        }
-      } catch { /* not admin — nav stays hidden */ }
+        await SupabaseSync.adminCall('stats');
+        const el = document.getElementById('navAdmin');
+        if (el) el.style.display = '';
+      } catch { /* not admin */ }
     }, 1500);
 
     // Init routing
@@ -8096,187 +8093,6 @@ ${isConnected && isAdmin ? `
     }
 
     renderStep();
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // ADMIN PANEL
-  // ══════════════════════════════════════════════════════════════
-  async function renderAdmin(container) {
-    if (typeof SupabaseSync === 'undefined' || !SupabaseSync.isConnected()) {
-      container.innerHTML = `<div class="card" style="max-width:480px;padding:32px;text-align:center;color:var(--text-3)">Faça login para acessar o painel de admin.</div>`;
-      return;
-    }
-
-    container.innerHTML = `
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-  <div>
-    <div style="font-size:20px;font-weight:700;color:var(--text-1)">Admin Panel</div>
-    <div style="font-size:13px;color:var(--text-3);margin-top:2px">Gerenciamento de usuários e configurações globais</div>
-  </div>
-  <button class="btn-secondary" id="btnAdminRefresh">${icon('refresh-cw', {size:14})} Atualizar</button>
-</div>
-<div id="adminStats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px">
-  <div class="card" style="padding:16px;text-align:center"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Carregando…</div></div>
-</div>
-<div class="card" style="padding:0;overflow:hidden">
-  <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
-    <span style="font-size:13px;font-weight:600;color:var(--text-1)">Usuários</span>
-    <input id="adminSearch" class="form-input" placeholder="Filtrar por nome ou e-mail…" style="max-width:260px;padding:5px 10px;font-size:12px;margin-left:auto">
-  </div>
-  <div id="adminUsersWrap" style="overflow-x:auto">
-    <div style="padding:24px;text-align:center;color:var(--text-4)">Carregando…</div>
-  </div>
-</div>`;
-
-    upgradeIcons(container);
-
-    async function load() {
-      try {
-        const [statsRes, usersRes] = await Promise.all([
-          SupabaseSync.adminCall('stats'),
-          SupabaseSync.adminCall('listUsers', { limit: 200 }),
-        ]);
-        renderStats(statsRes);
-        renderUsers(usersRes.users || []);
-      } catch (e) {
-        container.querySelector('#adminStats').innerHTML =
-          `<div class="card" style="padding:16px;color:var(--red);grid-column:1/-1">${icon('alert-circle',{size:14})} ${e.message}</div>`;
-        upgradeIcons(container);
-      }
-    }
-
-    function renderStats(s) {
-      const tierColor = { free:'var(--text-3)', plus:'var(--blue)', premium:'var(--haile-indigo)', suspended:'var(--red)' };
-      const bt = s.by_tier || {};
-      const items = [
-        { label: 'Total de usuários', value: s.total, color: 'var(--text-1)' },
-        { label: 'Novos (30 dias)',    value: s.new_last_30_days, color: 'var(--green)' },
-        ...['free','plus','premium','suspended'].map(t => ({
-          label: t.charAt(0).toUpperCase() + t.slice(1),
-          value: bt[t] || 0,
-          color: tierColor[t],
-        })),
-      ];
-      container.querySelector('#adminStats').innerHTML = items.map(it => `
-        <div class="card" style="padding:16px;text-align:center">
-          <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${it.label}</div>
-          <div style="font-size:26px;font-weight:700;color:${it.color}">${it.value}</div>
-        </div>`).join('');
-    }
-
-    let _allUsers = [];
-    function renderUsers(users) {
-      _allUsers = users;
-      applyFilter();
-    }
-
-    function applyFilter() {
-      const q = (container.querySelector('#adminSearch')?.value || '').toLowerCase();
-      const filtered = q ? _allUsers.filter(u =>
-        (u.email||'').toLowerCase().includes(q) ||
-        (u.full_name||'').toLowerCase().includes(q)
-      ) : _allUsers;
-      drawTable(filtered);
-    }
-
-    function drawTable(users) {
-      const tierBadge = t => {
-        const c = {free:'var(--text-3)',plus:'var(--blue)',premium:'var(--haile-indigo)',suspended:'var(--red)'}[t]||'var(--text-3)';
-        return `<span style="font-size:11px;font-weight:600;color:${c};background:${c}18;padding:2px 7px;border-radius:99px">${t||'—'}</span>`;
-      };
-      const roleBadge = r => r === 'admin'
-        ? `<span style="font-size:11px;font-weight:600;color:var(--amber);background:var(--amber-dim);padding:2px 7px;border-radius:99px">admin</span>`
-        : `<span style="font-size:11px;color:var(--text-4)">user</span>`;
-
-      container.querySelector('#adminUsersWrap').innerHTML = users.length === 0
-        ? `<div style="padding:24px;text-align:center;color:var(--text-4)">Nenhum usuário encontrado.</div>`
-        : `<table class="data-table" style="min-width:780px">
-        <thead><tr>
-          <th>Nome / E-mail</th><th>Role</th><th>Tier</th><th>Criado em</th><th style="text-align:right">Ações</th>
-        </tr></thead>
-        <tbody>${users.map(u => `<tr>
-          <td>
-            <div style="font-weight:500;color:var(--text-1)">${u.full_name || '—'}</div>
-            <div style="font-size:11px;color:var(--text-3)">${u.email || u.id}</div>
-          </td>
-          <td>${roleBadge(u.role)}</td>
-          <td>${tierBadge(u.tier)}</td>
-          <td style="color:var(--text-3);font-size:12px">${u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}</td>
-          <td style="text-align:right;white-space:nowrap">
-            <button class="btn-xs" data-admin-tier="${u.id}" data-cur-tier="${u.tier||'free'}" title="Mudar tier">Tier</button>
-            <button class="btn-xs" data-admin-role="${u.id}" data-cur-role="${u.role||'user'}" title="Mudar role" style="margin-left:4px">Role</button>
-            <button class="btn-xs" data-admin-export="${u.id}" title="Exportar dados (LGPD)" style="margin-left:4px">Export</button>
-            <button class="btn-xs danger" data-admin-del="${u.id}" data-email="${u.email||u.id}" title="Deletar conta" style="margin-left:4px">Del</button>
-          </td>
-        </tr>`).join('')}</tbody>
-      </table>`;
-    }
-
-    container.addEventListener('click', async e => {
-      // Tier
-      const tierBtn = e.target.closest('[data-admin-tier]');
-      if (tierBtn) {
-        const userId = tierBtn.dataset.adminTier;
-        const cur = tierBtn.dataset.curTier;
-        const tiers = ['free','plus','premium','suspended'];
-        const next = tiers[(tiers.indexOf(cur) + 1) % tiers.length];
-        if (!confirm(`Mudar tier de "${cur}" → "${next}"?`)) return;
-        try {
-          await SupabaseSync.adminCall('setTier', { userId, tier: next });
-          toast(`Tier atualizado para ${next}`, 'success');
-          load();
-        } catch (err) { toast(err.message, 'error'); }
-        return;
-      }
-      // Role
-      const roleBtn = e.target.closest('[data-admin-role]');
-      if (roleBtn) {
-        const userId = roleBtn.dataset.adminRole;
-        const cur = roleBtn.dataset.curRole;
-        const next = cur === 'admin' ? 'user' : 'admin';
-        if (!confirm(`Mudar role de "${cur}" → "${next}"?`)) return;
-        try {
-          await SupabaseSync.adminCall('setRole', { userId, role: next });
-          toast(`Role atualizado para ${next}`, 'success');
-          load();
-        } catch (err) { toast(err.message, 'error'); }
-        return;
-      }
-      // Export (LGPD)
-      const expBtn = e.target.closest('[data-admin-export]');
-      if (expBtn) {
-        const userId = expBtn.dataset.adminExport;
-        try {
-          const data = await SupabaseSync.adminCall('exportUser', { userId });
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = `haile-export-${userId.slice(0,8)}.json`;
-          a.click(); URL.revokeObjectURL(url);
-          toast('Export baixado', 'success');
-        } catch (err) { toast(err.message, 'error'); }
-        return;
-      }
-      // Delete
-      const delBtn = e.target.closest('[data-admin-del]');
-      if (delBtn) {
-        const userId = delBtn.dataset.adminDel;
-        const email = delBtn.dataset.email;
-        if (!confirm(`ATENÇÃO: deletar a conta de "${email}" e todos os seus dados?\n\nEsta ação é irreversível.`)) return;
-        try {
-          await SupabaseSync.adminCall('deleteUser', { userId });
-          toast('Conta deletada', 'success');
-          load();
-        } catch (err) { toast(err.message, 'error'); }
-        return;
-      }
-      // Refresh
-      if (e.target.closest('#btnAdminRefresh')) { load(); return; }
-    });
-
-    container.querySelector('#adminSearch')?.addEventListener('input', applyFilter);
-
-    load();
   }
 
   // ══════════════════════════════════════════════════════════════
