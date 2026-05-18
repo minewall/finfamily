@@ -564,12 +564,23 @@ const App = (function () {
       <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:${poder.poderDeEscolha>=0?'var(--green)':'var(--red)'};--kpi-bg:${poder.poderDeEscolha>=0?'var(--green-dim)':'var(--red-dim)'}">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 6 6 1-4.5 4 1 6L12 16l-5.5 3 1-6L3 9l6-1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body">
-      <div class="kpi-label">Poder de Escolha</div>
-      <div class="kpi-value" style="color:${poder.poderDeEscolha>=0?'var(--green)':'var(--red)'}">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
-      <div class="kpi-sub">${(poder.pct*100).toFixed(0)}% da receita · piso ${Utils.currency(poder.pisoSobrevivencia)}</div>
+  <div class="kpi-card kpi-poder-escolha ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}">
+    <div class="kpi-poder-header">
+      <div class="kpi-poder-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor"/></svg>
+      </div>
+      <div class="kpi-poder-meta">
+        <div class="kpi-poder-tag">Disponível agora</div>
+        <div class="kpi-poder-label">Poder de Escolha</div>
+      </div>
+    </div>
+    <div class="kpi-poder-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
+    <div class="kpi-poder-sub">${poder.poderDeEscolha>=0
+      ? 'Você pode gastar sem comprometer suas contas e metas'
+      : 'Atenção: você ultrapassou o piso de sobrevivência'}</div>
+    <div class="kpi-poder-footer">
+      <span class="kpi-poder-footer-icon">${poder.poderDeEscolha>=0?'▲':'▼'}</span>
+      <span>${(poder.pct*100).toFixed(0)}% da receita · piso ${Utils.currency(poder.pisoSobrevivencia)}</span>
     </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
