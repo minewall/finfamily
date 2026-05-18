@@ -41,30 +41,39 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
-      background: #051018 url('assets/login-bg.jpg') center center / cover no-repeat fixed;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom left, rgba(6, 182, 212, 0.10) 0%, transparent 50%),
+        var(--haile-ink);
       color: var(--text-1);
       min-height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: flex-start;
-      padding: 24px 6vw;
+      justify-content: center;
+      padding: 24px;
       position: relative;
-    }
-    /* Gradiente sutil pra reforçar contraste do card sobre o background */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background: linear-gradient(90deg, rgba(5,16,24,0.78) 0%, rgba(5,16,24,0.55) 35%, rgba(5,16,24,0) 60%);
-      pointer-events: none; z-index: 0;
     }
 
     .login-wrap { width: 100%; max-width: 380px; position: relative; z-index: 1; }
-    .card { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: rgba(15, 23, 36, 0.78); }
 
-    @media (max-width: 720px) {
-      body { justify-content: center; padding: 24px; }
-      body::before { background: linear-gradient(180deg, rgba(5,16,24,0.55) 0%, rgba(5,16,24,0.85) 70%); }
+    /* Brand acima do card */
+    .login-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .login-brand img {
+      height: 36px;
+      width: auto;
+      display: block;
+    }
+    .login-tagline {
+      font-size: 13px;
+      color: rgba(248, 250, 252, 0.55);
+      letter-spacing: 0.02em;
     }
 
     .brand {
@@ -153,18 +162,9 @@
 
 <div class="login-wrap">
 
-  <div class="brand">
-    <div class="brand-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div>
-      <div class="brand-name">Haile</div>
-      <div class="brand-sub">Gestão Financeira · 2026</div>
-    </div>
+  <div class="login-brand">
+    <img src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+    <div class="login-tagline">Seu coach financeiro pessoal</div>
   </div>
 
   <div class="card">
