@@ -1,4 +1,4 @@
-# FinFamily
+# Haile
 
 App de gestão financeira familiar — receitas, despesas, metas, contratos recorrentes e patrimônio. Roda 100% no navegador, sem backend: os dados ficam em `localStorage`.
 
