@@ -1,2 +1,4 @@
-[project]
-id = "lpudgulhnfuwdttetwdn"
+project_id = "lpudgulhnfuwdttetwdn"
+
+[db]
+major_version = 17
