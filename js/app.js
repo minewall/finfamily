@@ -7644,6 +7644,17 @@ ${isConnected && isAdmin ? `
     const { tema } = Store.get().settings || {};
     if (tema) document.documentElement.dataset.theme = tema;
 
+    // Define mês/ano atuais como default no seletor global (em vez de hardcoded)
+    (() => {
+      const now = new Date();
+      const m = String(now.getMonth() + 1);
+      const y = String(now.getFullYear());
+      const mSel = document.getElementById('globalMonth');
+      const ySel = document.getElementById('globalYear');
+      if (mSel && mSel.querySelector(`option[value="${m}"]`)) mSel.value = m;
+      if (ySel && ySel.querySelector(`option[value="${y}"]`)) ySel.value = y;
+    })();
+
     // Init routing
     Router.init();
 
