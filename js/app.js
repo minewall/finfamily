@@ -633,6 +633,10 @@ const App = (function () {
 
 <!-- ═══ SEÇÃO 1: MÊS ATUAL ═══════════════════════════════════════ -->
 <div class="dash-hero dash-hero--mood-${heroMood.tone}">
+  <div class="dash-hero-date">${(() => {
+    const t = new Date();
+    return t.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  })()}</div>
   <div class="dash-hero-left">
     <div class="dash-hero-greeting">${heroMood.title}</div>
     <div class="dash-hero-sub-text">${heroMood.sub}</div>
@@ -645,13 +649,16 @@ const App = (function () {
     </button>`}
   </div>
   <div class="dash-hero-stats">
+    <div class="dash-hero-stats-header">${Utils.monthsFull[prevM-1]} ${prevY} <span style="opacity:0.6">· mês anterior</span></div>
     <div class="dash-hero-stat">
       <div class="dash-hero-stat-label">Receitas</div>
-      <div class="dash-hero-stat-value pos">+${Utils.currency(receita)}</div>
+      <div class="dash-hero-stat-value pos">+${Utils.currency(prevRec)}</div>
+      ${prevRec > 0 ? `<div class="dash-hero-stat-delta ${receita >= prevRec ? 'up' : 'down'}">${receita >= prevRec ? '▲' : '▼'} ${Math.abs((receita - prevRec) / prevRec * 100).toFixed(1)}% este mês</div>` : ''}
     </div>
     <div class="dash-hero-stat">
       <div class="dash-hero-stat-label">Despesas</div>
-      <div class="dash-hero-stat-value neg">-${Utils.currency(despesa)}</div>
+      <div class="dash-hero-stat-value neg">-${Utils.currency(prevDesp)}</div>
+      ${prevDesp > 0 ? `<div class="dash-hero-stat-delta ${despesa <= prevDesp ? 'up' : 'down'}">${despesa <= prevDesp ? '▼' : '▲'} ${Math.abs((despesa - prevDesp) / prevDesp * 100).toFixed(1)}% este mês</div>` : ''}
     </div>
   </div>
 </div>
