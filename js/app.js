@@ -6353,7 +6353,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   function currentPessoa() {
     const ctx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
     if (ctx?.pessoaName) return ctx.pessoaName;
-    return Store.PESSOAS[0] || 'Roberto';
+    return Store.getProfile()?.name || Store.PESSOAS[0] || 'Usuário';
   }
 
   function _updateAnomaliasBadge(count) {
@@ -8062,7 +8062,7 @@ ${isConnected && isAdmin ? `
       const limiteGasto = settings.limiteGasto ? (settings.limiteGasto*100).toFixed(0)+'%' : '80%';
       const metaRecMensal = settings.metaReceita ? `R$ ${settings.metaReceita.toFixed(2)}` : 'não definida';
       const pessoa = currentPessoa();
-      const userName = pessoa || 'usuário';
+      const userName = Store.getProfile()?.name || pessoa || 'usuário';
 
       // Patrimônio resumido
       const patTotal = Store.totalAtivos();
