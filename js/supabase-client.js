@@ -293,12 +293,32 @@ const SupabaseSync = (function () {
   function hasPendingSync() { return _pendingSync; }
   function onStatusChange(cb) { _onStatusChange = cb; }
 
+  async function getAccessToken() {
+    if (!_client) return null;
+    const { data } = await _client.auth.getSession();
+    return data?.session?.access_token || null;
+  }
+
+  async function adminCall(action, params = {}) {
+    const token = await getAccessToken();
+    if (!token) throw new Error('Não autenticado');
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ action, ...params }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    return json;
+  }
+
   async function pullFromCloud() { return _pullFromCloud(); }
   async function pushToCloud(data) { return _pushToCloud(data); }
 
   return {
     init, schedulePush, pullFromCloud, pushToCloud, signUp, signIn, signOut,
     getUser, isConnected, hasPendingSync, onStatusChange,
+    getAccessToken, adminCall,
     createOrGetFamilyGroup, getFamilyGroup, getFamilyMembers,
     inviteMember, removeMember, acceptPendingInvite, resolveFamilyContext, getFamilyContext,
     ensureFamilyIdLinked,
