@@ -12,15 +12,20 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 input, select, textarea { font-family: inherit; }
 svg { display: block; flex-shrink: 0; }
 
-/* ── HAILE BRAND TOKENS ─────────────────────────────────────────── */
+/* ── HAILE BRAND TOKENS (logo kit oficial) ──────────────────────── */
 /* Fonte canônica dos valores. Variáveis legadas abaixo são apelidos. */
 :root {
-  /* Violeta Haile — tecnologia premium */
-  --haile-violet:       #7367F0;
-  --haile-violet-light: #9990FF;
-  --haile-violet-dark:  #5B4FCE;
+  /* Indigo Haile — primária (do logo kit oficial) */
+  --haile-indigo:      #6366F1;
+  --haile-indigo-deep: #4F46E5;
+  --haile-indigo-soft: #EEF0FF;
 
-  /* Teal AI — IA e elementos interativos */
+  /* Apelido legado: --haile-violet aponta pra indigo (compat) */
+  --haile-violet:       var(--haile-indigo);
+  --haile-violet-light: #9990FF;
+  --haile-violet-dark:  var(--haile-indigo-deep);
+
+  /* Teal AI — IA e elementos interativos do Coach */
   --haile-teal:         #06B6D4;
   --haile-teal-light:   #22D3EE;
   --haile-teal-dark:    #0891B2;
@@ -30,14 +35,20 @@ svg { display: block; flex-shrink: 0; }
   --haile-prosperity-light: #34D399;
   --haile-prosperity-dark:  #059669;
 
-  /* Neutros */
-  --haile-night: #0B1020;
-  --haile-slate: #334155;
+  /* Neutros (alinhados com kit oficial) */
+  --haile-ink:   #0F1020;
+  --haile-night: var(--haile-ink); /* legado */
+  --haile-slate: #5B5E73;
   --haile-mist:  #94A3B8;
+  --haile-cream: #FAF9F6;
   --haile-cloud: #F8FAFC;
+  --haile-white: #FFFFFF;
 
   /* Alerta — rosa menos clínico */
   --haile-alert: #C92764;
+
+  /* Fonte */
+  --haile-font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
 }
 
 /* ── DESIGN TOKENS (apelidos legados → tokens Haile) ─────────────── */

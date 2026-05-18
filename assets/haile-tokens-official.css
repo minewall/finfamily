@@ -1,0 +1,12 @@
+/* Haile · design tokens */
+:root {
+  --haile-indigo: #6366F1;
+  --haile-indigo-deep: #4F46E5;
+  --haile-indigo-soft: #EEF0FF;
+  --haile-ink: #0F1020;
+  --haile-slate: #5B5E73;
+  --haile-cream: #FAF9F6;
+  --haile-white: #FFFFFF;
+
+  --haile-font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+}

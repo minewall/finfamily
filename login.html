@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Haile — Acesso</title>
+  <meta name="theme-color" content="#6366F1" />
+  <link rel="icon" href="assets/favicon/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="assets/svg/haile-mark-indigo.svg" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -11,12 +15,16 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      /* Haile brand tokens (sincronizados com css/main.css) */
-      --haile-violet:       #7367F0;
+      /* Haile brand tokens (sincronizados com css/main.css e logo kit oficial) */
+      --haile-indigo:       #6366F1;
+      --haile-indigo-deep:  #4F46E5;
+      --haile-violet:       var(--haile-indigo);
       --haile-teal:         #06B6D4;
       --haile-prosperity:   #10B981;
       --haile-alert:        #C92764;
-      --haile-night:        #0B1020;
+      --haile-ink:          #0F1020;
+      --haile-night:        var(--haile-ink);
+      --haile-cream:        #FAF9F6;
       --haile-cloud:        #F8FAFC;
 
       --bg:           #0d0f14;
