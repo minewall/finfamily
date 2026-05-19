@@ -6083,6 +6083,17 @@ ${fins.length === 0
 </div>`;
     });
 
+    // Auto-calc helper: fires btn click immediately + on any input/change
+    function autoCalc(inputIds, btnId) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.click();
+      inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => btn.click());
+      });
+    }
+
     function renderJuros() {
       document.getElementById('simContent').innerHTML = `
 <div class="chart-grid" style="grid-template-columns:380px 1fr;align-items:start">
@@ -6110,7 +6121,7 @@ ${fins.length === 0
         <input class="form-input" id="jIR" type="number" value="15" min="0" max="30">
       </div>
     </div>
-    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcJuros">Calcular</button>
+    <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCalcJuros">Calcular</button>
   </div>
   <div id="jResult" class="card" style="display:none">
     <div class="card-header"><span class="card-title">Resultado</span></div>
@@ -6162,6 +6173,7 @@ ${fins.length === 0
             { label: 'Aportado', values: dataAport, color: '#22C55E', dashed: true },
           ]}, { height: 220 });
       });
+      autoCalc(['jCapital','jAporte','jTaxa','jMeses','jIR'], 'btnCalcJuros');
     }
 
     function renderAmortizacao() {
@@ -6187,7 +6199,7 @@ ${fins.length === 0
         <input class="form-input" id="aExtra" type="number" value="0" min="0">
       </div>
     </div>
-    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcAmort">Calcular</button>
+    <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCalcAmort">Calcular</button>
   </div>
   <div id="aResult" class="card" style="display:none">
     <div class="card-header"><span class="card-title">Tabela SAC</span></div>
@@ -6238,6 +6250,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
   <tbody>${rows.map(r => `<tr><td>${r.mes}</td><td class="num">${Utils.currency(r.parcela)}</td><td class="num">${Utils.currency(r.amort)}</td><td class="num negative">${Utils.currency(r.juros)}</td><td class="num">${Utils.currency(r.saldo)}</td></tr>`).join('')}</tbody>
 </table></div>`;
       });
+      autoCalc(['aValor','aTaxa','aPrazo','aExtra'], 'btnCalcAmort');
     }
 
     function renderFIRE() {
@@ -6270,7 +6283,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         <span class="form-hint">4% = Regra dos 25x (Trinity Study). 3% = mais conservador.</span>
       </div>
     </div>
-    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcFIRE">Calcular</button>
+    <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCalcFIRE">Calcular</button>
   </div>
   <div id="fResult" class="card" style="display:none">
     <div class="card-header"><span class="card-title">Resultado FIRE</span></div>
@@ -6318,6 +6331,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
             { label: 'Alvo', values: Array(labels.length).fill(alvo), color: '#22C55E', dashed: true },
           ]}, { height: 200 });
       });
+      autoCalc(['fPatrim','fPoupanca','fDespesa','fRetorno','fSWR'], 'btnCalcFIRE');
     }
 
     function renderMetaSim() {
@@ -6347,7 +6361,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         <input class="form-input" id="mTaxa" type="number" value="1.0" step="0.01" min="0">
       </div>
     </div>
-    <button class="btn-primary w-full" style="margin-top:16px" id="btnCalcMeta">Calcular</button>
+    <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCalcMeta">Calcular</button>
   </div>
   <div id="mResult" class="card" style="display:none">
     <div id="mResultBody"></div>
@@ -6397,6 +6411,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
             { label: 'Alvo', values: Array(lFiltered.length).fill(alvo), color: '#22C55E', dashed: true },
           ]}, { height: 200 });
       });
+      autoCalc(['mDesc','mValor','mJaTenho','mAporte','mTaxa'], 'btnCalcMeta');
     }
 
     // ── helper compartilhado: aplicar conversões ───────────────────
