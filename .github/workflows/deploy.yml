@@ -1,0 +1,41 @@
+name: Deploy Haile → GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare deploy folder
+        run: |
+          mkdir -p _deploy
+          # App principal
+          cp -r app/. _deploy/
+          # Assets centralizados (acessíveis como ../assets/ a partir de app/)
+          cp -r assets _deploy/assets
+          # Manifest e arquivos raiz que o app referencia
+          cp manifest.webmanifest _deploy/manifest.webmanifest
+          # Admin panel
+          cp -r admin _deploy/admin
+          # Landing page
+          cp -r landing _deploy/landing
+          # Onboarding (quando existir)
+          [ -d onboarding ] && cp -r onboarding _deploy/onboarding || true
+
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: _deploy
+          clean: true

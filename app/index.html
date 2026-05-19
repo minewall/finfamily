@@ -6,10 +6,10 @@
   <title>Haile — Seu coach financeiro pessoal</title>
   <meta name="description" content="Haile é seu coach financeiro pessoal com IA. Gestão familiar inteligente que cuida das suas finanças como um conselheiro." />
   <meta name="theme-color" content="#6366F1" />
-  <link rel="icon" href="assets/favicon/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/svg+xml" href="assets/svg/haile-mark-indigo.svg" />
-  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon-180.png" />
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="../assets/favicon/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="../assets/svg/haile-mark-indigo.svg" />
+  <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon-180.png" />
+  <link rel="manifest" href="../manifest.webmanifest" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +20,7 @@
 <script>
   // Auth guard — redirect to login if not authenticated
   if (sessionStorage.getItem('ff_auth') !== '1') {
-    window.location.replace('login.html');
+    window.location.replace('../login.html');
   }
 </script>
 
@@ -31,11 +31,11 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
-        <img class="brand-wordmark-dark" src="assets/svg/haile-wordmark-white.svg" alt="Haile" style="height:28px;width:auto;display:block">
-        <img class="brand-wordmark-light" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:block">
+        <img class="brand-wordmark-dark" src="../assets/svg/haile-wordmark-white.svg" alt="Haile" style="height:28px;width:auto;display:block">
+        <img class="brand-wordmark-light" src="../assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:block">
         <!-- Versão mark (Hai) — exibida automaticamente quando sidebar entra em modo icon-only -->
-        <img class="brand-mark-dark" src="assets/svg/haile-mark-white.svg" alt="Haile" style="height:28px;width:auto;display:none">
-        <img class="brand-mark-light" src="assets/svg/haile-mark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:none">
+        <img class="brand-mark-dark" src="../assets/svg/haile-mark-white.svg" alt="Haile" style="height:28px;width:auto;display:none">
+        <img class="brand-mark-light" src="../assets/svg/haile-mark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:none">
       </div>
     </div>
 
@@ -243,7 +243,7 @@
   <div class="coach-header">
     <div style="display:flex;align-items:center;gap:10px">
       <div class="coach-avatar" style="display:flex;align-items:center;justify-content:center;overflow:hidden">
-        <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:22px;height:auto;display:block">
+        <img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:22px;height:auto;display:block">
       </div>
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--text-1)">Haile</div>
@@ -263,7 +263,7 @@
   <div class="coach-messages" id="coachMessages">
     <div class="coach-welcome">
       <div class="coach-avatar-lg" style="overflow:hidden">
-        <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
+        <img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
       </div>
       <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
       <div class="coach-suggestions" id="coachSuggestions">
