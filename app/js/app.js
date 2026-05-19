@@ -5532,6 +5532,66 @@ ${reservas.length > 0 ? `
     <div class="card-header"><span class="card-title">Aporte mensal necessário</span></div>
     <div id="ivRevBody"></div>
   </div>
+</div>
+
+<!-- ── FEE ANALYZER ─────────────────────────────────────────── -->
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">${icon('alert-triangle',{size:15})} Fee Analyzer — O Custo Invisível</span>
+    <span style="font-size:11px;color:var(--text-4)">Quanto as taxas vão custar ao longo do tempo?</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;margin-bottom:16px">
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Capital investido (R$)</label>
+      <input class="form-input" id="feeCapital" type="number" value="${Math.round(totalInvestido || 10000)}" min="1">
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Taxa atual do fundo (% a.a.)</label>
+      <input class="form-input" id="feeTaxaFundo" type="number" step="0.1" value="2.0" min="0">
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Horizonte (anos)</label>
+      <input class="form-input" id="feeAnos" type="number" min="1" max="40" value="20">
+    </div>
+    <button class="btn-primary" style="display:none" id="btnFeeAnalyzer">Calcular</button>
+  </div>
+  <div id="feeResult"></div>
+</div>
+
+<!-- ── COMPARADOR DE CENÁRIOS ────────────────────────────────── -->
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">${icon('git-branch',{size:15})} Comparador de Cenários — E se…?</span>
+    <span style="font-size:11px;color:var(--text-4)">Compare até 3 cenários no mesmo gráfico</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+    ${[1,2,3].map(n => `
+    <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface-2)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${n===1?'#7367F0':n===2?'#22C55E':'#F59E0B'};flex-shrink:0"></span>
+        <span style="font-size:12px;font-weight:600;color:var(--text-2)">Cenário ${n}</span>
+        ${n > 1 ? `<label class="toggle-switch" style="margin-left:auto" title="Ativar cenário ${n}"><input type="checkbox" id="cen${n}Active" ${n===2?'checked':''}><span class="toggle-track"><span class="toggle-thumb"></span></span></label>` : ''}
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label" style="font-size:11px">Capital (R$)</label>
+        <input class="form-input" id="cen${n}Cap" type="number" value="${n===1?Math.round(totalInvestido||5000):n===2?Math.round(totalInvestido||5000):Math.round(totalInvestido||5000)}" style="padding:6px 10px;font-size:13px">
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label" style="font-size:11px">Aporte/mês (R$)</label>
+        <input class="form-input" id="cen${n}Aporte" type="number" value="${n===1?500:n===2?1000:1500}" style="padding:6px 10px;font-size:13px">
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label" style="font-size:11px">Taxa (% a.a.)</label>
+        <input class="form-input" id="cen${n}Taxa" type="number" step="0.1" value="${n===1?10:n===2?12:14}" style="padding:6px 10px;font-size:13px">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" style="font-size:11px">Horizonte (anos)</label>
+        <input class="form-input" id="cen${n}Anos" type="number" min="1" max="40" value="10" style="padding:6px 10px;font-size:13px">
+      </div>
+    </div>`).join('')}
+  </div>
+  <button style="display:none" id="btnCenarios">Calcular</button>
+  <div id="cenariosResult"></div>
 </div>`;
 
     // ── Donut + Evolução patrimonial ─────────────────────────────
@@ -5726,6 +5786,172 @@ ${reservas.length > 0 ? `
     };
     _autoCalcInv(['ivCap','ivAporte','ivAnos','ivInfl','ivIR'], 'btnCompInv');
     _autoCalcInv(['ivAlvo','ivAlvoAnos','ivAlvoCap'], 'btnRevInv');
+
+    // ── FEE ANALYZER ─────────────────────────────────────────────
+    function calcFeeAnalyzer() {
+      const capital  = parseFloat(document.getElementById('feeCapital')?.value) || 10000;
+      const taxaFundo = parseFloat(document.getElementById('feeTaxaFundo')?.value) || 2;
+      const anos     = parseInt(document.getElementById('feeAnos')?.value) || 20;
+      // Benchmark: Tesouro Selic (taxa ~0.1% a.a. de custódia B3)
+      const BENCHMARKS = [
+        { nome: 'Tesouro Selic', taxa: 0.1, color: '#0EA5E9' },
+        { nome: 'ETF / Index Fund', taxa: 0.2, color: '#22C55E' },
+        { nome: 'CDB direto', taxa: 0.0, color: '#14B8A6' },
+      ];
+      // Rendimento base = SELIC (usamos taxaFundo como retorno bruto igual para todos —
+      // queremos mostrar só o impacto da taxa de adm, mantendo retorno bruto constante)
+      const retornoBruto = (rates?.selic || 13) ; // % a.a.
+      function valorFinal(cap, taxaAdm, nAnos) {
+        // Retorno líquido anual = retornoBruto - taxaAdm
+        const taxaLiq = Math.max(0, retornoBruto - taxaAdm) / 100;
+        return cap * Math.pow(1 + taxaLiq, nAnos);
+      }
+      const vFundo = valorFinal(capital, taxaFundo, anos);
+      const resultEl = document.getElementById('feeResult');
+      if (!resultEl) return;
+
+      const rows = BENCHMARKS.map(b => {
+        const vAltern = valorFinal(capital, b.taxa, anos);
+        const economia = vAltern - vFundo;
+        const pctEconomia = vFundo > 0 ? (economia / vFundo * 100) : 0;
+        return { ...b, vAltern, economia, pctEconomia };
+      });
+
+      // Gráfico de evolução ano a ano
+      const labels = Array.from({length: anos}, (_,i) => `${i+1}a`);
+      const dssets = [
+        {
+          label: `Fundo (${taxaFundo}% taxa)`,
+          values: labels.map((_,i) => parseFloat(valorFinal(capital, taxaFundo, i+1).toFixed(0))),
+          color: '#EF4444',
+        },
+        ...rows.map(b => ({
+          label: `${b.nome} (${b.taxa}% taxa)`,
+          values: labels.map((_,i) => parseFloat(valorFinal(capital, b.taxa, i+1).toFixed(0))),
+          color: b.color,
+          dashed: true,
+        })),
+      ];
+
+      resultEl.innerHTML = `
+<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px 18px;margin-bottom:16px">
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:4px">⚠️ Custo real da taxa de ${taxaFundo}% a.a. em ${anos} anos</div>
+  <div style="font-size:13px;color:var(--text-2);line-height:1.6">
+    Capital de <strong style="color:var(--text-1)">${Utils.currency(capital)}</strong> rendendo com retorno bruto de <strong style="color:var(--text-1)">${retornoBruto.toFixed(1)}% a.a.</strong>:
+    no fundo com taxa <strong style="color:var(--red)">${taxaFundo}%</strong> → <strong style="color:var(--text-1)">${Utils.currency(vFundo)}</strong>.
+    A diferença para alternativas de baixo custo pode passar de <strong style="color:var(--red)">${Utils.currency(rows[0].economia)}</strong>.
+  </div>
+</div>
+<div class="chart-wrap mb-4"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="200"></canvas></div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr>
+      <th>Alternativa</th><th class="num">Taxa adm.</th>
+      <th class="num">Valor final</th><th class="num">Economia vs fundo</th><th class="num">Diferença %</th>
+    </tr></thead>
+    <tbody>
+      <tr style="background:rgba(239,68,68,0.05)">
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF4444;margin-right:8px;vertical-align:middle"></span><strong>Fundo atual</strong></td>
+        <td class="num">${taxaFundo.toFixed(2)}% a.a.</td>
+        <td class="num fw-700">${Utils.currency(vFundo)}</td>
+        <td class="num muted">—</td>
+        <td class="num muted">referência</td>
+      </tr>
+      ${rows.map(r => `
+      <tr>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span>${r.nome}</td>
+        <td class="num">${r.taxa.toFixed(2)}% a.a.</td>
+        <td class="num positive fw-700">${Utils.currency(r.vAltern)}</td>
+        <td class="num positive fw-700">+${Utils.currency(r.economia)}</td>
+        <td class="num positive">+${r.pctEconomia.toFixed(1)}%</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>
+<div style="font-size:11px;color:var(--text-4);margin-top:8px">
+  Retorno bruto fixo de ${retornoBruto.toFixed(1)}% a.a. (Meta SELIC atual) para todos os produtos — a diferença é <em>exclusivamente</em> a taxa de administração.
+</div>`;
+      if (window._chartFeeAnalyzer) window._chartFeeAnalyzer.destroy();
+      window._chartFeeAnalyzer = Charts.Line(document.getElementById('chartFeeAnalyzer'),
+        { labels, datasets: dssets }, { height: 200 });
+    }
+    _autoCalcInv(['feeCapital','feeTaxaFundo','feeAnos'], 'btnFeeAnalyzer');
+    document.getElementById('btnFeeAnalyzer')?.addEventListener('click', calcFeeAnalyzer);
+    // Dispara imediatamente após taxas carregarem (rates já disponível aqui)
+    calcFeeAnalyzer();
+
+    // ── COMPARADOR DE CENÁRIOS ────────────────────────────────────
+    function calcCenarios() {
+      const CEN_COLORS = ['#7367F0','#22C55E','#F59E0B'];
+      const cenarios = [1,2,3].map(n => {
+        const active = n === 1 ? true : (document.getElementById(`cen${n}Active`)?.checked ?? false);
+        return {
+          n, active,
+          label: `Cenário ${n}`,
+          cap:   parseFloat(document.getElementById(`cen${n}Cap`)?.value) || 0,
+          aporte:parseFloat(document.getElementById(`cen${n}Aporte`)?.value) || 0,
+          taxa:  parseFloat(document.getElementById(`cen${n}Taxa`)?.value) || 10,
+          anos:  parseInt(document.getElementById(`cen${n}Anos`)?.value) || 10,
+          color: CEN_COLORS[n-1],
+        };
+      }).filter(c => c.active);
+
+      const maxAnos = Math.max(...cenarios.map(c => c.anos));
+      const labels = Array.from({length: maxAnos}, (_,i) => `${i+1}a`);
+
+      const datasets = cenarios.map(c => {
+        const i = annualToMonthly(c.taxa);
+        const values = [];
+        for (let ano = 1; ano <= maxAnos; ano++) {
+          if (ano > c.anos) { values.push(null); continue; }
+          const meses = ano * 12;
+          let s = c.cap;
+          for (let m = 0; m < meses; m++) s = s * (1 + i) + c.aporte;
+          values.push(parseFloat(s.toFixed(0)));
+        }
+        return { label: c.label, values, color: c.color };
+      });
+
+      const resultEl = document.getElementById('cenariosResult');
+      if (!resultEl) return;
+
+      resultEl.innerHTML = `
+<div class="chart-wrap mb-4"><canvas id="chartCenarios" class="chart-canvas" height="220"></canvas></div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Cenário</th><th class="num">Capital</th><th class="num">Aporte/mês</th><th class="num">Taxa</th><th class="num">Horizonte</th><th class="num">Valor Final</th></tr></thead>
+    <tbody>
+      ${cenarios.map((c,idx) => {
+        const vFinal = datasets[idx].values.filter(v => v !== null).slice(-1)[0] || 0;
+        return `<tr>
+          <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.color};margin-right:8px;vertical-align:middle"></span><strong>${c.label}</strong></td>
+          <td class="num">${Utils.currency(c.cap)}</td>
+          <td class="num">${Utils.currency(c.aporte)}/mês</td>
+          <td class="num">${c.taxa.toFixed(1)}% a.a.</td>
+          <td class="num">${c.anos} anos</td>
+          <td class="num fw-700" style="color:${c.color}">${Utils.currency(vFinal)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+      if (window._chartCenarios) window._chartCenarios.destroy();
+      window._chartCenarios = Charts.Line(document.getElementById('chartCenarios'),
+        { labels, datasets }, { height: 220 });
+    }
+
+    // Auto-calc cenários: re-calcula ao mudar qualquer input
+    const _cenIds = [
+      'cen1Cap','cen1Aporte','cen1Taxa','cen1Anos',
+      'cen2Cap','cen2Aporte','cen2Taxa','cen2Anos','cen2Active',
+      'cen3Cap','cen3Aporte','cen3Taxa','cen3Anos','cen3Active',
+    ];
+    document.getElementById('btnCenarios')?.addEventListener('click', calcCenarios);
+    _cenIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', calcCenarios);
+    });
+    calcCenarios();
   }
 
   // ── FINANCIAMENTOS ─────────────────────────────────────────────
