@@ -544,19 +544,20 @@ body { background: var(--bg-base); color: var(--text-1); }
 .btn-coach {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 10px 18px;
   background: linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-teal) 100%);
   color: #fff;
   border: 1px solid var(--haile-indigo-deep);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.30);
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
   transition: filter var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
 }
-.btn-coach:hover { filter: brightness(1.08); box-shadow: 0 4px 14px rgba(6, 182, 212, 0.40); }
+.btn-coach:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(6, 182, 212, 0.50); transform: translateY(-1px); }
 .btn-coach:active { transform: translateY(1px); }
 
 .btn-ghost {
