@@ -2008,6 +2008,28 @@ body.sidebar-open { overflow: hidden; }
 .ac-item:last-child { border-bottom: none; }
 .ac-item:hover, .ac-item.active { background: var(--bg-hover); }
 
+/* ── IA CATEGORY SUGGESTION CHIP ──────────────────────────────────── */
+.ia-suggest-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px dashed var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.ia-suggest-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-style: solid;
+}
+
 /* ── SMALL ACTION BUTTONS ──────────────────────────────────────────── */
 .btn-xs {
   padding: 3px 8px;
