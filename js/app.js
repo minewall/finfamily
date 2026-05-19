@@ -3251,6 +3251,37 @@ ${contratos.length === 0 ? `
 
 ${showContas ? `
 <div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Contas Bancárias</div>
+
+${(() => {
+  const saldoTotal = contas.reduce((a, ct) => a + (ct.saldo || 0), 0);
+  const lancamentos = (Store.get().lancamentos || []).filter(l => {
+    const [ly, lm] = (l.data || '').split('-').map(Number);
+    return ly === year && lm === month;
+  });
+  const entradasMes = lancamentos.filter(l => l.tipo === 'receita').reduce((a, l) => a + (l.valor || 0), 0);
+  const saidasMes  = lancamentos.filter(l => l.tipo === 'despesa').reduce((a, l) => a + (l.valor || 0), 0);
+  return `
+<div class="card mb-4" style="background:linear-gradient(135deg,var(--accent-dim) 0%,var(--bg-card) 100%);border:1.5px solid var(--accent)">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Saldo Consolidado</div>
+      <div style="font-size:32px;font-weight:900;font-family:var(--mono);color:${saldoTotal >= 0 ? 'var(--green)' : 'var(--red)'}">${Utils.currency(saldoTotal)}</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px">${contas.length} conta${contas.length !== 1 ? 's' : ''} cadastrada${contas.length !== 1 ? 's' : ''}</div>
+    </div>
+    <div style="display:flex;gap:24px">
+      <div style="text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Entradas do Mês</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--green)">+${Utils.currency(entradasMes)}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Saídas do Mês</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--red)">-${Utils.currency(saidasMes)}</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+})()}
+
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
   ${contas.length ? contas.map(ct => `
   <div class="card" style="border-top:3px solid ${ct.cor};position:relative">
@@ -3266,6 +3297,45 @@ ${showContas ? `
 
 ${showCartoes ? `
 ${mode === 'all' ? '<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Cartões de Crédito</div>' : ''}
+
+${(() => {
+  const limiteTotal = cartoes.reduce((a, cc) => a + (cc.limit || 0), 0);
+  const utilizadoTotal = cartoes.reduce((a, cc) => a + cc.parcelas.reduce((s, p) => s + p.parcela, 0), 0);
+  const lancamentos = (Store.get().lancamentos || []).filter(l => {
+    const [ly, lm] = (l.data || '').split('-').map(Number);
+    return ly === year && lm === month && l.tipo === 'despesa';
+  });
+  const utilizadoMes = lancamentos.filter(l => {
+    const cat = (l.categoria || '').toLowerCase();
+    return cat === 'cartoes' || cartoes.some(cc => cc.id === l.cartaoId);
+  }).reduce((a, l) => a + (l.valor || 0), 0);
+  const parcelasMes = cartoes.reduce((a, cc) => {
+    return a + cc.parcelas.reduce((s, p) => {
+      const [sy, sm] = p.inicio.split('-').map(Number);
+      const idx = (year * 12 + month) - (sy * 12 + sm);
+      return idx >= 0 && idx < p.qtd ? s + p.parcela : s;
+    }, 0);
+  }, 0);
+  const usoPct = limiteTotal > 0 ? Math.round(utilizadoTotal / limiteTotal * 100) : 0;
+  return `
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+  <div class="card" style="text-align:center">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">Limite Total</div>
+    <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:var(--text-1)">${Utils.currency(limiteTotal)}</div>
+    <div style="font-size:11px;color:var(--text-4);margin-top:2px">${cartoes.length} cartão${cartoes.length !== 1 ? 'ões' : ''}</div>
+  </div>
+  <div class="card" style="text-align:center">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">Comprometido</div>
+    <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:${usoPct > 80 ? 'var(--red)' : usoPct > 60 ? 'var(--amber)' : 'var(--text-1)'}">${Utils.currency(utilizadoTotal)}</div>
+    <div style="font-size:11px;color:var(--text-4);margin-top:2px">${usoPct}% do limite</div>
+  </div>
+  <div class="card" style="text-align:center">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">Parcelas/Mês</div>
+    <div style="font-size:22px;font-weight:900;font-family:var(--mono);color:var(--red)">${Utils.currency(parcelasMes)}</div>
+    <div style="font-size:11px;color:var(--text-4);margin-top:2px">este mês</div>
+  </div>
+</div>`;
+})()}
 
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:28px">
   ${cartoes.map(cc => {
