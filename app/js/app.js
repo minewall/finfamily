@@ -7105,6 +7105,326 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   }
 
   // ══════════════════════════════════════════════════════════════
+  // PAGE: MEU PAINEL (widgets customizáveis)
+  // ══════════════════════════════════════════════════════════════
+  function renderMeuPainel(container) {
+    const month = getMonth(), year = getYear();
+    const data  = Store.get();
+    const receita  = Store.sumReceitas(month, year);
+    const despesa  = Store.sumDespesas(month, year);
+    const saldo    = receita - despesa;
+    const patrimonio = Store.totalAtivos();
+
+    // ── Config de widgets ─────────────────────────────────────────
+    const WIDGETS_DEF = [
+      { id: 'saldo_mes',      label: 'Saldo do Mês',         icon: 'trending-up',    default: true },
+      { id: 'patrimonio',     label: 'Patrimônio',           icon: 'landmark',       default: true },
+      { id: 'metas',          label: 'Metas em Andamento',   icon: 'target',         default: true },
+      { id: 'coach',          label: 'Recados do Coach',     icon: 'sparkles',       default: true },
+      { id: 'desp_cat',       label: 'Despesas por Categoria', icon: 'pie-chart',    default: true },
+      { id: 'parcelas',       label: 'Próximas Parcelas',    icon: 'calendar-clock', default: true },
+      { id: 'transacoes',     label: 'Últimas Transações',   icon: 'list',           default: true },
+      { id: 'poder_escolha',  label: 'Poder de Escolha',     icon: 'zap',            default: false },
+    ];
+    const savedVis = JSON.parse(localStorage.getItem('painel_widgets') || 'null');
+    const vis = {}; // widget visibility
+    WIDGETS_DEF.forEach(w => {
+      vis[w.id] = savedVis ? (savedVis[w.id] !== undefined ? savedVis[w.id] : w.default) : w.default;
+    });
+
+    function saveVis() { localStorage.setItem('painel_widgets', JSON.stringify(vis)); }
+
+    // ── Render helpers ────────────────────────────────────────────
+    function wSaldoMes() {
+      const prevM = month > 1 ? month - 1 : 12;
+      const prevY = month > 1 ? year : year - 1;
+      const prevRec  = Store.sumReceitas(prevM, prevY);
+      const prevDesp = Store.sumDespesas(prevM, prevY);
+      const chgRec   = prevRec  > 0 ? ((receita - prevRec)  / prevRec)  * 100 : 0;
+      const chgDesp  = prevDesp > 0 ? ((despesa - prevDesp) / prevDesp) * 100 : 0;
+      const saldoColor = saldo >= 0 ? 'var(--green)' : 'var(--red)';
+      return `
+<div class="card widget-card" data-widget="saldo_mes">
+  <div class="card-header"><span class="card-title">${icon('trending-up',{size:15})} Saldo do Mês</span>
+    <span style="font-size:11px;color:var(--text-4)">${Utils.monthsFull[month-1]} ${year}</span></div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px">
+    <div class="kpi-card" style="--kpi-color:${saldoColor};--kpi-bg:${saldo>=0?'var(--green-dim)':'var(--red-dim)'};padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Saldo</div><div class="kpi-value" style="color:${saldoColor}">${Utils.currency(saldo)}</div></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Receitas</div><div class="kpi-value green">${Utils.currency(receita)}</div>
+        <div class="kpi-sub" style="color:${chgRec>=0?'var(--green)':'var(--red)'}">${chgRec>=0?'▲':'▼'} ${Math.abs(chgRec).toFixed(1)}% vs mês ant.</div>
+      </div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim);padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Despesas</div><div class="kpi-value red">${Utils.currency(despesa)}</div>
+        <div class="kpi-sub" style="color:${chgDesp<=0?'var(--green)':'var(--red)'}">${chgDesp>=0?'▲':'▼'} ${Math.abs(chgDesp).toFixed(1)}% vs mês ant.</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+    }
+
+    function wPatrimonio() {
+      const passivos = (data.passivos || []).reduce((s, p) => s + (p.valor || 0), 0);
+      const liquido  = patrimonio - passivos;
+      return `
+<div class="card widget-card" data-widget="patrimonio">
+  <div class="card-header"><span class="card-title">${icon('landmark',{size:15})} Patrimônio</span>
+    <a href="#patrimonio" onclick="Router.navigate('patrimonio')" style="font-size:11px;color:var(--accent)">Ver detalhes →</a></div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px">
+    <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim);padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Ativos</div><div class="kpi-value accent">${Utils.currency(patrimonio)}</div></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim);padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Passivos</div><div class="kpi-value red">${Utils.currency(passivos)}</div></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:${liquido>=0?'var(--green)':'var(--red)'};--kpi-bg:${liquido>=0?'var(--green-dim)':'var(--red-dim)'};padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Patrimônio Líquido</div><div class="kpi-value" style="color:${liquido>=0?'var(--green)':'var(--red)'}">${Utils.currency(liquido)}</div></div>
+    </div>
+  </div>
+</div>`;
+    }
+
+    function wMetas() {
+      const metas = (data.metas || []).filter(m => !m.concluida).slice(0, 4);
+      if (!metas.length) return `
+<div class="card widget-card" data-widget="metas">
+  <div class="card-header"><span class="card-title">${icon('target',{size:15})} Metas em Andamento</span></div>
+  <div class="empty-state" style="padding:20px"><p>Nenhuma meta ativa. <a href="#metas" onclick="Router.navigate('metas')" style="color:var(--accent)">Criar meta →</a></p></div>
+</div>`;
+      return `
+<div class="card widget-card" data-widget="metas">
+  <div class="card-header"><span class="card-title">${icon('target',{size:15})} Metas em Andamento</span>
+    <a href="#metas" onclick="Router.navigate('metas')" style="font-size:11px;color:var(--accent)">Ver todas →</a></div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    ${metas.map(m => {
+      const pct = m.alvo > 0 ? Math.min((m.atual || 0) / m.alvo * 100, 100) : 0;
+      const cor  = pct >= 100 ? 'var(--green)' : pct >= 60 ? 'var(--accent)' : 'var(--amber)';
+      const dataAlvo = m.dataAlvo ? new Date(m.dataAlvo+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) : '—';
+      return `<div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-weight:500;font-size:13px">${m.desc || m.label}</span>
+          <span style="font-size:11px;color:var(--text-3)">${Utils.currency(m.atual||0)} / ${Utils.currency(m.alvo)} · até ${dataAlvo}</span>
+        </div>
+        <div class="progress-bar" style="height:6px;border-radius:3px">
+          <div class="progress-fill" style="width:${pct.toFixed(1)}%;background:${cor};border-radius:3px"></div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+    }
+
+    function wCoach() {
+      const recados = (data.recados || []).filter(r => !r.lido).slice(0, 3);
+      const TIPO_COACH = {
+        insight: { label:'Insight', color:'var(--accent)', bg:'var(--accent-dim)' },
+        alerta:  { label:'Alerta',  color:'var(--red)',    bg:'var(--red-dim)' },
+        dica:    { label:'Dica',    color:'var(--green)',  bg:'var(--green-dim)' },
+        meta:    { label:'Meta',    color:'var(--teal)',   bg:'var(--teal-dim,#14B8A618)' },
+      };
+      if (!recados.length) return `
+<div class="card widget-card" data-widget="coach">
+  <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Coach</span></div>
+  <div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Nenhum recado novo. O Coach vai se manifestar em breve 😊</p></div>
+</div>`;
+      return `
+<div class="card widget-card" data-widget="coach">
+  <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Coach</span>
+    <a href="#recados" onclick="Router.navigate('recados')" style="font-size:11px;color:var(--accent)">Ver todos →</a></div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${recados.map(r => {
+      const tc = TIPO_COACH[r.tipo] || TIPO_COACH.insight;
+      return `<div style="border-left:3px solid ${tc.color};padding:8px 12px;background:${tc.bg};border-radius:0 8px 8px 0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tc.color}">${tc.label}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-1);line-height:1.4">${r.titulo}</div>
+        ${r.texto ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${r.texto.slice(0,90)}${r.texto.length>90?'…':''}</div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+    }
+
+    function wDespCat() {
+      const catMap = Store.despesasByCategory(month, year);
+      const top = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const total = top.reduce((s,[,v])=>s+v,0) || 1;
+      if (!top.length) return `
+<div class="card widget-card" data-widget="desp_cat">
+  <div class="card-header"><span class="card-title">${icon('pie-chart',{size:15})} Despesas por Categoria</span></div>
+  <div class="empty-state" style="padding:20px"><p>Sem despesas este mês.</p></div>
+</div>`;
+      return `
+<div class="card widget-card" data-widget="desp_cat">
+  <div class="card-header"><span class="card-title">${icon('pie-chart',{size:15})} Despesas por Categoria</span>
+    <a href="#despesas" onclick="Router.navigate('despesas')" style="font-size:11px;color:var(--accent)">Ver todas →</a></div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    ${top.map(([k,v]) => {
+      const cat = Store.CATEGORIES[k] || { label: k, color: '#7367F0' };
+      const pct = (v / total * 100).toFixed(1);
+      return `<div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="display:flex;align-items:center;gap:5px">
+            <span style="width:8px;height:8px;border-radius:50%;background:${cat.color||'var(--accent)'};display:inline-block"></span>
+            ${cat.label}
+          </span>
+          <span style="font-family:var(--mono);color:var(--text-2)">${Utils.currency(v)} <span style="color:var(--text-4)">${pct}%</span></span>
+        </div>
+        <div style="height:4px;border-radius:2px;background:var(--border)">
+          <div style="height:4px;border-radius:2px;width:${pct}%;background:${cat.color||'var(--accent)'}"></div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+    }
+
+    function wParcelas() {
+      return `
+<div class="card widget-card" data-widget="parcelas">
+  <div class="card-header"><span class="card-title">${icon('calendar-clock',{size:15})} Próximas Parcelas</span>
+    <a href="#contratos" onclick="Router.navigate('contratos')" style="font-size:11px;color:var(--accent)">Ver contratos →</a></div>
+  <div id="wpParcelasBody">${renderProximasParcelas()}</div>
+</div>`;
+    }
+
+    function wTransacoes() {
+      const recent = [...(data.despesas||[]), ...(data.receitas||[])]
+        .filter(t => t.year === year && t.month === month)
+        .sort((a,b) => (b.date||'').localeCompare(a.date||''))
+        .slice(0, 6);
+      if (!recent.length) return `
+<div class="card widget-card" data-widget="transacoes">
+  <div class="card-header"><span class="card-title">${icon('list',{size:15})} Últimas Transações</span></div>
+  <div class="empty-state" style="padding:20px"><p>Sem transações este mês.</p></div>
+</div>`;
+      return `
+<div class="card widget-card" data-widget="transacoes">
+  <div class="card-header"><span class="card-title">${icon('list',{size:15})} Últimas Transações</span>
+    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" style="font-size:11px;color:var(--accent)">Ver todas →</a></div>
+  <div style="display:flex;flex-direction:column;gap:0">
+    ${recent.map((t,i) => {
+      const isRec = !!t.type;
+      const dt = t.date ? new Date(t.date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '—';
+      const cat = Store.CATEGORIES[t.category] || { label: t.category||'—', color:'var(--text-4)' };
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i>0?'border-top:1px solid var(--border-faint,var(--border))':''}">
+        <span style="width:7px;height:7px;border-radius:50%;background:${isRec?'var(--green)':'var(--red)'};flex-shrink:0"></span>
+        <span style="flex:1;font-size:13px;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.desc||'—'}</span>
+        <span style="font-size:11px;color:var(--text-4);white-space:nowrap">${cat.label}</span>
+        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:${isRec?'var(--green)':'var(--text-1)'};white-space:nowrap">${isRec?'+':'−'}${Utils.currency(t.amount)}</span>
+        <span style="font-size:11px;color:var(--text-4);white-space:nowrap">${dt}</span>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+    }
+
+    function wPoderEscolha() {
+      const poder = Store.calcPoderDeEscolha(month, year);
+      const pct = poder ? Math.round((poder.livre / (poder.receita||1)) * 100) : 0;
+      const cor  = pct >= 30 ? 'var(--green)' : pct >= 15 ? 'var(--amber)' : 'var(--red)';
+      return `
+<div class="card widget-card" data-widget="poder_escolha">
+  <div class="card-header"><span class="card-title">${icon('zap',{size:15})} Poder de Escolha</span></div>
+  ${poder ? `
+  <div class="kpi-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim);padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Fixo</div><div class="kpi-value red">${Utils.currency(poder.fixo)}</div></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim);padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Variável</div><div class="kpi-value" style="color:var(--amber)">${Utils.currency(poder.variavel)}</div></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:${cor};--kpi-bg:${pct>=30?'var(--green-dim)':pct>=15?'var(--amber-dim)':'var(--red-dim)'};padding:14px">
+      <div class="kpi-body"><div class="kpi-label">Livre (${pct}%)</div><div class="kpi-value" style="color:${cor}">${Utils.currency(poder.livre)}</div></div>
+    </div>
+  </div>` : `<div class="empty-state" style="padding:16px"><p>Sem dados suficientes.</p></div>`}
+</div>`;
+    }
+
+    const WIDGET_RENDER = {
+      saldo_mes:     wSaldoMes,
+      patrimonio:    wPatrimonio,
+      metas:         wMetas,
+      coach:         wCoach,
+      desp_cat:      wDespCat,
+      parcelas:      wParcelas,
+      transacoes:    wTransacoes,
+      poder_escolha: wPoderEscolha,
+    };
+
+    // ── Drawer de personalização ──────────────────────────────────
+    function buildCustomizeDrawer() {
+      return `
+<div id="painelCustomizeDrawer" style="position:fixed;top:0;right:0;width:300px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:200;padding:24px;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,.15)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div style="font-weight:700;font-size:16px">Personalizar Painel</div>
+    <button id="btnCloseDrawer" style="background:none;border:none;cursor:pointer;color:var(--text-3)">${icon('x',{size:18})}</button>
+  </div>
+  <div style="font-size:12px;color:var(--text-4);margin-bottom:16px">Escolha quais widgets exibir no seu painel.</div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    ${WIDGETS_DEF.map(w => `
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border-radius:8px;background:var(--surface-2);transition:background .15s">
+      <input type="checkbox" id="wToggle_${w.id}" ${vis[w.id]?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)">
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px">
+        ${icon(w.icon,{size:14})}
+        ${w.label}
+      </span>
+    </label>`).join('')}
+  </div>
+  <button id="btnApplyWidgets" class="btn-primary w-full" style="margin-top:20px">Aplicar</button>
+</div>
+<div id="painelOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:199" id="painelOverlay"></div>`;
+    }
+
+    // ── Render principal ──────────────────────────────────────────
+    function buildPainel() {
+      const visibleWidgets = WIDGETS_DEF.filter(w => vis[w.id]);
+      const html = visibleWidgets.map(w => WIDGET_RENDER[w.id]()).join('');
+      return html || `<div class="empty-state card" style="padding:40px;text-align:center"><p>Nenhum widget selecionado.<br>Clique em <strong>Personalizar</strong> para escolher o que exibir.</p></div>`;
+    }
+
+    container.innerHTML = `
+<div class="section-header mb-6">
+  <div>
+    <div class="section-title">Meu Painel</div>
+    <div class="section-sub">Sua visão personalizada das finanças</div>
+  </div>
+  <button class="btn-secondary" id="btnPersonalizarPainel">${icon('sliders-horizontal',{size:14})} Personalizar</button>
+</div>
+${renderPageMonthPicker(container)}
+<div id="painelWidgetsArea" style="display:grid;grid-template-columns:1fr;gap:16px">
+  ${buildPainel()}
+</div>`;
+
+    // ── Eventos ───────────────────────────────────────────────────
+    document.getElementById('btnPersonalizarPainel')?.addEventListener('click', () => {
+      if (document.getElementById('painelCustomizeDrawer')) return;
+      document.body.insertAdjacentHTML('beforeend', buildCustomizeDrawer());
+
+      document.getElementById('btnCloseDrawer')?.addEventListener('click', closeDrawer);
+      document.getElementById('painelOverlay')?.addEventListener('click', closeDrawer);
+
+      document.getElementById('btnApplyWidgets')?.addEventListener('click', () => {
+        WIDGETS_DEF.forEach(w => {
+          const cb = document.getElementById(`wToggle_${w.id}`);
+          if (cb) vis[w.id] = cb.checked;
+        });
+        saveVis();
+        closeDrawer();
+        document.getElementById('painelWidgetsArea').innerHTML = buildPainel();
+      });
+    });
+
+    function closeDrawer() {
+      document.getElementById('painelCustomizeDrawer')?.remove();
+      document.getElementById('painelOverlay')?.remove();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // PAGE: RECADOS
   // ══════════════════════════════════════════════════════════════
   function renderRecados(container) {
@@ -8445,6 +8765,7 @@ ${isConnected && isAdmin ? `
 
     // Register pages
     Router.register('dashboard',     renderDashboard);
+    Router.register('meupainel',     renderMeuPainel);
     Router.register('lancamentos',   renderLancamentos);
     Router.register('receitas',      renderReceitas);
     Router.register('despesas',      renderDespesas);
