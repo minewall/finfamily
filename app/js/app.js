@@ -7092,10 +7092,10 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     }
 
     const TIPO_CONFIG = {
-      insight: { icon: '⚡', bgColor: 'var(--accent-dim)', iconColor: 'var(--haile-indigo)' },
-      alerta:  { icon: '⚠️', bgColor: 'var(--amber-dim)',  iconColor: 'var(--amber)' },
-      dica:    { icon: '💡', bgColor: 'var(--green-dim)',  iconColor: 'var(--green)' },
-      meta:    { icon: '✅', bgColor: 'var(--green-dim)',  iconColor: 'var(--green)' },
+      insight: { icon: '⚡', label: 'Insight', bgColor: 'var(--accent-dim)', badgeColor: 'var(--accent)',       badgeBg: 'var(--accent-dim)' },
+      alerta:  { icon: '⚠️', label: 'Alerta',  bgColor: 'var(--amber-dim)',  badgeColor: 'var(--amber)',        badgeBg: 'var(--amber-dim)' },
+      dica:    { icon: '💡', label: 'Dica',    bgColor: 'var(--green-dim)',  badgeColor: 'var(--green)',        badgeBg: 'var(--green-dim)' },
+      meta:    { icon: '✅', label: 'Meta',    bgColor: 'var(--green-dim)',  badgeColor: 'var(--teal)',         badgeBg: 'var(--teal-dim,#14B8A618)' },
     };
 
     const PESSOA_CONFIG = [
@@ -7135,8 +7135,8 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       ${!r.lido ? '<div class="recado-unread-dot"></div>' : ''}
     </div>
     <div class="recado-card-meta">
-      <span class="recado-tipo-badge ${r.tipo}">${r.tipo}</span>
-      · ${fmtRelTime(r.data)}
+      <span style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:6px;background:${tc.badgeBg};color:${tc.badgeColor}">${tc.label}</span>
+      <span style="color:var(--text-4)">· ${fmtRelTime(r.data)}</span>
     </div>
     <div class="recado-card-text">${r.texto}</div>
   </div>
@@ -7195,12 +7195,14 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
 </div>
 
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-  <span id="rcNaoLidosCount" style="font-size:12px;font-weight:600;color:var(--haile-indigo);${naoLidosTotal > 0 ? '' : 'display:none'}">● ${naoLidosTotal} não lido${naoLidosTotal !== 1 ? 's' : ''}</span>
-  <div class="lanc-type-toggle" style="margin-left:auto">
+  <div class="lanc-type-toggle">
     <button class="lanc-type-btn active" id="rcBtnTodos">Todos</button>
-    <button class="lanc-type-btn" id="rcBtnNaoLidos">Não lidos</button>
+    <button class="lanc-type-btn" id="rcBtnNaoLidos">Não lidos${naoLidosTotal > 0 ? ` <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;margin-left:4px">${naoLidosTotal}</span>` : ''}</button>
   </div>
-  <span id="rcTotalCount" style="font-size:12px;color:var(--text-3)">${(Store.get().recados||[]).length} recados</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+    <span id="rcTotalCount" style="font-size:12px;color:var(--text-3)">${(Store.get().recados||[]).length} recados</span>
+    ${naoLidosTotal > 0 ? `<button class="btn-ghost" id="rcBtnMarcarTodos" style="font-size:12px;color:var(--accent);white-space:nowrap">Marcar todos como lidos</button>` : ''}
+  </div>
 </div>
 
 <div class="recados-avatar-filter" id="rcAvatarFilter">
@@ -7238,6 +7240,14 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       document.getElementById('rcBtnNaoLidos').classList.add('active');
       document.getElementById('rcBtnTodos').classList.remove('active');
       renderCards();
+    });
+
+    // Marcar todos como lidos
+    document.getElementById('rcBtnMarcarTodos')?.addEventListener('click', () => {
+      const d = Store.get();
+      (d.recados || []).forEach(r => { r.lido = true; });
+      Store.persist();
+      renderRecados(container);
     });
 
     // Update badge on load
