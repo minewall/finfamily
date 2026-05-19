@@ -7269,23 +7269,35 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
 <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
   <aside class="card" style="padding:8px">
     ${[
-      ['categorias', 'folder-tree',   'Categorias'],
-      ['tipos',      'tag',           'Tipos'],
-      ['coach',      'sparkles',      'Haile Coach'],
-      ['pessoas',    'users',         'Grupo Familiar'],
-      ['cotacoes',   'arrow-left-right','Cotações'],
-      ['aparencia',  'palette',       'Aparência'],
-      ['backup',     'database',      'Backup & Dados'],
-      ['perfil',     'user-round',    'Perfil'],
-      ['senha',      'key-round',     'Trocar Senha'],
-      ['sobre',      'info',          'Sobre'],
-    ].map(([k, ic, l]) => `
-      <button class="config-tab ${section===k?'active':''}" data-section="${k}"
-        style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:none;background:${section===k?'var(--bg-elevated)':'transparent'};color:${section===k?'var(--text-1)':'var(--text-2)'};border-radius:8px;cursor:pointer;font-size:13px;font-weight:${section===k?'600':'500'};margin-bottom:2px">
-        ${icon(ic, { size: 16 })}
-        <span>${l}</span>
-      </button>
-    `).join('')}
+      { group: 'CONTA' },
+      ['perfil',     'user-round',      'Perfil',          'Nome, foto, informações pessoais'],
+      ['senha',      'key-round',       'Senha & Segurança','Alterar senha, 2FA'],
+      { group: 'FINANÇAS' },
+      ['categorias', 'folder-tree',     'Categorias',      'Gerencie categorias e subcategorias'],
+      ['tipos',      'tag',             'Tipos',           'Comportamento Minewall'],
+      ['pessoas',    'users',           'Grupo Familiar',  'Membros e permissões'],
+      ['cotacoes',   'arrow-left-right','Cotações',        'USD, EUR e outras moedas'],
+      { group: 'PERSONALIZAÇÃO' },
+      ['coach',      'sparkles',        'Haile Coach',     'Personalidade e preferências da IA'],
+      ['aparencia',  'palette',         'Aparência',       'Tema claro/escuro'],
+      ['notificacoes','bell',           'Notificações',    'Push e e-mail'],
+      { group: 'SISTEMA' },
+      ['backup',     'database',        'Backup & Dados',  'Exportar, importar, limpar'],
+      ['sobre',      'info',            'Sobre',           'Versão e créditos'],
+    ].map(item => {
+      if (item.group) return `<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);padding:10px 12px 4px;margin-top:4px">${item.group}</div>`;
+      const [k, ic, l, sub] = item;
+      const isActive = section === k;
+      return `<button class="config-tab ${isActive?'active':''}" data-section="${k}"
+        style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border:none;background:${isActive?'var(--bg-elevated)':'transparent'};color:${isActive?'var(--text-1)':'var(--text-2)'};border-radius:8px;cursor:pointer;margin-bottom:1px">
+        <span style="flex-shrink:0;color:${isActive?'var(--accent)':'var(--text-3)'}">${icon(ic, { size: 16 })}</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:13px;font-weight:${isActive?'600':'500'}">${l}</span>
+          <span style="display:block;font-size:11px;color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub}</span>
+        </span>
+        <span style="color:var(--text-4);opacity:.5">${icon('chevron-right',{size:14})}</span>
+      </button>`;
+    }).join('')}
   </aside>
   <main id="configContent"></main>
 </div>`;
@@ -7304,10 +7316,11 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     else if (section === 'pessoas')    renderConfigPessoas(content);
     else if (section === 'cotacoes')   renderConfigCotacoes(content);
     else if (section === 'aparencia')  renderConfigAparencia(content);
-    else if (section === 'backup')     renderConfigBackup(content);
-    else if (section === 'perfil')     renderConfigPerfil(content);
-    else if (section === 'senha')      renderConfigSenha(content);
-    else                                renderConfigSobre(content);
+    else if (section === 'backup')        renderConfigBackup(content);
+    else if (section === 'perfil')        renderConfigPerfil(content);
+    else if (section === 'senha')         renderConfigSenha(content);
+    else if (section === 'notificacoes')  renderConfigNotificacoes(content);
+    else                                   renderConfigSobre(content);
     upgradeIcons(container);
 
     document.getElementById('btnEditPerfil')?.addEventListener('click', () => {
@@ -8178,6 +8191,63 @@ ${isConnected && isAdmin ? `
     { id: 'claude-sonnet-4-6',          label: 'Sonnet 4.6', desc: 'Mais inteligente · ~$0,007/pergunta · melhor para análises complexas' },
     { id: 'claude-opus-4-7',            label: 'Opus 4.7',   desc: 'Máxima capacidade · maior custo · uso pontual' },
   ];
+
+  function renderConfigNotificacoes(content) {
+    const settings = Store.get().settings || {};
+    const notif = settings.notificacoes || {};
+
+    function toggle(key, val) {
+      const d = Store.get();
+      d.settings = d.settings || {};
+      d.settings.notificacoes = d.settings.notificacoes || {};
+      d.settings.notificacoes[key] = val;
+      Store.save(d);
+      renderConfigNotificacoes(content);
+    }
+
+    const rows = [
+      { group: 'PUSH' },
+      { key: 'pushAtivo',       label: 'Notificações Push',        sub: 'Alertas no dispositivo em tempo real',               default: true },
+      { key: 'pushMeta',        label: 'Metas atingidas',          sub: 'Aviso quando uma meta for concluída',                default: true },
+      { key: 'pushVencimento',  label: 'Vencimentos próximos',     sub: 'Contratos e faturas vencendo em 3 dias',             default: true },
+      { key: 'pushCoach',       label: 'Insights do Coach',        sub: 'Quando o Coach tiver uma análise nova para você',    default: false },
+      { group: 'E-MAIL' },
+      { key: 'emailResumoMes',  label: 'Resumo mensal',            sub: 'Relatório consolidado do mês no 1º dia útil',        default: true },
+      { key: 'emailInsights',   label: 'Insights personalizados',  sub: 'Análises e recomendações do Coach semanalmente',     default: false },
+      { key: 'emailAlerta',     label: 'Alertas críticos',         sub: 'Orçamento estourado, meta em risco, etc.',           default: true },
+    ];
+
+    content.innerHTML = `
+<div class="section-header mb-6">
+  <div>
+    <div class="section-title">Notificações</div>
+    <div class="section-sub">Controle o que o Haile te avisa e por qual canal</div>
+  </div>
+</div>
+<div class="card">
+  ${rows.map(r => {
+    if (r.group) return `<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);padding:14px 16px 6px;border-top:1px solid var(--border)">${r.group}</div>`;
+    const val = r.key in notif ? notif[r.key] : r.default;
+    return `<div class="stat-row" style="padding:12px 16px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1)">${r.label}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">${r.sub}</div>
+      </div>
+      <label class="toggle-switch" style="flex-shrink:0">
+        <input type="checkbox" ${val?'checked':''} data-notif-key="${r.key}">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>`;
+  }).join('')}
+</div>
+<div style="font-size:11px;color:var(--text-4);margin-top:12px;padding:0 4px">
+  Push requer permissão do navegador. E-mails são enviados para o endereço da sua conta.
+</div>`;
+
+    content.querySelectorAll('[data-notif-key]').forEach(el => {
+      el.addEventListener('change', () => toggle(el.dataset.notifKey, el.checked));
+    });
+  }
 
   function renderConfigSobre(content) {
     const settings   = Store.get().settings || {};
