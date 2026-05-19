@@ -5558,6 +5558,32 @@ ${reservas.length > 0 ? `
   <div id="feeResult"></div>
 </div>
 
+<!-- ── COACH DO PORTFÓLIO ─────────────────────────────────────── -->
+<div class="card mb-6" style="border:1px solid rgba(115,103,240,0.25);background:linear-gradient(135deg,rgba(115,103,240,0.06) 0%,rgba(6,182,212,0.04) 100%)">
+  <div class="card-header">
+    <span class="card-title" style="display:flex;align-items:center;gap:8px">
+      <img src="assets/svg/haile-mark-white.svg" alt="" style="width:18px;height:auto;opacity:.9">
+      Coach do Portfólio
+    </span>
+    <span style="font-size:11px;color:var(--text-4)">Pergunte sobre sua carteira em linguagem natural</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="coachPortfolioSuggestions">
+    ${[
+      'Minha carteira está bem diversificada?',
+      'Quanto tempo para atingir R$ 500k?',
+      'Meu portfólio está batendo o CDI?',
+      'Qual a taxa média da minha carteira?',
+      'Como posso melhorar meus investimentos?',
+      'Quanto rende meu portfólio por ano?',
+    ].map(q => `<button class="coach-suggestion coach-portfolio-q" style="font-size:12px;padding:6px 12px">${q}</button>`).join('')}
+  </div>
+  <div style="display:flex;gap:8px">
+    <input class="form-input" id="coachPortfolioInput" placeholder="Ex: Com R$ 800/mês, quando atinjo R$ 1 milhão?" style="flex:1">
+    <button class="btn-primary" id="coachPortfolioSend" style="white-space:nowrap;padding:0 20px">${icon('sparkles',{size:14})} Perguntar</button>
+  </div>
+  <div id="coachPortfolioResp" style="display:none;margin-top:14px;padding:14px;background:var(--surface-2);border-radius:10px;font-size:14px;line-height:1.65;color:var(--text-1)"></div>
+</div>
+
 <!-- ── COMPARADOR DE CENÁRIOS ────────────────────────────────── -->
 <div class="card mb-6">
   <div class="card-header">
@@ -5786,6 +5812,42 @@ ${reservas.length > 0 ? `
     };
     _autoCalcInv(['ivCap','ivAporte','ivAnos','ivInfl','ivIR'], 'btnCompInv');
     _autoCalcInv(['ivAlvo','ivAlvoAnos','ivAlvoCap'], 'btnRevInv');
+
+    // ── COACH DO PORTFÓLIO ────────────────────────────────────────
+    function askCoachPortfolio(pergunta) {
+      if (!pergunta.trim()) return;
+      const respEl = document.getElementById('coachPortfolioResp');
+      if (respEl) {
+        respEl.style.display = 'block';
+        respEl.innerHTML = `<span style="color:var(--accent);font-size:13px;display:flex;align-items:center;gap:6px">${icon('sparkles',{size:13})} Abrindo o Coach com sua pergunta…</span>`;
+      }
+      // Usa a API pública do Coach — abre o painel e envia a pergunta
+      if (window.FFCoach?.ask) {
+        window.FFCoach.ask(pergunta);
+        if (respEl) {
+          setTimeout(() => {
+            respEl.innerHTML = `<span style="color:var(--text-3);font-size:12px">✓ Pergunta enviada ao Coach — veja o painel à direita →</span>`;
+          }, 400);
+        }
+      } else {
+        if (respEl) respEl.innerHTML = `<span style="color:var(--text-4);font-size:13px">Abra o Coach (ícone no topo) e pergunte diretamente.</span>`;
+      }
+    }
+
+    document.getElementById('coachPortfolioSend')?.addEventListener('click', () => {
+      const input = document.getElementById('coachPortfolioInput');
+      if (input) { askCoachPortfolio(input.value); input.value = ''; }
+    });
+    document.getElementById('coachPortfolioInput')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('coachPortfolioSend')?.click();
+    });
+    document.querySelectorAll('.coach-portfolio-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('coachPortfolioInput');
+        if (input) input.value = btn.textContent;
+        askCoachPortfolio(btn.textContent);
+      });
+    });
 
     // ── FEE ANALYZER ─────────────────────────────────────────────
     function calcFeeAnalyzer() {
@@ -9543,6 +9605,27 @@ ${isConnected && isAdmin ? `
 
     function resetConversation() {
       history = [];
+      // Build context-aware suggestions
+      const reservas = Store.get('reservas') || [];
+      const metas = Store.get('metas') || [];
+      const temInvestimentos = reservas.length > 0;
+      const temMetas = metas.length > 0;
+      let suggestions;
+      if (temInvestimentos) {
+        suggestions = [
+          'Como está minha diversificação?',
+          'Qual o rendimento estimado do meu portfólio?',
+          temMetas ? 'Estou no caminho das minhas metas?' : 'Onde posso economizar?',
+          'Como está minha saúde financeira?',
+        ];
+      } else {
+        suggestions = [
+          'Qual meu maior gasto esse mês?',
+          'Estou dentro do orçamento?',
+          'Onde posso economizar?',
+          'Como está minha saúde financeira?',
+        ];
+      }
       msgs.innerHTML = `
       <div class="coach-welcome">
         <div class="coach-avatar-lg" style="overflow:hidden">
@@ -9550,10 +9633,7 @@ ${isConnected && isAdmin ? `
         </div>
         <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
         <div class="coach-suggestions" id="coachSuggestions">
-          <button class="coach-suggestion">Qual meu maior gasto esse mês?</button>
-          <button class="coach-suggestion">Estou dentro do orçamento?</button>
-          <button class="coach-suggestion">Onde posso economizar?</button>
-          <button class="coach-suggestion">Como está minha saúde financeira?</button>
+          ${suggestions.map(s => `<button class="coach-suggestion">${s}</button>`).join('')}
         </div>
       </div>`;
       bindSuggestions();
@@ -9896,8 +9976,45 @@ ${contasStr}
 === CARTÕES DE CRÉDITO ===
 ${cartoesStr}
 
-=== INVESTIMENTOS (total: R$ ${totalInv.toFixed(2)}) ===
+=== INVESTIMENTOS (total atual: R$ ${totalInv.toFixed(2)}) ===
 ${reservasStr}
+
+=== ANÁLISE DO PORTFÓLIO ===
+${(() => {
+  if (!reservas.length) return '  (sem investimentos cadastrados)';
+  const totalAtual = reservas.reduce((s,r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
+  const totalInvestido2 = reservas.reduce((s,r) => s + (r.valorInvestido || 0), 0);
+  const ganhoTotal = totalAtual - totalInvestido2;
+  const rendPctTotal = totalInvestido2 > 0 ? (ganhoTotal / totalInvestido2 * 100) : 0;
+  // Distribuição por tipo
+  const byTipo2 = {};
+  reservas.forEach(r => { const t = r.tipo||'Outros'; byTipo2[t] = (byTipo2[t]||0) + (r.valorAtual||r.valorInvestido||0); });
+  const distStr = Object.entries(byTipo2).sort((a,b)=>b[1]-a[1])
+    .map(([t,v]) => `  · ${t}: R$ ${v.toFixed(2)} (${totalAtual>0?(v/totalAtual*100).toFixed(1):0}%)`).join('\n');
+  // Taxa média ponderada
+  const taxaMedia = totalAtual > 0
+    ? reservas.reduce((s,r) => s + ((r.taxaAnual||r.rendimento||0) * (r.valorAtual||r.valorInvestido||0)), 0) / totalAtual
+    : 0;
+  // Estimativa de rendimento anual
+  const rendEstAno2 = reservas.reduce((s,r) => s + ((r.taxaAnual||r.rendimento||0)/100) * (r.valorAtual||r.valorInvestido||0), 0);
+  // Diversificação — score simples
+  const nTipos = Object.keys(byTipo2).length;
+  const divScore = nTipos >= 3 ? 'boa' : nTipos === 2 ? 'moderada' : 'baixa (concentrada)';
+  // Ganho acumulado
+  const lines = [
+    `Ganho acumulado: R$ ${ganhoTotal.toFixed(2)} (${rendPctTotal.toFixed(1)}% sobre capital investido)`,
+    `Taxa média ponderada estimada: ${taxaMedia.toFixed(1)}% a.a.`,
+    `Rendimento estimado nos próximos 12 meses: R$ ${rendEstAno2.toFixed(2)}`,
+    `Diversificação: ${divScore} (${nTipos} tipo${nTipos!==1?'s':''} de ativo)`,
+    `Distribuição:\n${distStr}`,
+  ];
+  // Alertas de portfólio
+  const alertas = [];
+  if (nTipos === 1) alertas.push('⚠️ Portfólio concentrado em um único tipo de ativo — considere diversificar.');
+  if (taxaMedia < 10 && taxaMedia > 0) alertas.push(`⚠️ Taxa média (${taxaMedia.toFixed(1)}% a.a.) abaixo da SELIC — verifique se os produtos estão competitivos.`);
+  if (alertas.length) lines.push('Alertas:\n' + alertas.map(a=>'  '+a).join('\n'));
+  return lines.join('\n');
+})()}
 
 === VEÍCULOS ===
 ${veiculosStr}
