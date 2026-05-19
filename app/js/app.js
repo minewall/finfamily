@@ -5349,11 +5349,37 @@ ${topCats.length ? `
 
   // ── INVESTIMENTOS (aba dedicada — comparador + curva patrimonial) ─
   async function renderInvestimentos(container) {
-    const reservas = Store.get().reservas || [];
+    const data    = Store.get();
+    const reservas = data.reservas || [];
+    const ativos   = data.ativos   || [];
+    const imoveis  = (typeof Store.getImoveis  === 'function') ? Store.getImoveis()  : [];
+    const veiculos = (typeof Store.getVeiculos === 'function') ? Store.getVeiculos() : [];
+
     const totalInvestido = reservas.reduce((s, r) => s + (r.valorInvestido || 0), 0);
     const totalAtual     = reservas.reduce((s, r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
     const ganho          = totalAtual - totalInvestido;
     const rendPct        = totalInvestido > 0 ? (ganho / totalInvestido) * 100 : 0;
+
+    // Rendimento estimado/ano: soma (taxa anual * valor atual) de cada reserva
+    const rendEstAno = reservas.reduce((s, r) => {
+      const taxa = (r.taxaAnual || 0) / 100;
+      const val  = r.valorAtual || r.valorInvestido || 0;
+      return s + val * taxa;
+    }, 0);
+
+    // Outros ativos (imóveis + veículos + ativos manuais)
+    const toBRL = a => (a.moeda === 'USD' ? (a.valor||0)*5.2 : a.moeda === 'EUR' ? (a.valor||0)*5.7 : (a.valor||0));
+    const outrosAtivos = ativos.reduce((s,a) => s + toBRL(a), 0)
+      + imoveis.reduce((s,im) => s + (im.valorAtual || im.valorCompra || 0), 0)
+      + veiculos.reduce((s,v) => s + (v.valorAtual || v.valorCompra || 0), 0);
+
+    // Distribuição por tipo (donut)
+    const TIPO_COLORS = { 'Renda Fixa':'#22C55E','Renda Variável':'#7367F0','Crypto':'#F59E0B','Dinheiro':'#9CA3AF','Outros':'#14B8A6' };
+    const byTipo = {};
+    reservas.forEach(r => {
+      const tipo = r.tipo || 'Outros';
+      byTipo[tipo] = (byTipo[tipo] || 0) + (r.valorAtual || r.valorInvestido || 0);
+    });
 
     // Saldo médio mensal sobrando (últimos 6 meses) para sugerir aporte
     const hojeD = new Date();
@@ -5370,45 +5396,94 @@ ${topCats.length ? `
 <div class="section-header mb-6">
   <div>
     <div class="section-title">Investimentos</div>
-    <div class="section-sub">Compare produtos de renda fixa e projete seu patrimônio</div>
+    <div class="section-sub">Portfólio, evolução patrimonial e comparativo de produtos</div>
   </div>
-  <button class="btn-secondary" onclick="Router.navigate('patrimonio')" style="white-space:nowrap">${icon('bar-chart-2',{size:14})} Ver Patrimônio</button>
+  <button class="btn-secondary" onclick="Router.navigate('patrimonio')" style="white-space:nowrap">${icon('bar-chart-2',{size:14})} Reserva & Patrimônio</button>
 </div>
 
-<!-- Resumo do portfólio atual -->
-${reservas.length > 0 ? `
-<div class="kpi-grid mb-4">
+<!-- 4 KPIs — Figma spec -->
+<div class="kpi-grid mb-6" style="grid-template-columns:repeat(4,1fr)">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Total investido</div><div class="kpi-value accent">${Utils.currency(totalInvestido)}</div><div class="kpi-sub">${reservas.length} aplicação${reservas.length!==1?'ões':''}</div></div>
+    <div class="kpi-icon">${icon('landmark',{size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Total em Reservas</div>
+      <div class="kpi-value accent">${Utils.currency(totalAtual)}</div>
+      <div class="kpi-sub">${reservas.length} aplicação${reservas.length!==1?'ões':''} · ${rendPct.toFixed(1)}% ganho</div>
+    </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Valor atual</div><div class="kpi-value" style="color:var(--teal)">${Utils.currency(totalAtual)}</div></div>
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+    <div class="kpi-icon">${icon('trending-up',{size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Rendimento Est./Ano</div>
+      <div class="kpi-value green">${Utils.currency(rendEstAno)}</div>
+      <div class="kpi-sub">${totalAtual > 0 ? ((rendEstAno/totalAtual)*100).toFixed(1)+'% a.a. médio' : 'adicione taxas para calcular'}</div>
+    </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:${ganho>=0?'var(--green)':'var(--red)'};--kpi-bg:${ganho>=0?'var(--green-dim)':'var(--red-dim)'}">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Ganho acumulado</div><div class="kpi-value" style="color:${ganho>=0?'var(--green)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div><div class="kpi-sub">${rendPct.toFixed(1)}% de rendimento</div></div>
+  <div class="kpi-card" style="--kpi-color:${ganho>=0?'var(--teal)':'var(--red)'};--kpi-bg:${ganho>=0?'var(--teal-dim,#14B8A618)':'var(--red-dim)'}">
+    <div class="kpi-icon">${icon('arrow-up-right',{size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Ganho Acumulado</div>
+      <div class="kpi-value" style="color:${ganho>=0?'var(--teal)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div>
+      <div class="kpi-sub">vs ${Utils.currency(totalInvestido)} investido</div>
+    </div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
+    <div class="kpi-icon">${icon('building-2',{size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Outros Ativos</div>
+      <div class="kpi-value" style="color:var(--amber)">${Utils.currency(outrosAtivos)}</div>
+      <div class="kpi-sub">imóveis, veículos, ativos manuais</div>
+    </div>
   </div>
 </div>
 
-<!-- Cards das aplicações cadastradas -->
+<!-- Donut + Evolução patrimonial (Figma: dois charts lado a lado) -->
+${reservas.length > 0 ? `
+<div class="chart-grid mb-6" style="grid-template-columns:1fr 2fr;align-items:start;gap:16px">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Distribuição do Portfólio</span></div>
+    <div style="display:flex;justify-content:center;padding:8px 0">
+      <canvas id="chartInvDonut" width="180" height="180"></canvas>
+    </div>
+    <div id="invDonutLegend" style="display:flex;flex-direction:column;gap:6px;padding:0 4px 4px"></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Evolução Patrimonial — ${getYear()}</span>
+      <span style="font-size:11px;color:var(--text-4)">reservas + saldo acumulado</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chartInvEvolucao" class="chart-canvas" height="200"></canvas></div>
+  </div>
+</div>
+
+<!-- Portfólio cards -->
 <div class="card mb-6">
   <div class="card-header">
     <span class="card-title">Portfólio Atual</span>
     <span style="font-size:11px;color:var(--text-4)">Gerencie em <a href="#patrimonio" onclick="Router.navigate('patrimonio')" style="color:var(--accent)">Reserva & Patrimônio</a></span>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:4px 0">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:4px 0">
     ${reservas.map(r => {
       const valAtual = r.valorAtual || r.valorInvestido || 0;
-      const ganhoR = valAtual - (r.valorInvestido || 0);
-      const rendR  = r.valorInvestido > 0 ? (ganhoR / r.valorInvestido * 100) : 0;
-      const tipoColor = (r.tipo||'').includes('Variável') ? 'var(--blue)' : (r.tipo||'').includes('Dinheiro') ? 'var(--text-3)' : 'var(--green)';
-      return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface-2)">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tipoColor};margin-bottom:3px">${r.tipo||'Aplicação'}</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.nome||r.label||'—'}">${r.nome||r.label||'—'}</div>
+      const ganhoR   = valAtual - (r.valorInvestido || 0);
+      const rendR    = r.valorInvestido > 0 ? (ganhoR / r.valorInvestido * 100) : 0;
+      const tipoColor = TIPO_COLORS[r.tipo] || 'var(--text-3)';
+      const pctPortfolio = totalAtual > 0 ? (valAtual / totalAtual * 100).toFixed(1) : 0;
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface-2);position:relative">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${tipoColor};flex-shrink:0"></span>
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tipoColor}">${r.tipo||'Aplicação'}</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--text-4)">${pctPortfolio}%</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.nome||r.label||'—'}">${r.nome||r.label||'—'}</div>
         <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1)">${Utils.currency(valAtual)}</div>
-        <div style="font-size:11px;color:${ganhoR>=0?'var(--green)':'var(--red)'};margin-top:2px">${ganhoR>=0?'+':''}${Utils.currency(ganhoR)} (${rendR.toFixed(1)}%)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <span style="font-size:11px;color:${ganhoR>=0?'var(--green)':'var(--red)'}">${ganhoR>=0?'+':''}${Utils.currency(ganhoR)} (${rendR.toFixed(1)}%)</span>
+          ${r.taxaAnual ? `<span style="font-size:10px;color:var(--text-4)">${r.taxaAnual}% a.a.</span>` : ''}
+        </div>
+        <div style="height:3px;border-radius:2px;background:var(--border);margin-top:8px">
+          <div style="height:3px;border-radius:2px;width:${Math.min(pctPortfolio,100)}%;background:${tipoColor}"></div>
+        </div>
       </div>`;
     }).join('')}
   </div>
@@ -5434,7 +5509,7 @@ ${reservas.length > 0 ? `
       <div class="form-group"><label class="form-label">Inflação esperada (% a.a.)</label><input class="form-input" id="ivInfl" type="number" step="0.1" value="4.5"><div style="font-size:11px;color:var(--text-3);margin-top:4px">Para produtos IPCA+ e cálculo de poder de compra</div></div>
       <div class="form-group"><label class="form-label">IR estimado (%)</label><input class="form-input" id="ivIR" type="number" step="1" value="15"><div style="font-size:11px;color:var(--text-3);margin-top:4px">15% após 2 anos. LCI/LCA são isentas.</div></div>
     </div>
-    <button class="btn-primary w-full" style="margin-top:16px" id="btnCompInv">Comparar</button>
+    <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCompInv">Comparar</button>
   </div>
   <div id="ivCompResult" class="card" style="display:none">
     <div class="card-header"><span class="card-title">Evolução comparada</span></div>
@@ -5451,13 +5526,70 @@ ${reservas.length > 0 ? `
       <div class="form-group"><label class="form-label">Em quantos anos?</label><input class="form-input" id="ivAlvoAnos" type="number" min="1" max="40" value="10"></div>
       <div class="form-group"><label class="form-label">Capital atual (R$)</label><input class="form-input" id="ivAlvoCap" type="number" step="100" value="0"></div>
     </div>
-    <button class="btn-primary w-full" style="margin-top:16px" id="btnRevInv">Calcular aporte por produto</button>
+    <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnRevInv">Calcular aporte por produto</button>
   </div>
   <div id="ivRevResult" class="card" style="display:none">
     <div class="card-header"><span class="card-title">Aporte mensal necessário</span></div>
     <div id="ivRevBody"></div>
   </div>
 </div>`;
+
+    // ── Donut + Evolução patrimonial ─────────────────────────────
+    requestAnimationFrame(() => {
+      // Donut de distribuição por tipo
+      const donutEl = document.getElementById('chartInvDonut');
+      if (donutEl && Object.keys(byTipo).length) {
+        const donutData = Object.entries(byTipo).map(([tipo, val]) => ({
+          label: tipo, value: val, color: TIPO_COLORS[tipo] || '#7C6EF8',
+        }));
+        Charts.Donut(donutEl, donutData, {
+          size: 180, centerLabel: Charts.fmt(totalAtual, true), centerSub: 'total',
+        });
+        const legend = document.getElementById('invDonutLegend');
+        if (legend) {
+          const tot = donutData.reduce((s,d)=>s+d.value,0)||1;
+          legend.innerHTML = donutData.map(d=>`
+            <div class="donut-legend-item">
+              <div class="donut-legend-dot" style="background:${d.color}"></div>
+              <span class="donut-legend-label">${d.label}</span>
+              <span class="donut-legend-pct">${((d.value/tot)*100).toFixed(1)}%</span>
+              <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
+            </div>`).join('');
+        }
+      }
+
+      // Evolução patrimonial anual
+      const evoEl = document.getElementById('chartInvEvolucao');
+      if (evoEl) {
+        const yr = getYear();
+        const yrRec  = Store.yearlyMonthly(yr, 'receita');
+        const yrDesp = Store.yearlyMonthly(yr, 'despesa');
+        const totalAccSaldo = yrRec.reduce((a,r,i) => a + r - yrDesp[i], 0);
+        const baseline = totalAtual - totalAccSaldo;
+        let running = 0;
+        const evolLabels = [], evolValues = [], evolAporteValues = [];
+        let cumAporte = 0;
+        yrRec.forEach((r, i) => {
+          if (r === 0 && yrDesp[i] === 0) return;
+          running += r - yrDesp[i];
+          cumAporte += r;
+          evolLabels.push(Utils.months[i]);
+          evolValues.push(Math.max(0, parseFloat((baseline + running).toFixed(0))));
+          evolAporteValues.push(parseFloat(cumAporte.toFixed(0)));
+        });
+        if (evolLabels.length > 1) {
+          Charts.Line(evoEl, {
+            labels: evolLabels,
+            datasets: [
+              { label: 'Patrimônio', values: evolValues, color: '#7367F0', fill: true },
+              { label: 'Receitas acum.', values: evolAporteValues, color: '#22C55E', dashed: true },
+            ],
+          }, { height: 200 });
+        } else {
+          evoEl.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes (mínimo 2 meses)</div>';
+        }
+      }
+    });
 
     // Header de taxas
     const rates = await MarketRates.get();
@@ -5584,6 +5716,16 @@ ${reservas.length > 0 ? `
     </tr>`).join('')}</tbody>
 </table></div>`;
     });
+
+    // Auto-calc para comparador e calculadora reversa
+    const _autoCalcInv = (ids, btnId) => {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.click();
+      ids.forEach(id => { document.getElementById(id)?.addEventListener('input', () => btn.click()); });
+    };
+    _autoCalcInv(['ivCap','ivAporte','ivAnos','ivInfl','ivIR'], 'btnCompInv');
+    _autoCalcInv(['ivAlvo','ivAlvoAnos','ivAlvoCap'], 'btnRevInv');
   }
 
   // ── FINANCIAMENTOS ─────────────────────────────────────────────
@@ -6202,8 +6344,9 @@ ${fins.length === 0
     <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCalcAmort">Calcular</button>
   </div>
   <div id="aResult" class="card" style="display:none">
-    <div class="card-header"><span class="card-title">Tabela SAC</span></div>
+    <div class="card-header"><span class="card-title">Simulação de Empréstimo / SAC</span></div>
     <div id="aResultBody"></div>
+    <div class="chart-wrap" style="margin-top:16px"><canvas id="chartAmortSaldo" class="chart-canvas" height="200"></canvas></div>
   </div>
 </div>`;
       document.getElementById('btnCalcAmort').addEventListener('click', () => {
@@ -6214,6 +6357,9 @@ ${fins.length === 0
         const amortBase = PV / n;
         let saldoD = PV, totalJuros = 0, mes = 0;
         const rows = [];
+        // Para o gráfico: coleta todos os meses
+        const chartLabels = [], chartSaldo = [], chartJurosAcc = [];
+        let jurosAcc = 0;
         while (saldoD > 0.01 && mes < n) {
           mes++;
           const juros = saldoD * i;
@@ -6221,8 +6367,15 @@ ${fins.length === 0
           const parcela = juros + amort;
           saldoD = Math.max(0, saldoD - amort);
           totalJuros += juros;
+          jurosAcc += juros;
           if (mes <= 6 || mes % 12 === 0 || saldoD < 1) {
             rows.push({ mes, parcela, amort, juros, saldo: saldoD });
+          }
+          // Gráfico: a cada 3 meses (ou todos se < 36 meses)
+          if (mes % Math.max(1, Math.floor(mes < 36 ? 1 : n/40)) === 0 || saldoD < 1) {
+            chartLabels.push(`${mes}m`);
+            chartSaldo.push(parseFloat(saldoD.toFixed(0)));
+            chartJurosAcc.push(parseFloat(jurosAcc.toFixed(0)));
           }
         }
         const economiaExtra = extra > 0 ? (() => {
@@ -6249,6 +6402,15 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
   <thead><tr><th>Mês</th><th class="num">Parcela</th><th class="num">Amortização</th><th class="num">Juros</th><th class="num">Saldo</th></tr></thead>
   <tbody>${rows.map(r => `<tr><td>${r.mes}</td><td class="num">${Utils.currency(r.parcela)}</td><td class="num">${Utils.currency(r.amort)}</td><td class="num negative">${Utils.currency(r.juros)}</td><td class="num">${Utils.currency(r.saldo)}</td></tr>`).join('')}</tbody>
 </table></div>`;
+        // Gráfico de evolução do saldo devedor
+        if (window._chartAmortSaldo) window._chartAmortSaldo.destroy();
+        window._chartAmortSaldo = Charts.Line(document.getElementById('chartAmortSaldo'), {
+          labels: chartLabels,
+          datasets: [
+            { label: 'Saldo Devedor', values: chartSaldo, color: '#EF4444', fill: true },
+            { label: 'Juros Acumulados', values: chartJurosAcc, color: '#F59E0B', dashed: true },
+          ],
+        }, { height: 200 });
       });
       autoCalc(['aValor','aTaxa','aPrazo','aExtra'], 'btnCalcAmort');
     }
