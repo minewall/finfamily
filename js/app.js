@@ -212,12 +212,8 @@ const App = (function () {
       wrap.className = 'page-enter';
       container.appendChild(wrap);
       this.pages[page](wrap);
-      // Picker mês/ano vai no slot do header — visível só em páginas month-aware
-      const slot = document.getElementById('topbarMonthPickerSlot');
-      if (slot) {
-        slot.innerHTML = '';
-        if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(slot);
-      }
+      // Picker mês/ano inserido dentro da página (não no header)
+      if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(wrap);
       upgradeIcons(); // converte placeholders <i data-lucide> em SVGs
     },
     register(name, fn) { this.pages[name] = fn; },

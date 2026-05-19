@@ -345,13 +345,15 @@ body { background: var(--bg-base); color: var(--text-1); }
 
 /* Month/year picker no header (slot #topbarMonthPickerSlot) */
 .page-month-picker {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 2px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-2);
   border-radius: var(--radius-md);
   padding: 2px;
+  width: fit-content;
+  margin-bottom: 20px;
 }
 .page-mp-arrow {
   width: 28px; height: 28px;
