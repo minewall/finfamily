@@ -345,13 +345,15 @@ body { background: var(--bg-base); color: var(--text-1); }
 
 /* Month/year picker no header (slot #topbarMonthPickerSlot) */
 .page-month-picker {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 2px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-2);
   border-radius: var(--radius-md);
   padding: 2px;
+  width: fit-content;
+  margin-bottom: 20px;
 }
 .page-mp-arrow {
   width: 28px; height: 28px;
@@ -646,21 +648,21 @@ body { background: var(--bg-base); color: var(--text-1); }
 /* Dashboard KPI — layout 2 colunas: Poder de Escolha (esq) + 2×2 (dir) */
 .kpi-grid-dashboard {
   display: grid;
-  grid-template-columns: 1.15fr 2fr;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   gap: 16px;
   margin-bottom: 24px;
   align-items: stretch;
 }
-.kpi-sub-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 16px;
-}
 .kpi-poder-main {
-  grid-row: span 1;
+  grid-column: 1;
+  grid-row: 1 / span 2;
   min-height: 220px;
 }
+.kpi-receitas { grid-column: 2; grid-row: 1; }
+.kpi-saude    { grid-column: 3; grid-row: 1; }
+.kpi-despesas { grid-column: 2; grid-row: 2; }
+.kpi-maior-gasto { grid-column: 3; grid-row: 2; }
 /* Progress bar dentro do Poder de Escolha */
 .kpi-poder-progress {
   width: 100%;
@@ -724,11 +726,22 @@ body { background: var(--bg-base); color: var(--text-1); }
 }
 /* Responsivo */
 @media (max-width: 680px) {
-  .kpi-grid-dashboard { grid-template-columns: 1fr; }
-  .kpi-poder-main { min-height: auto; }
+  .kpi-grid-dashboard {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .kpi-poder-main { grid-column: 1 / span 2; grid-row: 1; min-height: auto; }
+  .kpi-receitas  { grid-column: 1; grid-row: 2; }
+  .kpi-saude     { grid-column: 2; grid-row: 2; }
+  .kpi-despesas  { grid-column: 1; grid-row: 3; }
+  .kpi-maior-gasto { grid-column: 2; grid-row: 3; }
 }
 @media (max-width: 480px) {
-  .kpi-sub-grid { grid-template-columns: 1fr; }
+  .kpi-grid-dashboard { grid-template-columns: 1fr; }
+  .kpi-poder-main { grid-column: 1; grid-row: auto; }
+  .kpi-receitas, .kpi-saude, .kpi-despesas, .kpi-maior-gasto {
+    grid-column: 1; grid-row: auto;
+  }
 }
 
 .kpi-card {

@@ -212,12 +212,8 @@ const App = (function () {
       wrap.className = 'page-enter';
       container.appendChild(wrap);
       this.pages[page](wrap);
-      // Picker mês/ano vai no slot do header — visível só em páginas month-aware
-      const slot = document.getElementById('topbarMonthPickerSlot');
-      if (slot) {
-        slot.innerHTML = '';
-        if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(slot);
-      }
+      // Picker mês/ano inserido dentro da página (não no header)
+      if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(wrap);
       upgradeIcons(); // converte placeholders <i data-lucide> em SVGs
     },
     register(name, fn) { this.pages[name] = fn; },
@@ -667,7 +663,6 @@ const App = (function () {
 
   <!-- Poder de Escolha — card principal, ocupa coluna esquerda inteira -->
   <div class="kpi-card kpi-poder-escolha kpi-poder-main ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}" data-kpi-id="poder">
-    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
     <div class="kpi-poder-header">
       <div class="kpi-poder-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor"/></svg>
@@ -691,12 +686,8 @@ const App = (function () {
     </div>
   </div>
 
-  <!-- Grid 2×2 à direita -->
-  <div class="kpi-sub-grid">
-
-    <!-- Receitas -->
-    <div class="kpi-card" data-kpi-id="receitas" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+  <!-- Receitas -->
+    <div class="kpi-card kpi-receitas" data-kpi-id="receitas" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
       <div class="kpi-icon" style="color:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="kpi-body">
         <div class="kpi-label">Receitas — ${Utils.monthsFull[month-1]}</div>
@@ -706,8 +697,7 @@ const App = (function () {
     </div>
 
     <!-- Saúde Financeira (D2) -->
-    <div class="kpi-card" data-kpi-id="saude" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
-      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+    <div class="kpi-card kpi-saude" data-kpi-id="saude" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
       <div class="kpi-icon" style="color:${healthColor}">${healthIcon}</div>
       <div class="kpi-body">
         <div class="kpi-label">Saúde Financeira</div>
@@ -720,8 +710,7 @@ const App = (function () {
     </div>
 
     <!-- Despesas -->
-    <div class="kpi-card" data-kpi-id="despesas" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+    <div class="kpi-card kpi-despesas" data-kpi-id="despesas" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
       <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       <div class="kpi-body">
         <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
@@ -735,8 +724,7 @@ const App = (function () {
       const topPct = topDesp && despesa > 0 ? (topDesp.amount / despesa * 100).toFixed(0) : null;
       const catLabel = topDesp ? (Store.CATEGORIES[topDesp.category]?.label || topDesp.category) : null;
       const catColor = topDesp ? (Store.CATEGORIES[topDesp.category]?.color || 'var(--amber)') : 'var(--amber)';
-      return `<div class="kpi-card" data-kpi-id="maior-gasto" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
-      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+      return `<div class="kpi-card kpi-maior-gasto" data-kpi-id="maior-gasto" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
       <div class="kpi-icon" style="color:${catColor}">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
       </div>
@@ -749,7 +737,6 @@ const App = (function () {
     </div>`;
     })()}
 
-  </div><!-- /kpi-sub-grid -->
 </div>
 
 <div class="chart-grid mb-6">
@@ -936,22 +923,12 @@ ${renderPrevisaoCaixa(saldo)}
           datasets: [{ label: 'Saldo Projetado', values: pcValues, color: lineColor }],
         }, { height: 130 });
       }
-      initKpiDnd(container);
     });
   }
 
   function initKpiDnd(container) {
-    const grid = container.querySelector('#kpiGrid');
-    if (!grid) return;
-
-    const DEFAULT_ORDER = ['saude', 'despesas', 'poder', 'maior-gasto'];
-    const saved = Store.get().settings?.kpiOrder || DEFAULT_ORDER;
-
-    // Reorder DOM nodes to match saved order
-    saved.forEach(id => {
-      const el = grid.querySelector(`[data-kpi-id="${id}"]`);
-      if (el) grid.appendChild(el);
-    });
+    // V1: posições fixas — drag-and-drop desativado
+    return;
 
     // Drag state
     let dragging = null;
@@ -7961,6 +7938,20 @@ ${isConnected && isAdmin ? `
         if (el) el.style.display = '';
       } catch { /* not admin */ }
     }, 1500);
+
+    // Auto: se mês atual não tem dados, usa mês anterior
+    {
+      const _nm = new Date().getMonth() + 1;
+      const _ny = new Date().getFullYear();
+      if (Store.sumReceitas(_nm, _ny) === 0 && Store.sumDespesas(_nm, _ny) === 0) {
+        const pm = _nm > 1 ? _nm - 1 : 12;
+        const py = _nm > 1 ? _ny : _ny - 1;
+        const mSel = document.getElementById('globalMonth');
+        const ySel = document.getElementById('globalYear');
+        if (mSel) mSel.value = pm;
+        if (ySel) ySel.value = py;
+      }
+    }
 
     // Init routing
     Router.init();
