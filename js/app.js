@@ -613,6 +613,58 @@ const App = (function () {
     const despMes = Store.get().despesas.filter(d => d.year === year && d.month === month);
     const topDesp = despMes.length ? despMes.reduce((a,b) => b.amount > a.amount ? b : a) : null;
 
+    // ── Coach inline insight ──────────────────────────────────────
+    const coachInsight = (() => {
+      // Prioridade: alerta crítico > categoria top > comparação mês > poder de escolha
+      if (util > limitePct) {
+        const over = ((util - limitePct) * receita);
+        return {
+          icon: '⚠️',
+          tone: 'warn',
+          titulo: 'Limite de gastos ultrapassado',
+          texto: `Você gastou ${Utils.pct(util)} da receita este mês — ${Utils.currency(over)} acima do seu limite de ${Utils.pct(limitePct)}. Que tal revisarmos onde cortar?`,
+        };
+      }
+      if (topCats.length) {
+        const [topCatKey, topCatVal] = topCats[0];
+        const topCatLabel = Store.CATEGORIES[topCatKey]?.label || topCatKey;
+        const topCatPct   = despesa > 0 ? (topCatVal / despesa * 100).toFixed(0) : 0;
+        const prevCatDesp = Store.get().despesas
+          .filter(d => d.year === prevY && d.month === prevM && d.category === topCatKey)
+          .reduce((a, d) => a + d.amount, 0);
+        const catChg = prevCatDesp > 0 ? ((topCatVal - prevCatDesp) / prevCatDesp * 100).toFixed(0) : null;
+        if (catChg && Math.abs(catChg) >= 15) {
+          const dir = catChg > 0 ? 'subiram' : 'caíram';
+          return {
+            icon: catChg > 0 ? '📈' : '📉',
+            tone: catChg > 0 ? 'warn' : 'pos',
+            titulo: `${topCatLabel} ${dir} ${Math.abs(catChg)}% este mês`,
+            texto: `${Utils.currency(topCatVal)} em ${topCatLabel} — ${topCatPct}% das suas despesas totais. ${catChg > 0 ? 'Quer entender o que puxou esse aumento?' : 'Ótima redução! Veja o que contribuiu para isso.'}`,
+          };
+        }
+        return {
+          icon: '💡',
+          tone: 'neutral',
+          titulo: `${topCatLabel} é seu maior gasto — ${topCatPct}% do total`,
+          texto: `${Utils.currency(topCatVal)} em ${topCatLabel} em ${Utils.monthsFull[month-1]}. ${poder.poderDeEscolha > 0 ? `Seu Poder de Escolha está em ${Utils.currency(poder.poderDeEscolha)} — você está no controle.` : 'Fique de olho no saldo restante.'}`,
+        };
+      }
+      if (poder.poderDeEscolha > 0) {
+        return {
+          icon: '⚡',
+          tone: 'pos',
+          titulo: `Poder de Escolha: ${Utils.currency(poder.poderDeEscolha)} disponíveis`,
+          texto: `Após receitas e compromissos, você tem ${Utils.currency(poder.poderDeEscolha)} livres em ${Utils.monthsFull[month-1]}. Bom momento para reforçar uma reserva ou meta.`,
+        };
+      }
+      return {
+        icon: '📊',
+        tone: 'neutral',
+        titulo: `Resumo de ${Utils.monthsFull[month-1]}`,
+        texto: `Receitas: ${Utils.currency(receita)} · Despesas: ${Utils.currency(despesa)} · Saldo: ${saldo >= 0 ? '+' : ''}${Utils.currency(saldo)}. Abra o Coach para uma análise detalhada.`,
+      };
+    })();
+
     // ── Receitas por pessoa para donut ────────────────────────────
     const recsByPerson = {};
     Store.receitasByMonth(month, year).forEach(r => {
@@ -735,6 +787,21 @@ const App = (function () {
     </div>`;
     })()}
 
+</div>
+
+<div class="coach-inline-card coach-inline--${coachInsight.tone} mb-6" id="coachInlineCard">
+  <div class="coach-inline-avatar">
+    <img src="/assets/favicon/apple-touch-icon.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+  </div>
+  <div class="coach-inline-body">
+    <div class="coach-inline-header">
+      <span class="coach-inline-icon">${coachInsight.icon}</span>
+      <span class="coach-inline-titulo">${coachInsight.titulo}</span>
+      <span class="coach-inline-label">Coach Haile</span>
+    </div>
+    <div class="coach-inline-texto">${coachInsight.texto}</div>
+  </div>
+  <button class="coach-inline-cta" id="btnCoachInlineVer">Ver análise →</button>
 </div>
 
 <div class="chart-grid mb-6">
@@ -907,6 +974,11 @@ ${renderPrevisaoCaixa(saldo)}
         labels: Utils.months,
         datasets: [{ label: 'Saldo', values: saldoAcc, color: '#7C6EF8' }],
       }, { height: 150 });
+
+      // Coach inline — abre painel ao clicar em "Ver análise"
+      document.getElementById('btnCoachInlineVer')?.addEventListener('click', () => {
+        document.getElementById('coachToggleBtn')?.click();
+      });
 
       // Previsão de caixa 30 dias
       const pcCanvas = document.getElementById('chartPrevisaoCaixa');

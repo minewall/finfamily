@@ -2008,6 +2008,68 @@ body.sidebar-open { overflow: hidden; }
 .ac-item:last-child { border-bottom: none; }
 .ac-item:hover, .ac-item.active { background: var(--bg-hover); }
 
+/* ── COACH INLINE CARD (Dashboard) ────────────────────────────────── */
+.coach-inline-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  position: relative;
+  overflow: hidden;
+}
+.coach-inline-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+.coach-inline--warn   { border-color: var(--amber); background: var(--amber-dim); }
+.coach-inline--warn::before   { background: var(--amber); }
+.coach-inline--pos    { border-color: var(--green); background: var(--green-dim); }
+.coach-inline--pos::before    { background: var(--green); }
+.coach-inline--neutral { border-color: var(--accent); background: var(--accent-dim); }
+.coach-inline--neutral::before { background: var(--accent); }
+.coach-inline-avatar {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.coach-inline-body { flex: 1; min-width: 0; }
+.coach-inline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.coach-inline-icon   { font-size: 16px; flex-shrink: 0; }
+.coach-inline-titulo { font-size: 14px; font-weight: 700; color: var(--text-1); flex: 1; }
+.coach-inline-label  {
+  font-size: 10px; font-weight: 600; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .06em; white-space: nowrap;
+  background: var(--accent-dim); padding: 2px 7px; border-radius: 20px;
+}
+.coach-inline-texto  { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.coach-inline-cta {
+  flex-shrink: 0;
+  padding: 8px 16px; border-radius: 10px;
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; white-space: nowrap;
+  transition: opacity .15s;
+}
+.coach-inline-cta:hover { opacity: .85; }
+@media (max-width: 600px) {
+  .coach-inline-card { flex-wrap: wrap; }
+  .coach-inline-cta  { width: 100%; text-align: center; }
+}
+
 /* ── IA CATEGORY SUGGESTION CHIP ──────────────────────────────────── */
 .ia-suggest-btn {
   display: inline-flex;
