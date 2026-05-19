@@ -1692,18 +1692,23 @@ ${filtered.map(r => {
   </div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th></tr></thead>
+      <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th class="num">Valor</th><th></th></tr></thead>
       <tbody>
-        ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>`<tr class="row-clickable" data-row-rec="${r.id}">
+        ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>{
+          const tipoLabel = ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||'';
+          const subLabel = r.sub || tipoLabel;
+          return `<tr class="row-clickable" data-row-rec="${r.id}">
           <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
-          <td>${r.desc}</td>
+          <td>
+            <div>${r.desc}</div>
+            ${subLabel ? `<div class="lancamentos-sub">${subLabel}</div>` : ''}
+          </td>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
-          <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
           <td style="white-space:nowrap">
             <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
           </td>
-        </tr>`).join('')}
+        </tr>`;}).join('')}
       </tbody>
     </table>
   </div>
@@ -1982,19 +1987,21 @@ ${anomaliasHTML(anomalias, total)}
       if (pessoaFilter) filtered = filtered.filter(d => d.split && d.split.some(s => s.person === pessoaFilter));
       const tot = filtered.reduce((a,d) => a+d.amount, 0);
       return `<table class="data-table">
-<thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-cat</th><th>Pagamento</th><th class="num">Valor</th><th></th></tr></thead>
+<thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th class="num">Valor</th><th></th></tr></thead>
 <tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{const isFut=(d.year||0)*12+(d.month||0)>year*12+month;return`<tr class="row-clickable${isFut?' style="opacity:0.55"':'"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
-  <td style="font-weight:500">${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">💰 desc.</span>`:''}</td>
+  <td style="font-weight:500">
+    <div>${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">💰 desc.</span>`:''}</div>
+    ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
+  </td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
-  <td class="muted">${d.sub||''}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td style="white-space:nowrap">
     <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
   </td>
 </tr>`}).join('')}</tbody>
-<tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td><td></td></tr></tfoot>
+<tfoot><tr><td colspan="4" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td><td></td></tr></tfoot>
 </table>`;
     }
 
