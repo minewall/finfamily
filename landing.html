@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haile — Seu coach financeiro pessoal</title>
+  <meta name="description" content="O Haile te mostra exatamente quanto você pode gastar hoje sem comprometer o seu futuro. Um coach financeiro com IA que fala a sua língua.">
+  <meta property="og:title" content="Haile — Seu coach financeiro pessoal">
+  <meta property="og:description" content="Quanto você pode gastar hoje sem comprometer o seu futuro? O Haile calcula e te explica.">
+  <meta property="og:image" content="/assets/og-haile.png">
+  <link rel="icon" href="/assets/favicon/favicon.ico">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon-180.png">
+  <style>
+    /* ── Reset & Tokens ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --indigo:    #6C63FF;
+      --indigo-d:  #5A52E0;
+      --indigo-l:  #EEF0FF;
+      --green:     #22C55E;
+      --amber:     #F59E0B;
+      --red:       #EF4444;
+      --text-1:    #111827;
+      --text-2:    #374151;
+      --text-3:    #6B7280;
+      --text-4:    #9CA3AF;
+      --bg:        #FAFAF8;
+      --bg-card:   #FFFFFF;
+      --border:    #E5E7EB;
+      --border-2:  #D1D5DB;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-1);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+
+    /* ── Utilities ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--indigo-l); color: var(--indigo);
+      font-size: 12px; font-weight: 600; letter-spacing: .04em;
+      padding: 4px 12px; border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,250,248,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; gap: 32px;
+      height: 64px;
+    }
+    .nav-logo {
+      display: flex; align-items: center;
+    }
+    .nav-logo img { height: 28px; width: auto; display: block; }
+    .nav-links {
+      display: flex; gap: 28px; list-style: none; margin-left: auto;
+    }
+    .nav-links a {
+      font-size: 14px; font-weight: 500; color: var(--text-2);
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--indigo); }
+    .nav-cta {
+      background: var(--indigo); color: #fff;
+      padding: 10px 20px; border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 600;
+      transition: background .15s, transform .1s;
+      white-space: nowrap;
+    }
+    .nav-cta:hover { background: var(--indigo-d); transform: translateY(-1px); }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 96px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(108,99,255,.10) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow { margin-bottom: 24px; }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      color: var(--text-1);
+      max-width: 760px;
+      margin: 0 auto 20px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--indigo) 0%, #9B8FF5 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: var(--text-3);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.5;
+    }
+    .hero-actions {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 64px;
+    }
+    .btn-primary {
+      background: var(--indigo); color: #fff;
+      padding: 14px 28px; border-radius: var(--radius-sm);
+      font-size: 16px; font-weight: 600;
+      transition: background .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 4px 14px rgba(108,99,255,.35);
+    }
+    .btn-primary:hover { background: var(--indigo-d); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(108,99,255,.4); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      padding: 14px 28px; border-radius: var(--radius-sm);
+      font-size: 16px; font-weight: 500;
+      border: 1.5px solid var(--border-2);
+      transition: border-color .15s, color .15s;
+    }
+    .btn-ghost:hover { border-color: var(--indigo); color: var(--indigo); }
+    .hero-note {
+      font-size: 13px; color: var(--text-4);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .hero-note svg { color: var(--green); }
+
+    /* Coach chat simulado */
+    .hero-chat {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+    .chat-bubble {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .chat-bubble.user { flex-direction: row-reverse; }
+    .chat-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--indigo);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+      overflow: hidden;
+    }
+    .chat-avatar.user-av {
+      background: #E5E7EB; font-size: 13px; font-weight: 600; color: var(--text-2);
+    }
+    .chat-msg {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px 16px 16px 4px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-1);
+      box-shadow: var(--shadow-sm);
+      max-width: 340px;
+      animation: fadeUp .4s ease both;
+    }
+    .chat-bubble.user .chat-msg {
+      border-radius: 16px 16px 4px 16px;
+      background: var(--indigo);
+      color: #fff;
+      border-color: transparent;
+    }
+    .chat-poder {
+      background: linear-gradient(135deg, var(--indigo) 0%, #8B83F5 100%);
+      color: #fff;
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-top: 4px;
+      box-shadow: 0 4px 16px rgba(108,99,255,.25);
+    }
+    .chat-poder-label { font-size: 11px; font-weight: 600; opacity: .7; letter-spacing: .06em; text-transform: uppercase; }
+    .chat-poder-value { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin: 4px 0 2px; }
+    .chat-poder-sub { font-size: 13px; opacity: .8; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .chat-bubble:nth-child(1) .chat-msg { animation-delay: .1s; }
+    .chat-bubble:nth-child(2) .chat-msg { animation-delay: .4s; }
+    .chat-bubble:nth-child(3) .chat-msg { animation-delay: .8s; }
+    .chat-bubble:nth-child(4) .chat-msg { animation-delay: 1.2s; }
+    .chat-bubble:nth-child(5) .chat-msg { animation-delay: 1.6s; }
+
+    /* ── Seção genérica ── */
+    section { padding: 80px 0; }
+    .section-label {
+      font-size: 12px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--indigo);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800; letter-spacing: -.02em;
+      line-height: 1.15; color: var(--text-1);
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 18px; color: var(--text-3);
+      line-height: 1.6; max-width: 540px;
+    }
+
+    /* ── Problema ── */
+    .problema { background: #F3F4F6; }
+    .problema-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px; margin-top: 48px;
+    }
+    .problema-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+    .problema-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 16px;
+    }
+    .problema-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-1); }
+    .problema-card p { font-size: 14px; color: var(--text-3); line-height: 1.6; }
+
+    /* ── Poder de Escolha ── */
+    .poder-section { background: var(--bg); }
+    .poder-inner {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center;
+    }
+    .poder-card {
+      background: linear-gradient(135deg, var(--indigo) 0%, #9B8FF5 100%);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      color: #fff;
+      box-shadow: 0 20px 60px rgba(108,99,255,.30);
+    }
+    .poder-card-tag {
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; opacity: .65; margin-bottom: 12px;
+    }
+    .poder-card-value {
+      font-size: 48px; font-weight: 800; letter-spacing: -.03em;
+      margin-bottom: 8px;
+    }
+    .poder-card-desc { font-size: 15px; opacity: .8; margin-bottom: 24px; }
+    .poder-card-bar {
+      height: 6px; background: rgba(255,255,255,.25); border-radius: 3px; overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .poder-card-bar-fill {
+      height: 100%; width: 58%; background: rgba(255,255,255,.85); border-radius: 3px;
+    }
+    .poder-card-footer {
+      display: flex; justify-content: space-between;
+      font-size: 13px; opacity: .7;
+    }
+    .poder-text .section-sub { max-width: 100%; }
+    .poder-list {
+      list-style: none; margin-top: 28px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .poder-list li {
+      display: flex; gap: 12px; align-items: flex-start;
+      font-size: 15px; color: var(--text-2);
+    }
+    .poder-list-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--indigo-l); color: var(--indigo);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px; font-size: 13px;
+    }
+
+    /* ── Coach em ação ── */
+    .coach-section { background: #F3F4F6; }
+    .coach-inner {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center;
+    }
+    .coach-text { order: 2; }
+    .coach-demo { order: 1; }
+    .coach-demo-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      box-shadow: var(--shadow-lg);
+    }
+    .coach-demo-header {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .coach-avatar-lg {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--indigo);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .coach-demo-name { font-size: 15px; font-weight: 700; }
+    .coach-demo-sub { font-size: 12px; color: var(--text-3); }
+    .coach-demo-status {
+      margin-left: auto;
+      font-size: 11px; font-weight: 600; color: var(--green);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .coach-demo-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .coach-insights {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .coach-insight {
+      background: var(--bg);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-1);
+      border-left: 3px solid var(--indigo);
+    }
+    .coach-insight strong { color: var(--indigo); }
+    .coach-insight.warn { border-left-color: var(--amber); }
+    .coach-insight.warn strong { color: var(--amber); }
+    .coach-insight.good { border-left-color: var(--green); }
+    .coach-insight.good strong { color: var(--green); }
+    .coach-list {
+      list-style: none; margin-top: 28px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .coach-list li {
+      display: flex; gap: 12px; align-items: flex-start;
+      font-size: 15px; color: var(--text-2);
+    }
+
+    /* ── Features ── */
+    .features-section { background: var(--bg); }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 24px; margin-top: 56px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .feature-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: var(--indigo-l);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .feature-icon svg { width: 26px; height: 26px; color: var(--indigo); }
+    .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: 14px; color: var(--text-3); line-height: 1.6; }
+
+    /* ── Depoimentos ── */
+    .testimonials { background: #F3F4F6; }
+    .testimonials-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 24px; margin-top: 48px;
+    }
+    .testimonial-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+    .testimonial-stars { color: var(--amber); font-size: 14px; margin-bottom: 14px; }
+    .testimonial-text {
+      font-size: 15px; color: var(--text-2);
+      line-height: 1.65; margin-bottom: 20px;
+      font-style: italic;
+    }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .testimonial-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .testimonial-name { font-size: 14px; font-weight: 700; }
+    .testimonial-role { font-size: 12px; color: var(--text-4); }
+
+    /* ── Pricing ── */
+    .pricing { background: var(--bg); }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 24px; margin-top: 56px;
+      align-items: start;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px 28px;
+      position: relative;
+    }
+    .pricing-card.featured {
+      border-color: var(--indigo);
+      box-shadow: 0 0 0 4px rgba(108,99,255,.08);
+    }
+    .pricing-popular {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      background: var(--indigo); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: .06em;
+      padding: 4px 14px; border-radius: 20px; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pricing-name { font-size: 16px; font-weight: 700; color: var(--text-3); margin-bottom: 8px; }
+    .pricing-price {
+      font-size: 40px; font-weight: 800; letter-spacing: -.03em;
+      color: var(--text-1); margin-bottom: 4px;
+    }
+    .pricing-price sup { font-size: 18px; font-weight: 600; vertical-align: top; margin-top: 10px; display: inline-block; }
+    .pricing-price span { font-size: 15px; font-weight: 500; color: var(--text-3); }
+    .pricing-desc { font-size: 13px; color: var(--text-3); margin-bottom: 24px; }
+    .pricing-cta {
+      display: block; text-align: center;
+      padding: 12px; border-radius: var(--radius-sm);
+      font-size: 15px; font-weight: 600;
+      margin-bottom: 24px;
+      transition: all .15s;
+    }
+    .pricing-cta.primary { background: var(--indigo); color: #fff; }
+    .pricing-cta.primary:hover { background: var(--indigo-d); }
+    .pricing-cta.outline { border: 1.5px solid var(--border-2); color: var(--text-1); }
+    .pricing-cta.outline:hover { border-color: var(--indigo); color: var(--indigo); }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .pricing-features li {
+      font-size: 14px; color: var(--text-2);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .pricing-features li::before {
+      content: '✓'; color: var(--green);
+      font-weight: 700; flex-shrink: 0;
+    }
+    .pricing-features li.off { color: var(--text-4); }
+    .pricing-features li.off::before { content: '—'; color: var(--text-4); font-weight: 400; }
+
+    /* ── CTA Final ── */
+    .cta-final {
+      background: linear-gradient(135deg, var(--indigo) 0%, #8B83F5 100%);
+      padding: 100px 0;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-final::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .cta-final h2 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800; letter-spacing: -.02em;
+      color: #fff; margin-bottom: 16px;
+      position: relative;
+    }
+    .cta-final p {
+      font-size: 18px; color: rgba(255,255,255,.8);
+      margin-bottom: 40px; position: relative;
+    }
+    .cta-final .btn-white {
+      background: #fff; color: var(--indigo);
+      padding: 16px 36px; border-radius: var(--radius-sm);
+      font-size: 16px; font-weight: 700;
+      display: inline-block;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15);
+      position: relative;
+    }
+    .cta-final .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.2); }
+    .cta-final-note {
+      font-size: 13px; color: rgba(255,255,255,.6);
+      margin-top: 16px; position: relative;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      background: var(--text-1);
+      padding: 56px 0 32px;
+    }
+    .footer-inner {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px; margin-bottom: 48px;
+    }
+    .footer-brand p {
+      font-size: 14px; color: #9CA3AF; line-height: 1.6;
+      margin-top: 12px; max-width: 260px;
+    }
+    .footer-logo img { height: 24px; width: auto; display: block; }
+    .footer-col h4 {
+      font-size: 12px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #6B7280; margin-bottom: 16px;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-col ul a { font-size: 14px; color: #9CA3AF; transition: color .15s; }
+    .footer-col ul a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid #374151;
+      padding-top: 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .footer-bottom p { font-size: 13px; color: #6B7280; }
+
+    /* ── Responsivo ── */
+    @media (max-width: 900px) {
+      .problema-grid,
+      .features-grid,
+      .testimonials-grid,
+      .pricing-grid { grid-template-columns: 1fr; }
+      .poder-inner,
+      .coach-inner { grid-template-columns: 1fr; gap: 40px; }
+      .coach-text { order: 1; }
+      .coach-demo { order: 2; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      section { padding: 56px 0; }
+      .hero { padding: 64px 0 56px; }
+      .footer-inner { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">
+      <img src="/assets/svg/haile-wordmark-black.svg" alt="Haile" height="28">
+    </a>
+    <ul class="nav-links">
+      <li><a href="#como-funciona">Como funciona</a></li>
+      <li><a href="#coach">Coach</a></li>
+      <li><a href="#planos">Planos</a></li>
+    </ul>
+    <a href="/app" class="nav-cta">Começar grátis</a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">
+      <span class="badge">Coach financeiro com IA</span>
+    </div>
+    <h1>Quanto você pode gastar<br>hoje <em>sem preocupação?</em></h1>
+    <p class="hero-sub">
+      O Haile calcula o seu Poder de Escolha — o que sobra depois de pagar contas, metas e reservas — e te explica tudo em linguagem humana.
+    </p>
+    <div class="hero-actions">
+      <a href="/app" class="btn-primary">Começar grátis — é rápido</a>
+      <a href="#como-funciona" class="btn-ghost">Ver como funciona</a>
+    </div>
+
+    <!-- Chat simulado -->
+    <div class="hero-chat">
+      <div class="chat-bubble user">
+        <div class="chat-avatar user-av">Você</div>
+        <div class="chat-msg">Posso fazer uma viagem esse mês? Já paguei tudo.</div>
+      </div>
+      <div class="chat-bubble">
+        <div class="chat-avatar">
+          <img src="/assets/favicon/haile-mark-white-512.png" alt="Haile" style="width:22px;height:22px;object-fit:contain">
+        </div>
+        <div class="chat-msg">
+          Deixa eu checar seus números de maio…
+          <div class="chat-poder" style="margin-top:12px">
+            <div class="chat-poder-label">Poder de Escolha — Maio 2026</div>
+            <div class="chat-poder-value">R$ 1.840</div>
+            <div class="chat-poder-sub">Após contas fixas, contratos e sua meta de reserva ✓</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-bubble">
+        <div class="chat-avatar">
+          <img src="/assets/favicon/haile-mark-white-512.png" alt="Haile" style="width:22px;height:22px;object-fit:contain">
+        </div>
+        <div class="chat-msg">
+          Sim, você pode ir! Uma viagem de fim de semana cabe folgado. Se for algo maior, me fala o valor e a gente simula juntos.
+        </div>
+      </div>
+    </div>
+
+    <p class="hero-note" style="margin-top:32px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Grátis para começar · Sem cartão de crédito · Cancele quando quiser
+    </p>
+  </div>
+</section>
+
+<!-- ── PROBLEMA ── -->
+<section class="problema" id="como-funciona">
+  <div class="container">
+    <p class="section-label">O problema</p>
+    <h2 class="section-title">Você controla seus gastos.<br>Mas sabe se está no caminho certo?</h2>
+    <p class="section-sub">A maioria dos apps te mostra o que você gastou. O Haile te mostra o que isso significa — e o que fazer a seguir.</p>
+    <div class="problema-grid">
+      <div class="problema-card">
+        <div class="problema-icon" style="background:#FEF3C7">📊</div>
+        <h3>Planilhas não falam com você</h3>
+        <p>Você preenche, analisa, e ainda não sabe se está bem ou mal. Falta alguém para interpretar os dados junto com você.</p>
+      </div>
+      <div class="problema-card">
+        <div class="problema-icon" style="background:#FEE2E2">😰</div>
+        <h3>Fim do mês sempre surpreende</h3>
+        <p>Você não gastou absurdamente, mas o dinheiro some. Sem visibilidade do que está comprometido, fica difícil planejar.</p>
+      </div>
+      <div class="problema-card">
+        <div class="problema-icon" style="background:#EDE9FE">🎯</div>
+        <h3>Metas existem, mas não avançam</h3>
+        <p>Você quer comprar uma casa, viajar, ter uma reserva. Mas no dia a dia esses objetivos ficam distantes e abstratos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PODER DE ESCOLHA ── -->
+<section class="poder-section">
+  <div class="container">
+    <div class="poder-inner">
+      <div class="poder-card">
+        <div class="poder-card-tag">Disponível agora — Maio 2026</div>
+        <div style="font-size:13px;opacity:.7;margin-bottom:4px">⚡ Poder de Escolha</div>
+        <div class="poder-card-value">R$ 2.340</div>
+        <div class="poder-card-desc">Você pode gastar sem comprometer suas contas e metas</div>
+        <div class="poder-card-bar"><div class="poder-card-bar-fill"></div></div>
+        <div class="poder-card-footer">
+          <span>Receita: R$ 12.500</span>
+          <span>Comprometido: R$ 10.160</span>
+        </div>
+      </div>
+      <div class="poder-text">
+        <p class="section-label">Poder de Escolha</p>
+        <h2 class="section-title">O número que muda tudo</h2>
+        <p class="section-sub">
+          O Poder de Escolha é o quanto sobra depois de pagar contas fixas, contratos, parcelas e contribuir com suas metas. É o dinheiro que você pode usar com liberdade — sem culpa e sem risco.
+        </p>
+        <ul class="poder-list">
+          <li>
+            <div class="poder-list-icon">✓</div>
+            <span>Calculado automaticamente todo mês com seus dados reais</span>
+          </li>
+          <li>
+            <div class="poder-list-icon">✓</div>
+            <span>Inclui parcelas de cartão, contratos recorrentes e metas de poupança</span>
+          </li>
+          <li>
+            <div class="poder-list-icon">✓</div>
+            <span>O Coach explica por que o número subiu ou caiu — e o que fazer</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COACH ── -->
+<section class="coach-section" id="coach">
+  <div class="container">
+    <div class="coach-inner">
+      <div class="coach-demo">
+        <div class="coach-demo-wrap">
+          <div class="coach-demo-header">
+            <div class="coach-avatar-lg" style="overflow:hidden">
+              <img src="/assets/favicon/haile-mark-white-512.png" alt="Haile" style="width:24px;height:24px;object-fit:contain">
+            </div>
+            <div>
+              <div class="coach-demo-name">Haile</div>
+              <div class="coach-demo-sub">Seu coach financeiro</div>
+            </div>
+            <div class="coach-demo-status">Online</div>
+          </div>
+          <div class="coach-insights">
+            <div class="coach-insight warn">
+              <strong>⚠ Atenção:</strong> Seus gastos com Alimentação estão 34% acima da média dos últimos 3 meses. Isso está pressionando seu Poder de Escolha este mês.
+            </div>
+            <div class="coach-insight good">
+              <strong>✓ Ótimo:</strong> Você contribuiu R$ 800 para a reserva de emergência. Com esse ritmo, você atinge 6 meses de cobertura em outubro.
+            </div>
+            <div class="coach-insight">
+              <strong>💡 Sugestão:</strong> A fatura do cartão vence em 5 dias (R$ 2.140). Seu saldo está confortável — sem preocupações.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coach-text">
+        <p class="section-label">Haile Coach</p>
+        <h2 class="section-title">Um coach que conhece<br>suas finanças de cor</h2>
+        <p class="section-sub">
+          Não é um chatbot genérico. O Haile lê seus dados, entende seu padrão e te dá insights específicos para a sua situação — como um consultor financeiro que você pode conversar a qualquer hora.
+        </p>
+        <ul class="coach-list">
+          <li>
+            <div class="poder-list-icon">💬</div>
+            <span>Pergunte qualquer coisa sobre suas finanças em linguagem natural</span>
+          </li>
+          <li>
+            <div class="poder-list-icon">🔔</div>
+            <span>Receba alertas proativos antes de problemas acontecerem</span>
+          </li>
+          <li>
+            <div class="poder-list-icon">📈</div>
+            <span>Análises mensais com o que melhorou, piorou e o que priorizar</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section class="features-section">
+  <div class="container">
+    <div style="text-align:center">
+      <p class="section-label">Funcionalidades</p>
+      <h2 class="section-title" style="margin:0 auto 12px">Tudo que você precisa.<br>Nada que você não usa.</h2>
+      <p class="section-sub" style="margin:0 auto">Do lançamento rápido à visão completa da família — em um só lugar.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>Visão completa</h3>
+        <p>Dashboard com Poder de Escolha, saúde financeira, receitas, despesas e tendências — tudo de relance, sem precisar ir atrás.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Finanças em família</h3>
+        <p>Gerencie receitas e despesas por pessoa, visualize quem gastou o quê e tome decisões financeiras juntos.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Contratos e recorrências</h3>
+        <p>Netflix, academia, plano de saúde, financiamento. Todos os seus compromissos mensais em um só lugar, sem esquecer nenhum.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>Metas que avançam</h3>
+        <p>Crie objetivos com prazo e valor. O Haile acompanha o progresso e te avisa quando está na hora de ajustar o ritmo.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <h3>Cartões e parcelamentos</h3>
+        <p>Acompanhe faturas, parcelas ativas e limite disponível. Sem surpresa no fechamento do cartão.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3>Patrimônio e reservas</h3>
+        <p>Registre investimentos, reservas e outros ativos. Veja seu patrimônio crescer mês a mês com clareza.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── DEPOIMENTOS ── -->
+<section class="testimonials">
+  <div class="container">
+    <div style="text-align:center">
+      <p class="section-label">Quem já usa</p>
+      <h2 class="section-title" style="margin:0 auto">O que as pessoas estão dizendo</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"Sempre tive medo de olhar para minhas finanças. Com o Haile, pela primeira vez eu entendi o que estava acontecendo com o meu dinheiro — e não foi assustador."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background:#6C63FF">A</div>
+          <div>
+            <div class="testimonial-name">Ana C.</div>
+            <div class="testimonial-role">Designer, São Paulo</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"O Coach me avisou que ia faltar dinheiro antes de faltar. Parece pequeno, mas isso mudou completamente como eu planejo o mês."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background:#22C55E">R</div>
+          <div>
+            <div class="testimonial-name">Rafael M.</div>
+            <div class="testimonial-role">Engenheiro, Belo Horizonte</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-text">"Eu e minha esposa sempre brigávamos sobre dinheiro porque não tínhamos uma visão compartilhada. O Haile resolveu isso de um jeito que nenhum app conseguiu antes."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background:#F59E0B">M</div>
+          <div>
+            <div class="testimonial-name">Marcos & Ju</div>
+            <div class="testimonial-role">Família, Curitiba</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ── -->
+<section class="pricing" id="planos">
+  <div class="container">
+    <div style="text-align:center">
+      <p class="section-label">Planos</p>
+      <h2 class="section-title" style="margin:0 auto 12px">Comece grátis.<br>Evolua quando fizer sentido.</h2>
+      <p class="section-sub" style="margin:0 auto">Sem surpresas. Sem cobrança automática no gratuito.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-name">Gratuito</div>
+        <div class="pricing-price">R$ 0<span>/mês</span></div>
+        <div class="pricing-desc">Para quem está começando a organizar as finanças.</div>
+        <a href="/app" class="pricing-cta outline">Criar conta grátis</a>
+        <ul class="pricing-features">
+          <li>Dashboard com Poder de Escolha</li>
+          <li>Lançamentos ilimitados</li>
+          <li>Categorias e subcategorias</li>
+          <li>Contratos e recorrências</li>
+          <li>Até 2 pessoas (casal)</li>
+          <li class="off">Coach com IA</li>
+          <li class="off">Histórico além de 3 meses</li>
+          <li class="off">Metas avançadas</li>
+        </ul>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured">
+        <div class="pricing-popular">Mais popular</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-price"><sup>R$</sup>29<span>/mês</span></div>
+        <div class="pricing-desc">Para quem quer clareza total e o Coach do seu lado.</div>
+        <a href="/app" class="pricing-cta primary">Começar Pro</a>
+        <ul class="pricing-features">
+          <li>Tudo do plano Gratuito</li>
+          <li>Coach com IA ilimitado</li>
+          <li>Histórico completo</li>
+          <li>Análises e relatórios mensais</li>
+          <li>Metas com acompanhamento inteligente</li>
+          <li>Patrimônio e investimentos</li>
+          <li>Alertas proativos</li>
+          <li class="off">Família completa (3+ pessoas)</li>
+        </ul>
+      </div>
+
+      <!-- Família -->
+      <div class="pricing-card">
+        <div class="pricing-name">Família</div>
+        <div class="pricing-price"><sup>R$</sup>49<span>/mês</span></div>
+        <div class="pricing-desc">Para famílias que querem visão compartilhada e o Coach para todos.</div>
+        <a href="/app" class="pricing-cta outline">Começar em família</a>
+        <ul class="pricing-features">
+          <li>Tudo do plano Pro</li>
+          <li>Até 6 pessoas na família</li>
+          <li>Visão consolidada da família</li>
+          <li>Coach personalizado por pessoa</li>
+          <li>Lançamentos por membro</li>
+          <li>Convites por e-mail</li>
+          <li>Painel do organizador</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA FINAL ── -->
+<section class="cta-final">
+  <div class="container">
+    <h2>Seu futuro financeiro<br>começa com uma pergunta.</h2>
+    <p>Quanto você pode gastar hoje sem preocupação? O Haile responde em segundos.</p>
+    <a href="/app" class="btn-white">Descobrir meu Poder de Escolha</a>
+    <p class="cta-final-note">Grátis para sempre no plano básico · Sem cartão de crédito</p>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="/assets/svg/haile-wordmark-white.svg" alt="Haile">
+        </div>
+        <p>Seu coach financeiro pessoal com inteligência artificial. Clareza para hoje. Liberdade para o futuro.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Produto</h4>
+        <ul>
+          <li><a href="#como-funciona">Como funciona</a></li>
+          <li><a href="#coach">Coach IA</a></li>
+          <li><a href="#planos">Planos e preços</a></li>
+          <li><a href="/app">Entrar no app</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Empresa</h4>
+        <ul>
+          <li><a href="#">Sobre</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Contato</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Privacidade</a></li>
+          <li><a href="#">Termos de uso</a></li>
+          <li><a href="#">LGPD</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Haile. Todos os direitos reservados.</p>
+      <p>Feito com ♥ no Brasil</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
