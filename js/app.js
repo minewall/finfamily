@@ -663,26 +663,10 @@ const App = (function () {
   </div>
 </div>
 
-<div class="kpi-grid mb-6" id="kpiGrid">
-  <div class="kpi-card" data-kpi-id="saude" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
-    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
-    <div class="kpi-icon" style="color:${healthColor}">${healthIcon}</div>
-    <div class="kpi-body">
-      <div class="kpi-label">Saúde Financeira</div>
-      <div class="kpi-value" style="color:${healthColor}">${Utils.pct(healthPct)} usado</div>
-      <div class="kpi-sub">${healthLabel} · limite ${Utils.pct(limitePct)}</div>
-    </div>
-  </div>
-  <div class="kpi-card" data-kpi-id="despesas" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body">
-      <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
-      <div class="kpi-value red">${Utils.currency(despesa)}</div>
-      <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
-    </div>
-  </div>
-  <div class="kpi-card kpi-poder-escolha ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}" data-kpi-id="poder">
+<div class="kpi-grid-dashboard mb-6" id="kpiGrid">
+
+  <!-- Poder de Escolha — card principal, ocupa coluna esquerda inteira -->
+  <div class="kpi-card kpi-poder-escolha kpi-poder-main ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}" data-kpi-id="poder">
     <div class="kpi-drag-handle" title="Arrastar">⠿</div>
     <div class="kpi-poder-header">
       <div class="kpi-poder-icon">
@@ -691,26 +675,81 @@ const App = (function () {
       <div class="kpi-poder-meta">
         <div class="kpi-poder-tag">Disponível agora</div>
         <div class="kpi-poder-label">Poder de Escolha</div>
+        <div class="kpi-poder-month">${monthLabel}</div>
       </div>
     </div>
     <div class="kpi-poder-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
     <div class="kpi-poder-sub">${poder.poderDeEscolha>=0
       ? 'Você pode gastar sem comprometer suas contas e metas'
       : 'Atenção: você ultrapassou o piso de sobrevivência'}</div>
+    <div class="kpi-poder-progress">
+      <div class="kpi-poder-progress-fill" style="width:${Math.min(poder.pct*100,100)}%"></div>
+    </div>
     <div class="kpi-poder-footer">
-      <span class="kpi-poder-footer-icon">${poder.poderDeEscolha>=0?'▲':'▼'}</span>
-      <span>${(poder.pct*100).toFixed(0)}% da receita · piso ${Utils.currency(poder.pisoSobrevivencia)}</span>
+      <span>Receita: ${Utils.currency(receita)}</span>
+      <span>Comprometido: ${Utils.currency(receita - poder.poderDeEscolha)}</span>
     </div>
   </div>
-  <div class="kpi-card" data-kpi-id="maior-gasto" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
-    <div class="kpi-drag-handle" title="Arrastar">⠿</div>
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body">
-      <div class="kpi-label">Maior Gasto do Mês</div>
-      <div class="kpi-value" style="color:var(--amber)">${topDesp ? Utils.currency(topDesp.amount) : '—'}</div>
-      <div class="kpi-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp ? topDesp.desc + ' · ' + (Store.CATEGORIES[topDesp.category]?.label || topDesp.category) : 'Sem despesas'}</div>
+
+  <!-- Grid 2×2 à direita -->
+  <div class="kpi-sub-grid">
+
+    <!-- Receitas -->
+    <div class="kpi-card" data-kpi-id="receitas" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+      <div class="kpi-icon" style="color:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">Receitas — ${Utils.monthsFull[month-1]}</div>
+        <div class="kpi-value" style="color:var(--green)">+${Utils.currency(receita)}</div>
+        <div class="kpi-change ${chgRec>=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgRec>=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgRec).toFixed(1)}% vs mês anterior</div>
+      </div>
     </div>
-  </div>
+
+    <!-- Saúde Financeira (D2) -->
+    <div class="kpi-card" data-kpi-id="saude" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
+      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+      <div class="kpi-icon" style="color:${healthColor}">${healthIcon}</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Saúde Financeira</div>
+        <div class="kpi-value" style="color:${healthColor}">${Utils.pct(healthPct)} usado</div>
+        <div class="kpi-health-bar">
+          <div class="kpi-health-bar-fill" style="width:${Math.min(healthPct*100,100)}%;background:${healthColor}"></div>
+        </div>
+        <div class="kpi-sub">${healthLabel} · limite ${Utils.pct(limitePct)}</div>
+      </div>
+    </div>
+
+    <!-- Despesas -->
+    <div class="kpi-card" data-kpi-id="despesas" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
+      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
+        <div class="kpi-value red">${Utils.currency(despesa)}</div>
+        <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
+      </div>
+    </div>
+
+    <!-- Maior Gasto (D3) -->
+    ${(() => {
+      const topPct = topDesp && despesa > 0 ? (topDesp.amount / despesa * 100).toFixed(0) : null;
+      const catLabel = topDesp ? (Store.CATEGORIES[topDesp.category]?.label || topDesp.category) : null;
+      const catColor = topDesp ? (Store.CATEGORIES[topDesp.category]?.color || 'var(--amber)') : 'var(--amber)';
+      return `<div class="kpi-card" data-kpi-id="maior-gasto" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
+      <div class="kpi-drag-handle" title="Arrastar">⠿</div>
+      <div class="kpi-icon" style="color:${catColor}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-label">Maior Gasto do Mês</div>
+        <div class="kpi-value" style="color:var(--amber)">${topDesp ? Utils.currency(topDesp.amount) : '—'}</div>
+        ${catLabel ? `<div class="kpi-sub-cat"><span class="kpi-cat-pill" style="background:${catColor}22;color:${catColor}">${catLabel}</span>${topPct ? `<span class="kpi-cat-pct">${topPct}% do total</span>` : ''}</div>` : `<div class="kpi-sub">Sem despesas</div>`}
+        ${topDesp ? `<div class="kpi-sub" style="margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp.desc}</div>` : ''}
+      </div>
+    </div>`;
+    })()}
+
+  </div><!-- /kpi-sub-grid -->
 </div>
 
 <div class="chart-grid mb-6">

@@ -643,6 +643,94 @@ body { background: var(--bg-base); color: var(--text-1); }
   margin-bottom: 24px;
 }
 
+/* Dashboard KPI — layout 2 colunas: Poder de Escolha (esq) + 2×2 (dir) */
+.kpi-grid-dashboard {
+  display: grid;
+  grid-template-columns: 1.15fr 2fr;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+.kpi-sub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+}
+.kpi-poder-main {
+  grid-row: span 1;
+  min-height: 220px;
+}
+/* Progress bar dentro do Poder de Escolha */
+.kpi-poder-progress {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 8px 0 4px;
+  position: relative;
+  z-index: 1;
+}
+.kpi-poder-progress-fill {
+  height: 100%;
+  background: rgba(255,255,255,0.85);
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+/* Mês no header do Poder de Escolha */
+.kpi-poder-month {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 1px;
+}
+/* Footer do Poder de Escolha (novo: receita / comprometido) */
+.kpi-poder-footer {
+  display: flex;
+  justify-content: space-between;
+}
+/* Progress bar na Saúde Financeira (D2) */
+.kpi-health-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 6px 0 4px;
+}
+.kpi-health-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+/* Maior Gasto — categoria pill + % (D3) */
+.kpi-sub-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.kpi-cat-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  line-height: 1.4;
+}
+.kpi-cat-pct {
+  font-size: 11px;
+  color: var(--text-3);
+}
+/* Responsivo */
+@media (max-width: 680px) {
+  .kpi-grid-dashboard { grid-template-columns: 1fr; }
+  .kpi-poder-main { min-height: auto; }
+}
+@media (max-width: 480px) {
+  .kpi-sub-grid { grid-template-columns: 1fr; }
+}
+
 .kpi-card {
   background: var(--bg-card);
   border: none;
