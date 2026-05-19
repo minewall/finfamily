@@ -153,10 +153,8 @@ const App = (function () {
   // Cartões, Contas, Simulações, Recados, Reembolsos, Config) não mostram picker.
   const MONTH_AWARE_PAGES = new Set([
     'dashboard',
-    'lancamentos',
-    'receitas',
-    'despesas',
     'comparativo',
+    // lancamentos/receitas/despesas gerenciam o próprio picker inline
   ]);
 
   const Router = {
@@ -1063,49 +1061,62 @@ ${renderPrevisaoCaixa(saldo)}
     const despesas = Store.get().despesas.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
     const receitas = Store.get().receitas.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
 
-    let sortDir = 'asc'; // 'asc' | 'desc'
+    let sortDir = 'asc';
+    let activeTab = localStorage.getItem('ff_lanc_tab') || 'desp';
 
     container.innerHTML = `
-<div class="section-header mb-4">
-  <div><div class="section-title">Lançamentos — ${periodLabel}</div>
-  <div class="section-sub">${despesas.length + receitas.length} registros · ${despesas.length} despesas · ${receitas.length} receitas</div></div>
+<div class="section-header mb-3">
+  <div>
+    <div class="section-title">Lançamentos — ${periodLabel}</div>
+    <div class="section-sub">${despesas.length + receitas.length} registros · ${despesas.length} despesas · ${receitas.length} receitas</div>
+  </div>
   <div class="flex gap-2">
-    <button class="btn-secondary active" id="btnTabDesp">Despesas</button>
-    <button class="btn-secondary" id="btnTabRec">Receitas</button>
-    <button class="btn-secondary" id="btnTabCal">
+    <button class="btn-secondary ${activeTab==='desp'?'active':''}" id="btnTabDesp">Despesas</button>
+    <button class="btn-secondary ${activeTab==='rec'?'active':''}" id="btnTabRec">Receitas</button>
+    <button class="btn-secondary ${activeTab==='cal'?'active':''}" id="btnTabCal">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg>
       Calendário
     </button>
   </div>
 </div>
-${periodToggleHTML('ff_lanc_period', period)}
-<div class="filter-bar" id="filterBar">
-  <div class="search-box">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
-    <input type="text" id="searchInput" placeholder="Buscar por descrição…" />
+<div class="filter-header" id="filterHeader">
+  <div class="filter-row-1" id="filterRow1">
+    <div class="filter-sep"></div>
+    ${periodToggleHTML('ff_lanc_period', period)}
+    <div class="filter-row-1-actions">
+      <select class="form-select" id="filterPessoa" style="min-width:140px">
+        <option value="">Todas as pessoas</option>
+        ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <button class="btn-secondary" id="btnSort" title="Ordenar por data" style="white-space:nowrap;padding:6px 10px;font-size:12px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Data ↑
+      </button>
+    </div>
   </div>
-  <select class="form-select" id="filterCat" style="width:175px">
-    <option value="">Todas as categorias</option>
-    ${Store.categoriesOrdered().filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
-  </select>
-  <select class="form-select" id="filterSub" style="width:170px">
-    <option value="">Todas as sub-categorias</option>
-  </select>
-  <select class="form-select" id="filterPay" style="width:140px">
-    <option value="">Todos os pagamentos</option>
-    ${Store.PAYMENT_METHODS.map(m => `<option value="${m}">${m}</option>`).join('')}
-  </select>
-  <select class="form-select" id="filterPessoa" style="width:140px">
-    <option value="">Todas as pessoas</option>
-    ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
-  </select>
-  <button class="btn-secondary" id="btnClearFilters" title="Limpar todos os filtros" style="white-space:nowrap;padding:6px 10px;font-size:12px;color:var(--text-3)">× Limpar</button>
-  <button class="btn-secondary" id="btnSort" title="Ordenar por data" style="white-space:nowrap;padding:6px 10px;font-size:12px">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    Data ↑
-  </button>
+  <div class="filter-row-2" id="filterBar">
+    <div class="search-box" style="flex:1;min-width:180px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar por descrição…" />
+    </div>
+    <select class="form-select" id="filterCat" style="min-width:155px">
+      <option value="">Todas as categorias</option>
+      ${Store.categoriesOrdered().filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
+    </select>
+    <select class="form-select" id="filterSub" style="min-width:150px">
+      <option value="">Todas as sub-categorias</option>
+    </select>
+    <select class="form-select" id="filterPay" style="min-width:130px">
+      <option value="">Todos os pagamentos</option>
+      ${Store.PAYMENT_METHODS.map(m => `<option value="${m}">${m}</option>`).join('')}
+    </select>
+    <button class="btn-secondary" id="btnClearFilters" title="Limpar filtros" style="white-space:nowrap;padding:6px 10px;font-size:12px;color:var(--text-3)">× Limpar</button>
+  </div>
 </div>
 <div class="table-wrap" id="lancTable"></div>`;
+
+    // Injeta picker mês/ano no início da filter-row-1
+    renderPageMonthPicker(container.querySelector('#filterRow1'));
 
     // ── helpers ────────────────────────────────────────────────────
     function sortRows(rows) {
@@ -1208,8 +1219,6 @@ ${filtered.map(r => {
     }
 
     // ── tab state ─────────────────────────────────────────────────
-    let activeTab = localStorage.getItem('ff_lanc_tab') || 'desp';
-
     function getFilters() {
       return {
         search: document.getElementById('searchInput')?.value || '',
@@ -1596,12 +1605,20 @@ ${filtered.map(r => {
   </div>
 </div>
 
+<div class="filter-header mb-2">
+  <div class="filter-row-1" id="recFilterRow1">
+    <div class="filter-sep"></div>
+    ${periodToggleHTML('ff_rec_period', period)}
+    <div class="filter-row-1-actions">
+      <button class="btn-primary" id="btnAddRec">+ Nova Receita</button>
+    </div>
+  </div>
+</div>
+
 <div class="card mb-6">
   <div class="card-header">
     <span class="card-title">Receitas — ${periodLabel}</span>
-    <button class="btn-secondary" id="btnAddRec">+ Nova Receita</button>
   </div>
-  ${periodToggleHTML('ff_rec_period', period)}
   <div class="table-wrap">
     <table class="data-table">
       <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th><th></th></tr></thead>
@@ -1666,6 +1683,7 @@ ${filtered.map(r => {
       if (tr) openEditReceita(tr.dataset.rowRec, () => renderReceitas(container));
     });
 
+    renderPageMonthPicker(container.querySelector('#recFilterRow1'));
     document.getElementById('btnAddRec')?.addEventListener('click', () => openAddReceita(container));
     bindPeriodToggle(container, 'ff_rec_period', () => renderReceitas(container));
 
@@ -1787,12 +1805,11 @@ ${filtered.map(r => {
     const anomalias = period === 'mes' ? detectAnomalias(month, year) : [];
 
     container.innerHTML = `
-<div class="section-header mb-4">
-  <div><div class="section-title">Despesas — ${periodLabel}</div>
-  <div class="section-sub">${despesas.length} lançamentos · total: <strong>${Utils.currency(total)}</strong></div></div>
-  ${isMember
-    ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
-    : `<button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>`}
+<div class="section-header mb-3">
+  <div>
+    <div class="section-title">Despesas — ${periodLabel}</div>
+    <div class="section-sub">${despesas.length} lançamentos · total: <strong>${Utils.currency(total)}</strong></div>
+  </div>
 </div>
 ${isMember ? `
 <div class="card mb-4" style="border-color:var(--amber)30;background:var(--amber)08">
@@ -1801,7 +1818,17 @@ ${isMember ? `
     Você está no modo Membro — veja apenas suas despesas e rateios.
   </div>
 </div>` : ''}
-${periodToggleHTML('ff_desp_period', period)}
+<div class="filter-header mb-4">
+  <div class="filter-row-1" id="despFilterRow1">
+    <div class="filter-sep"></div>
+    ${periodToggleHTML('ff_desp_period', period)}
+    <div class="filter-row-1-actions">
+      ${isMember
+        ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
+        : `<button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>`}
+    </div>
+  </div>
+</div>
 
 <div class="chart-grid mb-6">
   <div class="card">
@@ -1961,6 +1988,7 @@ ${anomaliasHTML(anomalias, total)}
     }
     attachDespDeleteHandlers();
 
+    renderPageMonthPicker(container.querySelector('#despFilterRow1'));
     document.getElementById('btnAddDesp')?.addEventListener('click', () => {
       if (isMember && familyCtx?.pessoaName) openMemberDespesa(familyCtx.pessoaName, () => renderDespesas(container));
       else openAddDespesa(container);

@@ -1302,6 +1302,45 @@ td.muted    { color: var(--text-3); }
   border-bottom: 1px solid var(--border);
 }
 
+/* ── FILTER HEADER (novo padrão unificado) ───────────────────────── */
+.filter-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.filter-row-1,
+.filter-row-2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-row-1 {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+/* Picker inline — sem margem própria */
+.filter-row-1 .page-month-picker { margin-bottom: 0; }
+/* Period toggle inline — sem borda/margem própria */
+.filter-row-1 .period-toggle-bar {
+  margin-bottom: 0; padding-bottom: 0;
+  border-bottom: none;
+}
+.filter-sep {
+  width: 1px; height: 22px;
+  background: var(--border-2);
+  flex-shrink: 0;
+}
+.filter-spacer { flex: 1; min-width: 4px; }
+/* form-select dentro de filter rows não expande 100% */
+.filter-row-1 .form-select,
+.filter-row-2 .form-select { width: auto; }
+/* Grupo de ações à direita na filter-row-1 */
+.filter-row-1-actions {
+  display: flex; gap: 8px; align-items: center; margin-left: auto;
+}
+
 /* ── FILTER BAR ─────────────────────────────────────────────────── */
 .filter-bar {
   display: flex;
