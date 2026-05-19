@@ -2160,6 +2160,86 @@ ${anomaliasHTML(anomalias, total)}
     };
   }
 
+  const IA_KEYWORDS = [
+    // moradia
+    { kws: ['aluguel'], cat: 'moradia', sub: 'Aluguel' },
+    { kws: ['energia','luz','cemig','cpfl','coelba','enel'], cat: 'moradia', sub: 'Energia Elétrica' },
+    { kws: ['agua','saneamento','sabesp','copasa','embasa'], cat: 'moradia', sub: 'Água e Saneamento' },
+    { kws: ['netflix'], cat: 'moradia', sub: 'Netflix' },
+    { kws: ['hbo','max'], cat: 'moradia', sub: 'HBO' },
+    { kws: ['spotify'], cat: 'moradia', sub: 'Spotify' },
+    { kws: ['amazon prime','prime video'], cat: 'moradia', sub: 'Amazon Prime' },
+    { kws: ['apple','icloud'], cat: 'moradia', sub: 'Apple' },
+    { kws: ['ifood'], cat: 'moradia', sub: 'iFood' },
+    { kws: ['internet','tim','claro','vivo','oi','net','condominio','condomínio'], cat: 'moradia', sub: 'TV / Internet / Telefone' },
+    { kws: ['reforma','reparo','manutencao','manutenção','pintura','encanador','eletricista'], cat: 'moradia', sub: 'Reparos e Manutenção' },
+    { kws: ['movel','móvel','moveis','móveis','sofa','sofá','armario','armário'], cat: 'moradia', sub: 'Móveis e itens casa' },
+    // alimentacao
+    { kws: ['supermercado','mercado','carrefour','extra','walmart','atacadao','atacadão','assai','assaí','pao de acucar','pão de açúcar','hortifruti'], cat: 'alimentacao', sub: 'Supermercado' },
+    { kws: ['feira','sacolao','sacolão','horta','verdura'], cat: 'alimentacao', sub: 'Feira / Sacolão' },
+    { kws: ['padaria','confeitaria','pao','pão','cafe','café'], cat: 'alimentacao', sub: 'Padaria' },
+    { kws: ['acougue','açougue','carne','churrasco'], cat: 'alimentacao', sub: 'Açougue' },
+    { kws: ['nespresso','capsula','cápsula'], cat: 'alimentacao', sub: 'Nespresso' },
+    { kws: ['sorvete','gelato'], cat: 'alimentacao', sub: 'Sorveteria' },
+    { kws: ['agua mineral','galao','galão','mineral'], cat: 'alimentacao', sub: 'Água' },
+    { kws: ['lanche','faculdade','cantina'], cat: 'alimentacao', sub: 'Lanche na Faculdade' },
+    { kws: ['restaurante','almoco','almoço','jantar','pizza','sushi','hamburguer','hamburgueria','mc donalds','mcdonalds','burguer king','subway'], cat: 'alimentacao', sub: 'Supermercado' },
+    // transporte
+    { kws: ['uber','99','cabify','taxi','táxi'], cat: 'transporte', sub: 'Uber' },
+    { kws: ['combustivel','combustível','gasolina','etanol','diesel','posto'], cat: 'transporte', sub: 'Combustível' },
+    { kws: ['estacionamento','parking','zona azul'], cat: 'transporte', sub: 'Estacionamento' },
+    { kws: ['multa','denatran','detran'], cat: 'transporte', sub: 'Multas' },
+    { kws: ['ipva'], cat: 'transporte', sub: 'IPVA' },
+    { kws: ['seguro auto','porto seguro auto'], cat: 'transporte', sub: 'Seguro' },
+    { kws: ['oficina','mecanico','mecânico','revisao','revisão','pneu','borracheiro'], cat: 'transporte', sub: 'Manutenção' },
+    { kws: ['aluguel carro','localiza','movida','unidas'], cat: 'transporte', sub: 'Aluguel Carro' },
+    // saude
+    { kws: ['unimed','amil','bradesco saude','saude','hapvida','sulamerica'], cat: 'saude', sub: 'Convênio Médico' },
+    { kws: ['farmacia','farmácia','drogaria','droga','medicamento','remedio','remédio'], cat: 'saude', sub: 'Medicamentos' },
+    { kws: ['dentista','odonto','ortodontia'], cat: 'saude', sub: 'Dentista' },
+    { kws: ['pronto socorro','emergencia','emergência','hospital','clinica','clínica','consulta'], cat: 'saude', sub: 'Emergências' },
+    { kws: ['higiene','shampoo','sabonete','creme','desodorante'], cat: 'saude', sub: 'Higiene Pessoal' },
+    // pessoal
+    { kws: ['cabelo','salao','salão','cabeleireiro','manicure','pedicure','estetica','estética','spa'], cat: 'pessoal', sub: 'Beleza' },
+    { kws: ['roupa','calcado','calçado','tenis','tênis','vestuario','vestuário','zara','renner','riachuelo','hm'], cat: 'pessoal', sub: 'Vestuário' },
+    { kws: ['assinatura','revista','jornal'], cat: 'pessoal', sub: 'Assinaturas' },
+    { kws: ['presente','gift'], cat: 'pessoal', sub: 'Presentes' },
+    // dogs
+    { kws: ['pet','racao','ração','veterinario','veterinário','banho tosa','banho e tosa','dog','gato','cachorro'], cat: 'dogs', sub: 'Ração' },
+    // lazer
+    { kws: ['cinema','teatro','show','ingresso','eventim','sympla'], cat: 'lazer', sub: 'Entretenimento' },
+    { kws: ['viagem','hotel','airbnb','passagem','voo','decolar','latam','gol'], cat: 'lazer', sub: 'Viagem' },
+    { kws: ['academia','smart fit','bodytech','crossfit'], cat: 'saude', sub: 'Convênio Médico' },
+    // financeiro
+    { kws: ['juros','taxa','tarifa bancaria','tarifa','anuidade','cartao','cartão','fatura'], cat: 'financeiro', sub: 'Tarifas Bancárias' },
+    { kws: ['emprestimo','empréstimo','financiamento','parcela'], cat: 'financeiro', sub: 'Empréstimos' },
+    { kws: ['seguro vida','seguro residencial'], cat: 'financeiro', sub: 'Seguros' },
+    // educacao
+    { kws: ['faculdade','mensalidade','colegio','colégio','escola','curso','material escolar','livro'], cat: 'educacao', sub: 'Mensalidade' },
+    // beneficios / assessorias
+    { kws: ['contador','contabilidade','advocacia','advogado','consultoria'], cat: 'assessorias', sub: 'Assessoria' },
+  ];
+
+  function suggestCategory(desc) {
+    const data = Store.get();
+    const knowledge = (data.settings && data.settings.iaKnowledge) || {};
+    const norm = desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    if (!norm) return null;
+    // Check user's personal knowledge base first
+    if (knowledge[norm]) return knowledge[norm];
+    // Partial match in knowledge base
+    for (const [key, val] of Object.entries(knowledge)) {
+      if (norm.includes(key) || key.includes(norm)) return val;
+    }
+    // Keyword dictionary
+    for (const entry of IA_KEYWORDS) {
+      if (entry.kws.some(kw => norm.includes(kw))) {
+        return { category: entry.cat, sub: entry.sub };
+      }
+    }
+    return null;
+  }
+
   function openAddDespesa(refreshContainer) {
     const cats = Store.categoriesOrdered().filter(([k])=>k!=='receita');
     const suggestions = Store.descSuggestions();
@@ -2171,6 +2251,7 @@ ${anomaliasHTML(anomalias, total)}
           <input class="form-input" id="fDDesc" placeholder="Ex: Supermercado, Combustível…" autocomplete="off"/>
           <div class="ac-list" id="fDDescAc"></div>
         </div>
+        <div id="fDIaSuggest" style="display:none;margin-top:6px"></div>
       </div>
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fDAmt" type="number" step="0.01" placeholder="0,00"/></div>
       <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="fDDate" type="date" value="${new Date().toISOString().slice(0,10)}"/></div>
@@ -2344,6 +2425,36 @@ ${anomaliasHTML(anomalias, total)}
           const amt = document.getElementById('fDAmt')?.value;
           const valEl = document.getElementById('fDReembolsoValor');
           if (valEl && amt) valEl.value = amt;
+        }
+      });
+
+      const catLabels = Object.fromEntries(Store.categoriesOrdered().map(([k,v]) => [k, v.label]));
+      document.getElementById('fDDesc')?.addEventListener('input', e => {
+        const chip = document.getElementById('fDIaSuggest');
+        if (!chip) return;
+        const suggestion = suggestCategory(e.target.value);
+        if (suggestion) {
+          const catLabel = catLabels[suggestion.category] || suggestion.category;
+          chip.innerHTML = `<button type="button" class="ia-suggest-btn" data-cat="${suggestion.category}" data-sub="${suggestion.sub || ''}">
+            💡 ${catLabel}${suggestion.sub ? ' › ' + suggestion.sub : ''} <span style="opacity:.6;font-size:11px">— confirmar</span>
+          </button>`;
+          chip.style.display = 'block';
+          chip.querySelector('.ia-suggest-btn')?.addEventListener('click', () => {
+            const catSel = document.getElementById('fDCat');
+            if (catSel) { catSel.value = suggestion.category; updateSubs(); }
+            if (suggestion.sub) setTimeout(() => { const s = document.getElementById('fDSub'); if (s) s.value = suggestion.sub; }, 30);
+            // Save to knowledgebase
+            const norm = e.target.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+            if (norm) {
+              const d = Store.get(); d.settings = d.settings || {};
+              d.settings.iaKnowledge = d.settings.iaKnowledge || {};
+              d.settings.iaKnowledge[norm] = { category: suggestion.category, sub: suggestion.sub, confidence: 1.0 };
+              Store.save(d);
+            }
+            chip.style.display = 'none';
+          });
+        } else {
+          chip.style.display = 'none';
         }
       });
 
