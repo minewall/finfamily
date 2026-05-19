@@ -5347,14 +5347,15 @@ ${topCats.length ? `
     <div class="section-title">Investimentos</div>
     <div class="section-sub">Compare produtos de renda fixa e projete seu patrimônio</div>
   </div>
+  <button class="btn-secondary" onclick="Router.navigate('patrimonio')" style="white-space:nowrap">${icon('bar-chart-2',{size:14})} Ver Patrimônio</button>
 </div>
 
 <!-- Resumo do portfólio atual -->
 ${reservas.length > 0 ? `
-<div class="kpi-grid mb-6">
+<div class="kpi-grid mb-4">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Total investido</div><div class="kpi-value accent">${Utils.currency(totalInvestido)}</div><div class="kpi-sub">${reservas.length} aplicações</div></div>
+    <div class="kpi-body"><div class="kpi-label">Total investido</div><div class="kpi-value accent">${Utils.currency(totalInvestido)}</div><div class="kpi-sub">${reservas.length} aplicação${reservas.length!==1?'ões':''}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -5362,9 +5363,35 @@ ${reservas.length > 0 ? `
   </div>
   <div class="kpi-card" style="--kpi-color:${ganho>=0?'var(--green)':'var(--red)'};--kpi-bg:${ganho>=0?'var(--green-dim)':'var(--red-dim)'}">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Ganho</div><div class="kpi-value" style="color:${ganho>=0?'var(--green)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div><div class="kpi-sub">${rendPct.toFixed(1)}% acumulado</div></div>
+    <div class="kpi-body"><div class="kpi-label">Ganho acumulado</div><div class="kpi-value" style="color:${ganho>=0?'var(--green)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div><div class="kpi-sub">${rendPct.toFixed(1)}% de rendimento</div></div>
   </div>
-</div>` : ''}
+</div>
+
+<!-- Cards das aplicações cadastradas -->
+<div class="card mb-6">
+  <div class="card-header">
+    <span class="card-title">Portfólio Atual</span>
+    <span style="font-size:11px;color:var(--text-4)">Gerencie em <a href="#patrimonio" onclick="Router.navigate('patrimonio')" style="color:var(--accent)">Reserva & Patrimônio</a></span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:4px 0">
+    ${reservas.map(r => {
+      const valAtual = r.valorAtual || r.valorInvestido || 0;
+      const ganhoR = valAtual - (r.valorInvestido || 0);
+      const rendR  = r.valorInvestido > 0 ? (ganhoR / r.valorInvestido * 100) : 0;
+      const tipoColor = (r.tipo||'').includes('Variável') ? 'var(--blue)' : (r.tipo||'').includes('Dinheiro') ? 'var(--text-3)' : 'var(--green)';
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface-2)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tipoColor};margin-bottom:3px">${r.tipo||'Aplicação'}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.nome||r.label||'—'}">${r.nome||r.label||'—'}</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1)">${Utils.currency(valAtual)}</div>
+        <div style="font-size:11px;color:${ganhoR>=0?'var(--green)':'var(--red)'};margin-top:2px">${ganhoR>=0?'+':''}${Utils.currency(ganhoR)} (${rendR.toFixed(1)}%)</div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>` : `
+<div class="card mb-6" style="text-align:center;padding:32px;border:1.5px dashed var(--border)">
+  <div style="font-size:14px;color:var(--text-3);margin-bottom:6px">Nenhuma aplicação cadastrada</div>
+  <div style="font-size:12px;color:var(--text-4)">Adicione em <a href="#patrimonio" onclick="Router.navigate('patrimonio')" style="color:var(--accent)">Reserva & Patrimônio</a> para ver seu portfólio aqui</div>
+</div>`}
 
 <!-- Header de taxas -->
 <div class="rates-strip card mb-6" id="invRatesStrip">
@@ -5541,6 +5568,17 @@ ${reservas.length > 0 ? `
     const TIPO_LABEL = { imovel: 'Imóvel', veiculo: 'Veículo', pessoal: 'Pessoal', estudantil: 'Estudantil', empresarial: 'Empresarial' };
     const TIPO_COLOR = { imovel: 'var(--teal)', veiculo: 'var(--accent)', pessoal: 'var(--amber)', estudantil: 'var(--green)', empresarial: 'var(--red)' };
 
+    // Calcular KPIs adicionais
+    const totalPagoGlobal = fins.reduce((s, f) => s + Store.financiamentoTotalPago(f), 0);
+    const totalJurosGlobal = fins.reduce((s, f) => s + Store.financiamentoTotalJuros(f), 0);
+    const mediaJuros = fins.length > 0
+      ? fins.reduce((s, f) => s + (f.taxaMensal || 0), 0) / fins.length
+      : 0;
+    const proxParcelaMes = fins.reduce((s, f) => {
+      const k = Math.min((f.parcelasPagas || 0) + 1, f.prazo || 0);
+      return s + (k > 0 ? Store.financiamentoParcelaNa(f, k) : 0);
+    }, 0);
+
     container.innerHTML = `
 <div class="section-header mb-6">
   <div>
@@ -5554,16 +5592,34 @@ ${fins.length > 0 ? `
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Total a pagar (saldo devedor)</div><div class="kpi-value red">${Utils.currency(totalDevedor)}</div><div class="kpi-sub">${fins.length} financiamento${fins.length>1?'s':''} ativo${fins.length>1?'s':''}</div></div>
+    <div class="kpi-body"><div class="kpi-label">Saldo Devedor Total</div><div class="kpi-value red">${Utils.currency(totalDevedor)}</div><div class="kpi-sub">${fins.length} financiamento${fins.length>1?'s':''} ativo${fins.length>1?'s':''}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Próxima parcela total/mês</div><div class="kpi-value accent">${Utils.currency(fins.reduce((s,f)=>{
-      const k = Math.min((f.parcelasPagas||0)+1, f.prazo||0);
-      return s + (k > 0 ? Store.financiamentoParcelaNa(f, k) : 0);
-    }, 0))}</div><div class="kpi-sub">soma das próximas parcelas</div></div>
+    <div class="kpi-body"><div class="kpi-label">Parcela Mensal</div><div class="kpi-value accent">${Utils.currency(proxParcelaMes)}</div><div class="kpi-sub">soma das próximas parcelas</div></div>
   </div>
-</div>` : ''}
+  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Total Já Pago</div><div class="kpi-value green">${Utils.currency(totalPagoGlobal)}</div><div class="kpi-sub">capital amortizado + juros pagos</div></div>
+  </div>
+  <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim,#F59E0B18)">
+    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="kpi-body"><div class="kpi-label">Média de Juros</div><div class="kpi-value" style="color:var(--amber)">${mediaJuros.toFixed(2)}% a.m.</div><div class="kpi-sub">total de juros no contrato: ${Utils.currency(totalJurosGlobal)}</div></div>
+  </div>
+</div>
+
+<!-- Gráficos -->
+<div class="chart-grid mb-6">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Evolução do Saldo Devedor</span><span class="badge badge-accent">${getYear()}</span></div>
+    <div class="chart-wrap"><canvas id="chartFinEvolucao" class="chart-canvas"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Amortização vs Juros — ${Utils.monthsFull[getMonth()-1]} ${getYear()}</span></div>
+    <div class="chart-wrap"><canvas id="chartFinAmortJuros" class="chart-canvas"></canvas></div>
+  </div>
+</div>
+` : ''}
 
 ${fins.length === 0
   ? `<div class="card" style="text-align:center;padding:40px;color:var(--text-4)">Nenhum financiamento cadastrado.<br><br>Clique em <strong>+ Novo Financiamento</strong> para começar.</div>`
@@ -5614,6 +5670,104 @@ ${fins.length === 0
 
     const re = () => renderFinanciamentos(container);
     document.getElementById('btnAddFin')?.addEventListener('click', () => openFinanciamentoModal(null, re));
+
+    // ── Gráficos de financiamento ──────────────────────────────
+    if (fins.length > 0) {
+      requestAnimationFrame(() => {
+        const year = getYear(), month = getMonth();
+
+        // Gráfico 1: Evolução do saldo devedor ao longo do ano (mês a mês)
+        const labelsEv = Utils.months;
+        const datasetsEv = fins.map((f, idx) => {
+          const COLORS = ['#7367F0','#22C55E','#F59E0B','#3B82F6','#EC4899'];
+          const values = labelsEv.map((_, mIdx) => {
+            const mNum = mIdx + 1;
+            // Quantas parcelas pagas até este mês do ano?
+            const dataInicio = new Date((f.dataInicio || `${year}-01-01`) + 'T12:00:00');
+            const mesesDecorridos = (year - dataInicio.getFullYear()) * 12 + (mNum - (dataInicio.getMonth() + 1));
+            const parcelaAteM = Math.min(Math.max(0, mesesDecorridos + 1), f.prazo || 0);
+            let saldo = f.valorFinanciado || 0;
+            for (let k = 1; k <= parcelaAteM; k++) {
+              const parcela = Store.financiamentoParcelaNa(f, k);
+              const juros = saldo * ((f.taxaMensal || 0) / 100);
+              const amort = parcela - juros;
+              saldo = Math.max(0, saldo - amort);
+            }
+            return parseFloat(saldo.toFixed(2));
+          });
+          return { label: f.label, values, color: COLORS[idx % COLORS.length] };
+        });
+        const elEv = document.getElementById('chartFinEvolucao');
+        if (elEv) {
+          if (window._chartFinEv) window._chartFinEv.destroy();
+          window._chartFinEv = Charts.Line(elEv,
+            { labels: labelsEv, datasets: datasetsEv },
+            { height: 220 }
+          );
+        }
+
+        // Gráfico 2: Amortização vs Juros no mês atual (grouped bar por contrato)
+        const labelsAJ = fins.map(f => f.label.length > 14 ? f.label.slice(0, 14) + '…' : f.label);
+        const amortData = [], jurosData = [];
+        fins.forEach(f => {
+          const k = (f.parcelasPagas || 0) + 1;
+          if (k > (f.prazo || 0)) { amortData.push(0); jurosData.push(0); return; }
+          const dataInicio = new Date((f.dataInicio || `${year}-01-01`) + 'T12:00:00');
+          let saldo = f.valorFinanciado || 0;
+          for (let i = 1; i < k; i++) {
+            const p = Store.financiamentoParcelaNa(f, i);
+            const j = saldo * ((f.taxaMensal || 0) / 100);
+            saldo = Math.max(0, saldo - (p - j));
+          }
+          const juros = parseFloat((saldo * ((f.taxaMensal || 0) / 100)).toFixed(2));
+          const parcela = Store.financiamentoParcelaNa(f, k);
+          const amort  = parseFloat(Math.max(0, parcela - juros).toFixed(2));
+          amortData.push(amort);
+          jurosData.push(juros);
+        });
+        const elAJ = document.getElementById('chartFinAmortJuros');
+        if (elAJ && typeof Charts.GroupedBar === 'function') {
+          if (window._chartFinAJ) window._chartFinAJ.destroy();
+          window._chartFinAJ = Charts.GroupedBar(elAJ,
+            { labels: labelsAJ, datasets: [
+              { label: 'Amortização', values: amortData, color: '#22C55E' },
+              { label: 'Juros',       values: jurosData, color: '#EF4444' },
+            ]},
+            { height: 220 }
+          );
+        } else if (elAJ) {
+          // Fallback: bar simples empilhado
+          const maxV = Math.max(...fins.map((_, i) => amortData[i] + jurosData[i]), 1);
+          elAJ.parentElement.innerHTML = `
+<div style="padding:16px 0">
+  ${fins.map((f, i) => {
+    const tot = amortData[i] + jurosData[i];
+    const pctA = tot > 0 ? (amortData[i] / tot * 100) : 0;
+    const pctJ = tot > 0 ? (jurosData[i] / tot * 100) : 0;
+    return `<div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px">${f.label}</div>
+      <div style="display:flex;height:20px;border-radius:6px;overflow:hidden;background:var(--surface-2)">
+        <div style="width:${pctA}%;background:#22C55E;display:flex;align-items:center;justify-content:center">
+          ${pctA > 15 ? `<span style="font-size:10px;color:#fff;font-weight:600">${Utils.currency(amortData[i])}</span>` : ''}
+        </div>
+        <div style="width:${pctJ}%;background:#EF4444;display:flex;align-items:center;justify-content:center">
+          ${pctJ > 15 ? `<span style="font-size:10px;color:#fff;font-weight:600">${Utils.currency(jurosData[i])}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--text-3);margin-top:3px">
+        <span><span style="color:#22C55E">●</span> Amort. ${Utils.currency(amortData[i])}</span>
+        <span><span style="color:#EF4444">●</span> Juros ${Utils.currency(jurosData[i])}</span>
+      </div>
+    </div>`;
+  }).join('')}
+  <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text-4)">
+    <span><span style="color:#22C55E">■</span> Amortização (capital)</span>
+    <span><span style="color:#EF4444">■</span> Juros</span>
+  </div>
+</div>`;
+        }
+      });
+    }
 
     container.addEventListener('click', e => {
       const editBtn = e.target.closest('[data-edit-fin]');
