@@ -2,3 +2,10 @@
 .claude/
 *.xlsx
 gestor-financeiro-familiar.html
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
