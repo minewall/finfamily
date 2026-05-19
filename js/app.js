@@ -685,9 +685,8 @@ const App = (function () {
   })()}</div>
   <div class="dash-hero-left">
     <div class="dash-hero-greeting">${heroMood.title}</div>
-    <div class="dash-hero-sub-text">${heroMood.sub}</div>
+    <div class="dash-hero-sub-text">${heroMood.sub} · ${monthLabel}</div>
     <div class="dash-hero-saldo ${saldo >= 0 ? 'pos' : 'neg'}">${saldo < 0 ? '-' : '+'}${Utils.currency(Math.abs(saldo))}</div>
-    <div class="dash-hero-month">${monthLabel}</div>
     ${isMemberHero ? '' : `
     <button class="dash-hero-cta" id="btnNovaEntrada">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
@@ -2561,10 +2560,56 @@ ${anomaliasHTML(anomalias, total)}
     const objetivos = metas.filter(m => m.type === 'objetivo');
     const indicadores = metas.filter(m => m.type !== 'objetivo');
 
+    // ── Coach insight cross-meta ──────────────────────────────────
+    const metasInsight = (() => {
+      const criticas  = indicadores.filter(m => Store.getMetaPerformance(m.id, year, month).status === 'over');
+      const atencao   = indicadores.filter(m => Store.getMetaPerformance(m.id, year, month).status === 'warn');
+      const noAlvo    = indicadores.filter(m => Store.getMetaPerformance(m.id, year, month).status === 'ok');
+      const objsPerf  = objetivos.map(m => ({ m, p: Store.getMetaPerformance(m.id, year, month) }));
+      const objsOk    = objsPerf.filter(({p}) => p.pct >= 1);
+      const topObj    = objsPerf.sort((a,b) => b.p.pct - a.p.pct)[0];
+
+      if (criticas.length > 0) {
+        const c = criticas[0];
+        const perf = Store.getMetaPerformance(c.id, year, month);
+        return { icon:'⚠️', tone:'warn', titulo: `${c.label} ultrapassou o limite`,
+          texto: `${Utils.currency(perf.current)} atual vs ${Utils.currency(perf.target)} de meta — ${((perf.pct-1)*100).toFixed(0)}% acima. ${criticas.length > 1 ? `Mais ${criticas.length-1} indicador(es) também em alerta.` : 'Revise seus gastos nesta categoria.'}` };
+      }
+      if (atencao.length > 0) {
+        return { icon:'📊', tone:'neutral', titulo: `${atencao.length} indicador(es) pedindo atenção`,
+          texto: `${atencao.map(m => m.label).join(', ')} ${atencao.length === 1 ? 'está' : 'estão'} próximo(s) do limite. ${noAlvo.length > 0 ? `${noAlvo.length} no alvo.` : ''} Veja o Coach para recomendações.` };
+      }
+      if (objsOk.length > 0) {
+        return { icon:'🎉', tone:'pos', titulo: `${objsOk.length} objetivo${objsOk.length > 1 ? 's' : ''} atingido${objsOk.length > 1 ? 's' : ''}!`,
+          texto: `${objsOk.map(({m}) => m.label).join(', ')} ${objsOk.length === 1 ? 'foi concluído' : 'foram concluídos'}. Excelente disciplina financeira — considere criar um novo objetivo.` };
+      }
+      if (topObj) {
+        return { icon:'🎯', tone:'neutral', titulo: `${topObj.m.label}: ${(topObj.p.pct*100).toFixed(0)}% concluído`,
+          texto: `${Utils.currency(topObj.p.current)} de ${Utils.currency(topObj.p.target)}. ${topObj.p.pct < 0.5 ? 'Você está na metade do caminho — continue!' : 'Quase lá! Faltam ' + Utils.currency(Math.max(0, topObj.p.target - topObj.p.current)) + '.'}` };
+      }
+      return { icon:'💡', tone:'neutral', titulo: 'Defina suas metas financeiras',
+        texto: 'Adicione limites de despesa, metas de receita, reservas e objetivos para que o Coach acompanhe sua evolução automaticamente.' };
+    })();
+
     container.innerHTML = `
-<div class="section-header mb-6">
+<div class="section-header mb-4">
   <div><div class="section-title">Metas & Projetos</div><div class="section-sub">Limites, mínimos, reservas e objetivos — com performance automática</div></div>
   <button class="btn-primary" id="btnAddMeta">+ Nova Meta</button>
+</div>
+
+<div class="coach-inline-card coach-inline--${metasInsight.tone} mb-6">
+  <div class="coach-inline-avatar">
+    <img src="/assets/favicon/apple-touch-icon.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+  </div>
+  <div class="coach-inline-body">
+    <div class="coach-inline-header">
+      <span class="coach-inline-icon">${metasInsight.icon}</span>
+      <span class="coach-inline-titulo">${metasInsight.titulo}</span>
+      <span class="coach-inline-label">Coach Haile</span>
+    </div>
+    <div class="coach-inline-texto">${metasInsight.texto}</div>
+  </div>
+  <button class="coach-inline-cta" id="btnMetasCoachVer">Ver análise →</button>
 </div>
 
 ${indicadores.length === 0 ? '' : `
@@ -2719,6 +2764,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 </div>` : ''}`;
 
     document.getElementById('btnAddMeta')?.addEventListener('click', () => openMetaModal(null, container));
+    document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => document.getElementById('coachToggleBtn')?.click());
 
     container.querySelectorAll('[data-action="edit-meta"]').forEach(btn => {
       btn.addEventListener('click', () => {
