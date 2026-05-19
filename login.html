@@ -1,212 +1,333 @@
-<!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<!doctype html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Haile — Acesso</title>
-  <meta name="theme-color" content="#6366F1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#7367F0" />
   <link rel="icon" href="assets/favicon/favicon.ico" sizes="any" />
   <link rel="icon" type="image/svg+xml" href="assets/svg/haile-mark-indigo.svg" />
   <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      /* Haile brand tokens (sincronizados com css/main.css e logo kit oficial) */
-      --haile-indigo:       #6366F1;
-      --haile-indigo-deep:  #4F46E5;
-      --haile-violet:       var(--haile-indigo);
-      --haile-teal:         #06B6D4;
-      --haile-prosperity:   #10B981;
-      --haile-alert:        #C92764;
-      --haile-ink:          #0F1020;
-      --haile-night:        var(--haile-ink);
-      --haile-cream:        #FAF9F6;
-      --haile-cloud:        #F8FAFC;
-
-      --bg:           #0d0f14;
-      --bg-card:      #13161e;
-      --bg-elevated:  #1a1d27;
-      --border:       #1f2330;
-      --text-1:       #f1f3f9;
-      --text-2:       #a0a8c0;
-      --text-3:       #6b7494;
-      --accent:       var(--haile-violet);
-      --accent-dim:   rgba(115, 103, 240, 0.10);
-      --green:        var(--haile-prosperity);
-      --red:          var(--haile-alert);
+      --violet: #7367F0;
+      --deep:   #5048CC;
+      --soft:   #F0EFFE;
+      --ink:    #0f1020;
+      --slate:  #5b5e73;
+      --cream:  #faf9f6;
+      --line:   #e6e4f4;
+      --white:  #ffffff;
+      --green:  #1DAF6A;
+      --red:    #C92764;
     }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     body {
-      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-      background:
-        radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.18) 0%, transparent 50%),
-        radial-gradient(ellipse at bottom left, rgba(6, 182, 212, 0.10) 0%, transparent 50%),
-        var(--haile-ink);
-      color: var(--text-1);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      position: relative;
+      font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex; min-height: 100vh;
     }
 
-    .login-wrap { width: 100%; max-width: 380px; position: relative; z-index: 1; }
+    /* ── left panel ──────────────────────────────────────────────── */
+    .login-left {
+      flex: 0 0 44%;
+      background: var(--ink);
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(36px, 5vw, 60px) clamp(36px, 5vw, 60px);
+      position: relative;
+      overflow: hidden;
+    }
+    .login-left::before {
+      content: ''; position: absolute; border-radius: 999px; pointer-events: none;
+      filter: blur(120px); top: -60px; right: -60px;
+      width: 420px; height: 340px; background: rgba(115,103,240,0.20); z-index: 0;
+    }
+    .login-left::after {
+      content: ''; position: absolute; border-radius: 999px; pointer-events: none;
+      filter: blur(120px); bottom: -40px; left: -40px;
+      width: 340px; height: 300px; background: rgba(80,72,204,0.14); z-index: 0;
+    }
+    .login-left > * { position: relative; z-index: 1; }
 
-    /* Brand acima do card */
-    .login-brand {
+    .left-logo img { height: 28px; }
+
+    .left-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 48px 0; }
+
+    .left-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.22em;
+      text-transform: uppercase; color: rgba(255,255,255,0.4);
+      margin-bottom: 18px;
+    }
+    .left-headline {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(32px, 3.5vw, 50px);
+      font-weight: 400; line-height: 1.08; letter-spacing: -0.01em;
+    }
+    .left-headline em { font-style: italic; color: var(--violet); }
+    .left-desc {
+      margin-top: 18px; color: rgba(255,255,255,0.55);
+      font-size: 15px; line-height: 1.68; max-width: 340px;
+    }
+
+    /* coach snippet */
+    .coach-snippet {
+      margin-top: 36px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 20px;
+    }
+    .cs-label {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--violet); margin-bottom: 10px;
+    }
+    .cs-msg {
+      font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.78);
+    }
+    .cs-meta {
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cs-tag {
+      background: rgba(115,103,240,0.2);
+      color: rgba(255,255,255,0.72);
+      border-radius: 999px; padding: 4px 10px;
+      font-size: 11px; font-weight: 700;
+    }
+    .cs-prog {
+      font-size: 12px; color: rgba(255,255,255,0.4);
+    }
+
+    /* social proof */
+    .left-proof {
+      display: flex; align-items: center; gap: 10px;
+      color: rgba(255,255,255,0.38); font-size: 12px;
+    }
+    .proof-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0;
+      animation: pulse-g 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse-g {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.75); }
+    }
+
+    /* ── right panel ─────────────────────────────────────────────── */
+    .login-right {
+      flex: 1;
+      background: var(--cream);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 28px;
+      justify-content: center;
+      padding: clamp(36px, 5vw, 60px);
     }
-    .login-brand img {
-      height: 36px;
-      width: auto;
-      display: block;
-    }
-    .login-tagline {
-      font-size: 13px;
-      color: rgba(248, 250, 252, 0.55);
-      letter-spacing: 0.02em;
+    .form-wrap {
+      width: 100%; max-width: 380px;
     }
 
-    .brand {
-      display: none; /* o background já provê branding visual */
+    .form-title {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(26px, 3vw, 36px);
+      font-weight: 400; letter-spacing: -0.01em; line-height: 1.1;
+      margin-bottom: 6px;
     }
-    .brand-icon {
-      width: 44px; height: 44px; border-radius: 12px;
-      background: var(--accent-dim); border: 1px solid #7c6ef840;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--accent);
+    .form-sub {
+      color: var(--slate); font-size: 14px; line-height: 1.55;
+      margin-bottom: 32px;
     }
-    .brand-name { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-    .brand-sub  { font-size: 12px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-top: -2px; }
 
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
-    .card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .card-sub   { font-size: 13px; color: var(--text-3); margin-bottom: 28px; }
+    /* fields */
+    .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+    label {
+      font-size: 12px; font-weight: 700; color: var(--ink);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    input[type="email"], input[type="password"], input[type="text"] {
+      font: inherit; font-size: 15px;
+      border: 1px solid var(--line); border-radius: 12px;
+      padding: 13px 16px; background: var(--white); color: var(--ink);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+    }
+    input:focus {
+      border-color: var(--violet);
+      box-shadow: 0 0 0 3px rgba(115,103,240,0.12);
+    }
+    input::placeholder { color: #b0adc8; }
 
-    .form-group  { margin-bottom: 16px; }
-    .form-label  {
-      display: block; font-size: 12px; font-weight: 600; color: var(--text-2);
-      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
+    .forgot {
+      text-align: right; margin-top: -10px; margin-bottom: 4px;
     }
-    .form-input  {
-      width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text-1); font-size: 14px;
-      font-family: 'Inter', sans-serif; padding: 10px 14px; outline: none;
-      transition: border-color .15s;
+    .forgot a {
+      font-size: 12px; color: var(--slate); text-decoration: none; transition: color 0.2s;
     }
-    .form-input:focus { border-color: var(--accent); }
-    .form-input::placeholder { color: var(--text-3); }
+    .forgot a:hover { color: var(--violet); }
 
-    .btn-login {
-      width: 100%; margin-top: 8px; background: var(--accent); color: #fff;
-      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
-      font-family: 'Inter', sans-serif; padding: 12px; cursor: pointer;
-      transition: opacity .15s, transform .1s; display: flex;
-      align-items: center; justify-content: center; gap: 8px;
+    /* submit */
+    .btn-submit {
+      width: 100%; border: 0; border-radius: 999px; cursor: pointer;
+      background: var(--violet); color: var(--white);
+      font: inherit; font-size: 15px; font-weight: 700;
+      padding: 15px 24px; margin-top: 8px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 14px 44px rgba(115,103,240,0.28);
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
     }
-    .btn-login:hover  { opacity: .9; }
-    .btn-login:active { transform: scale(.98); }
-    .btn-login:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 20px 54px rgba(115,103,240,0.32); }
+    .btn-submit:active { transform: none; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
     .spinner {
-      width: 16px; height: 16px; border: 2px solid #ffffff40;
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
       border-top-color: #fff; border-radius: 50%;
-      animation: spin .7s linear infinite; display: none;
+      animation: spin 0.7s linear infinite; display: none; flex-shrink: 0;
     }
-    .btn-login.loading .spinner { display: block; }
+    .btn-submit.loading .spinner { display: block; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* messages */
     .msg {
-      border-radius: 8px; font-size: 13px; padding: 10px 14px;
-      margin-top: 12px; text-align: center; display: none;
+      border-radius: 10px; font-size: 13px; padding: 11px 14px;
+      margin-top: 12px; text-align: center; display: none; line-height: 1.5;
     }
     .msg.visible { display: block; }
-    .msg.error   { background: #ef444418; border: 1px solid #ef444440; color: var(--red); }
-    .msg.success { background: #22c55e18; border: 1px solid #22c55e40; color: var(--green); }
+    .msg.error   { background: rgba(201,39,100,0.08); border: 1px solid rgba(201,39,100,0.25); color: var(--red); }
+    .msg.success { background: rgba(29,175,106,0.08); border: 1px solid rgba(29,175,106,0.25); color: var(--green); }
 
+    /* divider */
     .divider {
       display: flex; align-items: center; gap: 12px;
-      margin: 20px 0; color: var(--text-3); font-size: 12px;
+      margin: 22px 0; color: var(--slate); font-size: 12px;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
+      content: ''; flex: 1; height: 1px; background: var(--line);
     }
 
-    .btn-secondary {
-      width: 100%; background: transparent; color: var(--text-2);
-      border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
-      font-weight: 500; font-family: 'Inter', sans-serif; padding: 10px;
-      cursor: pointer; transition: border-color .15s, color .15s;
+    /* toggle mode button */
+    .btn-toggle {
+      width: 100%; background: transparent; border: 1px solid var(--line);
+      border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600;
+      color: var(--slate); padding: 13px 24px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
     }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-toggle:hover { border-color: var(--violet); color: var(--violet); }
 
-    .footer-note { text-align: center; font-size: 11px; color: var(--text-3); margin-top: 24px; }
-
+    /* sync badge */
     .sync-badge {
-      display: flex; align-items: center; gap: 6px; justify-content: center;
-      font-size: 11px; color: var(--text-3); margin-top: 16px;
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 28px; font-size: 11px; color: var(--slate); justify-content: center;
     }
-    .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    .form-footer {
+      margin-top: 12px; text-align: center;
+      font-size: 11px; color: var(--slate);
+    }
+    .form-footer a { color: var(--violet); text-decoration: none; }
+
+    /* ── responsive ──────────────────────────────────────────────── */
+    @media (max-width: 760px) {
+      body { flex-direction: column; }
+      .login-left {
+        flex: 0 0 auto;
+        padding: 32px clamp(24px, 5vw, 48px) 28px;
+      }
+      .left-body { padding: 0; }
+      .left-headline { font-size: 28px; }
+      .coach-snippet { display: none; }
+      .left-proof { display: none; }
+      .login-right { flex: 1; padding: 36px clamp(24px, 5vw, 48px); }
+    }
   </style>
 </head>
 <body>
 
-<div class="login-wrap">
+  <!-- LEFT -->
+  <div class="login-left">
+    <div class="left-logo">
+      <img src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+    </div>
 
-  <div class="login-brand">
-    <img src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
-    <div class="login-tagline">Seu coach financeiro pessoal</div>
+    <div class="left-body">
+      <p class="left-eyebrow">Coach financeiro com IA</p>
+      <h1 class="left-headline">
+        Decisões mais<br>
+        <em>inteligentes</em><br>
+        começam aqui.
+      </h1>
+      <p class="left-desc">
+        Seu coach financeiro pessoal com inteligência artificial. Entende sua família, analisa seu contexto e orienta cada decisão.
+      </p>
+
+      <div class="coach-snippet">
+        <p class="cs-label">Orientação do Haile</p>
+        <p class="cs-msg">A viagem continua viável sem reduzir investimentos. O melhor ajuste é antecipar R$ 540/mês de gastos recorrentes pouco usados.</p>
+        <div class="cs-meta">
+          <span class="cs-tag">Plano atualizado</span>
+          <span class="cs-prog">Meta: 68%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="left-proof">
+      <span class="proof-dot"></span>
+      Acesso por convite enquanto finalizamos os últimos ajustes.
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-title" id="cardTitle">Bem-vindo de volta</div>
-    <div class="card-sub"  id="cardSub">Entre com seu e-mail e senha para continuar</div>
+  <!-- RIGHT -->
+  <div class="login-right">
+    <div class="form-wrap">
+      <h2 class="form-title" id="cardTitle">Bem-vindo de volta.</h2>
+      <p class="form-sub" id="cardSub">Entre com seu e-mail e senha para continuar.</p>
 
-    <form id="loginForm" autocomplete="off">
-      <div class="form-group">
-        <label class="form-label" for="fEmail">E-mail</label>
-        <input class="form-input" id="fEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+      <form id="loginForm" autocomplete="off">
+        <div class="field">
+          <label for="fEmail">E-mail</label>
+          <input id="fEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="fPass">Senha</label>
+          <input id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <div class="forgot"><a href="#">Esqueci minha senha</a></div>
+        <div class="field" id="fPassConfirmGroup" style="display:none">
+          <label for="fPassConfirm">Confirmar senha</label>
+          <input id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+        </div>
+
+        <button class="btn-submit" type="submit" id="btnSubmit">
+          <div class="spinner"></div>
+          <span id="btnLabel">Entrar</span>
+        </button>
+
+        <div class="msg error"   id="errorMsg"></div>
+        <div class="msg success" id="successMsg"></div>
+      </form>
+
+      <div class="divider" id="divider">ou</div>
+
+      <button class="btn-toggle" id="btnToggleMode">Primeiro acesso? Criar conta</button>
+
+      <div class="sync-badge">
+        <span class="sync-dot"></span>
+        Sincronizado com segurança via Supabase
       </div>
-      <div class="form-group">
-        <label class="form-label" for="fPass">Senha</label>
-        <input class="form-input" id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
-      </div>
-      <div class="form-group" id="fPassConfirmGroup" style="display:none">
-        <label class="form-label" for="fPassConfirm">Confirmar Senha</label>
-        <input class="form-input" id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
-      </div>
 
-      <button class="btn-login" type="submit" id="btnSubmit">
-        <div class="spinner"></div>
-        <span id="btnLabel">Entrar</span>
-      </button>
-
-      <div class="msg error" id="errorMsg"></div>
-      <div class="msg success" id="successMsg"></div>
-    </form>
-
-    <div class="divider" id="divider">ou</div>
-
-    <button class="btn-secondary" id="btnToggleMode">Primeiro acesso? Criar conta</button>
+      <p class="form-footer">
+        Ao entrar, você concorda com nossa <a href="#">Política de Privacidade</a>.
+      </p>
+    </div>
   </div>
-
-  <div class="sync-badge">
-    <div class="sync-dot"></div>
-    Dados sincronizados na nuvem via Supabase
-  </div>
-
-  <div class="footer-note">Haile © 2026 · Acesso privado</div>
-
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
@@ -214,32 +335,33 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Se já tem sessão ativa no Supabase, redireciona direto
   sb.auth.getSession().then(({ data }) => {
     if (data?.session) {
       sessionStorage.setItem('ff_auth', '1');
-      window.location.replace('index.html');
+      window.location.replace('app/app.html');
     }
   });
 
   let isSignUp = false;
 
-  const btnToggle      = document.getElementById('btnToggleMode');
-  const btnSubmit      = document.getElementById('btnSubmit');
-  const btnLabel       = document.getElementById('btnLabel');
-  const cardTitle      = document.getElementById('cardTitle');
-  const cardSub        = document.getElementById('cardSub');
-  const confirmGroup   = document.getElementById('fPassConfirmGroup');
-  const errorMsg       = document.getElementById('errorMsg');
-  const successMsg     = document.getElementById('successMsg');
+  const btnToggle    = document.getElementById('btnToggleMode');
+  const btnSubmit    = document.getElementById('btnSubmit');
+  const btnLabel     = document.getElementById('btnLabel');
+  const cardTitle    = document.getElementById('cardTitle');
+  const cardSub      = document.getElementById('cardSub');
+  const confirmGroup = document.getElementById('fPassConfirmGroup');
+  const errorMsg     = document.getElementById('errorMsg');
+  const successMsg   = document.getElementById('successMsg');
+  const forgot       = document.querySelector('.forgot');
 
   btnToggle.addEventListener('click', () => {
     isSignUp = !isSignUp;
-    cardTitle.textContent    = isSignUp ? 'Criar conta' : 'Bem-vindo de volta';
-    cardSub.textContent      = isSignUp ? 'Preencha os dados para criar seu acesso' : 'Entre com seu e-mail e senha para continuar';
-    btnLabel.textContent     = isSignUp ? 'Criar conta' : 'Entrar';
-    btnToggle.textContent    = isSignUp ? 'Já tenho conta — Entrar' : 'Primeiro acesso? Criar conta';
+    cardTitle.textContent      = isSignUp ? 'Criar conta.' : 'Bem-vindo de volta.';
+    cardSub.textContent        = isSignUp ? 'Preencha os dados para criar seu acesso.' : 'Entre com seu e-mail e senha para continuar.';
+    btnLabel.textContent       = isSignUp ? 'Criar conta' : 'Entrar';
+    btnToggle.textContent      = isSignUp ? 'Já tenho conta — Entrar' : 'Primeiro acesso? Criar conta';
     confirmGroup.style.display = isSignUp ? 'block' : 'none';
+    forgot.style.display       = isSignUp ? 'none' : 'block';
     clearMsgs();
   });
 
@@ -247,19 +369,16 @@
     btnSubmit.disabled = on;
     btnSubmit.classList.toggle('loading', on);
   }
-
   function showError(msg) {
     errorMsg.textContent = msg;
     errorMsg.classList.add('visible');
     successMsg.classList.remove('visible');
   }
-
   function showSuccess(msg) {
     successMsg.textContent = msg;
     successMsg.classList.add('visible');
     errorMsg.classList.remove('visible');
   }
-
   function clearMsgs() {
     errorMsg.classList.remove('visible');
     successMsg.classList.remove('visible');
@@ -282,26 +401,19 @@
       const confirm = document.getElementById('fPassConfirm').value;
       if (pass !== confirm) { setLoading(false); return showError('As senhas não coincidem.'); }
       if (pass.length < 6)  { setLoading(false); return showError('Senha deve ter ao menos 6 caracteres.'); }
-
       const { error } = await sb.auth.signUp({ email, password: pass });
       setLoading(false);
       if (error) return showError(error.message);
       showSuccess('Conta criada! Verifique seu e-mail para confirmar o acesso.');
-
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
       setLoading(false);
       if (error) return showError('E-mail ou senha incorretos.');
-
-      // Sessão válida — marca auth e redireciona
       sessionStorage.setItem('ff_auth', '1');
       sessionStorage.setItem('ff_user_email', email);
-
-      // Se há dados locais e é o primeiro login na nuvem, fará push automático via store
-      window.location.replace('index.html');
+      window.location.replace('app/app.html');
     }
   });
 </script>
-
 </body>
 </html>

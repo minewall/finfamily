@@ -170,7 +170,7 @@ const SupabaseSync = (function () {
         pessoaName,
         inviterName,
         familyName: group?.name || null,
-        redirectTo: 'https://minewall.github.io/finfamily/login.html',
+        redirectTo: 'https://haile.com.br/login.html',
       };
       const res = await fetch(`${SUPABASE_URL}/functions/v1/family-invite`, {
         method: 'POST',

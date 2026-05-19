@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- SEO -->
+    <meta name="description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://haile.com.br/precos" />
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:site_name"   content="Haile" />
+    <meta property="og:title"       content="Planos e Preços — Haile" />
+    <meta property="og:description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
+    <meta property="og:url"         content="https://haile.com.br/precos" />
+    <meta property="og:image"       content="https://haile.com.br/og-image.jpg" />
+    <meta property="og:locale"      content="pt_BR" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="Planos e Preços — Haile" />
+    <meta name="twitter:description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
+    <meta name="twitter:image"       content="https://haile.com.br/og-image.jpg" />
+  <title>Haile — Planos e Preços</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --violet: #7367F0;
+      --deep:   #5048CC;
+      --soft:   #F0EFFE;
+      --ink:    #0f1020;
+      --slate:  #5b5e73;
+      --cream:  #faf9f6;
+      --line:   #e6e4f4;
+      --white:  #ffffff;
+      --shadow-v: rgba(115,103,240,0.22);
+      --shadow-i: rgba(15,16,32,0.14);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1,h2,h3,h4,p,ul { margin: 0; }
+    ul { list-style: none; padding: 0; }
+    a { text-decoration: none; font: inherit; }
+    button { font: inherit; cursor: pointer; border: 0; }
+
+    /* ── nav ─────────────────────────────────────────────────────── */
+    .site-nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      padding: 20px clamp(24px, 6vw, 96px);
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    .site-nav.scrolled {
+      background: rgba(15,16,32,0.92);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .logo { height: 26px; }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a { color: rgba(255,255,255,0.62); font-size: 14px; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-back { color: rgba(255,255,255,0.55); font-size: 14px; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .btn-dark-nav {
+      border: 0; border-radius: 999px; cursor: pointer;
+      padding: 12px 20px; font-weight: 700; font-size: 14px;
+      background: var(--white); color: var(--ink);
+      text-decoration: none; display: inline-flex;
+      transition: transform 0.2s;
+      white-space: nowrap;
+    }
+    .btn-dark-nav:hover { transform: translateY(-2px); }
+    .nav-back:hover { color: var(--white); }
+
+    /* ── buttons ─────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 999px; padding: 14px 24px; font-weight: 700; font-size: 15px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: var(--violet); color: var(--white); box-shadow: 0 16px 50px var(--shadow-v); }
+    .btn-primary:hover { box-shadow: 0 24px 60px var(--shadow-v); }
+    .btn-dark { background: var(--ink); color: var(--white); box-shadow: 0 14px 40px var(--shadow-i); }
+    .btn-ghost { border: 1px solid var(--line); background: rgba(255,255,255,0.72); color: var(--ink); }
+    .btn-outline-white { border: 1px solid rgba(255,255,255,0.22); background: transparent; color: var(--white); }
+    .btn-full { width: 100%; }
+
+    /* ── hero ────────────────────────────────────────────────────── */
+    .pricing-hero {
+      background: var(--ink); color: var(--white);
+      padding: calc(100px + 4vh) clamp(24px, 6vw, 96px) 80px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute; border-radius: 999px; pointer-events: none; filter: blur(120px);
+    }
+    .hero-glow.a { top: -80px; left: 30%; width: 560px; height: 360px; background: rgba(115,103,240,0.18); }
+    .hero-glow.b { bottom: -40px; right: 15%; width: 400px; height: 360px; background: rgba(80,72,204,0.14); }
+
+    .pricing-hero .eyebrow {
+      display: inline-block;
+      color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 22px;
+    }
+    .pricing-hero h1 {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(42px, 5.5vw, 78px);
+      font-weight: 400; line-height: 1.04; letter-spacing: -0.01em;
+      max-width: 760px; margin: 0 auto;
+    }
+    .pricing-hero h1 em { font-style: italic; color: var(--violet); }
+    .pricing-hero p {
+      margin-top: 22px; color: rgba(255,255,255,0.6);
+      font-size: clamp(16px, 1.6vw, 19px); line-height: 1.68;
+      max-width: 540px; margin-left: auto; margin-right: auto;
+    }
+
+    /* ── billing toggle ──────────────────────────────────────────── */
+    .toggle-wrap {
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      margin-top: 40px; flex-wrap: wrap;
+    }
+    .toggle-label { color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 500; }
+    .toggle-label.active { color: var(--white); font-weight: 700; }
+    .toggle-switch {
+      position: relative; width: 52px; height: 28px; cursor: pointer;
+      background: rgba(255,255,255,0.12); border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      transition: background 0.3s;
+    }
+    .toggle-switch.annual { background: var(--violet); }
+    .toggle-knob {
+      position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+      border-radius: 50%; background: var(--white);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .toggle-switch.annual .toggle-knob { transform: translateX(24px); }
+    .annual-badge {
+      background: rgba(115,103,240,0.28); border: 1px solid rgba(115,103,240,0.4);
+      color: var(--violet); border-radius: 999px; padding: 4px 10px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+    }
+
+    /* ── pricing grid ────────────────────────────────────────────── */
+    .pricing-section {
+      padding: 0 clamp(24px, 6vw, 96px) 100px;
+      margin-top: -28px; /* slightly overlap hero */
+    }
+    .pricing-grid {
+      max-width: 1280px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.08fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .plan-card {
+      border-radius: 20px;
+      padding: 30px 28px;
+      position: relative;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .plan-card:hover { transform: translateY(-4px); }
+
+    /* trial */
+    .plan-card.trial {
+      background: var(--white);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 40px var(--shadow-i);
+    }
+
+    /* individual */
+    .plan-card.individual {
+      background: var(--white);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 40px var(--shadow-i);
+    }
+
+    /* featured */
+    .plan-card.featured {
+      background: var(--ink);
+      color: var(--white);
+      box-shadow: 0 32px 90px rgba(15,16,32,0.32), 0 0 0 1px rgba(115,103,240,0.3);
+      transform: translateY(-16px);
+    }
+    .plan-card.featured:hover { transform: translateY(-20px); }
+
+    /* family office */
+    .plan-card.office {
+      background: var(--white);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 40px var(--shadow-i);
+    }
+
+    /* popular badge */
+    .popular-badge {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      background: var(--violet); color: var(--white);
+      border-radius: 999px; padding: 5px 16px;
+      font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .plan-label {
+      font-size: 12px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+    }
+    .plan-card.trial .plan-label,
+    .plan-card.individual .plan-label,
+    .plan-card.office .plan-label { color: var(--slate); }
+    .plan-card.featured .plan-label { color: rgba(255,255,255,0.5); }
+
+    .plan-name {
+      margin-top: 12px; font-size: 22px; font-weight: 800; line-height: 1.1;
+    }
+    .plan-card.featured .plan-name { color: var(--white); }
+
+    .plan-tagline {
+      margin-top: 6px; font-size: 14px; line-height: 1.55;
+    }
+    .plan-card.trial .plan-tagline,
+    .plan-card.individual .plan-tagline,
+    .plan-card.office .plan-tagline { color: var(--slate); }
+    .plan-card.featured .plan-tagline { color: rgba(255,255,255,0.6); }
+
+    .plan-price-row {
+      display: flex; align-items: baseline; gap: 4px;
+      margin-top: 24px; padding-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .plan-card.featured .plan-price-row { border-color: rgba(255,255,255,0.1); }
+    .plan-card.office .plan-price-row { border-color: var(--line); }
+
+    .price-currency { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .price-amount {
+      font-size: clamp(36px, 4vw, 52px); font-weight: 800; line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .price-period { font-size: 14px; color: var(--slate); }
+    .plan-card.featured .price-period { color: rgba(255,255,255,0.5); }
+    .price-free { font-size: clamp(32px, 3.5vw, 46px); font-weight: 800; letter-spacing: -0.02em; }
+    .price-custom { font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -0.02em; }
+
+    .price-annual-note {
+      margin-top: 6px; font-size: 12px; color: var(--slate);
+    }
+    .plan-card.featured .price-annual-note { color: rgba(255,255,255,0.4); }
+
+    /* features list */
+    .plan-features {
+      margin-top: 24px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .plan-feature {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 14px; line-height: 1.5;
+    }
+    .plan-card.trial .plan-feature,
+    .plan-card.individual .plan-feature,
+    .plan-card.office .plan-feature { color: var(--ink); }
+    .plan-card.featured .plan-feature { color: rgba(255,255,255,0.82); }
+
+    .check {
+      flex-shrink: 0; margin-top: 2px;
+      width: 16px; height: 16px;
+    }
+    .check-violet { color: var(--violet); }
+    .check-white  { color: rgba(255,255,255,0.7); }
+
+    .plan-cta { margin-top: 28px; }
+
+    /* ── comparison table ────────────────────────────────────────── */
+    .compare-section {
+      padding: 0 clamp(24px, 6vw, 96px) 100px;
+    }
+    .compare-wrap { max-width: 1280px; margin: 0 auto; }
+    .compare-header {
+      text-align: center; margin-bottom: 56px;
+    }
+    .compare-header .eyebrow {
+      color: var(--deep); font-size: 12px; font-weight: 800;
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .compare-header h2 {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(36px, 4vw, 56px); font-weight: 400;
+      letter-spacing: -0.01em; margin-top: 14px;
+    }
+
+    .compare-table { width: 100%; border-collapse: collapse; }
+    .compare-table th, .compare-table td {
+      padding: 16px 20px; text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .compare-table th {
+      font-weight: 800; font-size: 13px; color: var(--slate);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .compare-table th.featured-col { color: var(--violet); }
+    .compare-table td.center { text-align: center; }
+    .compare-table tr:last-child td { border-bottom: 0; }
+    .compare-table .cat-row td {
+      background: var(--soft); color: var(--deep);
+      font-weight: 800; font-size: 13px; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 12px 20px;
+    }
+    .compare-table td.featured-col {
+      background: rgba(115,103,240,0.04);
+      font-weight: 600; color: var(--deep);
+    }
+    .tick { color: var(--violet); font-size: 16px; font-weight: 900; }
+    .dash { color: var(--line); font-size: 18px; }
+
+    /* ── faq ─────────────────────────────────────────────────────── */
+    .faq-section {
+      background: var(--white);
+      padding: 96px clamp(24px, 6vw, 96px);
+    }
+    .faq-wrap { max-width: 760px; margin: 0 auto; }
+    .faq-header { text-align: center; margin-bottom: 56px; }
+    .faq-header .eyebrow {
+      color: var(--deep); font-size: 12px; font-weight: 800;
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .faq-header h2 {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(32px, 3.5vw, 48px); font-weight: 400;
+      letter-spacing: -0.01em; margin-top: 14px;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--line);
+    }
+    .faq-q {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 22px 0; background: none; text-align: left;
+      font-size: 16px; font-weight: 700; color: var(--ink);
+      transition: color 0.2s;
+    }
+    .faq-q:hover { color: var(--violet); }
+    .faq-icon {
+      flex-shrink: 0; width: 22px; height: 22px;
+      border: 1px solid var(--line); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--slate);
+      transition: background 0.2s, border-color 0.2s, transform 0.3s;
+    }
+    .faq-item.open .faq-icon {
+      background: var(--violet); border-color: var(--violet); color: var(--white);
+      transform: rotate(45deg);
+    }
+    .faq-a {
+      overflow: hidden; max-height: 0;
+      transition: max-height 0.4s ease, padding 0.3s;
+      color: var(--slate); font-size: 15px; line-height: 1.68;
+    }
+    .faq-item.open .faq-a { max-height: 300px; padding-bottom: 22px; }
+
+    /* ── cta bottom ──────────────────────────────────────────────── */
+    .cta-bottom {
+      background: var(--ink); color: var(--white);
+      padding: 96px clamp(24px, 6vw, 96px);
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-bottom .hero-glow.a { opacity: 0.8; }
+    .cta-bottom > * { position: relative; z-index: 1; }
+    .cta-bottom .eyebrow { color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; }
+    .cta-bottom h2 {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(36px, 4.5vw, 64px); font-weight: 400;
+      letter-spacing: -0.01em; margin-top: 18px; max-width: 640px; margin-left: auto; margin-right: auto;
+    }
+    .cta-bottom h2 em { font-style: italic; color: var(--violet); }
+    .cta-bottom p { margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 18px; line-height: 1.65; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .cta-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 38px; }
+
+    /* ── footer ──────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 36px clamp(24px, 6vw, 96px);
+      display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer-links a { color: var(--slate); font-size: 13px; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--ink); }
+    .footer-copy { color: var(--slate); font-size: 13px; }
+
+    /* ── reveal ──────────────────────────────────────────────────── */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal[data-delay="1"] { transition-delay: 0.08s; }
+    .reveal[data-delay="2"] { transition-delay: 0.16s; }
+    .reveal[data-delay="3"] { transition-delay: 0.24s; }
+    .reveal[data-delay="4"] { transition-delay: 0.32s; }
+
+    /* ── responsive ──────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .pricing-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+      .plan-card.featured { transform: none; }
+      .plan-card.featured:hover { transform: translateY(-4px); }
+      .compare-table { display: none; }
+    }
+    @media (max-width: 640px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .cta-actions .btn { width: 100%; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- nav -->
+  <header class="site-nav" id="site-nav">
+    <img class="logo" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+    <nav style="display:flex;gap:32px">
+      <a href="index.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Produto</a>
+      <a href="como-funciona.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Como funciona</a>
+      <a href="precos.html" style="color:#fff;font-size:14px;text-decoration:none">Planos</a>
+      <a href="contato.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Contato</a>
+    </nav>
+    <a href="contato.html" class="btn-dark-nav">Solicitar acesso</a>
+  </header>
+
+  <!-- hero -->
+  <section class="pricing-hero">
+    <div class="hero-glow a"></div>
+    <div class="hero-glow b"></div>
+    <p class="eyebrow">Planos e Preços</p>
+    <h1>Invista na <em>inteligência</em><br>financeira da sua família.</h1>
+    <p>Estamos finalizando os planos para diferentes momentos da sua família. Avisamos assim que estiver pronto.</p>
+
+    <!-- billing toggle (oculto enquanto pricing não é definido) -->
+    <div class="toggle-wrap" style="display:none">
+      <span class="toggle-label active" id="lbl-monthly">Mensal</span>
+      <div class="toggle-switch" id="billing-toggle" role="switch" aria-checked="false" tabindex="0">
+        <span class="toggle-knob"></span>
+      </div>
+      <span class="toggle-label" id="lbl-annual">Anual</span>
+      <span class="annual-badge" id="annual-badge" style="opacity:0.4">Economize 20%</span>
+    </div>
+  </section>
+
+  <!-- pricing cards -->
+  <section class="pricing-section">
+    <div class="pricing-grid">
+
+      <!-- trial -->
+      <div class="plan-card trial reveal" data-delay="1">
+        <p class="plan-label">Trial</p>
+        <p class="plan-name">Experimente</p>
+        <p class="plan-tagline">14 dias do Premium Family, grátis. Sem cartão.</p>
+        <div class="plan-price-row">
+          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
+        </div>
+        <p class="price-annual-note">Detalhes do trial em definição</p>
+        <ul class="plan-features">
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Coach IA sem restrições
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Até 5 membros da família
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Contas bancárias conectadas
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Metas e conquistas
+          </li>
+        </ul>
+      </div>
+
+      <!-- individual -->
+      <div class="plan-card individual reveal" data-delay="2">
+        <p class="plan-label">Individual</p>
+        <p class="plan-name">Para você</p>
+        <p class="plan-tagline">Organize sua vida financeira com inteligência.</p>
+        <div class="plan-price-row">
+          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
+        </div>
+        <p class="price-annual-note" id="note-individual">Valores em definição</p>
+        <ul class="plan-features">
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            1 usuário
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Contas ilimitadas conectadas
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Coach IA ilimitado
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Metas e conquistas ilimitadas
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Categorização automática por IA
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Relatório mensal personalizado
+          </li>
+        </ul>
+      </div>
+
+      <!-- premium family — featured -->
+      <div class="plan-card featured reveal" data-delay="3">
+        <span class="popular-badge">Mais popular</span>
+        <p class="plan-label">Premium Family</p>
+        <p class="plan-name">Para a família</p>
+        <p class="plan-tagline">O coach financeiro que toda família merece.</p>
+        <div class="plan-price-row">
+          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--white); letter-spacing:0">Em breve</span>
+        </div>
+        <p class="price-annual-note" id="note-family" style="color:rgba(255,255,255,0.6)">Valores em definição</p>
+        <ul class="plan-features">
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Tudo do Individual
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Até 5 membros da família
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Coach IA contextual familiar
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Conquistas e metas compartilhadas
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Patrimônio familiar consolidado
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Colaboração e responsabilidades
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Projeções patrimoniais
+          </li>
+        </ul>
+      </div>
+
+      <!-- family office -->
+      <div class="plan-card office reveal" data-delay="4">
+        <p class="plan-label">Family Office</p>
+        <p class="plan-name">Patrimônio &amp; IA avançada</p>
+        <p class="plan-tagline">Para famílias que gerenciam patrimônio complexo.</p>
+        <div class="plan-price-row">
+          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Plano personalizado</span>
+        </div>
+        <p class="price-annual-note">Tamanho e estrutura sob medida</p>
+        <ul class="plan-features">
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Tudo do Premium Family
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Membros ilimitados
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Análise patrimonial avançada com IA
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Múltiplos patrimônios e investimentos
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Relatórios executivos personalizados
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Consultoria com especialista Haile
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Suporte prioritário
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- comparison table -->
+  <section class="compare-section">
+    <div class="compare-wrap">
+      <div class="compare-header reveal">
+        <p class="eyebrow">Comparativo</p>
+        <h2>O que está em cada plano</h2>
+      </div>
+      <table class="compare-table reveal">
+        <thead>
+          <tr>
+            <th style="width:36%">Recurso</th>
+            <th class="center">Trial</th>
+            <th class="center">Individual</th>
+            <th class="center featured-col">Premium Family</th>
+            <th class="center">Family Office</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="cat-row"><td colspan="5">Coach IA</td></tr>
+          <tr>
+            <td>Orientações do coach</td>
+            <td class="center">5/mês</td>
+            <td class="center">Ilimitado</td>
+            <td class="center featured-col">Ilimitado</td>
+            <td class="center">Ilimitado</td>
+          </tr>
+          <tr>
+            <td>Contexto familiar</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Análise antes de gastar</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Análise patrimonial avançada</td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="dash">—</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+
+          <tr class="cat-row"><td colspan="5">Família</td></tr>
+          <tr>
+            <td>Membros da família</td>
+            <td class="center">5</td>
+            <td class="center">1</td>
+            <td class="center featured-col">Até 5</td>
+            <td class="center">Ilimitado</td>
+          </tr>
+          <tr>
+            <td>Conquistas compartilhadas</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Colaboração e responsabilidades</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+
+          <tr class="cat-row"><td colspan="5">Patrimônio</td></tr>
+          <tr>
+            <td>Contas bancárias conectadas</td>
+            <td class="center">3</td>
+            <td class="center">Ilimitado</td>
+            <td class="center featured-col">Ilimitado</td>
+            <td class="center">Ilimitado</td>
+          </tr>
+          <tr>
+            <td>Projeções patrimoniais</td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Múltiplos patrimônios</td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="dash">—</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+
+          <tr class="cat-row"><td colspan="5">Suporte</td></tr>
+          <tr>
+            <td>Relatório mensal</td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+            <td class="center">Executivo</td>
+          </tr>
+          <tr>
+            <td>Consultoria com especialista</td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="dash">—</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Suporte prioritário</td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center"><span class="dash">—</span></td>
+            <td class="center featured-col"><span class="dash">—</span></td>
+            <td class="center"><span class="tick">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- faq -->
+  <section class="faq-section">
+    <div class="faq-wrap">
+      <div class="faq-header reveal">
+        <p class="eyebrow">Dúvidas frequentes</p>
+        <h2>Perguntas e respostas</h2>
+      </div>
+      <div class="faq-list reveal">
+        <div class="faq-item">
+          <button class="faq-q">O Trial é realmente grátis? <span class="faq-icon">+</span></button>
+          <div class="faq-a">Sim. 14 dias de acesso completo ao Premium Family, sem precisar de cartão de crédito. No final do período, você escolhe o plano que faz sentido para sua família.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Posso cancelar a qualquer momento? <span class="faq-icon">+</span></button>
+          <div class="faq-a">Sim, sem multa ou burocracia. Se cancelar, você mantém o acesso até o fim do período já pago.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">O que diferencia o coach IA do Individual para o Premium Family? <span class="faq-icon">+</span></button>
+          <div class="faq-a">No Individual, o coach entende seu contexto pessoal — renda, gastos, metas. No Premium Family, ele enxerga toda a família: prioridades compartilhadas, patrimônio consolidado e decisões que impactam cada membro.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Como funciona o desconto anual? <span class="faq-icon">+</span></button>
+          <div class="faq-a">Você paga 12 meses pelo preço de 9,6 — equivalente a 20% de desconto. O valor é cobrado à vista uma vez por ano.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">O Family Office tem self-serve ou preciso falar com alguém? <span class="faq-icon">+</span></button>
+          <div class="faq-a">O Family Office é um plano personalizado. Nossa equipe fará uma conversa inicial para entender o patrimônio e as necessidades da família antes de configurar o acesso.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Quantos membros posso adicionar no Premium Family? <span class="faq-icon">+</span></button>
+          <div class="faq-a">Até 5 membros — ideal para casais com filhos, ou famílias próximas que queiram colaborar financeiramente. Para famílias maiores ou com estrutura patrimonial mais complexa, o Family Office é o caminho certo.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- cta bottom -->
+  <section class="cta-bottom">
+    <div class="hero-glow a"></div>
+    <div class="hero-glow b"></div>
+    <p class="eyebrow">Haile</p>
+    <h2>Quer ser avisado quando <em>lançarmos</em>?</h2>
+    <p>Estamos definindo os últimos detalhes dos planos. Deixe seu contato e avisamos assim que o Haile estiver disponível.</p>
+    <div class="cta-actions">
+      <a href="contato.html" class="btn btn-primary">Quero ser avisado</a>
+      <a href="contato.html" class="btn btn-outline-white">Falar com o time</a>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <footer>
+    <img class="logo" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" style="filter:none" />
+    <nav class="footer-links">
+      <a href="index.html">Produto</a>
+      <a href="#">Privacidade</a>
+      <a href="#">Termos</a>
+      <a href="contato.html">Contato</a>
+    </nav>
+    <p class="footer-copy">© 2026 Haile. Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    // nav scroll
+    const nav = document.getElementById('site-nav');
+    window.addEventListener('scroll', function () {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+    }, { passive: true });
+    nav.classList.add('scrolled'); // start scrolled (always visible on dark page)
+
+    // billing toggle
+    var isAnnual = false;
+    var toggle   = document.getElementById('billing-toggle');
+    var badge    = document.getElementById('annual-badge');
+    var lblM     = document.getElementById('lbl-monthly');
+    var lblA     = document.getElementById('lbl-annual');
+
+    function updatePrices() {
+      document.querySelectorAll('.price-amount').forEach(function (el) {
+        el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
+      });
+      document.getElementById('note-individual').textContent = isAnnual ? 'Faturado R$276/ano' : ' ';
+      document.getElementById('note-family').textContent     = isAnnual ? 'Faturado R$468/ano' : ' ';
+      badge.style.opacity  = isAnnual ? '1' : '0.4';
+      lblM.classList.toggle('active', !isAnnual);
+      lblA.classList.toggle('active',  isAnnual);
+    }
+
+    toggle.addEventListener('click', function () {
+      isAnnual = !isAnnual;
+      toggle.classList.toggle('annual', isAnnual);
+      toggle.setAttribute('aria-checked', String(isAnnual));
+      updatePrices();
+    });
+    toggle.addEventListener('keydown', function (e) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle.click(); }
+    });
+
+    // faq accordion
+    document.querySelectorAll('.faq-q').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var item = btn.parentElement;
+        var wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item').forEach(function (i) { i.classList.remove('open'); });
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
+
+    // scroll reveal
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(function (el) { observer.observe(el); });
+  </script>
+
+</body>
+</html>

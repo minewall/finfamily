@@ -9266,7 +9266,7 @@ ${isConnected && isAdmin ? `
       if (typeof SupabaseSync !== 'undefined') await SupabaseSync.signOut();
       sessionStorage.removeItem('ff_auth');
       sessionStorage.removeItem('ff_user_email');
-      window.location.replace('login.html');
+      window.location.replace('../login.html');
     });
 
     // Sidebar toggle (mobile) + overlay + auto-close
