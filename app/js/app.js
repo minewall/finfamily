@@ -790,7 +790,7 @@ const App = (function () {
 
 <div class="coach-inline-card coach-inline--${coachInsight.tone} mb-6" id="coachInlineCard">
   <div class="coach-inline-avatar">
-    <img src="/assets/favicon/apple-touch-icon.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
   </div>
   <div class="coach-inline-body">
     <div class="coach-inline-header">
@@ -2606,7 +2606,7 @@ ${anomaliasHTML(anomalias, total)}
 
 <div class="coach-inline-card coach-inline--${metasInsight.tone} mb-6">
   <div class="coach-inline-avatar">
-    <img src="/assets/favicon/apple-touch-icon.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
   </div>
   <div class="coach-inline-body">
     <div class="coach-inline-header">
