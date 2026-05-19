@@ -3060,10 +3060,25 @@ ${contratos.length === 0 ? `
               </td>
             </tr>`;
           })() : '';
+          const TIPO_CONTRATO_CFG = {
+            assinatura: { label: 'Assinatura', icon: '📱', color: 'var(--accent)',  bg: 'var(--accent-dim)' },
+            servico:    { label: 'Serviço',    icon: '🔧', color: 'var(--amber)',   bg: 'var(--amber-dim)' },
+            aluguel:    { label: 'Aluguel',    icon: '🏠', color: 'var(--teal)',    bg: 'var(--teal-dim,#14B8A618)' },
+            seguro:     { label: 'Seguro',     icon: '🛡️', color: 'var(--purple,#8B5CF6)', bg: 'rgba(139,92,246,.12)' },
+            outro:      { label: 'Outro',      icon: '📄', color: 'var(--text-3)', bg: 'var(--surface-2)' },
+          };
+          const tc = TIPO_CONTRATO_CFG[c.tipoContrato || 'outro'];
+          const dotColor = cat.color || (isRec ? 'var(--green)' : 'var(--accent)');
           return `<tr style="cursor:pointer" data-action="toggle-detail" data-id="${c.id}">
-            <td><span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span></td>
             <td>
-              <div style="font-weight:600;color:var(--text-1)">${c.label}</div>
+              <span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span>
+              <div style="margin-top:4px"><span style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span></div>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block"></span>
+                <span style="font-weight:600;color:var(--text-1)">${c.label}</span>
+              </div>
               <div style="font-size:11px;color:var(--text-4);display:inline-flex;align-items:center;gap:4px">${icon(cat.icon||'tag', { size: 12, color: cat.color })} ${cat.label}${c.sub?' / '+c.sub:''} · ${iniStr}→${fimStr}</div>
             </td>
             <td style="color:var(--text-2)">${c.responsavel||'—'}</td>
@@ -3146,10 +3161,19 @@ ${contratos.length === 0 ? `
     const today = new Date().toISOString().slice(0,10);
     const html = `<div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Contrato Bridge" value="${c.label||''}"/></div>
-      <div class="form-group"><label class="form-label">Tipo</label>
+      <div class="form-group"><label class="form-label">Natureza</label>
         <select class="form-select" id="fCKind">
           <option value="despesa" ${c.kind==='despesa'||!isEdit?'selected':''}>💸 Despesa</option>
           <option value="receita" ${c.kind==='receita'?'selected':''}>💰 Receita</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo de Contrato</label>
+        <select class="form-select" id="fCTipo">
+          <option value="assinatura" ${c.tipoContrato==='assinatura'?'selected':''}>📱 Assinatura</option>
+          <option value="servico" ${c.tipoContrato==='servico'?'selected':''}>🔧 Serviço</option>
+          <option value="aluguel" ${c.tipoContrato==='aluguel'?'selected':''}>🏠 Aluguel</option>
+          <option value="seguro" ${c.tipoContrato==='seguro'?'selected':''}>🛡️ Seguro</option>
+          <option value="outro" ${(!c.tipoContrato||c.tipoContrato==='outro')?'selected':''}>📄 Outro</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Responsável</label>
@@ -3193,6 +3217,7 @@ ${contratos.length === 0 ? `
         diaVencimento: parseInt(document.getElementById('fCDia').value, 10) || null,
         pay: document.getElementById('fCPay').value,
         notes: document.getElementById('fCNotes').value,
+        tipoContrato: document.getElementById('fCTipo').value,
         active: true,
       };
       if (!data.label || !data.valorParcela || !data.parcelas || !data.dataInicio) {
