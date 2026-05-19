@@ -1098,6 +1098,14 @@ ${periodToggleHTML('ff_lanc_period', period)}
       );
     }
 
+    function pessoaAvatarHtml(person) {
+      if (!person) return '<span style="color:var(--text-4)">—</span>';
+      const colors = { Roberto: 'var(--haile-indigo)', Mariana: 'var(--green)', Manuela: 'var(--amber)', Família: 'var(--haile-teal)' };
+      const bg = colors[person] || Utils.personColor(person);
+      const ini = person[0].toUpperCase();
+      return `<span class="lancamentos-pessoa-avatar" style="background:${bg}" title="${person}">${ini}</span>`;
+    }
+
     function buildLancTable(rows, filter = {}) {
       let filtered = sortRows(rows);
       if (filter.search) filtered = filtered.filter(d => d.desc.toLowerCase().includes(filter.search.toLowerCase()));
@@ -1106,23 +1114,36 @@ ${periodToggleHTML('ff_lanc_period', period)}
       if (filter.pay)    filtered = filtered.filter(d => d.pay === filter.pay);
       if (filter.pessoa) filtered = filtered.filter(d => d.split && d.split.some(s => s.person === filter.pessoa));
       const total = filtered.reduce((a, d) => a + d.amount, 0);
-      if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
+      if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamentos encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Sub-categoria</th><th>Pagamento</th><th class="num">Valor</th><th style="position:sticky;right:0;background:var(--bg-card)"></th>
+  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Pessoa</th><th>Pagamento</th><th class="num">Valor</th><th>Status</th><th style="position:sticky;right:0;background:var(--bg-card)"></th>
 </tr></thead>
 <tbody>
 ${filtered.map(d => {
   const c = d.contratoId ? Store.getContratoById(d.contratoId) : null;
   const paidState = d.paid === true ? 'on' : d.paid === false ? 'off' : (new Date(d.date+'T23:59:59') <= new Date() ? 'auto' : '');
-  const isFuture = (d.year||0)*12+(d.month||0) > year*12+month;
-  return `<tr class="row-clickable${isFuture ? '" style="opacity:0.55"' : '"'} data-row-desp="${d.id}">
-  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
-  <td>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length ? ` <span class="badge badge-accent" style="font-size:10px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">👥 ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</td>
-  <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label || d.category}</span></td>
-  <td class="muted">${d.sub || '—'}</td>
+  const isFuture = new Date(d.date+'T23:59:59') > new Date();
+  const isScheduled = isFuture || d.paid === false;
+  const statusBadge = isScheduled
+    ? '<span class="lancamentos-status-badge agendado">Agendado</span>'
+    : '<span class="lancamentos-status-badge pago">Pago</span>';
+  const catInfo = Store.CATEGORIES[d.category];
+  const catBg = catInfo?.color ? catInfo.color + '20' : 'var(--accent-dim)';
+  const catColor = catInfo?.color || 'var(--accent)';
+  const catLabel = catInfo?.label || d.category;
+  const mainPerson = d.split && d.split.length ? d.split[0].person : (d.person || null);
+  return `<tr class="row-clickable${(d.year||0)*12+(d.month||0) > year*12+month ? '" style="opacity:0.55"' : '"'} data-row-desp="${d.id}">
+  <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
+  <td>
+    <div>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length > 1 ? ` <span class="badge badge-accent" style="font-size:10px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">👥 ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</div>
+    ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
+  </td>
+  <td><span class="lancamentos-cat-pill" style="background:${catBg};color:${catColor}">${catLabel}</span></td>
+  <td>${pessoaAvatarHtml(mainPerson)}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
+  <td>${statusBadge}</td>
   <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card)">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
     <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
@@ -1130,7 +1151,7 @@ ${filtered.map(d => {
 </tr>`;}).join('')}
 </tbody>
 <tfoot><tr>
-  <td colspan="5" class="fw-700">Total (${filtered.length} lançamentos)</td>
+  <td colspan="6" class="fw-700">Total (${filtered.length} lançamentos)</td>
   <td class="num negative fw-700">${Utils.currency(total)}</td>
   <td style="position:sticky;right:0;background:var(--bg-card)"></td>
 </tr></tfoot>
@@ -6543,10 +6564,18 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   // PAGE: RECADOS
   // ══════════════════════════════════════════════════════════════
   function renderRecados(container) {
-    const eu = currentPessoa();
-    const outros = Store.PESSOAS.filter(p => p !== eu);
-    let activeTab = 'inbox';
+    // ── Seed de dados do Coach se não existir ─────────────────────
+    const data = Store.get();
+    if (!data.recados || data.recados.length === 0) {
+      data.recados = [
+        { id: 'rc1', tipo: 'insight', titulo: 'Excelente progresso em Maio!', texto: 'Seu Poder de Escolha aumentou comparado ao mês anterior. Você está no caminho certo.', data: new Date().toISOString(), lido: false, pessoa: null },
+        { id: 'rc2', tipo: 'alerta', titulo: 'Categoria Moradia acima do orçamento', texto: 'Seus gastos com Moradia estão acima do planejado este mês. Considere revisar suas despesas fixas.', data: new Date().toISOString(), lido: false, pessoa: null },
+        { id: 'rc3', tipo: 'dica', titulo: 'Oportunidade de economia identificada', texto: 'Você tem múltiplas assinaturas de streaming. Avaliar o uso real pode gerar economia mensal.', data: new Date().toISOString(), lido: true, pessoa: null },
+      ];
+      Store.persist();
+    }
 
+    // ── helpers ────────────────────────────────────────────────────
     function fmtRelTime(isoStr) {
       const diff = Date.now() - new Date(isoStr).getTime();
       const m = Math.floor(diff / 60000);
@@ -6558,197 +6587,157 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       return `há ${d}d`;
     }
 
-    function truncate(str, n) {
-      return str.length <= n ? str : str.slice(0, n) + '…';
+    const TIPO_CONFIG = {
+      insight: { icon: '⚡', bgColor: 'var(--accent-dim)', iconColor: 'var(--haile-indigo)' },
+      alerta:  { icon: '⚠️', bgColor: 'var(--amber-dim)',  iconColor: 'var(--amber)' },
+      dica:    { icon: '💡', bgColor: 'var(--green-dim)',  iconColor: 'var(--green)' },
+      meta:    { icon: '✅', bgColor: 'var(--green-dim)',  iconColor: 'var(--green)' },
+    };
+
+    const PESSOA_CONFIG = [
+      { id: null,       label: 'Coach IA', initial: '✦', bg: 'linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-teal) 100%)' },
+      { id: 'roberto',  label: 'Roberto',  initial: 'R', bg: 'var(--haile-indigo)' },
+      { id: 'mariana',  label: 'Mariana',  initial: 'M', bg: 'var(--green)' },
+      { id: 'familia',  label: 'Família',  initial: 'F', bg: 'var(--amber)' },
+    ];
+
+    let selectedPessoa = 'all'; // 'all' = Coach IA (sem filtro), ou id da pessoa
+    let filterLido = 'todos';   // 'todos' | 'nao_lidos'
+
+    function getRecados() {
+      let recs = Store.get().recados || [];
+      if (selectedPessoa !== 'all') {
+        recs = recs.filter(r => r.pessoa === selectedPessoa);
+      }
+      if (filterLido === 'nao_lidos') {
+        recs = recs.filter(r => !r.lido);
+      }
+      return recs;
     }
 
-    function buildInbox() {
-      const msgs = Recados.getAll().filter(r => r.to === eu || r.to === 'Todos');
-      if (!msgs.length) return `<div class="recados-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.5"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="1.5"/></svg><div>Nenhum recado recebido</div></div>`;
-      return msgs.map(r => {
-        const linked = r.linked_id && r.linked_type ? `<span class="recado-link-badge">${{'despesa':'📊 Despesa','receita':'💰 Receita','contrato':'📑 Contrato'}[r.linked_type]||r.linked_type}</span>` : '';
-        const toBadge = r.to === 'Todos' ? '<span class="recado-to-badge">Para todos</span>' : '';
-        return `<div class="recado-item recado-collapsed${r.read ? '' : ' recado-unread'}" data-id="${r.id}">
-  <div class="recado-row-summary" style="display:flex;align-items:center;gap:10px;cursor:pointer;width:100%">
-    <div class="recado-avatar" style="background:${Utils.personColor(r.from)};flex-shrink:0">${Utils.personInitial(r.from)}</div>
-    <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span class="recado-from">${r.from}</span>${toBadge}${linked}
-        <span class="recado-time" style="margin-left:auto">${fmtRelTime(r.created_at)}</span>
-      </div>
-      <div class="recado-preview" style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${truncate(r.content, 80)}</div>
-    </div>
-    <svg class="recado-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:var(--text-4);transition:transform .2s"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>
-  <div class="recado-expanded-body" style="display:none;padding:10px 0 2px 42px">
-    <div class="recado-content" style="white-space:pre-wrap">${r.content}</div>
-    <div style="margin-top:8px">
-      <button class="btn-ghost recado-del" data-del="${r.id}" style="color:var(--red);font-size:11px;padding:2px 6px">Apagar</button>
-    </div>
-  </div>
-</div>`;
-      }).join('');
+    function countNaoLidos() {
+      return (Store.get().recados || []).filter(r => !r.lido).length;
     }
 
-    function buildSent() {
-      const msgs = Recados.getAll().filter(r => r.from === eu);
-      if (!msgs.length) return `<div class="recados-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.5"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" stroke-width="1.5"/></svg><div>Nenhum recado enviado</div></div>`;
-      return msgs.map(r => {
-        const statusIcon = r.read ? `<span style="color:var(--green);font-size:11px" title="Lido">✓✓</span>` : `<span style="color:var(--text-4);font-size:11px" title="Não lido">✓</span>`;
-        return `<div class="recado-item recado-collapsed" data-id="${r.id}">
-  <div class="recado-row-summary" style="display:flex;align-items:center;gap:10px;cursor:pointer;width:100%">
-    <div class="recado-avatar" style="background:${Utils.personColor(r.to === 'Todos' ? 'Família' : r.to)};flex-shrink:0">${r.to === 'Todos' ? '👥' : Utils.personInitial(r.to)}</div>
-    <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span class="recado-from">Para: ${r.to}</span>${statusIcon}
-        <span class="recado-time" style="margin-left:auto">${fmtRelTime(r.created_at)}</span>
-      </div>
-      <div class="recado-preview" style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${truncate(r.content, 80)}</div>
+    function buildCardsHtml(recs) {
+      if (!recs.length) return `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor" opacity=".3"/></svg><p>Nenhum recado encontrado.</p></div>`;
+      return recs.map(r => {
+        const tc = TIPO_CONFIG[r.tipo] || TIPO_CONFIG.insight;
+        return `<div class="recado-card${r.lido ? '' : ' nao-lido'}" data-rc-id="${r.id}">
+  <div class="recado-tipo-icon" style="background:${tc.bgColor}">${tc.icon}</div>
+  <div class="recado-card-body">
+    <div class="recado-card-head">
+      <div class="recado-card-title">${r.titulo}</div>
+      ${!r.lido ? '<div class="recado-unread-dot"></div>' : ''}
     </div>
-    <svg class="recado-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:var(--text-4);transition:transform .2s"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>
-  <div class="recado-expanded-body" style="display:none;padding:10px 0 2px 42px">
-    <div class="recado-content" style="white-space:pre-wrap">${r.content}</div>
-    <div style="margin-top:8px">
-      <button class="btn-ghost recado-del" data-del="${r.id}" style="color:var(--red);font-size:11px;padding:2px 6px">Apagar</button>
+    <div class="recado-card-meta">
+      <span class="recado-tipo-badge ${r.tipo}">${r.tipo}</span>
+      · ${fmtRelTime(r.data)}
     </div>
+    <div class="recado-card-text">${r.texto}</div>
   </div>
 </div>`;
       }).join('');
     }
 
-    function rerender() {
-      const box = document.getElementById('recadosBox');
-      if (box) box.innerHTML = activeTab === 'inbox' ? buildInbox() : buildSent();
-      attachHandlers();
-      updateRecadosBadge();
-    }
-
-    function attachHandlers() {
-      container.querySelectorAll('.recado-item[data-id]').forEach(item => {
-        const summary = item.querySelector('.recado-row-summary');
-        const body    = item.querySelector('.recado-expanded-body');
-        const chevron = item.querySelector('.recado-chevron');
-        if (!summary || !body) return;
-        summary.addEventListener('click', e => {
-          if (e.target.closest('.recado-del')) return;
-          const open = body.style.display !== 'none';
-          body.style.display = open ? 'none' : 'block';
-          if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
-          if (!open && activeTab === 'inbox' && item.classList.contains('recado-unread')) {
-            Recados.markRead(item.dataset.id);
-            item.classList.remove('recado-unread');
-            updateRecadosBadge();
+    function renderCards() {
+      const box = document.getElementById('rcCardsBox');
+      if (box) box.innerHTML = buildCardsHtml(getRecados());
+      // Atualizar badge sidebar
+      const badge = document.getElementById('recadosBadge');
+      if (badge) {
+        const n = countNaoLidos();
+        badge.textContent = n;
+        badge.style.display = n > 0 ? '' : 'none';
+      }
+      // Atualizar contador
+      const ct = document.getElementById('rcTotalCount');
+      if (ct) ct.textContent = `${getRecados().length} recado${getRecados().length !== 1 ? 's' : ''}`;
+      // Atualizar não lidos
+      const nl = document.getElementById('rcNaoLidosCount');
+      if (nl) {
+        const n = countNaoLidos();
+        nl.style.display = n > 0 ? '' : 'none';
+        nl.textContent = `● ${n} não lido${n !== 1 ? 's' : ''}`;
+      }
+      // Bind card clicks
+      container.querySelectorAll('[data-rc-id]').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.rcId;
+          const recs = Store.get().recados || [];
+          const rec = recs.find(x => x.id === id);
+          if (rec && !rec.lido) {
+            rec.lido = true;
+            Store.persist();
+            renderCards();
           }
         });
       });
-      container.querySelectorAll('.recado-del').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          Recados.delete(btn.dataset.del);
-          rerender();
-          toast('Recado apagado', 'success');
-        });
-      });
     }
 
-    const unread = Recados.unreadFor(eu);
+    const naoLidosTotal = countNaoLidos();
+
     container.innerHTML = `
 <div class="section-header mb-4">
-  <div>
-    <div class="section-title">Recados</div>
-    <div class="section-sub">Caixa de mensagens da família · Como: <strong>${eu}</strong></div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--haile-indigo),var(--haile-teal));display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="#fff"/><path d="M19 14l.9 2.3L22.2 17l-2.3.9L19 20l-.9-2.1L15.8 17l2.3-.7L19 14z" fill="#fff"/></svg>
+    </div>
+    <div>
+      <div class="section-title">Recados do Coach</div>
+      <div class="section-sub">Insights e recomendações personalizadas da sua IA financeira</div>
+    </div>
   </div>
-  <button class="btn-primary" id="btnEscreverRecado">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    Escrever recado
-  </button>
 </div>
 
-<div class="card" style="margin-bottom:12px">
-  <div class="flex gap-2" style="margin-bottom:12px">
-    <button class="btn-secondary active" id="btnTabInbox">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
-      Recebidos ${unread > 0 ? `<span style="background:var(--red);color:#fff;border-radius:20px;padding:0 6px;font-size:10px;margin-left:4px">${unread}</span>` : ''}
-    </button>
-    <button class="btn-secondary" id="btnTabEnviados">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2"/><polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" stroke-width="2"/></svg>
-      Enviados
-    </button>
-    ${unread > 0 ? `<button class="btn-secondary" id="btnMarkAllRead" style="margin-left:auto;font-size:12px">Marcar todos como lidos</button>` : ''}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+  <span id="rcNaoLidosCount" style="font-size:12px;font-weight:600;color:var(--haile-indigo);${naoLidosTotal > 0 ? '' : 'display:none'}">● ${naoLidosTotal} não lido${naoLidosTotal !== 1 ? 's' : ''}</span>
+  <div class="lanc-type-toggle" style="margin-left:auto">
+    <button class="lanc-type-btn active" id="rcBtnTodos">Todos</button>
+    <button class="lanc-type-btn" id="rcBtnNaoLidos">Não lidos</button>
   </div>
-  <div id="recadosBox"></div>
-</div>`;
-
-    // Mark all as read on inbox open
-    Recados.markAllRead(eu);
-    updateRecadosBadge();
-
-    rerender();
-
-    document.getElementById('btnTabInbox').addEventListener('click', () => {
-      activeTab = 'inbox';
-      document.getElementById('btnTabInbox').classList.add('active');
-      document.getElementById('btnTabEnviados').classList.remove('active');
-      rerender();
-    });
-    document.getElementById('btnTabEnviados').addEventListener('click', () => {
-      activeTab = 'sent';
-      document.getElementById('btnTabEnviados').classList.add('active');
-      document.getElementById('btnTabInbox').classList.remove('active');
-      rerender();
-    });
-    document.getElementById('btnMarkAllRead')?.addEventListener('click', () => {
-      Recados.markAllRead(eu);
-      rerender();
-    });
-
-    document.getElementById('btnEscreverRecado').addEventListener('click', () => {
-      const despesas = Store.get().despesas;
-      const receitas = Store.get().receitas;
-      const contratos = Store.get().contratos || [];
-      Modal.open('Escrever Recado', `
-<div class="form-group">
-  <label class="form-label">Para</label>
-  <select class="form-select" id="rTo">
-    ${Store.PESSOAS.filter(p => p !== eu).map(p => `<option value="${p}">${p}</option>`).join('')}
-    <option value="Todos">👥 Todos</option>
-  </select>
+  <span id="rcTotalCount" style="font-size:12px;color:var(--text-3)">${(Store.get().recados||[]).length} recados</span>
 </div>
-<div class="form-group">
-  <label class="form-label">Mensagem</label>
-  <textarea class="form-input" id="rContent" rows="4" placeholder="Escreva seu recado aqui…" style="resize:vertical"></textarea>
+
+<div class="recados-avatar-filter" id="rcAvatarFilter">
+  ${PESSOA_CONFIG.map(p => `
+    <div class="recados-persona${p.id === null ? ' active' : ''}" data-rc-pessoa="${p.id === null ? 'all' : p.id}">
+      <div class="recados-persona-avatar" style="background:${p.bg}">${p.initial}</div>
+      <div class="recados-persona-name">${p.label}</div>
+    </div>
+  `).join('')}
 </div>
-<div class="form-group">
-  <label class="form-label">Vincular a um lançamento <span class="muted">(opcional)</span></label>
-  <select class="form-select" id="rLinked">
-    <option value="">— Nenhum —</option>
-    <optgroup label="Despesas recentes">
-      ${despesas.slice(0,20).map(d => `<option value="${d.id}|despesa">${d.desc} (${Utils.currency(d.amount)})</option>`).join('')}
-    </optgroup>
-    <optgroup label="Receitas recentes">
-      ${receitas.slice(0,10).map(r => `<option value="${r.id}|receita">${r.desc} (${Utils.currency(r.amount)})</option>`).join('')}
-    </optgroup>
-    ${contratos.length ? `<optgroup label="Contratos">${contratos.map(c => `<option value="${c.id}|contrato">${c.label}</option>`).join('')}</optgroup>` : ''}
-  </select>
-</div>`, () => {
-        const to      = document.getElementById('rTo').value;
-        const content = document.getElementById('rContent').value.trim();
-        const linked  = document.getElementById('rLinked').value;
-        if (!content) { toast('Escreva uma mensagem', 'error'); return; }
-        const [linkedId, linkedType] = linked ? linked.split('|') : [null, null];
-        Recados.add(eu, to, content, linkedId, linkedType);
-        Modal.close();
-        toast(`Recado enviado para ${to}`, 'success');
-        activeTab = 'sent';
-        rerender();
-        document.getElementById('btnTabEnviados')?.classList.add('active');
-        document.getElementById('btnTabInbox')?.classList.remove('active');
+
+<div id="rcCardsBox"></div>`;
+
+    renderCards();
+
+    // Avatar filter
+    container.querySelectorAll('[data-rc-pessoa]').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedPessoa = el.dataset.rcPessoa;
+        container.querySelectorAll('[data-rc-pessoa]').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        renderCards();
       });
-      // Rename save button after modal opens
-      const btnSave = document.getElementById('modalSave');
-      if (btnSave) btnSave.textContent = 'Enviar recado';
     });
+
+    // Lido filter
+    document.getElementById('rcBtnTodos').addEventListener('click', () => {
+      filterLido = 'todos';
+      document.getElementById('rcBtnTodos').classList.add('active');
+      document.getElementById('rcBtnNaoLidos').classList.remove('active');
+      renderCards();
+    });
+    document.getElementById('rcBtnNaoLidos').addEventListener('click', () => {
+      filterLido = 'nao_lidos';
+      document.getElementById('rcBtnNaoLidos').classList.add('active');
+      document.getElementById('rcBtnTodos').classList.remove('active');
+      renderCards();
+    });
+
+    // Update badge on load
+    updateRecadosBadge();
   }
 
   // ── INIT ───────────────────────────────────────────────────────
@@ -6758,7 +6747,21 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   function renderConfig(container) {
     const section = localStorage.getItem('ff_config_section') || 'categorias';
 
+    // ── Card de perfil no topo ──────────────────────────────────────
+    const profileData = Store.getProfile();
+    const profileName = profileData?.name || Store.PESSOAS[0] || 'Usuário';
+    const profileInitial = profileName[0]?.toUpperCase() || '?';
+    const profileEmail = (typeof SupabaseSync !== 'undefined' ? SupabaseSync.getUser?.()?.email : null) || '';
+
     container.innerHTML = `
+<div class="config-profile-card">
+  <div class="config-profile-avatar">${profileInitial}</div>
+  <div style="flex:1;min-width:0">
+    <div class="config-profile-name">${profileName}</div>
+    ${profileEmail ? `<div class="config-profile-email">${profileEmail}</div>` : ''}
+  </div>
+  <button class="btn-outline btn-sm" id="btnEditPerfil">Editar Perfil</button>
+</div>
 <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
   <aside class="card" style="padding:8px">
     ${[
@@ -6802,6 +6805,11 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     else if (section === 'senha')      renderConfigSenha(content);
     else                                renderConfigSobre(content);
     upgradeIcons(container);
+
+    document.getElementById('btnEditPerfil')?.addEventListener('click', () => {
+      localStorage.setItem('ff_config_section', 'perfil');
+      renderConfig(container);
+    });
   }
 
   function renderConfigTipos(content) {

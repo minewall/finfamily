@@ -180,6 +180,10 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div id="syncStatus" style="display:flex;align-items:center;gap:5px;padding:0 4px">
+        <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:var(--text-4);flex-shrink:0"></span>
+        <span id="syncLabel" style="font-size:10px;color:var(--text-4)">—</span>
+      </div>
       <a href="#config" class="theme-btn" title="Configurações">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
       </a>
@@ -204,10 +208,6 @@
       <div class="topbar-title" id="pageTitle">Visão Geral</div>
       <div id="topbarMonthPickerSlot"></div>
       <div class="topbar-actions">
-        <div id="syncBadge" title="Status de sincronização" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-4);cursor:default;padding:4px 10px;border-radius:20px;border:1px solid var(--border)">
-          <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-4);flex-shrink:0"></span>
-          <span id="syncLabel">—</span>
-        </div>
         <button class="btn-coach" id="btnCoach" title="Conversar com Haile">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/><path d="M19 14l.9 2.3L22.2 17l-2.3.9L19 20l-.9-2.1L15.8 17l2.3-.7L19 14z" fill="currentColor"/></svg>
           Coach
