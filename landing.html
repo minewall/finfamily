@@ -8,7 +8,8 @@
   <meta property="og:title" content="Haile — Seu coach financeiro pessoal">
   <meta property="og:description" content="Quanto você pode gastar hoje sem comprometer o seu futuro? O Haile calcula e te explica.">
   <meta property="og:image" content="/assets/og-haile.png">
-  <link rel="icon" href="/assets/favicon.png">
+  <link rel="icon" href="/assets/favicon/favicon.ico">
+  <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon-180.png">
   <style>
     /* ── Reset & Tokens ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -71,15 +72,9 @@
       height: 64px;
     }
     .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: var(--text-1);
+      display: flex; align-items: center;
     }
-    .nav-logo-mark {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: var(--indigo);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .nav-logo-mark svg { width: 18px; height: 18px; }
+    .nav-logo img { height: 28px; width: auto; display: block; }
     .nav-links {
       display: flex; gap: 28px; list-style: none; margin-left: auto;
     }
@@ -180,6 +175,7 @@
       background: var(--indigo);
       display: flex; align-items: center; justify-content: center;
       font-size: 15px; flex-shrink: 0;
+      overflow: hidden;
     }
     .chat-avatar.user-av {
       background: #E5E7EB; font-size: 13px; font-weight: 600; color: var(--text-2);
@@ -526,10 +522,7 @@
       font-size: 14px; color: #9CA3AF; line-height: 1.6;
       margin-top: 12px; max-width: 260px;
     }
-    .footer-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -.02em;
-    }
+    .footer-logo img { height: 24px; width: auto; display: block; }
     .footer-col h4 {
       font-size: 12px; font-weight: 700; letter-spacing: .08em;
       text-transform: uppercase; color: #6B7280; margin-bottom: 16px;
@@ -573,12 +566,7 @@
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-logo">
-      <div class="nav-logo-mark">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="white"/>
-        </svg>
-      </div>
-      haile
+      <img src="/assets/svg/haile-wordmark-black.svg" alt="Haile" height="28">
     </a>
     <ul class="nav-links">
       <li><a href="#como-funciona">Como funciona</a></li>
@@ -612,7 +600,7 @@
       </div>
       <div class="chat-bubble">
         <div class="chat-avatar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="white"/></svg>
+          <img src="/assets/favicon/haile-mark-white-512.png" alt="Haile" style="width:22px;height:22px;object-fit:contain">
         </div>
         <div class="chat-msg">
           Deixa eu checar seus números de maio…
@@ -625,7 +613,7 @@
       </div>
       <div class="chat-bubble">
         <div class="chat-avatar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="white"/></svg>
+          <img src="/assets/favicon/haile-mark-white-512.png" alt="Haile" style="width:22px;height:22px;object-fit:contain">
         </div>
         <div class="chat-msg">
           Sim, você pode ir! Uma viagem de fim de semana cabe folgado. Se for algo maior, me fala o valor e a gente simula juntos.
@@ -713,8 +701,8 @@
       <div class="coach-demo">
         <div class="coach-demo-wrap">
           <div class="coach-demo-header">
-            <div class="coach-avatar-lg">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="white"/></svg>
+            <div class="coach-avatar-lg" style="overflow:hidden">
+              <img src="/assets/favicon/haile-mark-white-512.png" alt="Haile" style="width:24px;height:24px;object-fit:contain">
             </div>
             <div>
               <div class="coach-demo-name">Haile</div>
@@ -944,10 +932,7 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-logo">
-          <div class="nav-logo-mark">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="white"/></svg>
-          </div>
-          haile
+          <img src="/assets/svg/haile-wordmark-white.svg" alt="Haile">
         </div>
         <p>Seu coach financeiro pessoal com inteligência artificial. Clareza para hoje. Liberdade para o futuro.</p>
       </div>
