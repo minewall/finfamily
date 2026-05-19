@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Haile — Seu coach financeiro pessoal</title>
+  <meta name="description" content="Haile é seu coach financeiro pessoal com IA. Gestão familiar inteligente que cuida das suas finanças como um conselheiro." />
+  <meta name="theme-color" content="#6366F1" />
+  <link rel="icon" href="assets/favicon/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="assets/svg/haile-mark-indigo.svg" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app/css/main.css?v=3" />
+</head>
+<body>
+<script>
+  // Auth guard — redirect to login if not authenticated
+  if (sessionStorage.getItem('ff_auth') !== '1') {
+    window.location.replace('login.html');
+  }
+</script>
+
+<!-- ═══════════════════════════════════════════════════ LAYOUT ══ -->
+<div class="layout" id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <img class="brand-wordmark-dark" src="assets/svg/haile-wordmark-white.svg" alt="Haile" style="height:28px;width:auto;display:block">
+        <img class="brand-wordmark-light" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:block">
+        <!-- Versão mark (Hai) — exibida automaticamente quando sidebar entra em modo icon-only -->
+        <img class="brand-mark-dark" src="assets/svg/haile-mark-white.svg" alt="Haile" style="height:28px;width:auto;display:none">
+        <img class="brand-mark-light" src="assets/svg/haile-mark-indigo-deep.svg" alt="Haile" style="height:28px;width:auto;display:none">
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <span class="nav-label">Principal</span>
+        <a href="#dashboard" class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span class="nav-text">Visão Geral</span>
+        </a>
+        <a href="#lancamentos" class="nav-item" data-page="lancamentos">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" stroke-width="2"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2"/><path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Lançamentos</span>
+        </a>
+        <!-- Estado global do mês/ano: ficam ocultos, picker aparece dentro de cada página month-aware -->
+        <div style="display:none">
+          <select id="globalYear">
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+          <select id="globalMonth">
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-label">Financeiro</span>
+        <a href="#receitas" class="nav-item" data-page="receitas">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Receitas</span>
+          <span class="nav-badge green">+</span>
+        </a>
+        <a href="#despesas" class="nav-item" data-page="despesas">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Despesas</span>
+          <span class="nav-badge amber" id="anomaliasBadge" style="display:none">0</span>
+        </a>
+        <a href="#contas" class="nav-item" data-page="contas">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 22V9M3 9l9-7 9 7M3 9h18M21 22V9M9 22v-5h6v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Contas</span>
+        </a>
+        <a href="#cartoes" class="nav-item" data-page="cartoes">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="15" r="1" fill="currentColor"/></svg>
+          </span>
+          <span class="nav-text">Cartões</span>
+        </a>
+        <a href="#contratos" class="nav-item" data-page="contratos">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2"/><path d="M8 13h8M8 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Contratos</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-label">Planejamento</span>
+        <a href="#reserva" class="nav-item" data-page="reserva">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Patrimônio</span>
+        </a>
+        <a href="#metas" class="nav-item" data-page="metas">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span class="nav-text">Metas</span>
+        </a>
+        <a href="#investimentos" class="nav-item" data-page="investimentos">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Investimentos</span>
+        </a>
+        <a href="#financiamentos" class="nav-item" data-page="financiamentos">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Financiamentos</span>
+        </a>
+        <a href="#simulacoes" class="nav-item" data-page="simulacoes">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="nav-text">Simulações</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-label">Família</span>
+        <a href="#comparativo" class="nav-item" data-page="comparativo">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="nav-text">Meu Painel</span>
+        </a>
+        <a href="#recados" class="nav-item" data-page="recados">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span class="nav-text">Recados</span>
+          <span class="nav-badge red" id="recadosBadge" style="display:none">0</span>
+        </a>
+        <a href="#config" class="nav-item" data-page="config">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+          <span class="nav-text">Configurações</span>
+        </a>
+        <a href="admin/" class="nav-item" id="navAdmin" style="display:none" target="_self">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+          <span class="nav-text">Admin</span>
+        </a>
+      </div>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="syncStatus" style="display:flex;align-items:center;gap:5px;padding:0 4px">
+        <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:var(--text-4);flex-shrink:0"></span>
+        <span id="syncLabel" style="font-size:10px;color:var(--text-4)">—</span>
+      </div>
+      <a href="#config" class="theme-btn" title="Configurações">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+      </a>
+      <button class="theme-btn" id="btnThemeToggle" title="Alternar tema (claro/escuro)" style="color:var(--text-3)">
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <span style="font-size:11px;color:var(--text-4);flex:1;text-align:right">Haile 2026</span>
+      <button class="theme-btn" id="btnLogout" title="Sair da conta" style="color:var(--text-3);margin-left:4px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 21 12 16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="topbar-title" id="pageTitle">Visão Geral</div>
+      <div class="topbar-actions">
+        <button class="btn-coach" id="btnCoach" title="Conversar com Haile">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/><path d="M19 14l.9 2.3L22.2 17l-2.3.9L19 20l-.9-2.1L15.8 17l2.3-.7L19 14z" fill="currentColor"/></svg>
+          Coach
+        </button>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <div class="page-container" id="pageContainer">
+      <!-- JS renders here -->
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ MODAL ══ -->
+<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Novo Lançamento</h2>
+      <button class="modal-close" id="modalClose" aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"><!-- dynamic --></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ SIDEBAR OVERLAY ══ -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ═══════════════════════════════════════════════════ AI COACH PANEL ══ -->
+<div class="coach-panel" id="coachPanel" aria-hidden="true">
+  <div class="coach-resize-handle" id="coachResizeHandle"></div>
+  <div class="coach-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="coach-avatar" style="display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:22px;height:auto;display:block">
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-1)">Haile</div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:1px">Seu coach financeiro</div>
+        <div style="font-size:10px;color:var(--accent)" id="coachStatus">Pronto para ajudar</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="coach-icon-btn" id="coachClearBtn" title="Limpar conversa">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="coach-icon-btn" id="coachCloseBtn" title="Fechar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="coach-messages" id="coachMessages">
+    <div class="coach-welcome">
+      <div class="coach-avatar-lg" style="overflow:hidden">
+        <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
+      </div>
+      <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
+      <div class="coach-suggestions" id="coachSuggestions">
+        <button class="coach-suggestion">Qual meu maior gasto esse mês?</button>
+        <button class="coach-suggestion">Estou dentro do orçamento?</button>
+        <button class="coach-suggestion">Onde posso economizar?</button>
+        <button class="coach-suggestion">Como está minha saúde financeira?</button>
+      </div>
+    </div>
+  </div>
+  <div class="coach-input-area">
+    <textarea class="coach-input" id="coachInput" placeholder="Pergunte sobre suas finanças…" rows="1"></textarea>
+    <button class="coach-send-btn" id="coachSendBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ TOAST ══ -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app/js/supabase-client.js?v=73"></script>
+<script src="app/js/store.js?v=71"></script>
+<script src="app/js/charts.js?v=70"></script>
+<script src="app/js/app.js?v=96"></script>
+
+</body>
+</html>
