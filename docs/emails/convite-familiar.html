@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Você foi convidado para o Haile</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #0B1020; font-family: 'DM Sans', Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+    a { color: inherit; text-decoration: none; }
+    img { border: 0; display: block; max-width: 100%; }
+    .email-wrapper { background-color: #0B1020; padding: 40px 16px; }
+    .email-container { max-width: 560px; margin: 0 auto; }
+
+    /* Header */
+    .header { padding: 32px 0 24px; text-align: center; }
+    .header img { margin: 0 auto; height: 28px; width: auto; }
+
+    /* Card principal */
+    .card {
+      background-color: #131929;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    /* Hero accent strip */
+    .hero-strip {
+      background: linear-gradient(135deg, #7367F0 0%, #06B6D4 100%);
+      padding: 36px 40px 32px;
+      text-align: center;
+    }
+    .hero-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1;
+      /* fallback inline para email clients */
+    }
+    .hero-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 8px;
+    }
+    .hero-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+    .hero-title span {
+      color: rgba(255,255,255,0.85);
+      font-weight: 400;
+    }
+
+    /* Body */
+    .body { padding: 32px 40px; }
+    .body-text {
+      font-size: 15px;
+      line-height: 1.65;
+      color: #94A3B8;
+      margin-bottom: 24px;
+    }
+    .body-text strong {
+      color: #F8FAFC;
+      font-weight: 600;
+    }
+
+    /* Highlight box */
+    .highlight-box {
+      background: rgba(115,103,240,0.1);
+      border: 1px solid rgba(115,103,240,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+    }
+    .highlight-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 0;
+    }
+    .highlight-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #7367F0;
+      flex-shrink: 0;
+    }
+    .highlight-text {
+      font-size: 14px;
+      color: #94A3B8;
+    }
+    .highlight-text strong { color: #F8FAFC; }
+
+    /* CTA button */
+    .cta-wrap { text-align: center; margin-bottom: 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #7367F0, #5B4FCE);
+      color: #ffffff !important;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 36px;
+      border-radius: 12px;
+      letter-spacing: 0.01em;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(115,103,240,0.4);
+    }
+
+    /* Link fallback */
+    .link-fallback {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.6;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .link-fallback a {
+      color: #7367F0 !important;
+      word-break: break-all;
+    }
+
+    /* Divider */
+    .divider {
+      border: 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin: 4px 0 28px;
+    }
+
+    /* What is Haile */
+    .features-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #334155;
+      margin-bottom: 16px;
+    }
+    .feature-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .feature-text { font-size: 13px; color: #94A3B8; line-height: 1.5; }
+    .feature-text strong { color: #F8FAFC; display: block; margin-bottom: 2px; }
+
+    /* Footer */
+    .footer { padding: 24px 40px 32px; text-align: center; }
+    .footer-logo { margin: 0 auto 16px; }
+    .footer-text {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.7;
+    }
+    .footer-text a { color: #7367F0 !important; }
+    .footer-divider {
+      border: 0;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      margin: 20px 0 16px;
+    }
+
+    /* Mobile */
+    @media only screen and (max-width: 600px) {
+      .email-wrapper { padding: 20px 12px; }
+      .hero-strip { padding: 28px 24px 24px; }
+      .hero-title { font-size: 20px; }
+      .body { padding: 24px 24px; }
+      .footer { padding: 20px 24px 28px; }
+      .cta-btn { display: block !important; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="email-wrapper">
+  <div class="email-container">
+
+    <!-- Logo header -->
+    <div class="header">
+      <!-- Em produção: substituir por URL absoluta do logo hospedado -->
+      <img src="https://haile.com.br/assets/svg/haile-wordmark-white.svg" alt="Haile" height="24" />
+    </div>
+
+    <div class="card">
+
+      <!-- Hero strip com gradiente violeta→teal -->
+      <div class="hero-strip">
+        <!--[if mso]><table width="100%"><tr><td align="center"><![endif]-->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
+          <tr>
+            <td align="center" style="padding-bottom:16px">
+              <!-- Avatar inicial do remetente -->
+              <div style="
+                width:64px;height:64px;border-radius:50%;
+                background:rgba(255,255,255,0.2);
+                border:2px solid rgba(255,255,255,0.4);
+                font-size:26px;font-weight:700;color:#ffffff;
+                text-align:center;line-height:64px;
+                display:inline-block;
+              ">{{ inviter_initial }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center">
+              <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:8px;font-family:'DM Sans',Arial,sans-serif">
+                Convite para grupo familiar
+              </p>
+              <p style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;font-family:'DM Sans',Arial,sans-serif">
+                <strong>{{ inviter_name }}</strong> te convidou<br>
+                <span style="color:rgba(255,255,255,0.8);font-weight:400;font-size:18px">para o Haile</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </div>
+
+      <!-- Corpo do email -->
+      <div class="body">
+
+        <p class="body-text">
+          Oi, <strong>{{ recipient_name }}</strong>! Tudo bem?
+        </p>
+        <p class="body-text">
+          <strong>{{ inviter_name }}</strong> está usando o <strong>Haile</strong> para organizar as finanças do grupo <strong>{{ family_name }}</strong> e quer que você faça parte também.
+        </p>
+
+        <!-- Highlight box — o que você vai poder fazer -->
+        <div class="highlight-box">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
+            <tr>
+              <td style="padding:4px 0">
+                <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+                  <tr>
+                    <td style="width:8px;height:8px;border-radius:50%;background:#7367F0;vertical-align:middle;padding-right:12px">
+                      <div style="width:8px;height:8px;border-radius:4px;background:#7367F0"></div>
+                    </td>
+                    <td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">
+                      Ver <strong style="color:#F8FAFC">receitas e despesas</strong> do grupo em tempo real
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0">
+                <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+                  <tr>
+                    <td style="width:8px;padding-right:12px;vertical-align:middle">
+                      <div style="width:8px;height:8px;border-radius:4px;background:#06B6D4"></div>
+                    </td>
+                    <td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">
+                      Lançar seus <strong style="color:#F8FAFC">próprios gastos e receitas</strong> com privacidade
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0">
+                <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+                  <tr>
+                    <td style="width:8px;padding-right:12px;vertical-align:middle">
+                      <div style="width:8px;height:8px;border-radius:4px;background:#10B981"></div>
+                    </td>
+                    <td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">
+                      Receber <strong style="color:#F8FAFC">insights do Coach Haile</strong> sobre o orçamento familiar
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-wrap">
+          <!--[if mso]>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ confirmation_url }}" style="height:50px;v-text-anchor:middle;width:240px" arcsize="24%" stroke="f" fillcolor="#7367F0">
+          <w:anchorlock/>
+          <center style="color:#ffffff;font-family:'DM Sans',Arial,sans-serif;font-size:15px;font-weight:600">Aceitar convite</center>
+          </v:roundrect>
+          <![endif]-->
+          <!--[if !mso]><!-->
+          <a href="{{ confirmation_url }}" class="cta-btn">
+            Aceitar convite →
+          </a>
+          <!--<![endif]-->
+        </div>
+
+        <!-- Link fallback -->
+        <p class="link-fallback">
+          Se o botão não funcionar, copie e cole este link no seu navegador:<br>
+          <a href="{{ confirmation_url }}">{{ confirmation_url }}</a>
+        </p>
+
+        <hr class="divider" />
+
+        <!-- O que é o Haile -->
+        <p class="features-title">O que é o Haile?</p>
+
+        <div class="feature-row">
+          <div class="feature-icon">💡</div>
+          <div class="feature-text">
+            <strong>AI Coach pessoal</strong>
+            Analisa seus hábitos e oferece insights financeiros personalizados — sem jargão, sem susto.
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">👨‍👩‍👧</div>
+          <div class="feature-text">
+            <strong>Finanças em família</strong>
+            Cada membro tem sua própria visão. O grupo vê o consolidado. Simples assim.
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">🎯</div>
+          <div class="feature-text">
+            <strong>Metas que avançam</strong>
+            Do fundo de emergência à viagem dos sonhos — acompanhe o progresso em tempo real.
+          </div>
+        </div>
+
+      </div><!-- /body -->
+
+      <!-- Footer dentro do card -->
+      <div class="footer">
+        <hr class="footer-divider" />
+        <img src="https://haile.com.br/assets/svg/haile-mark-white.svg" alt="Haile" height="20" class="footer-logo" />
+        <p class="footer-text">
+          Este convite foi enviado por <strong style="color:#94A3B8">{{ inviter_name }}</strong> usando o Haile.<br>
+          Se você não esperava este email, pode ignorá-lo com segurança.<br>
+          Este link expira em <strong style="color:#94A3B8">7 dias</strong>.
+        </p>
+        <p class="footer-text" style="margin-top:12px">
+          <a href="https://haile.com.br">haile.com.br</a>
+          &nbsp;·&nbsp;
+          <a href="https://haile.com.br/privacidade">Privacidade</a>
+        </p>
+      </div>
+
+    </div><!-- /card -->
+
+    <!-- Fora do card -->
+    <p style="text-align:center;font-size:11px;color:#1E293B;margin-top:24px;font-family:'DM Sans',Arial,sans-serif">
+      © 2026 Haile · Averse Tecnologia
+    </p>
+
+  </div>
+</div>
+</body>
+</html>
