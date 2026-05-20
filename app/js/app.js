@@ -8530,17 +8530,17 @@ ${tipos.map(t => {
 
   function renderConfigCoach(content) {
     const data = Store.get();
-    const current = (data.settings && data.settings.coachPersonality) || 'profissional';
+    const current = (data.settings && data.settings.coachPersonality) || 'mentor';
     const personalities = [
-      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
-        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
-        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
       { key: 'mentor',       iconName: 'heart-handshake', label: 'Mentor', short: 'Conselho dos pais',
         desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
         sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
       { key: 'educador',     iconName: 'graduation-cap', label: 'Educador', short: 'Mestre paciente',
         desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
         sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. (poupança rende ~6,17%). Em 12 meses, a diferença gira em torno de R$ 240."' },
+      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
+        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
+        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
     ];
 
     content.innerHTML = `
@@ -9089,13 +9089,13 @@ ${isConnected && isAdmin ? `
   </div>
 </div>
 
-<div class="card">
+<div class="card" id="adminAIConfig" style="display:none">
   <div class="card-header" style="margin-bottom:16px">
-    <span class="card-title">🤖 AI Coach — Configuração</span>
+    <span class="card-title">AI Coach — Configuração <span style="font-size:10px;font-weight:600;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:999px;margin-left:8px;letter-spacing:.04em;text-transform:uppercase">Admin</span></span>
   </div>
 
   <div style="margin-bottom:16px;padding:12px;background:var(--green-dim,rgba(34,197,94,.08));border-radius:8px;border:1px solid rgba(34,197,94,.2)">
-    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px">✓ Coach via Supabase Edge Function</div>
+    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px">Coach via Supabase Edge Function</div>
     <div style="font-size:12px;color:var(--text-3);line-height:1.6">
       A chave Anthropic fica armazenada com segurança no servidor Supabase — nunca exposta no browser.<br>
       Para ativar, configure o secret <code style="background:var(--bg-elevated);padding:1px 4px;border-radius:3px">ANTHROPIC_API_KEY</code> no painel Supabase e faça o deploy da Edge Function.
@@ -9134,6 +9134,18 @@ ${isConnected && isAdmin ? `
         l.style.background  = radio?.checked ? 'var(--accent-dim)' : 'transparent';
       });
     });
+
+    // Admin gate — só revela seção de modelo se usuário for admin via Supabase
+    (async () => {
+      if (typeof SupabaseSync === 'undefined') return;
+      try {
+        const token = await SupabaseSync.getAccessToken();
+        if (!token) return;
+        await SupabaseSync.adminCall('stats');
+        const card = document.getElementById('adminAIConfig');
+        if (card) card.style.display = '';
+      } catch { /* não-admin: mantém oculto */ }
+    })();
   }
 
   function init() {
@@ -9354,15 +9366,15 @@ ${isConnected && isAdmin ? `
   // ══════════════════════════════════════════════════════════════
   function showOnboarding() {
     const personalities = [
-      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
-        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
-        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
       { key: 'mentor', iconName: 'heart-handshake', label: 'Mentor', short: 'Conselho dos pais',
         desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
         sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
       { key: 'educador', iconName: 'graduation-cap', label: 'Educador', short: 'Mestre paciente',
         desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
         sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. Em 12 meses, a diferença gira em torno de R$ 240."' },
+      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
+        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
+        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
     ];
 
     const STEPS = [
@@ -10038,7 +10050,7 @@ ${recFutStr}
 ${anomStr}
 
 ${(() => {
-  const personality = (data.settings && data.settings.coachPersonality) || 'profissional';
+  const personality = (data.settings && data.settings.coachPersonality) || 'mentor';
   const personalities = {
     profissional: `PERSONALIDADE: Profissional (CFO pessoal)
 Você é direto, técnico, sério. Como um CFO que respeita o tempo do usuário.
@@ -10059,7 +10071,7 @@ Tom: explica conceitos sempre que oferece um conselho — não assume conhecimen
 prévio. Usa analogias do dia-a-dia. Quando cita uma decisão financeira, explica
 a regra ou matemática por trás. Convida o usuário a entender, não só a obedecer.`,
   };
-  return personalities[personality] || personalities.profissional;
+  return personalities[personality] || personalities.mentor;
 })()}
 
 INSTRUÇÕES (tom de voz Haile):
