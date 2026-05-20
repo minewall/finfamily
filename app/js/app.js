@@ -517,6 +517,130 @@ const App = (function () {
 </div>`;
   }
 
+  // ─── Fonte única de "estado do mês" ─────────────────────────────
+  // Tanto heroMood (saudação) quanto coachInsight (card inline) consomem daqui
+  // pra garantir coerência narrativa: o que o título diz, o coach reforça.
+  function buildMonthState(ctx) {
+    const { receita, despesa, saldo, util, limitePct, topCats, prevY, prevM,
+            poder, month, currentPessoa } = ctx;
+
+    // Variação da categoria top vs mês anterior
+    let categoryDelta = null;
+    if (topCats && topCats.length) {
+      const [key, value] = topCats[0];
+      const prevVal = (Store.get().despesas || [])
+        .filter(d => d.year === prevY && d.month === prevM && d.category === key)
+        .reduce((a, d) => a + d.amount, 0);
+      const change = prevVal > 0 ? ((value - prevVal) / prevVal) : null;
+      categoryDelta = { key, value, change, label: Store.CATEGORIES[key]?.label || key };
+    }
+
+    const catPctOfTotal = categoryDelta && despesa > 0
+      ? Math.round((categoryDelta.value / despesa) * 100) : 0;
+
+    // ── ESTADO 1: CRÍTICO (limite ultrapassado OU saldo negativo) ──
+    if (util > limitePct || saldo < 0) {
+      const over = Math.max(0, (util - limitePct) * receita);
+      const limitBlown = util > limitePct;
+      const driver = categoryDelta && categoryDelta.change >= 0.15
+        ? ` O maior empurrão veio de ${categoryDelta.label} (+${Math.round(categoryDelta.change * 100)}%).` : '';
+      return {
+        tone: 'critico',
+        icon: '⚠️',
+        hero: {
+          title: `Atenção, ${currentPessoa}.`,
+          sub: limitBlown ? 'Você ultrapassou o limite de gastos do mês'
+                          : 'Saldo negativo este mês — vamos revisar',
+          moodTone: 'neg',
+        },
+        coach: {
+          titulo: limitBlown ? 'Limite de gastos ultrapassado' : 'Saldo negativo este mês',
+          texto: limitBlown
+            ? `Você gastou ${Utils.pct(util)} da receita — ${Utils.currency(over)} acima do limite de ${Utils.pct(limitePct)}.${driver} Quer ver onde ajustar?`
+            : `Despesas (${Utils.currency(despesa)}) excederam receitas (${Utils.currency(receita)}) em ${Utils.currency(Math.abs(saldo))}. Vamos olhar prioridades juntos?`,
+          coachTone: 'warn',
+        },
+      };
+    }
+
+    // ── ESTADO 2: ATENÇÃO (próximo do limite) ──
+    if (util > limitePct * 0.85) {
+      const driver = categoryDelta && categoryDelta.change >= 0.15
+        ? ` ${categoryDelta.label} subiu ${Math.round(categoryDelta.change * 100)}% — vale revisar.` : '';
+      return {
+        tone: 'atencao',
+        icon: '⚠️',
+        hero: {
+          title: `Atenção ao ritmo, ${currentPessoa}.`,
+          sub: `Você já usou ${Utils.pct(util)} da sua receita`,
+          moodTone: 'neu',
+        },
+        coach: {
+          titulo: 'Você está perto do limite',
+          texto: `${Utils.pct(util)} da receita usada — falta ${Utils.currency((limitePct - util) * receita)} pra atingir o limite de ${Utils.pct(limitePct)}.${driver}`,
+          coachTone: 'warn',
+        },
+      };
+    }
+
+    // ── ESTADO 3: ATENÇÃO (categoria top crescendo forte, mesmo com saldo bom) ──
+    if (categoryDelta && categoryDelta.change >= 0.20) {
+      return {
+        tone: 'atencao_categoria',
+        icon: '📈',
+        hero: {
+          title: `Bom controle, ${currentPessoa} — mas atenção.`,
+          sub: `${categoryDelta.label} subiu ${Math.round(categoryDelta.change * 100)}% este mês`,
+          moodTone: 'neu',
+        },
+        coach: {
+          titulo: `${categoryDelta.label} subiu ${Math.round(categoryDelta.change * 100)}%`,
+          texto: `${Utils.currency(categoryDelta.value)} em ${categoryDelta.label} — ${catPctOfTotal}% das despesas. O saldo geral está bom (${saldo >= 0 ? '+' : ''}${Utils.currency(saldo)}), mas vale entender o que puxou esse aumento.`,
+          coachTone: 'warn',
+        },
+      };
+    }
+
+    // ── ESTADO 4: CELEBRAÇÃO (saldo positivo + bem abaixo do limite) ──
+    if (saldo > 0 && util <= limitePct * 0.7) {
+      const extra = poder && poder.poderDeEscolha > 0
+        ? `Seu Poder de Escolha está em ${Utils.currency(poder.poderDeEscolha)} — bom momento para reforçar uma meta ou reserva.`
+        : 'Continue assim.';
+      return {
+        tone: 'celebracao',
+        icon: '🎉',
+        hero: {
+          title: `Excelente, ${currentPessoa}!`,
+          sub: 'Você está bem dentro do seu limite — ótimo controle',
+          moodTone: 'pos',
+        },
+        coach: {
+          titulo: 'Mês em ótimo ritmo',
+          texto: `Saldo de ${Utils.currency(saldo)} usando apenas ${Utils.pct(util)} da receita. ${extra}`,
+          coachTone: 'pos',
+        },
+      };
+    }
+
+    // ── ESTADO 5: CONTROLE (default — saldo positivo, dentro do limite) ──
+    const catLine = categoryDelta
+      ? ` Maior gasto: ${categoryDelta.label} (${catPctOfTotal}% do total).` : '';
+    return {
+      tone: 'controle',
+      icon: '✓',
+      hero: {
+        title: `Bom trabalho, ${currentPessoa}.`,
+        sub: 'Saldo positivo este mês — continue assim',
+        moodTone: 'pos',
+      },
+      coach: {
+        titulo: 'Mês sob controle',
+        texto: `Receitas ${Utils.currency(receita)} e despesas ${Utils.currency(despesa)} — saldo ${saldo >= 0 ? '+' : ''}${Utils.currency(saldo)}.${catLine}`,
+        coachTone: 'neutral',
+      },
+    };
+  }
+
   function renderDashboard(container) {
     const month = getMonth(), year = getYear();
     const data  = Store.get();
@@ -565,18 +689,16 @@ const App = (function () {
     const familyCtxHero = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
     const isMemberHero  = familyCtxHero && familyCtxHero.role === 'member';
 
-    // Mensagem motivacional baseada no saldo
-    const heroMood = (() => {
-      if (saldo > 0 && util <= limitePct * 0.8)
-        return { title: `Excelente, ${currentPessoa()}! 🎉`, sub: 'Você está no controle das suas finanças', tone: 'pos' };
-      if (saldo > 0)
-        return { title: `Bom trabalho, ${currentPessoa()}! 👏`, sub: 'Saldo positivo este mês — continue assim', tone: 'pos' };
-      if (saldo === 0)
-        return { title: `Olá, ${currentPessoa()}.`, sub: 'Equilíbrio total entre receitas e despesas', tone: 'neu' };
-      if (util > limitePct)
-        return { title: `Atenção, ${currentPessoa()}.`, sub: 'Você ultrapassou o limite de gastos do mês', tone: 'neg' };
-      return { title: `Cuidado, ${currentPessoa()}.`, sub: 'Saldo negativo — é hora de revisar os gastos', tone: 'neg' };
-    })();
+    // Estado do mês (fonte única — heroMood + coachInsight derivam daqui)
+    const monthState = buildMonthState({
+      receita, despesa, saldo, util, limitePct, topCats,
+      prevY, prevM, poder, month, currentPessoa: currentPessoa(),
+    });
+    const heroMood = {
+      title: monthState.hero.title,
+      sub: monthState.hero.sub,
+      tone: monthState.hero.moodTone,
+    };
 
     // ── Dados anuais (para seção 2) ───────────────────────────────
     const totalRec  = yrReceitas.reduce((a,b)=>a+b,0);
@@ -613,57 +735,13 @@ const App = (function () {
     const despMes = Store.get().despesas.filter(d => d.year === year && d.month === month);
     const topDesp = despMes.length ? despMes.reduce((a,b) => b.amount > a.amount ? b : a) : null;
 
-    // ── Coach inline insight ──────────────────────────────────────
-    const coachInsight = (() => {
-      // Prioridade: alerta crítico > categoria top > comparação mês > poder de escolha
-      if (util > limitePct) {
-        const over = ((util - limitePct) * receita);
-        return {
-          icon: '⚠️',
-          tone: 'warn',
-          titulo: 'Limite de gastos ultrapassado',
-          texto: `Você gastou ${Utils.pct(util)} da receita este mês — ${Utils.currency(over)} acima do seu limite de ${Utils.pct(limitePct)}. Que tal revisarmos onde cortar?`,
-        };
-      }
-      if (topCats.length) {
-        const [topCatKey, topCatVal] = topCats[0];
-        const topCatLabel = Store.CATEGORIES[topCatKey]?.label || topCatKey;
-        const topCatPct   = despesa > 0 ? (topCatVal / despesa * 100).toFixed(0) : 0;
-        const prevCatDesp = Store.get().despesas
-          .filter(d => d.year === prevY && d.month === prevM && d.category === topCatKey)
-          .reduce((a, d) => a + d.amount, 0);
-        const catChg = prevCatDesp > 0 ? ((topCatVal - prevCatDesp) / prevCatDesp * 100).toFixed(0) : null;
-        if (catChg && Math.abs(catChg) >= 15) {
-          const dir = catChg > 0 ? 'subiram' : 'caíram';
-          return {
-            icon: catChg > 0 ? '📈' : '📉',
-            tone: catChg > 0 ? 'warn' : 'pos',
-            titulo: `${topCatLabel} ${dir} ${Math.abs(catChg)}% este mês`,
-            texto: `${Utils.currency(topCatVal)} em ${topCatLabel} — ${topCatPct}% das suas despesas totais. ${catChg > 0 ? 'Quer entender o que puxou esse aumento?' : 'Ótima redução! Veja o que contribuiu para isso.'}`,
-          };
-        }
-        return {
-          icon: '💡',
-          tone: 'neutral',
-          titulo: `${topCatLabel} é seu maior gasto — ${topCatPct}% do total`,
-          texto: `${Utils.currency(topCatVal)} em ${topCatLabel} em ${Utils.monthsFull[month-1]}. ${poder.poderDeEscolha > 0 ? `Seu Poder de Escolha está em ${Utils.currency(poder.poderDeEscolha)} — você está no controle.` : 'Fique de olho no saldo restante.'}`,
-        };
-      }
-      if (poder.poderDeEscolha > 0) {
-        return {
-          icon: '⚡',
-          tone: 'pos',
-          titulo: `Poder de Escolha: ${Utils.currency(poder.poderDeEscolha)} disponíveis`,
-          texto: `Após receitas e compromissos, você tem ${Utils.currency(poder.poderDeEscolha)} livres em ${Utils.monthsFull[month-1]}. Bom momento para reforçar uma reserva ou meta.`,
-        };
-      }
-      return {
-        icon: '📊',
-        tone: 'neutral',
-        titulo: `Resumo de ${Utils.monthsFull[month-1]}`,
-        texto: `Receitas: ${Utils.currency(receita)} · Despesas: ${Utils.currency(despesa)} · Saldo: ${saldo >= 0 ? '+' : ''}${Utils.currency(saldo)}. Abra o Coach para uma análise detalhada.`,
-      };
-    })();
+    // ── Coach inline insight (deriva do monthState — coerente com o hero) ──
+    const coachInsight = {
+      icon: monthState.icon,
+      tone: monthState.coach.coachTone,
+      titulo: monthState.coach.titulo,
+      texto: monthState.coach.texto,
+    };
 
     // ── Receitas por pessoa para donut ────────────────────────────
     const recsByPerson = {};
@@ -676,6 +754,51 @@ const App = (function () {
     _updateAnomaliasBadge(anomalias.length);
 
     container.innerHTML = `
+
+${(() => {
+  // ── Banner / Card de Onboarding pendente ──
+  const ob = Store.getOnboarding();
+  if (ob.completed) return '';
+  const meta = Store.getOnboardingGoal();
+  if (!meta || !Array.isArray(meta.steps)) return '';
+  const total = meta.steps.length;
+  const done  = meta.steps.filter(s => s.completed).length;
+  const pct   = Math.round((done / total) * 100);
+  const startedAt = ob.startedAt ? new Date(ob.startedAt) : null;
+  const daysSince = startedAt ? Math.floor((Date.now() - startedAt.getTime()) / 86400000) : 0;
+  const overdue = daysSince >= 7;
+  const remaining = total - done;
+  const tone = overdue ? 'warn' : 'neutral';
+  const title = overdue
+    ? 'Seu setup com o Haile está atrasado'
+    : (done === 0
+        ? 'Vamos começar — quero te conhecer'
+        : `Falta${remaining > 1 ? 'm' : ''} ${remaining} pergunta${remaining > 1 ? 's' : ''} pra eu te orientar melhor`);
+  const sub = overdue
+    ? `Já faz ${daysSince} dias desde que abri esta conversa. Sem suas respostas, minhas orientações ficam genéricas.`
+    : 'Quanto mais eu sei sobre você, mais úteis ficam minhas recomendações.';
+  return `
+<div class="card mb-4" style="border:1px solid ${overdue ? 'var(--amber-dim,rgba(245,158,11,.30))' : 'var(--accent-dim)'};background:${overdue ? 'rgba(245,158,11,.06)' : 'var(--accent-dim)'};padding:18px 20px">
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--bg-card);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--border)">
+      <img src="../assets/svg/haile-mark-indigo.svg" alt="" style="width:22px;height:22px"/>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:2px">${title}</div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.55">${sub}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-2)">${done}/${total} respondidas</div>
+        <div style="width:120px;height:5px;background:var(--bg-elevated);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${overdue ? 'var(--amber)' : 'var(--accent)'};transition:width .3s;border-radius:3px"></div>
+        </div>
+      </div>
+      <button class="btn-coach" id="btnContinuarOnboarding" style="padding:8px 14px;font-size:13px;white-space:nowrap">${done === 0 ? 'Começar' : 'Continuar'}</button>
+    </div>
+  </div>
+</div>`;
+})()}
 
 <!-- ═══ SEÇÃO 1: MÊS ATUAL ═══════════════════════════════════════ -->
 <div class="dash-hero dash-hero--mood-${heroMood.tone}">
@@ -977,6 +1100,13 @@ ${renderPrevisaoCaixa(saldo)}
       // Coach inline — abre painel ao clicar em "Ver análise"
       document.getElementById('btnCoachInlineVer')?.addEventListener('click', () => {
         document.getElementById('coachToggleBtn')?.click();
+      });
+
+      // Continuar / Começar onboarding — reabre o wizard atual (Fase 1)
+      // Quando Fase 2 entregar a janela do Coach full-screen, este handler
+      // chamará showCoachOnboarding() em vez de showOnboarding().
+      document.getElementById('btnContinuarOnboarding')?.addEventListener('click', () => {
+        if (typeof showOnboarding === 'function') showOnboarding();
       });
 
       // Previsão de caixa 30 dias
@@ -9357,6 +9487,10 @@ ${isConnected && isAdmin ? `
 
     // Show onboarding wizard on first access
     if (!Store.getOnboarding().completed) {
+      // Fase 1: cria meta automática "Configurar meu Haile" — vira progresso visível
+      // mesmo que o usuário pule o wizard. A meta tem 7 steps que vão sendo marcados
+      // conforme o usuário responde (no wizard atual ou no Coach-led futuro).
+      Store.createOnboardingGoal();
       setTimeout(() => showOnboarding(), 400);
     }
   }
