@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Política de Privacidade do Haile — como coletamos, usamos e protegemos seus dados pessoais." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://haile.com.br/privacidade" />
+
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="Haile" />
+  <meta property="og:title"       content="Política de Privacidade — Haile" />
+  <meta property="og:description" content="Política de Privacidade do Haile — como coletamos, usamos e protegemos seus dados pessoais." />
+  <meta property="og:url"         content="https://haile.com.br/privacidade" />
+  <meta property="og:locale"      content="pt_BR" />
+
+  <title>Política de Privacidade — Haile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --violet: #7367F0;
+      --deep:   #5048CC;
+      --soft:   #F0EFFE;
+      --ink:    #0f1020;
+      --slate:  #5b5e73;
+      --cream:  #faf9f6;
+      --line:   #e6e4f4;
+      --white:  #ffffff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, p { margin: 0; }
+    a { text-decoration: none; font: inherit; }
+
+    /* ── nav ─────────────────────────────────────────────────────── */
+    .site-nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      padding: 20px clamp(24px, 6vw, 96px);
+      background: rgba(15,16,32,0.92);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .logo { height: 26px; }
+    .nav-back {
+      color: rgba(255,255,255,0.55); font-size: 14px;
+      display: flex; align-items: center; gap: 6px;
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--white); }
+    .btn-nav {
+      border: 0; border-radius: 999px; cursor: pointer;
+      padding: 12px 20px; font-weight: 700; font-size: 14px;
+      background: var(--white); color: var(--ink);
+      text-decoration: none; display: inline-flex;
+      transition: transform 0.2s; white-space: nowrap;
+    }
+    .btn-nav:hover { transform: translateY(-2px); }
+
+    /* ── page ────────────────────────────────────────────────────── */
+    .policy-page {
+      min-height: 100vh;
+      padding-top: 88px;
+      padding-bottom: 80px;
+    }
+    .policy-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: clamp(40px, 6vw, 80px) clamp(24px, 6vw, 48px);
+    }
+
+    /* ── header ──────────────────────────────────────────────────── */
+    .policy-header {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+    .policy-label {
+      display: inline-flex; align-items: center; gap: 10px;
+      color: var(--violet); font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .policy-label-rule {
+      display: block; width: 24px; height: 2px;
+      background: var(--violet); border-radius: 2px;
+    }
+    .policy-header h1 {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+    .policy-header h1 em {
+      font-style: italic;
+      color: var(--violet);
+    }
+    .policy-meta {
+      color: var(--slate); font-size: 14px;
+    }
+
+    /* ── content ─────────────────────────────────────────────────── */
+    .policy-body { color: var(--ink); }
+
+    .policy-section {
+      margin-bottom: 40px;
+    }
+    .policy-section h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .policy-section p {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .policy-section p:last-child { margin-bottom: 0; }
+    .policy-section ul {
+      margin: 12px 0 12px 20px;
+      padding: 0;
+    }
+    .policy-section ul li {
+      font-size: 15px;
+      line-height: 1.75;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+    .policy-section a {
+      color: var(--violet);
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+    .policy-section a:hover { color: var(--deep); }
+
+    .highlight-box {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--violet);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .highlight-box p {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--slate);
+      margin: 0;
+    }
+
+    /* ── footer ──────────────────────────────────────────────────── */
+    footer {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+      padding: 32px clamp(24px, 6vw, 96px);
+      border-top: 1px solid var(--line);
+      background: var(--cream);
+    }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer-links a { color: var(--slate); font-size: 13px; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--ink); }
+    .footer-copy { color: var(--slate); font-size: 13px; }
+
+    @media (max-width: 820px) {
+      .nav-back span { display: none; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- nav -->
+  <header class="site-nav">
+    <a href="index.html">
+      <img class="logo" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+    </a>
+    <a href="index.html" class="nav-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Voltar ao início</span>
+    </a>
+    <a href="contato.html" class="btn-nav">Solicitar acesso</a>
+  </header>
+
+  <!-- page -->
+  <div class="policy-page">
+    <div class="policy-wrap">
+
+      <div class="policy-header">
+        <div class="policy-label">
+          <span class="policy-label-rule"></span>
+          Haile
+        </div>
+        <h1>Política de <em>Privacidade</em></h1>
+        <p class="policy-meta">Última atualização: maio de 2026</p>
+      </div>
+
+      <div class="policy-body">
+
+        <div class="highlight-box">
+          <p>A sua privacidade é importante para nós. Esta política explica de forma clara quais dados coletamos, como os usamos e quais são os seus direitos como titular. Leia com atenção — é um compromisso que levamos a sério.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>1. Quem somos</h2>
+          <p>O Haile é uma plataforma de coaching financeiro pessoal e familiar com inteligência artificial, desenvolvida pela <strong>Averse Tecnologia Ltda.</strong>, inscrita no CNPJ sob o nº a confirmar, com sede em São Paulo — SP.</p>
+          <p>Para dúvidas sobre esta política ou sobre o tratamento dos seus dados, entre em contato pelo e-mail <a href="mailto:privacidade@haile.com.br">privacidade@haile.com.br</a>.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>2. Dados que coletamos</h2>
+          <p>Coletamos apenas os dados necessários para prestar o serviço com qualidade:</p>
+          <ul>
+            <li><strong>Dados de cadastro:</strong> nome, e-mail e, se você criar um grupo familiar, o nome dos membros convidados.</li>
+            <li><strong>Dados financeiros:</strong> receitas, despesas, contas, metas e investimentos que você registra voluntariamente na plataforma.</li>
+            <li><strong>Dados de uso:</strong> interações com o Coach, preferências de personalidade, histórico de navegação dentro do app.</li>
+            <li><strong>Dados técnicos:</strong> endereço IP, tipo de dispositivo, sistema operacional e logs de acesso, coletados automaticamente para segurança e melhoria do serviço.</li>
+          </ul>
+          <p>Não coletamos dados de cartão de crédito, senhas bancárias ou credenciais de acesso a instituições financeiras.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>3. Como usamos seus dados</h2>
+          <p>Seus dados são usados para:</p>
+          <ul>
+            <li>Prestar e melhorar os serviços do Haile;</li>
+            <li>Personalizar os insights e orientações do Coach financeiro;</li>
+            <li>Enviar comunicações relevantes ao serviço (confirmações, alertas, novidades do produto);</li>
+            <li>Cumprir obrigações legais e regulatórias;</li>
+            <li>Prevenir fraudes e garantir a segurança da plataforma.</li>
+          </ul>
+          <p>Não vendemos, alugamos ou compartilhamos seus dados pessoais com terceiros para fins comerciais.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>4. Base legal para o tratamento</h2>
+          <p>O tratamento dos seus dados é realizado com base nas seguintes hipóteses previstas na Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018):</p>
+          <ul>
+            <li><strong>Execução de contrato:</strong> dados necessários para prestar o serviço contratado;</li>
+            <li><strong>Consentimento:</strong> para comunicações de marketing e funcionalidades opcionais;</li>
+            <li><strong>Interesse legítimo:</strong> melhoria do serviço, prevenção de fraudes e segurança;</li>
+            <li><strong>Cumprimento de obrigação legal:</strong> quando exigido por lei ou autoridade competente.</li>
+          </ul>
+        </div>
+
+        <div class="policy-section">
+          <h2>5. Compartilhamento de dados</h2>
+          <p>Seus dados podem ser compartilhados com:</p>
+          <ul>
+            <li><strong>Supabase:</strong> infraestrutura de banco de dados e autenticação, com servidores na região São Paulo (South America East);</li>
+            <li><strong>Resend:</strong> serviço de e-mail transacional para envio de notificações do produto;</li>
+            <li><strong>Provedores de IA:</strong> modelos de linguagem para geração de insights do Coach, mediante anonimização prévia dos dados sensíveis;</li>
+            <li><strong>Autoridades públicas:</strong> quando exigido por lei, ordem judicial ou regulamentação aplicável.</li>
+          </ul>
+          <p>Todos os parceiros são contratualmente obrigados a tratar seus dados com o mesmo nível de proteção aplicado pelo Haile.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>6. Retenção de dados</h2>
+          <p>Mantemos seus dados pelo tempo necessário para prestação do serviço e cumprimento de obrigações legais. Após encerramento da conta, os dados são excluídos ou anonimizados em até 90 dias, salvo quando a retenção for exigida por lei.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>7. Seus direitos</h2>
+          <p>Como titular de dados, você tem direito a:</p>
+          <ul>
+            <li>Confirmar a existência de tratamento dos seus dados;</li>
+            <li>Acessar os dados que mantemos sobre você;</li>
+            <li>Corrigir dados incompletos, inexatos ou desatualizados;</li>
+            <li>Solicitar a anonimização, bloqueio ou eliminação de dados desnecessários;</li>
+            <li>Solicitar a portabilidade dos seus dados;</li>
+            <li>Revogar o consentimento a qualquer momento;</li>
+            <li>Solicitar a exclusão dos seus dados pessoais.</li>
+          </ul>
+          <p>Para exercer seus direitos, entre em contato pelo e-mail <a href="mailto:privacidade@haile.com.br">privacidade@haile.com.br</a>. Respondemos em até 15 dias úteis.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>8. Segurança</h2>
+          <p>Adotamos medidas técnicas e organizacionais adequadas para proteger seus dados contra acesso não autorizado, perda, alteração ou divulgação indevida, incluindo criptografia em trânsito (TLS) e em repouso, controle de acesso por função e monitoramento contínuo.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>9. Cookies e tecnologias similares</h2>
+          <p>O Haile utiliza cookies estritamente necessários para o funcionamento da plataforma (autenticação e preferências de sessão). Não utilizamos cookies de rastreamento de terceiros para fins publicitários.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>10. Alterações nesta política</h2>
+          <p>Esta política pode ser atualizada periodicamente. Quando houver mudanças relevantes, você será notificado por e-mail ou pelo aviso dentro do app. A data de última atualização está sempre indicada no topo desta página.</p>
+        </div>
+
+        <div class="policy-section">
+          <h2>11. Contato</h2>
+          <p>Dúvidas, solicitações ou reclamações relacionadas à privacidade dos seus dados:</p>
+          <ul>
+            <li>E-mail: <a href="mailto:privacidade@haile.com.br">privacidade@haile.com.br</a></li>
+            <li>Encarregado de Dados (DPO): <a href="mailto:privacidade@haile.com.br">privacidade@haile.com.br</a></li>
+          </ul>
+          <p>Você também pode registrar reclamação junto à Autoridade Nacional de Proteção de Dados (ANPD) pelo site <a href="https://www.gov.br/anpd" target="_blank" rel="noopener">gov.br/anpd</a>.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <footer>
+    <img class="logo" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
+    <nav class="footer-links">
+      <a href="precos.html">Planos</a>
+      <a href="privacidade.html">Privacidade</a>
+      <a href="termos.html">Termos</a>
+      <a href="contato.html">Contato</a>
+    </nav>
+    <p class="footer-copy">© 2026 Haile. Todos os direitos reservados.</p>
+  </footer>
+
+</body>
+</html>
