@@ -7587,6 +7587,175 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   }
 
   // ══════════════════════════════════════════════════════════════
+  // ROTINA DO COACH — gera recados periódicos persistidos
+  // Roda em init(). Idempotente: cada recado tem routine_key único e
+  // só é criado se ainda não existe. Mesmo refresh múltiplo só gera 1.
+  //
+  // Calendário:
+  //   - Segunda          → weekly_recap (resumo da semana anterior)
+  //   - Quinta           → midweek_check (check de meio de semana)
+  //   - Dia 1-3 do mês   → month_open (plano do mês + retrospectiva)
+  //   - Dia 25-28        → month_close (faltam X dias, onde estamos)
+  //   - Eventos (sempre) → event_alert (limite estourado, anomalia, meta)
+  // ══════════════════════════════════════════════════════════════
+  function _isoWeekKey(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+  }
+
+  function _addRoutineRecado(routineKey, tipo, titulo, texto) {
+    const data = Store.get();
+    if (!data.recados) data.recados = [];
+    if (data.recados.some(r => r.routine_key === routineKey)) return false;
+    data.recados.unshift({
+      id: 'auto_' + routineKey,
+      tipo, titulo, texto,
+      data: new Date().toISOString(),
+      lido: false,
+      pessoa: null,
+      routine_key: routineKey,
+      source: 'coach_routine',
+    });
+    Store.persist();
+    return true;
+  }
+
+  function _coachWeeklyRecap(today) {
+    const wkKey = _isoWeekKey(today);
+    const routineKey = `weekly_recap_${wkKey}`;
+    // Calcula semana anterior (segunda passada → domingo passado)
+    const start = new Date(today);
+    start.setDate(start.getDate() - 7);
+    const end = new Date(today);
+    end.setDate(end.getDate() - 1);
+    const despSemana = (Store.get().despesas || []).filter(d => {
+      const dt = new Date(d.year, d.month - 1, d.day || 1);
+      return dt >= start && dt <= end;
+    });
+    const total = despSemana.reduce((a, d) => a + d.amount, 0);
+    const byCat = {};
+    despSemana.forEach(d => { byCat[d.category] = (byCat[d.category] || 0) + d.amount; });
+    const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+    const catLine = topCat
+      ? `O destaque foi ${Store.CATEGORIES[topCat[0]]?.label || topCat[0]} (${Utils.currency(topCat[1])}).`
+      : '';
+    const texto = total > 0
+      ? `Você gastou ${Utils.currency(total)} nos últimos 7 dias em ${despSemana.length} lançamentos. ${catLine} Esta semana é um bom momento pra revisar onde reforçar.`
+      : `Sem despesas registradas nos últimos 7 dias. Quer aproveitar pra organizar os lançamentos da semana?`;
+    return _addRoutineRecado(routineKey, 'insight', 'Resumo da semana', texto);
+  }
+
+  function _coachMidweekCheck(today) {
+    const wkKey = _isoWeekKey(today);
+    const routineKey = `midweek_check_${wkKey}`;
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    const anomalias = detectAnomalias(month, year);
+    let titulo, texto, tipo;
+    if (anomalias.length > 0) {
+      const a = anomalias[0];
+      titulo = `Atenção: ${a.label} fora do padrão`;
+      texto = `${Utils.currency(a.current)} em ${a.label} este mês — ${Math.round(a.delta * 100)}% acima da média (${Utils.currency(a.avg)}). ${anomalias.length > 1 ? `Mais ${anomalias.length - 1} categoria(s) também merecem revisão.` : 'Vale entender o que mudou.'}`;
+      tipo = 'alerta';
+    } else {
+      const receita = Store.sumReceitas(month, year);
+      const despesa = Store.sumDespesas(month, year);
+      const saldo = receita - despesa;
+      titulo = 'Meio de semana — tudo no ritmo';
+      texto = `Sem anomalias detectadas. Saldo do mês até agora: ${saldo >= 0 ? '+' : ''}${Utils.currency(saldo)}. Continue acompanhando seus lançamentos.`;
+      tipo = 'insight';
+    }
+    return _addRoutineRecado(routineKey, tipo, titulo, texto);
+  }
+
+  function _coachMonthOpen(today) {
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    const routineKey = `month_open_${year}-${String(month).padStart(2, '0')}`;
+    const prevM = month > 1 ? month - 1 : 12;
+    const prevY = month > 1 ? year : year - 1;
+    const prevRec = Store.sumReceitas(prevM, prevY);
+    const prevDesp = Store.sumDespesas(prevM, prevY);
+    const prevSaldo = prevRec - prevDesp;
+    const mNome = Utils.monthsFull[month - 1];
+    const mNomePrev = Utils.monthsFull[prevM - 1];
+    const texto = prevRec > 0 || prevDesp > 0
+      ? `${mNome} começou. Em ${mNomePrev} você teve ${Utils.currency(prevRec)} de receita, ${Utils.currency(prevDesp)} de despesa e saldo ${prevSaldo >= 0 ? '+' : ''}${Utils.currency(prevSaldo)}. ${prevSaldo > 0 ? 'Ótima base para repetir.' : 'Vamos juntos virar o jogo este mês.'}`
+      : `${mNome} começou. Vamos definir as prioridades juntos? Comece registrando suas receitas e despesas fixas.`;
+    return _addRoutineRecado(routineKey, 'insight', `${mNome} começou`, texto);
+  }
+
+  function _coachMonthClose(today) {
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    const routineKey = `month_close_${year}-${String(month).padStart(2, '0')}`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const remaining = lastDay - today.getDate();
+    const receita = Store.sumReceitas(month, year);
+    const despesa = Store.sumDespesas(month, year);
+    const saldo = receita - despesa;
+    const titulo = `Faltam ${remaining} dias do mês`;
+    const texto = `Você está em ${Utils.currency(despesa)} de despesa e ${Utils.currency(receita)} de receita — saldo ${saldo >= 0 ? '+' : ''}${Utils.currency(saldo)}. ${saldo > 0 ? `Bom espaço pra reforçar uma meta antes de virar o mês.` : `Vale segurar gastos nos próximos ${remaining} dias pra fechar melhor.`}`;
+    return _addRoutineRecado(routineKey, saldo >= 0 ? 'insight' : 'alerta', titulo, texto);
+  }
+
+  function _coachEventAlerts(today) {
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const data = Store.get();
+    const receita = Store.sumReceitas(month, year);
+    const despesa = Store.sumDespesas(month, year);
+    const util = receita > 0 ? despesa / receita : 0;
+    const limiteDespAbs = Store.getActiveLimiteDespMensal();
+    const limitePct = limiteDespAbs && receita > 0 ? (limiteDespAbs / receita) : (data.settings?.limiteGasto || 0.8);
+    let generated = 0;
+    // Evento: limite ultrapassado no mês corrente
+    if (util > limitePct) {
+      const routineKey = `event_limit_${monthKey}`;
+      const over = (util - limitePct) * receita;
+      if (_addRoutineRecado(
+        routineKey, 'alerta', 'Limite de gastos ultrapassado',
+        `Você passou ${Utils.currency(over)} acima do limite de ${Utils.pct(limitePct)} este mês. Vamos juntos identificar onde ajustar?`
+      )) generated++;
+    }
+    // Evento: meta de objetivo atingida (≥100%)
+    (data.metas || []).filter(m => m.type === 'objetivo' && m.active !== false).forEach(m => {
+      const perf = Store.getMetaPerformance(m.id, year, month);
+      if (perf.pct >= 1) {
+        const routineKey = `event_meta_${m.id}`;
+        if (_addRoutineRecado(
+          routineKey, 'meta', `Meta atingida: ${m.label}`,
+          `Você atingiu ${Utils.currency(perf.current)} do alvo de ${Utils.currency(perf.target)}. Excelente disciplina — hora de planejar a próxima conquista.`
+        )) generated++;
+      }
+    });
+    return generated;
+  }
+
+  function runCoachRoutine(forcedDate) {
+    const today = forcedDate ? new Date(forcedDate) : new Date();
+    const dow = today.getDay(); // 0=Dom, 1=Seg, 4=Qui
+    const dom = today.getDate(); // dia do mês
+    try {
+      if (dow === 1) _coachWeeklyRecap(today);
+      if (dow === 4) _coachMidweekCheck(today);
+      if (dom >= 1 && dom <= 3) _coachMonthOpen(today);
+      if (dom >= 25 && dom <= 28) _coachMonthClose(today);
+      _coachEventAlerts(today);
+    } catch (err) {
+      console.warn('[coach-routine] falha:', err);
+    }
+  }
+
+  // Expor pra DevTools/testes
+  window._coachRoutine = { runCoachRoutine, _coachWeeklyRecap, _coachMidweekCheck, _coachMonthOpen, _coachMonthClose, _coachEventAlerts };
+
+  // ══════════════════════════════════════════════════════════════
   // PAGE: REEMBOLSOS
   // ══════════════════════════════════════════════════════════════
   function renderReembolsos(container, mode = 'standalone') {
@@ -7679,7 +7848,8 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   function updateRecadosBadge() {
     const badge = document.getElementById('recadosBadge');
     if (!badge) return;
-    const count = Recados.unreadFor(currentPessoa());
+    // Conta não-lidos em data.recados (sistema unificado da rotina do Coach)
+    const count = (Store.get().recados || []).filter(r => !r.lido).length;
     badge.textContent = count;
     badge.style.display = count > 0 ? '' : 'none';
   }
@@ -8008,16 +8178,11 @@ ${renderPageMonthPicker(container)}
   // PAGE: RECADOS
   // ══════════════════════════════════════════════════════════════
   function renderRecados(container) {
-    // ── Seed de dados do Coach se não existir ─────────────────────
+    // Recados são gerados pela rotina do Coach (runCoachRoutine em init).
+    // Sem seed manual — se está vazio, é porque ainda não houve disparo
+    // de calendário/evento que justifique um recado.
     const data = Store.get();
-    if (!data.recados || data.recados.length === 0) {
-      data.recados = [
-        { id: 'rc1', tipo: 'insight', titulo: 'Excelente progresso em Maio!', texto: 'Seu Poder de Escolha aumentou comparado ao mês anterior. Você está no caminho certo.', data: new Date().toISOString(), lido: false, pessoa: null },
-        { id: 'rc2', tipo: 'alerta', titulo: 'Categoria Moradia acima do orçamento', texto: 'Seus gastos com Moradia estão acima do planejado este mês. Considere revisar suas despesas fixas.', data: new Date().toISOString(), lido: false, pessoa: null },
-        { id: 'rc3', tipo: 'dica', titulo: 'Oportunidade de economia identificada', texto: 'Você tem múltiplas assinaturas de streaming. Avaliar o uso real pode gerar economia mensal.', data: new Date().toISOString(), lido: true, pessoa: null },
-      ];
-      Store.persist();
-    }
+    if (!data.recados) data.recados = [];
 
     // ── helpers ────────────────────────────────────────────────────
     function fmtRelTime(isoStr) {
@@ -9484,6 +9649,10 @@ ${isConnected && isAdmin ? `
 
     // Init AI Coach
     initCoach();
+
+    // Coach: rotina de recados (idempotente, persistida em data.recados)
+    runCoachRoutine();
+    updateRecadosBadge();
 
     // Show onboarding wizard on first access
     if (!Store.getOnboarding().completed) {
