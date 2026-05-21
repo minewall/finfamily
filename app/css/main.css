@@ -4015,3 +4015,33 @@ body.sidebar-open { overflow: hidden; }
   padding: 2px 8px;
   border-radius: 10px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Excluir dentro do modal (em vez de ícone inline)
+═══════════════════════════════════════════════════════════════════ */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 74, 104, 0.3);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.btn-danger:hover {
+  background: rgba(255, 74, 104, 0.1);
+  border-color: var(--red);
+}
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Tornar linhas/cards clicáveis com cursor pointer e hover */
+tr.row-clickable { cursor: pointer; transition: background .12s; }
+tr.row-clickable:hover { background: var(--bg-hover) !important; }
+.card-clickable { cursor: pointer; transition: border-color .15s, transform .12s; }
+.card-clickable:hover { border-color: var(--accent); transform: translateY(-1px); }

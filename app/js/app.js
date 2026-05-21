@@ -96,15 +96,17 @@ const App = (function () {
       this.overlay.addEventListener('click', e => { if (e.target === this.overlay) this.close(); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') this.close(); });
     },
-    open(title, bodyHTML, onSave) {
+    open(title, bodyHTML, onSave, onDelete) {
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalBody').innerHTML = bodyHTML;
       const footer = document.createElement('div');
       footer.className = 'modal-footer';
-      footer.innerHTML = `<button class="btn-secondary" id="modalCancel">Cancelar</button><button class="btn-primary" id="modalSave">Salvar</button>`;
+      const deleteBtn = onDelete ? `<button class="btn-danger" id="modalDelete">${icon('trash-2', {size:14})} Excluir</button><div style="flex:1"></div>` : '';
+      footer.innerHTML = `${deleteBtn}<button class="btn-secondary" id="modalCancel">Cancelar</button><button class="btn-primary" id="modalSave">Salvar</button>`;
       document.getElementById('modal').appendChild(footer);
       document.getElementById('modalCancel').addEventListener('click', () => this.close());
-      if (onSave) document.getElementById('modalSave').addEventListener('click', onSave);
+      if (onSave)   document.getElementById('modalSave').addEventListener('click', onSave);
+      if (onDelete) document.getElementById('modalDelete').addEventListener('click', onDelete);
       this.overlay.classList.add('open');
       this.overlay.setAttribute('aria-hidden', 'false');
       // Upgrade lucide icons inside modal
@@ -1463,9 +1465,8 @@ ${filtered.map(d => {
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td>${statusBadge}</td>
-  <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card)">
+  <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card);width:42px">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
-    <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
   </td>
 </tr>`;}).join('')}
 </tbody>
@@ -1500,9 +1501,8 @@ ${filtered.map(r => {
   <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
-  <td style="white-space:nowrap">
+  <td style="white-space:nowrap;width:42px">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido ✓':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
-    <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
   </td>
 </tr>`;}).join('')}
 </tbody>
@@ -1989,9 +1989,6 @@ ${coachInlineHTML({
           </td>
           <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
-          <td style="white-space:nowrap">
-            <button class="btn-icon-sm danger" data-del-rec="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
-          </td>
         </tr>`;}).join('')}
       </tbody>
     </table>
@@ -2311,11 +2308,8 @@ ${anomaliasHTML(anomalias, total)}
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
-  <td style="white-space:nowrap">
-    <button class="btn-icon-sm danger" data-del-desp="${d.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
-  </td>
 </tr>`}).join('')}</tbody>
-<tfoot><tr><td colspan="4" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td><td></td></tr></tfoot>
+<tfoot><tr><td colspan="4" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td></tr></tfoot>
 </table>`;
     }
 
@@ -3467,7 +3461,7 @@ ${contratos.length === 0 ? `
           };
           const tc = TIPO_CONTRATO_CFG[c.tipoContrato || 'outro'];
           const dotColor = cat.color || (isRec ? 'var(--green)' : 'var(--accent)');
-          return `<tr style="cursor:pointer" data-action="toggle-detail" data-id="${c.id}">
+          return `<tr class="row-clickable" data-action="edit-contrato" data-id="${c.id}">
             <td>
               <span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span>
               <div style="margin-top:4px"><span style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span></div>
@@ -3491,8 +3485,6 @@ ${contratos.length === 0 ? `
             <td style="white-space:nowrap">
               <button class="btn-icon-sm" data-action="toggle-detail" data-id="${c.id}" title="Ver parcelas">${icon(isExpanded ? 'chevron-down' : 'chevron-right', {size:14})}</button>
               <button class="btn-icon-sm success" data-action="mark-past" data-id="${c.id}" title="Marcar passadas como pagas">${icon('check-check', {size:14})}</button>
-              <button class="btn-icon-sm" data-action="edit-contrato" data-id="${c.id}" title="Editar">${icon('pencil', {size:14})}</button>
-              <button class="btn-icon-sm danger" data-action="del-contrato" data-id="${c.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
             </td>
           </tr>${detailRows}`;
         }).join('')
@@ -3635,14 +3627,21 @@ ${contratos.length === 0 ? `
       }
       if (isEdit) {
         Store.updateContrato(contrato.id, data);
-        toast('Contrato atualizado — lançamentos regerados', 'success');
+        toast('Compromisso atualizado — lançamentos regerados', 'success');
       } else {
         Store.addContrato(data);
-        toast('Contrato criado — lançamentos gerados', 'success');
+        toast('Compromisso criado — lançamentos gerados', 'success');
       }
       Modal.close();
       renderContratos(container);
-    });
+    }, isEdit ? () => {
+      // Excluir compromisso (e seus lançamentos vinculados)
+      if (!confirm('Excluir este compromisso? Os lançamentos vinculados também serão removidos.')) return;
+      Store.deleteContrato(contrato.id, true);
+      Modal.close();
+      toast('Compromisso removido', 'success');
+      renderContratos(container);
+    } : null);
 
     setTimeout(() => {
       const kindSel = document.getElementById('fCKind');
@@ -5800,6 +5799,13 @@ ${topCats.length ? `
       toast('Despesa atualizada!', 'success');
       updateReembolsosBadge();
       if (onSaved) onSaved();
+    }, () => {
+      // Excluir (dentro do modal de edição — redesign 2026-05)
+      if (!confirm('Excluir esta despesa? A ação não pode ser desfeita.')) return;
+      Store.deleteDespesa(id);
+      Modal.close();
+      toast('Despesa removida', 'success');
+      if (onSaved) onSaved();
     });
 
     setTimeout(() => {
@@ -5883,6 +5889,13 @@ ${topCats.length ? `
       });
       Modal.close();
       toast('Receita atualizada!', 'success');
+      if (onSaved) onSaved();
+    }, () => {
+      // Excluir (dentro do modal — redesign 2026-05)
+      if (!confirm('Excluir esta receita? A ação não pode ser desfeita.')) return;
+      Store.deleteReceita(id);
+      Modal.close();
+      toast('Receita removida', 'success');
       if (onSaved) onSaved();
     });
   }
@@ -8691,16 +8704,12 @@ ${iptus.length ? `
   <table class="data-table">
     <thead><tr><th>Imóvel</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th><th></th></tr></thead>
     <tbody>
-      ${iptus.map(t => `<tr>
+      ${iptus.map(t => `<tr class="row-clickable" data-edit-trib="${t.id}">
         <td>${t.label}</td>
         <td>${t.pessoa || '—'}</td>
         <td class="num">${Utils.currency(t.valor || 0)}</td>
         <td class="num">${t.parcelas || 1}</td>
         <td class="num"><span class="badge ${t.pagas >= (t.parcelas || 1) ? 'badge-green' : 'badge-amber'}">${t.pagas || 0}/${t.parcelas || 1}</span></td>
-        <td style="white-space:nowrap;text-align:right">
-          <button class="btn-icon-sm" data-edit-trib="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-del-trib="${t.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
-        </td>
       </tr>`).join('')}
     </tbody>
   </table>
@@ -8710,18 +8719,14 @@ ${ipvas.length ? `
 <div class="dash-section-tag mb-2">IPVA — VEÍCULOS</div>
 <div class="card mb-6" style="padding:0;overflow:hidden">
   <table class="data-table">
-    <thead><tr><th>Veículo</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th><th></th></tr></thead>
+    <thead><tr><th>Veículo</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th></tr></thead>
     <tbody>
-      ${ipvas.map(t => `<tr>
+      ${ipvas.map(t => `<tr class="row-clickable" data-edit-trib="${t.id}">
         <td>${t.label}${t.placa ? `<div style="font-size:10px;color:var(--text-4);margin-top:2px;font-family:var(--mono)">${t.placa}</div>` : ''}</td>
         <td>${t.pessoa || '—'}</td>
         <td class="num">${Utils.currency(t.valor || 0)}</td>
         <td class="num">${t.parcelas || 1}</td>
         <td class="num"><span class="badge ${t.pagas >= (t.parcelas || 1) ? 'badge-green' : 'badge-amber'}">${t.pagas || 0}/${t.parcelas || 1}</span></td>
-        <td style="white-space:nowrap;text-align:right">
-          <button class="btn-icon-sm" data-edit-trib="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-del-trib="${t.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
-        </td>
       </tr>`).join('')}
     </tbody>
   </table>
@@ -8731,16 +8736,12 @@ ${outrs.length ? `
 <div class="dash-section-tag mb-2">OUTROS TRIBUTOS E TAXAS</div>
 <div class="card mb-6" style="padding:0;overflow:hidden">
   <table class="data-table">
-    <thead><tr><th>Descrição</th><th>Responsável</th><th class="num">Valor</th><th></th></tr></thead>
+    <thead><tr><th>Descrição</th><th>Responsável</th><th class="num">Valor</th></tr></thead>
     <tbody>
-      ${outrs.map(t => `<tr>
+      ${outrs.map(t => `<tr class="row-clickable" data-edit-trib="${t.id}">
         <td>${t.label}</td>
         <td>${t.pessoa || '—'}</td>
         <td class="num">${Utils.currency(t.valor || 0)}</td>
-        <td style="white-space:nowrap;text-align:right">
-          <button class="btn-icon-sm" data-edit-trib="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-del-trib="${t.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
-        </td>
       </tr>`).join('')}
     </tbody>
   </table>
@@ -8779,14 +8780,7 @@ ${outrs.length ? `
           if (t) openTributoModal(t, container);
         })
       );
-      container.querySelectorAll('[data-del-trib]').forEach(b =>
-        b.addEventListener('click', () => {
-          if (!confirm('Excluir este tributo? A ação não pode ser desfeita.')) return;
-          Store.deleteTributo(b.dataset.delTrib);
-          renderTributario(container);
-          toast('Tributo removido', 'success');
-        })
-      );
+      // Botões data-del-trib removidos — Excluir agora vive dentro do modal de edição
     }
     bindActions();
   }
@@ -8882,7 +8876,14 @@ ${outrs.length ? `
       Modal.close();
       renderTributario(container);
       toast(isEdit ? 'Tributo atualizado' : 'Tributo criado', 'success');
-    });
+    }, isEdit ? () => {
+      // Excluir tributo (dentro do modal — redesign 2026-05)
+      if (!confirm('Excluir este tributo? A ação não pode ser desfeita.')) return;
+      Store.deleteTributo(tributo.id);
+      Modal.close();
+      renderTributario(container);
+      toast('Tributo removido', 'success');
+    } : null);
     // Toggle de campos por tipo
     setTimeout(() => {
       const tipoSel = document.getElementById('fTbTipo');
@@ -10503,25 +10504,22 @@ ${isConnected && isAdmin ? `
   }
 
   function renderConfigAparencia(content) {
-    const tema = Store.get().settings.tema || 'dark';
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Aparência</div>
   <div class="section-sub">Tema visual da aplicação</div></div>
 </div>
-<div class="card">
-  <div style="display:flex;gap:8px;align-items:center">
-    <span style="flex:1;font-size:14px;color:var(--text-1)">Tema</span>
-    <button class="btn-secondary ${tema==='light'?'active':''}" data-tema="light">☀ Claro</button>
-    <button class="btn-secondary ${tema==='dark'?'active':''}" data-tema="dark">🌙 Escuro</button>
+<div class="card" style="padding:18px 20px">
+  <div style="display:flex;align-items:flex-start;gap:14px">
+    <div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px">Tema escuro (padrão)</div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.55">O Haile foi desenhado com tema escuro para reduzir cansaço visual em sessões prolongadas. Tema claro está no roadmap.</div>
+    </div>
   </div>
 </div>`;
-    content.querySelectorAll('[data-tema]').forEach(b => b.addEventListener('click', () => {
-      const next = b.dataset.tema;
-      document.documentElement.dataset.theme = next;
-      Store.updateSettings({ tema: next });
-      renderConfigAparencia(content);
-    }));
   }
 
   const AVATAR_OPTIONS = ['👤','👨','👩','🧑','👨‍💼','👩‍💼','🧔','👱','🧑‍💻','👨‍💻','👩‍💻'];
@@ -10923,20 +10921,11 @@ ${isConnected && isAdmin ? `
       if (btn) openNovaEntrada();
     });
 
-    // Logout button
-    // Theme toggle (sidebar footer)
+    // Tema: fixado em dark (redesign 2026-05 — app é dark-only)
+    // O tema light ainda existe no CSS como fallback mas não é mais selecionável.
     (() => {
-      const saved = localStorage.getItem('ff_theme');
-      if (saved === 'light' || saved === 'dark') {
-        document.documentElement.setAttribute('data-theme', saved);
-      }
-      const btn = document.getElementById('btnThemeToggle');
-      btn?.addEventListener('click', () => {
-        const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-        const next = cur === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('ff_theme', next);
-      });
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('ff_theme', 'dark');
     })();
 
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
