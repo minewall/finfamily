@@ -1284,7 +1284,30 @@ const Store = (function () {
 
   // ── CONTRATOS ──────────────────────────────────────────────────
   function _ensureContratos() {
-    if (!_data.contratos) { _data.contratos = []; persist(); }
+    if (!_data.contratos) { _data.contratos = []; persist(); return; }
+    // Migration silenciosa: campo `natureza` ('recorrente' | 'divida')
+    // adicionado em 2026-05-21 pela renomeação Contratos → Compromissos.
+    // Heurística para existentes:
+    //   - parcelas >= 360 (30 anos+) OU sem prazo definido → recorrente
+    //   - tem saldoDevedor OU valorPrincipal OU label sugere financiamento → divida
+    //   - default → recorrente
+    let dirty = false;
+    for (const c of _data.contratos) {
+      if (c.natureza) continue;
+      const label = (c.label || '').toLowerCase();
+      const looksLikeDebt = !!(c.saldoDevedor || c.valorPrincipal)
+        || /financ|empréstimo|emprestimo|crédito|credito\s+consig/.test(label);
+      const longRunning = (c.parcelas || 0) >= 360 || (c.parcelas || 0) === 0;
+      c.natureza = looksLikeDebt && !longRunning ? 'divida' : 'recorrente';
+      dirty = true;
+    }
+    if (dirty) persist();
+  }
+
+  // ── Aliases semânticos: Compromissos = Contratos (redesign 2026-05) ──
+  function getCompromissos() { return getContratos(); }
+  function getCompromissosByNatureza(nat) {
+    return getContratos().filter(c => (c.natureza || 'recorrente') === nat);
   }
 
   function _removeLancamentosByContrato(contratoId) {
@@ -1693,13 +1716,39 @@ const Store = (function () {
     persist();
   }
 
+  // ─── Onboarding ───────────────────────────────────────────────
+  // Os steps do onboarding viram steps da meta automática "Configurar meu Haile"
+  const ONBOARDING_STEPS = [
+    { key: 'apresentacao',  label: 'Apresentação do Haile' },
+    { key: 'personalidade', label: 'Como o Haile fala com você' },
+    { key: 'nome',          label: 'Seu nome e avatar' },
+    { key: 'familia',       label: 'Sua estrutura familiar' },
+    { key: 'situacao',      label: 'Sua situação financeira' },
+    { key: 'objetivo',      label: 'Seu objetivo principal' },
+    { key: 'primeira_acao', label: 'Por onde começamos' },
+  ];
+
   function _ensureOnboarding() {
     if (!_data.onboarding) {
       // Usuários com dados existentes pulam o onboarding automaticamente
       const hasData = (_data.receitas && _data.receitas.length > 0)
         || (_data.despesas && _data.despesas.length > 0)
         || (_data.contas && _data.contas.length > 0);
-      _data.onboarding = { completed: hasData, completedAt: hasData ? new Date().toISOString() : null, answers: {} };
+      _data.onboarding = {
+        completed: hasData,
+        completedAt: hasData ? new Date().toISOString() : null,
+        startedAt: null,
+        pausedAtStep: 0,
+        goalId: null,
+        lastReminderAt: null,
+        answers: {},
+      };
+    } else {
+      // Migration — garante campos novos em onboarding antigo
+      if (_data.onboarding.startedAt === undefined)      _data.onboarding.startedAt = null;
+      if (_data.onboarding.pausedAtStep === undefined)   _data.onboarding.pausedAtStep = 0;
+      if (_data.onboarding.goalId === undefined)         _data.onboarding.goalId = null;
+      if (_data.onboarding.lastReminderAt === undefined) _data.onboarding.lastReminderAt = null;
     }
   }
 
@@ -1708,11 +1757,76 @@ const Store = (function () {
     return _data.onboarding;
   }
 
+  function getOnboardingSteps() {
+    return ONBOARDING_STEPS.slice();
+  }
+
+  function createOnboardingGoal() {
+    _ensureOnboarding();
+    // Se já existe meta vinculada e ainda está nas metas, devolve
+    if (_data.onboarding.goalId) {
+      const existing = (_data.metas || []).find(m => m.id === _data.onboarding.goalId);
+      if (existing) return existing;
+      _data.onboarding.goalId = null; // órfão, recria
+    }
+    const now = new Date();
+    const deadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const meta = {
+      id: 'meta-onboarding-' + now.getTime(),
+      label: 'Configurar meu Haile',
+      type: 'setup',
+      system: true,
+      active: true,
+      createdAt: now.toISOString(),
+      deadline: deadline.toISOString(),
+      steps: ONBOARDING_STEPS.map(s => ({ key: s.key, label: s.label, completed: false, completedAt: null })),
+    };
+    if (!_data.metas) _data.metas = [];
+    _data.metas.push(meta);
+    _data.onboarding.goalId = meta.id;
+    if (!_data.onboarding.startedAt) _data.onboarding.startedAt = now.toISOString();
+    persist();
+    return meta;
+  }
+
+  function getOnboardingGoal() {
+    _ensureOnboarding();
+    if (!_data.onboarding.goalId) return null;
+    return (_data.metas || []).find(m => m.id === _data.onboarding.goalId) || null;
+  }
+
+  function markOnboardingStep(stepKey) {
+    const meta = getOnboardingGoal();
+    if (!meta || !Array.isArray(meta.steps)) return;
+    const step = meta.steps.find(s => s.key === stepKey);
+    if (!step || step.completed) return;
+    step.completed = true;
+    step.completedAt = new Date().toISOString();
+    persist();
+  }
+
+  function _markAllOnboardingStepsCompleted() {
+    const meta = getOnboardingGoal();
+    if (!meta || !Array.isArray(meta.steps)) return;
+    const now = new Date().toISOString();
+    meta.steps.forEach(s => { if (!s.completed) { s.completed = true; s.completedAt = now; } });
+  }
+
   function completeOnboarding(answers) {
     _ensureOnboarding();
     _data.onboarding.completed = true;
     _data.onboarding.completedAt = new Date().toISOString();
     _data.onboarding.answers = answers || {};
+    _markAllOnboardingStepsCompleted();
+    persist();
+  }
+
+  function pauseOnboarding(stepIndex, partialAnswers) {
+    _ensureOnboarding();
+    _data.onboarding.pausedAtStep = stepIndex || 0;
+    if (partialAnswers && typeof partialAnswers === 'object') {
+      _data.onboarding.answers = Object.assign({}, _data.onboarding.answers, partialAnswers);
+    }
     persist();
   }
 
@@ -1720,7 +1834,15 @@ const Store = (function () {
     _ensureOnboarding();
     _data.onboarding.completed = false;
     _data.onboarding.completedAt = null;
+    _data.onboarding.startedAt = null;
+    _data.onboarding.pausedAtStep = 0;
+    _data.onboarding.lastReminderAt = null;
     _data.onboarding.answers = {};
+    // Remove meta órfã associada
+    if (_data.onboarding.goalId && Array.isArray(_data.metas)) {
+      _data.metas = _data.metas.filter(m => m.id !== _data.onboarding.goalId);
+    }
+    _data.onboarding.goalId = null;
     persist();
   }
 
@@ -2107,6 +2229,7 @@ const Store = (function () {
     descSuggestions, receitaSuggestions,
     categoriesOrdered, getCategoryOrder, setCategoryOrder,
     addContrato, updateContrato, deleteContrato, getContratos, getContratoById, getContratoPerformance, regenAllContratos, markAllPastParcelas,
+    getCompromissos, getCompromissosByNatureza,
     getSubcatTipo, setSubcatTipo, clearSubcatTipoOverride, sumDespesasByTipo,
     getTipos, getTipoById, addTipo, updateTipo, deleteTipo,
     getCatTipo, setCatTipo, getDespesaTipo, calcPoderDeEscolha,
@@ -2119,7 +2242,8 @@ const Store = (function () {
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
     getProfile, setProfile, getCredHash, setCredHash,
-    getOnboarding, completeOnboarding, resetOnboarding,
+    getOnboarding, getOnboardingSteps, completeOnboarding, resetOnboarding, pauseOnboarding,
+    createOnboardingGoal, getOnboardingGoal, markOnboardingStep,
     addMeta,
     applyMemberFilter,
     syncFromCloud,

@@ -3108,7 +3108,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     const despesaMes = Store.sumDespesas(month, year);
 
     // build rows with status
-    const rows = contratos.map(c => ({
+    let rows = contratos.map(c => ({
       c, perf: Store.getContratoPerformance(c.id),
     })).map(({c, perf}) => ({ c, perf, status: calcStatus(c, perf) }));
 
@@ -3119,19 +3119,46 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 
     const pessoas = [...new Set(contratos.map(c => c.responsavel).filter(Boolean))];
 
+    // ── Sub-nav natureza (Compromissos = Recorrentes + Dívidas) ──
+    const naturezaTab = localStorage.getItem('ff_comp_natureza') || 'todos';
+    const nRec = contratos.filter(c => (c.natureza || 'recorrente') === 'recorrente').length;
+    const nDiv = contratos.filter(c => c.natureza === 'divida').length;
+
+    // Filtra rows pela natureza selecionada
+    if (naturezaTab !== 'todos') {
+      rows = rows.filter(r => {
+        const c = contratos.find(x => x.id === r.id);
+        return c && ((c.natureza || 'recorrente') === naturezaTab);
+      });
+    }
+
     container.innerHTML = `
 <div class="page-head mb-4">
   <div>
-    <h1 class="page-head-title">Contratos</h1>
+    <h1 class="page-head-title">Compromissos</h1>
     <p class="page-head-meta">
-      <span class="page-head-meta-total">${contratos.length} contrato${contratos.length!==1?'s':''}</span>
+      <span class="page-head-meta-total">${contratos.length} compromisso${contratos.length!==1?'s':''}</span>
       ${rows.filter(r => r.status === 'ativo').length ? `<span class="page-head-meta-sep">·</span><span style="color:var(--green);font-weight:600">${rows.filter(r => r.status === 'ativo').length} ativo${rows.filter(r => r.status === 'ativo').length!==1?'s':''}</span>` : ''}
       ${rows.filter(r => r.status === 'atrasado').length ? `<span class="page-head-meta-sep">·</span><span style="color:var(--red);font-weight:600">${rows.filter(r => r.status === 'atrasado').length} atrasado${rows.filter(r => r.status === 'atrasado').length!==1?'s':''}</span>` : ''}
       <span class="page-head-meta-sep">·</span>
-      <span style="color:var(--text-3)">parcelas alimentam Receitas/Despesas automaticamente</span>
+      <span style="color:var(--text-3)">contratos recorrentes e dívidas — parcelas viram Receitas/Despesas</span>
     </p>
   </div>
-  <button class="btn-primary" id="btnAddContrato">+ Novo Contrato</button>
+  <button class="btn-primary" id="btnAddContrato">+ Novo Compromisso</button>
+</div>
+
+<div class="view-tabs mb-4">
+  <button class="view-tab view-tab--violet ${naturezaTab==='todos'?'active':''}" data-nat-tab="todos">
+    Todos <span style="opacity:0.7;margin-left:4px">(${contratos.length})</span>
+  </button>
+  <button class="view-tab view-tab--green ${naturezaTab==='recorrente'?'active':''}" data-nat-tab="recorrente">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    Recorrentes <span style="opacity:0.7;margin-left:4px">(${nRec})</span>
+  </button>
+  <button class="view-tab view-tab--red ${naturezaTab==='divida'?'active':''}" data-nat-tab="divida">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Dívidas <span style="opacity:0.7;margin-left:4px">(${nDiv})</span>
+  </button>
 </div>
 
 <div class="kpi-grid mb-6">
@@ -3334,6 +3361,11 @@ ${contratos.length === 0 ? `
           localStorage.setItem('ff_contratos_status', statusBtn.dataset.status);
           renderContratos(container);
         }
+        const natBtn = e.target.closest('[data-nat-tab]');
+        if (natBtn) {
+          localStorage.setItem('ff_comp_natureza', natBtn.dataset.natTab);
+          renderContratos(container);
+        }
       });
       container.addEventListener('change', e => {
         if (e.target.id === 'contratosPessoa') {
@@ -3352,10 +3384,16 @@ ${contratos.length === 0 ? `
     const today = new Date().toISOString().slice(0,10);
     const html = `<div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Contrato Bridge" value="${c.label||''}"/></div>
-      <div class="form-group"><label class="form-label">Natureza</label>
+      <div class="form-group"><label class="form-label">Tipo</label>
         <select class="form-select" id="fCKind">
-          <option value="despesa" ${c.kind==='despesa'||!isEdit?'selected':''}>💸 Despesa</option>
-          <option value="receita" ${c.kind==='receita'?'selected':''}>💰 Receita</option>
+          <option value="despesa" ${c.kind==='despesa'||!isEdit?'selected':''}>Despesa</option>
+          <option value="receita" ${c.kind==='receita'?'selected':''}>Receita</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Categoria do compromisso</label>
+        <select class="form-select" id="fCNatureza">
+          <option value="recorrente" ${(c.natureza||'recorrente')==='recorrente'?'selected':''}>Recorrente (assinatura, aluguel, salário)</option>
+          <option value="divida" ${c.natureza==='divida'?'selected':''}>Dívida (financiamento, empréstimo)</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Tipo de Contrato</label>
@@ -3393,10 +3431,11 @@ ${contratos.length === 0 ? `
       </div>
       <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fCNotes" value="${c.notes||''}"/></div>
     </div>`;
-    Modal.open(isEdit ? 'Editar Contrato' : 'Novo Contrato', html, () => {
+    Modal.open(isEdit ? 'Editar Compromisso' : 'Novo Compromisso', html, () => {
       const data = {
         label: document.getElementById('fCLabel').value.trim(),
         kind:  document.getElementById('fCKind').value,
+        natureza: document.getElementById('fCNatureza').value,
         responsavel: document.getElementById('fCResp').value,
         category: document.getElementById('fCCat').value,
         sub: document.getElementById('fCSub').value,
@@ -9688,6 +9727,7 @@ ${isConnected && isAdmin ? `
     Router.register('contas',        (c) => renderContas(c, 'contas'));
     Router.register('cartoes',       renderCartoes);
     Router.register('contratos',     renderContratos);
+    Router.register('compromissos',  renderContratos); // alias do redesign
     Router.register('reserva',       renderReserva);
     Router.register('metas',         renderMetas);
     Router.register('investimentos', renderInvestimentos);
