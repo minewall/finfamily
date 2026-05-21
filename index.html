@@ -1,1783 +1,2426 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- SEO -->
-    <meta name="description" content="O Haile é o coach financeiro com inteligência artificial que ajuda sua família a tomar decisões mais inteligentes, planejar conquistas e construir tranquilidade patrimonial." />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://haile.com.br/" />
-
-    <!-- Open Graph -->
-    <meta property="og:type"        content="website" />
-    <meta property="og:site_name"   content="Haile" />
-    <meta property="og:title"       content="Haile — Coach Financeiro Familiar com IA" />
-    <meta property="og:description" content="O Haile é o coach financeiro com inteligência artificial que ajuda sua família a tomar decisões mais inteligentes, planejar conquistas e construir tranquilidade patrimonial." />
-    <meta property="og:url"         content="https://haile.com.br/" />
-    <meta property="og:image"       content="https://haile.com.br/og-image.jpg" />
-    <meta property="og:locale"      content="pt_BR" />
-
-    <!-- Twitter / X -->
-    <meta name="twitter:card"        content="summary_large_image" />
-    <meta name="twitter:title"       content="Haile — Coach Financeiro Familiar com IA" />
-    <meta name="twitter:description" content="O Haile é o coach financeiro com inteligência artificial que ajuda sua família a tomar decisões mais inteligentes, planejar conquistas e construir tranquilidade patrimonial." />
-    <meta name="twitter:image"       content="https://haile.com.br/og-image.jpg" />
-    <title>Haile — Coach Financeiro Familiar com IA</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
-    <style>
-      /* ─── tokens ──────────────────────────────────────────────────── */
-      :root {
-        /* brand violet — alinhado com #7367F0 dos SVGs da marca */
-        --violet:  #7367F0;
-        --deep:    #5048CC;
-        --soft:    #F0EFFE;
-        --ink:     #0f1020;
-        --slate:   #5b5e73;
-        --cream:   #faf9f6;
-        --line:    #e6e4f4;
-        --white:   #ffffff;
-
-        /* shadows com matiz violeta */
-        --shadow-violet: rgba(115, 103, 240, 0.28);
-        --shadow-ink:    rgba(15, 16, 32, 0.18);
-      }
-
-      *, *::before, *::after { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
-
-      body {
-        margin: 0;
-        background: var(--cream);
-        color: var(--ink);
-        font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-        -webkit-font-smoothing: antialiased;
-      }
-
-      button, a { font: inherit; }
-      h1, h2, h3, p, figure { margin: 0; }
-
-      /* ─── nav ─────────────────────────────────────────────────────── */
-      .site-nav {
-        position: fixed;
-        inset: 0 0 auto 0;
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        padding: 20px clamp(24px, 6vw, 96px);
-        transition: background 0.4s ease, box-shadow 0.4s ease;
-      }
-      /* on dark hero: white links */
-      .site-nav .nav-links a { color: rgba(255,255,255,0.62); }
-      .site-nav .nav-links a:hover { color: var(--white); }
-      .site-nav.scrolled {
-        background: rgba(15, 16, 32, 0.92);
-        backdrop-filter: blur(22px);
-        -webkit-backdrop-filter: blur(22px);
-        box-shadow: 0 1px 0 rgba(255,255,255,0.06);
-      }
-      /* once past hero, switch to cream nav */
-      .site-nav.light {
-        background: rgba(250, 249, 246, 0.92);
-        backdrop-filter: blur(22px);
-        -webkit-backdrop-filter: blur(22px);
-        box-shadow: 0 1px 0 var(--line);
-      }
-      .site-nav.light .nav-links a { color: var(--slate); }
-      .site-nav.light .nav-links a:hover { color: var(--ink); }
-      .site-nav.light .logo-dark { display: block; }
-      .site-nav.light .logo-white { display: none; }
-      .logo-dark { display: none; }
-      .logo-white { display: block; }
-
-      .logo { height: 26px; }
-
-      .nav-links {
-        display: flex;
-        gap: 34px;
-        font-size: 14px;
-      }
-      .nav-links a {
-        text-decoration: none;
-        transition: color 0.2s;
-      }
-
-      /* ─── buttons ─────────────────────────────────────────────────── */
-      .button {
-        border: 0;
-        border-radius: 999px;
-        cursor: pointer;
-        padding: 15px 24px;
-        font-weight: 700;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .button:hover { transform: translateY(-2px); }
-      .button.dark {
-        background: var(--ink);
-        color: var(--white);
-        box-shadow: 0 16px 40px var(--shadow-ink);
-      }
-      .button.primary {
-        background: var(--violet);
-        color: var(--white);
-        box-shadow: 0 20px 60px var(--shadow-violet);
-      }
-      .button.primary:hover {
-        box-shadow: 0 28px 70px var(--shadow-violet);
-      }
-      .button.ghost {
-        border: 1px solid #d4d2f0;
-        background: rgba(255,255,255,0.72);
-        color: var(--ink);
-        backdrop-filter: blur(18px);
-      }
-      .button.white {
-        background: var(--white);
-        color: var(--ink);
-      }
-      .button.outline {
-        border: 1px solid rgba(255,255,255,0.25);
-        background: transparent;
-        color: var(--white);
-      }
-
-      /* ─── reveal animations ───────────────────────────────────────── */
-      .reveal {
-        opacity: 0;
-        transform: translateY(28px);
-        transition: opacity 0.72s ease, transform 0.72s ease;
-      }
-      .reveal.visible {
-        opacity: 1;
-        transform: none;
-      }
-      .reveal[data-delay="1"] { transition-delay: 0.10s; }
-      .reveal[data-delay="2"] { transition-delay: 0.20s; }
-      .reveal[data-delay="3"] { transition-delay: 0.30s; }
-      .reveal[data-delay="4"] { transition-delay: 0.40s; }
-
-      /* ─── hero — editorial dark ───────────────────────────────────── */
-      .hero {
-        position: relative;
-        min-height: 100vh;
-        background: var(--ink);
-        color: var(--white);
-        padding: calc(88px + 6vh) clamp(24px, 6vw, 96px) 80px;
-        overflow: hidden;
-      }
-
-      /* violet glow behind headline */
-      .glow {
-        position: absolute;
-        pointer-events: none;
-        border-radius: 999px;
-        filter: blur(120px);
-      }
-      .glow.one {
-        top: -60px; left: 20%;
-        width: 600px; height: 400px;
-        background: rgba(115, 103, 240, 0.18);
-      }
-      .glow.two {
-        right: 8%; bottom: 10%;
-        width: 480px; height: 480px;
-        background: rgba(80, 72, 204, 0.14);
-      }
-
-      /* wordmark watermark behind hero — discreet ghost */
-      .hero-watermark {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        width: 105vw;
-        max-width: 1400px;
-        opacity: 0.05;
-        pointer-events: none;
-        z-index: 0;
-        user-select: none;
-      }
-      .hero-watermark img { display: block; width: 100%; height: auto; }
-
-      .hero-grid {
-        position: relative;
-        z-index: 2;
-        display: grid;
-        min-height: calc(100vh - 160px);
-        grid-template-columns: 1fr 1fr;
-        align-items: center;
-        gap: clamp(48px, 6vw, 96px);
-      }
-      .hero-grid > * { min-width: 0; }
-
-      /* editorial label line */
-      .hero-label {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 28px;
-      }
-      .hero-label-rule {
-        width: 32px;
-        height: 1px;
-        background: var(--violet);
-        flex-shrink: 0;
-      }
-      .hero-label-text {
-        color: rgba(255,255,255,0.55);
-        font-size: 13px;
-        font-weight: 500;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-      }
-
-      /* headline in DM Serif Display */
-      h1 {
-        font-family: "DM Serif Display", Georgia, serif;
-        font-size: clamp(52px, 7vw, 108px);
-        line-height: 1.0;
-        font-weight: 400;
-        letter-spacing: -0.01em;
-        color: var(--white);
-        text-wrap: pretty;
-      }
-      h1 em {
-        font-style: italic;
-        color: var(--violet);
-      }
-
-      .lead {
-        max-width: 540px;
-        margin-top: 28px;
-        color: rgba(255,255,255,0.62);
-        font-size: clamp(16px, 1.6vw, 19px);
-        line-height: 1.68;
-      }
-
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 38px;
-      }
-
-      /* social proof strip */
-      .social-proof {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-top: 28px;
-      }
-      .sp-avatars { display: flex; }
-      .sp-avatars span {
-        width: 28px; height: 28px;
-        border-radius: 50%;
-        border: 2px solid var(--ink);
-        background: rgba(115,103,240,0.28);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-weight: 700;
-        color: rgba(255,255,255,0.9);
-        margin-left: -6px;
-      }
-      .sp-avatars span:first-child { margin-left: 0; }
-      .sp-text {
-        color: rgba(255,255,255,0.48);
-        font-size: 13px;
-        line-height: 1.4;
-      }
-      .sp-text strong {
-        color: rgba(255,255,255,0.82);
-        font-weight: 700;
-      }
-
-      /* ─── coach card (hero visual) ────────────────────────────────── */
-      .visual {
-        position: relative;
-        width: min(520px, 100%);
-        margin: 0 auto;
-      }
-
-      /* violet halo behind card */
-      .visual::before {
-        content: '';
-        position: absolute;
-        inset: -40px;
-        border-radius: 50%;
-        background: radial-gradient(ellipse at center, rgba(115,103,240,0.22) 0%, transparent 70%);
-        pointer-events: none;
-      }
-
-      .coach-card {
-        position: relative;
-        z-index: 3;
-        width: 100%;
-        border: 1px solid rgba(255,255,255,0.10);
-        border-radius: 30px;
-        background: rgba(255,255,255,0.96);
-        padding: 24px;
-        box-shadow:
-          0 0 0 1px rgba(115,103,240,0.15),
-          0 60px 180px rgba(0,0,0,0.55),
-          0 0 80px rgba(115,103,240,0.20);
-      }
-      .coach-screen {
-        border: 1px solid rgba(230,228,244,0.86);
-        border-radius: 24px;
-        background: rgba(250,249,246,0.9);
-        padding: 22px;
-      }
-      .coach-top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
-      }
-      .muted { color: var(--slate); font-size: 14px; }
-      .coach-title {
-        margin-top: 8px;
-        color: var(--deep);
-        font-size: clamp(32px, 3.8vw, 48px);
-        font-weight: 800;
-        line-height: 1;
-      }
-      .tag {
-        border-radius: 999px;
-        background: var(--soft);
-        padding: 10px 14px;
-        color: var(--deep);
-        font-size: 13px;
-        font-weight: 800;
-        white-space: nowrap;
-      }
-      .coach-note {
-        margin-top: 22px;
-        border: 1px solid rgba(255,255,255,0.84);
-        border-radius: 20px;
-        background: rgba(255,255,255,0.84);
-        padding: 20px;
-        box-shadow: 0 16px 60px rgba(15,16,32,0.06);
-      }
-      .coach-note strong { display: block; color: var(--deep); font-size: 14px; }
-      .coach-note p { margin-top: 10px; font-size: 17px; line-height: 1.55; }
-
-      .goal-card {
-        margin-top: 16px;
-        border: 1px solid rgba(255,255,255,0.84);
-        border-radius: 20px;
-        background: rgba(255,255,255,0.84);
-        padding: 20px;
-      }
-      .goal-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      .goal-row b { color: var(--deep); }
-
-      .progress {
-        height: 7px;
-        margin-top: 18px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: #e6e4f4;
-      }
-      .progress span {
-        display: block;
-        width: 68%;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, var(--violet), var(--deep));
-      }
-
-      .signal-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 16px;
-      }
-      .signal {
-        border-radius: 18px;
-        padding: 18px;
-      }
-      .signal.dark {
-        background: var(--ink);
-        color: var(--white);
-        box-shadow: 0 16px 50px var(--shadow-ink);
-      }
-      .signal.light {
-        border: 1px solid #d4d2f0;
-        background: var(--soft);
-      }
-      .signal p:last-child { margin-top: 8px; font-size: 20px; font-weight: 800; }
-
-      .scroll-cue {
-        position: absolute;
-        left: clamp(24px, 6vw, 96px);
-        bottom: 24px;
-        z-index: 3;
-        color: rgba(255,255,255,0.38);
-        font-size: 13px;
-        letter-spacing: 0.04em;
-      }
-
-      /* ─── content sections ────────────────────────────────────────── */
-      .content {
-        padding: 110px clamp(24px, 6vw, 96px);
-      }
-      .white { background: var(--white); }
-
-      .wrap { max-width: 1280px; margin: 0 auto; }
-
-      .split {
-        display: grid;
-        grid-template-columns: 0.88fr 1.12fr;
-        align-items: end;
-        gap: 58px;
-      }
-
-      .eyebrow {
-        color: var(--deep);
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.24em;
-        text-transform: uppercase;
-      }
-
-      h2 {
-        margin-top: 18px;
-        max-width: 880px;
-        font-size: clamp(44px, 5.4vw, 74px);
-        line-height: 1.03;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-      }
-
-      .section-copy {
-        max-width: 680px;
-        color: var(--slate);
-        font-size: 20px;
-        line-height: 1.65;
-      }
-
-      /* ─── coach story ─────────────────────────────────────────────── */
-      .story-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-top: 68px;
-      }
-
-      .story-card {
-        min-height: 320px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--cream);
-        padding: 30px;
-        transition: transform 0.28s ease, box-shadow 0.28s ease;
-      }
-      .story-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 24px 70px var(--shadow-ink);
-      }
-      .story-card.large {
-        grid-row: span 2;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        background:
-          linear-gradient(rgba(15,16,32,0.22), rgba(15,16,32,0.40)),
-          url("assets/photos/familia-noite.jpg") center/cover;
-        color: var(--white);
-      }
-      .story-card.large .eyebrow { color: rgba(255,255,255,0.68); }
-      .story-card h3 {
-        max-width: 520px;
-        font-size: clamp(28px, 3vw, 44px);
-        line-height: 1.06;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-      }
-      .story-card p {
-        margin-top: 20px;
-        color: var(--slate);
-        font-size: 17px;
-        line-height: 1.68;
-      }
-      .story-card.large p { color: rgba(255,255,255,0.82); }
-
-
-      /* ─── carousel ──────────────────────────────────────────────── */
-      .carousel {
-        position: relative;
-        margin-top: 68px;
-        overflow: hidden;
-        border-radius: 24px;
-        border: 1px solid var(--line);
-        background: var(--cream);
-      }
-      .carousel-track {
-        display: flex;
-        transition: transform 0.55s cubic-bezier(0.65,0,0.35,1);
-        will-change: transform;
-      }
-      .carousel-slide {
-        min-width: 100%;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        align-items: center;
-        gap: 0;
-      }
-      .slide-left {
-        padding: clamp(36px, 5vw, 64px);
-      }
-      .slide-eyebrow {
-        font-size: 11px; font-weight: 800; letter-spacing: 0.22em;
-        text-transform: uppercase; color: var(--deep); margin-bottom: 14px;
-        display: flex; align-items: center; gap: 10px;
-      }
-      .slide-eyebrow::before {
-        content: ''; display: block; width: 24px; height: 2px; background: var(--violet); flex-shrink: 0;
-      }
-      .slide-left h3 {
-        font-family: "DM Serif Display", Georgia, serif;
-        font-size: clamp(28px, 3.2vw, 44px);
-        font-weight: 400; line-height: 1.08; letter-spacing: -0.01em;
-      }
-      .slide-left h3 em { font-style: italic; color: var(--violet); }
-      .slide-left p {
-        margin-top: 16px; color: var(--slate);
-        font-size: clamp(15px, 1.5vw, 17px); line-height: 1.68;
-        max-width: 440px;
-      }
-      .slide-link {
-        display: inline-flex; align-items: center; gap: 6px;
-        margin-top: 24px; color: var(--violet);
-        font-size: 14px; font-weight: 700;
-        text-decoration: none; transition: gap 0.2s;
-      }
-      .slide-link:hover { gap: 10px; }
-      .slide-right {
-        background: var(--ink);
-        padding: clamp(32px, 4vw, 52px);
-        align-self: stretch;
-        display: flex; align-items: center; justify-content: center;
-        position: relative; overflow: hidden;
-      }
-      .slide-right::before {
-        content: ''; position: absolute; border-radius: 999px; pointer-events: none;
-        filter: blur(90px); top: -40px; right: -40px;
-        width: 340px; height: 280px; background: rgba(115,103,240,0.18);
-      }
-      .slide-coach {
-        position: relative; z-index: 1;
-        background: rgba(255,255,255,0.97);
-        border-radius: 22px; padding: 22px;
-        width: 100%; max-width: 360px;
-        box-shadow: 0 40px 120px rgba(0,0,0,0.4), 0 0 0 1px rgba(115,103,240,0.15);
-      }
-      .sc-label {
-        font-size: 11px; font-weight: 800; color: var(--violet);
-        letter-spacing: 0.14em; text-transform: uppercase;
-        margin-bottom: 10px;
-      }
-      .sc-msg {
-        font-size: 14px; line-height: 1.58; color: var(--ink);
-      }
-      .sc-meta {
-        margin-top: 14px; padding-top: 14px;
-        border-top: 1px solid var(--line);
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 12px;
-      }
-      .sc-tag {
-        background: var(--soft); color: var(--deep);
-        border-radius: 999px; padding: 5px 10px;
-        font-size: 11px; font-weight: 800; white-space: nowrap;
-      }
-      .sc-tone {
-        font-size: 11px; color: var(--slate);
-      }
-
-      /* controls */
-      .carousel-controls {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 18px clamp(20px, 3vw, 36px);
-        border-top: 1px solid var(--line);
-        background: var(--white);
-      }
-      .carousel-dots { display: flex; gap: 8px; align-items: center; }
-      .c-dot {
-        width: 8px; height: 8px; border-radius: 999px;
-        background: var(--line); border: 0; padding: 0; cursor: pointer;
-        transition: background 0.3s, width 0.3s;
-      }
-      .c-dot.active { background: var(--violet); width: 22px; }
-      .carousel-arrows { display: flex; gap: 8px; }
-      .c-arrow {
-        width: 38px; height: 38px; border-radius: 50%;
-        border: 1px solid var(--line); background: var(--white);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 16px; cursor: pointer; color: var(--ink);
-        transition: background 0.2s, border-color 0.2s;
-      }
-      .c-arrow:hover { background: var(--soft); border-color: var(--violet); }
-      .carousel-progress {
-        font-size: 13px; color: var(--slate); font-weight: 500;
-      }
-
-      @media (max-width: 720px) {
-        .carousel-slide { grid-template-columns: 1fr; }
-        .slide-right { display: none; }
-      }
-
-
-      .device.screenshot { padding: 0 !important; overflow: hidden; }
-      .device-header {
-        padding: 14px 20px;
-        background: rgba(255,255,255,0.06);
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      }
-      .device-header span { color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 500; }
-      .device-header em { color: rgba(255,255,255,0.36); font-size: 11px; font-style: normal; }
-      .device-screen {
-        display: block; width: 100%;
-        height: 460px; object-fit: cover; object-position: top left;
-      }
-      .device.side .device-screen { height: 340px; }
-
-      /* ─── showcase ────────────────────────────────────────────────── */
-      .showcase { background: var(--ink); color: var(--white); }
-      .showcase .eyebrow  { color: rgba(255,255,255,0.55); }
-      .showcase .section-copy { color: rgba(255,255,255,0.66); }
-
-      .showcase-stage {
-        position: relative;
-        margin-top: 72px;
-        min-height: 620px;
-      }
-
-      .device {
-        position: absolute;
-        border: 1px solid rgba(255,255,255,0.10);
-        border-radius: 28px;
-        background: rgba(255,255,255,0.06);
-        box-shadow: 0 40px 120px rgba(0,0,0,0.35);
-        backdrop-filter: blur(24px);
-      }
-      .device.main {
-        left: 50%; top: 0;
-        width: min(760px, 74vw);
-        min-height: 500px;
-        transform: translateX(-50%);
-        padding: 28px;
-      }
-      .device.side {
-        right: 1%; bottom: 20px;
-        width: min(340px, 33vw);
-        padding: 22px;
-        transform: rotate(4deg);
-      }
-      .device.photo-panel {
-        left: 0; bottom: 18px;
-        width: min(300px, 28vw);
-        overflow: hidden;
-        padding: 0;
-        transform: rotate(-5deg);
-      }
-      .device.photo-panel img {
-        display: block;
-        width: 100%;
-        aspect-ratio: 4/5;
-        object-fit: cover;
-      }
-
-      .screen-block {
-        border-radius: 20px;
-        background: rgba(255,255,255,0.07);
-        padding: 22px;
-      }
-      .screen-block + .screen-block { margin-top: 14px; }
-
-      .screen-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        color: rgba(255,255,255,0.60);
-        font-size: 13px;
-        font-weight: 500;
-      }
-      .screen-value {
-        margin-top: 14px;
-        font-size: clamp(28px, 4vw, 60px);
-        font-weight: 800;
-        line-height: 1;
-      }
-      .screen-text {
-        margin-top: 16px;
-        max-width: 520px;
-        color: rgba(255,255,255,0.68);
-        font-size: 17px;
-        line-height: 1.6;
-      }
-
-      /* inline SVG chart */
-      .chart-area {
-        margin-top: 18px;
-        border-radius: 14px;
-        background: rgba(115,103,240,0.08);
-        padding: 18px 18px 10px;
-        overflow: hidden;
-      }
-      .chart-labels {
-        display: flex;
-        justify-content: space-between;
-        color: rgba(255,255,255,0.38);
-        font-size: 11px;
-        margin-top: 8px;
-      }
-      .chart-svg { display: block; width: 100%; height: auto; }
-
-      .quiet-infra {
-        margin-top: 20px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .quiet-infra span {
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 999px;
-        background: rgba(255,255,255,0.05);
-        padding: 8px 12px;
-        color: rgba(255,255,255,0.56);
-        font-size: 12px;
-      }
-
-      /* ─── family ──────────────────────────────────────────────────── */
-      .family { position: relative; overflow: hidden; }
-      .family-photo-bg {
-        position: absolute; inset: 0; z-index: 0; pointer-events: none;
-      }
-      .family-photo-bg img {
-        width: 100%; height: 100%; object-fit: cover;
-        object-position: center 40%;
-        opacity: 0.09; filter: grayscale(0.4);
-      }
-      .family .wrap { position: relative; z-index: 1; }
-      .family .glow {
-        top: 100px; left: 50%;
-        width: min(1040px, 82vw);
-        height: 430px;
-        transform: translateX(-50%);
-        background: rgba(115,103,240,0.09);
-      }
-      .family-grid {
-        position: relative;
-        display: grid;
-        grid-template-columns: 1.1fr 0.9fr;
-        align-items: center;
-        gap: 66px;
-      }
-      .family-stack { display: grid; gap: 14px; }
-      .family-card {
-        border: 1px solid rgba(255,255,255,0.88);
-        border-radius: 8px;
-        background: rgba(255,255,255,0.76);
-        padding: 26px;
-        box-shadow: 0 16px 70px rgba(15,16,32,0.05);
-        backdrop-filter: blur(18px);
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
-      }
-      .family-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 24px 80px rgba(15,16,32,0.09);
-      }
-      .family-card h3 { font-size: 22px; font-weight: 700; }
-      .family-card p { margin-top: 10px; color: var(--slate); line-height: 1.65; }
-
-      /* ─── CTA ─────────────────────────────────────────────────────── */
-      .cta { padding: 96px clamp(24px, 6vw, 96px); }
-
-      .cta-box {
-        position: relative;
-        max-width: 1280px;
-        margin: 0 auto;
-        overflow: hidden;
-        border-radius: 8px;
-        background: var(--ink);
-        padding: clamp(54px, 7vw, 86px);
-        color: var(--white);
-        box-shadow: 0 40px 120px rgba(15,16,32,0.22);
-      }
-
-      /* cta photo layer */
-      .cta-photo-wrap {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-      }
-      .cta-photo-wrap::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        background:
-          linear-gradient(115deg, rgba(15,16,32,0.68) 0%, rgba(15,16,32,0.50) 100%);
-      }
-      .cta-photo-wrap .hero-photo {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center 30%;
-      }
-      /* flow mark watermark in CTA */
-      .cta-mark {
-        position: absolute;
-        right: -6%;
-        top: -20%;
-        width: 55%;
-        opacity: 0.055;
-        pointer-events: none;
-      }
-      .cta-box > * { position: relative; z-index: 1; }
-      .cta .eyebrow { color: rgba(255,255,255,0.58); }
-
-      .cta h2 {
-        max-width: 720px;
-        color: var(--white);
-        margin-top: 18px;
-      }
-      .cta p {
-        max-width: 640px;
-        margin-top: 28px;
-        color: rgba(255,255,255,0.72);
-        font-size: 20px;
-        line-height: 1.62;
-      }
-
-      /* ─── faq ─────────────────────────────────────────────────────── */
-      .faq { background: var(--white); }
-      .faq-grid {
-        display: grid;
-        grid-template-columns: 0.9fr 1.1fr;
-        align-items: start;
-        gap: 66px;
-      }
-      .faq-list { display: flex; flex-direction: column; }
-      .faq-item { border-bottom: 1px solid var(--line); }
-      .faq-q {
-        width: 100%; display: flex; align-items: center;
-        justify-content: space-between; gap: 16px;
-        padding: 20px 0; background: none; border: 0;
-        text-align: left; font: inherit; cursor: pointer;
-        font-size: 16px; font-weight: 700; color: var(--ink);
-        transition: color 0.2s;
-      }
-      .faq-q:hover { color: var(--violet); }
-      .faq-icon {
-        flex-shrink: 0; width: 22px; height: 22px;
-        border: 1px solid var(--line); border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 14px; color: var(--slate);
-        transition: background 0.2s, border-color 0.2s, transform 0.3s;
-      }
-      .faq-item.open .faq-icon {
-        background: var(--violet); border-color: var(--violet);
-        color: var(--white); transform: rotate(45deg);
-      }
-      .faq-a {
-        overflow: hidden; max-height: 0;
-        transition: max-height 0.4s ease, padding 0.3s;
-        color: var(--slate); font-size: 15px; line-height: 1.68;
-      }
-      .faq-item.open .faq-a { max-height: 200px; padding-bottom: 20px; }
-
-      /* ─── footer ──────────────────────────────────────────────────── */
-      footer {
-        border-top: 1px solid var(--line);
-        padding: 40px clamp(24px, 6vw, 96px);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        flex-wrap: wrap;
-      }
-      .footer-links {
-        display: flex;
-        gap: 28px;
-        flex-wrap: wrap;
-      }
-      .footer-links a {
-        color: var(--slate);
-        font-size: 13px;
-        text-decoration: none;
-        transition: color 0.2s;
-      }
-      .footer-links a:hover { color: var(--ink); }
-      .footer-copy { color: var(--slate); font-size: 13px; }
-
-      /* ── disclaimer ──────────────────────────────────────────────── */
-      .legal {
-        border-top: 1px solid var(--line);
-        padding: 36px clamp(24px, 6vw, 96px) 28px;
-        background: var(--cream);
-      }
-      .legal-wrap {
-        max-width: 1100px;
-        margin: 0 auto;
-        font-size: 11px;
-        line-height: 1.7;
-        color: var(--slate);
-      }
-      .legal-wrap p { margin-bottom: 10px; }
-      .legal-wrap p:last-child { margin-bottom: 0; }
-      .legal-wrap strong { color: var(--ink); font-weight: 700; }
-      .legal-list {
-        margin: 4px 0 12px 18px;
-        padding: 0;
-        list-style: disc;
-      }
-      .legal-list li { margin-bottom: 2px; }
-
-      /* ─── hero photo ─────────────────────────────────────────────── */
-      .hero-photo-wrap {
-        position: absolute;
-        inset: -48px -64px -48px -8px;
-        border-radius: 28px;
-        overflow: hidden;
-        z-index: 0;
-      }
-      .hero-photo-wrap::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        background:
-          linear-gradient(to right,  rgba(15,16,32,0.72) 0%, rgba(15,16,32,0.18) 100%),
-          linear-gradient(to bottom, rgba(15,16,32,0.18) 0%, rgba(15,16,32,0.48) 100%);
-      }
-      .hero-photo {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: filter 0.5s ease;
-      }
-      .hero-photo.fx-duotone  { filter: url(#dt-inkviolet); }
-      .hero-photo.fx-bw       { filter: grayscale(1) contrast(1.1) brightness(0.75); }
-      .hero-photo.fx-sepia    { filter: sepia(0.9) hue-rotate(224deg) brightness(0.7) saturate(1.6); }
-      .hero-photo.fx-original { filter: brightness(0.65) saturate(0.85); }
-
-      /* ─── image picker panel ──────────────────────────────────────── */
-      .img-picker {
-        position: fixed;
-        bottom: 28px;
-        right: 28px;
-        z-index: 200;
-        background: rgba(15,16,32,0.88);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 20px;
-        padding: 18px;
-        width: 292px;
-        backdrop-filter: blur(24px);
-        box-shadow: 0 24px 80px rgba(0,0,0,0.5);
-        color: var(--white);
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-      }
-      .picker-title {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: rgba(255,255,255,0.45);
-        margin-bottom: 12px;
-      }
-      .picker-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        margin-bottom: 14px;
-      }
-      .picker-img {
-        aspect-ratio: 3/4;
-        border-radius: 10px;
-        overflow: hidden;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: border-color 0.2s, transform 0.2s;
-      }
-      .picker-img img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        pointer-events: none;
-      }
-      .picker-img:hover { transform: scale(1.04); }
-      .picker-img.active { border-color: var(--violet); }
-
-      .picker-divider {
-        height: 1px;
-        background: rgba(255,255,255,0.08);
-        margin: 14px 0;
-      }
-      .picker-effects {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-      }
-      .picker-fx {
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 999px;
-        background: rgba(255,255,255,0.06);
-        color: rgba(255,255,255,0.65);
-        font-family: inherit;
-        font-size: 12px;
-        font-weight: 500;
-        padding: 6px 12px;
-        cursor: pointer;
-        transition: background 0.2s, color 0.2s, border-color 0.2s;
-      }
-      .picker-fx:hover { background: rgba(255,255,255,0.12); color: var(--white); }
-      .picker-fx.active {
-        background: var(--violet);
-        border-color: var(--violet);
-        color: var(--white);
-      }
-      .picker-close {
-        position: absolute;
-        top: 12px; right: 14px;
-        background: none;
-        border: none;
-        color: rgba(255,255,255,0.35);
-        font-size: 18px;
-        cursor: pointer;
-        line-height: 1;
-        padding: 2px 6px;
-        font-family: inherit;
-        transition: color 0.2s;
-      }
-      .picker-close:hover { color: var(--white); }
-
-      /* ─── coach card animations ──────────────────────────────────── */
-      .ca {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      .ca.show {
-        opacity: 1;
-        transform: none;
-        transition: opacity 0.45s ease, transform 0.45s ease;
-      }
-
-      /* thinking dots */
-      .thinking {
-        display: flex;
-        gap: 5px;
-        align-items: center;
-        padding: 4px 0;
-        min-height: 1.6em;
-      }
-      .thinking span {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--violet);
-        animation: tpulse 1.1s ease-in-out infinite;
-      }
-      .thinking span:nth-child(2) { animation-delay: 0.16s; }
-      .thinking span:nth-child(3) { animation-delay: 0.32s; }
-
-      @keyframes tpulse {
-        0%, 80%, 100% { opacity: 0.22; transform: scale(0.72); }
-        40%            { opacity: 1;    transform: scale(1);    }
-      }
-
-      /* typing cursor */
-      .tcursor {
-        display: inline-block;
-        width: 2px;
-        height: 0.86em;
-        background: var(--deep);
-        vertical-align: middle;
-        margin-left: 1px;
-        animation: tblink 0.75s steps(1) infinite;
-      }
-      @keyframes tblink { 50% { opacity: 0; } }
-
-      /* animated progress bar */
-      .coach-progress-bar {
-        display: block;
-        width: 0%;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, var(--violet), var(--deep));
-        transition: width 1.3s cubic-bezier(0.22, 1, 0.36, 1);
-      }
-
-      /* replay button */
-      .coach-replay-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        background: rgba(255,255,255,0.72);
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        padding: 5px 12px;
-        font-family: inherit;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--slate);
-        cursor: pointer;
-        opacity: 0;
-        transition: opacity 0.25s, background 0.2s, color 0.2s;
-        backdrop-filter: blur(8px);
-      }
-      .coach-card:hover .coach-replay-btn { opacity: 1; }
-      .coach-replay-btn:hover { background: var(--white); color: var(--ink); }
-
-      /* ─── responsive ──────────────────────────────────────────────── */
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-          animation-duration: 0.001ms !important;
-          transition-duration: 0.001ms !important;
-        }
-      }
-
-      .faq.content { padding-bottom: 80px; }
-
-      @media (max-width: 820px) {
-        .faq-grid { grid-template-columns: 1fr; gap: 40px; }
-        .nav-links { display: none; }
-        .hero-grid, .split, .story-grid, .family-grid {
-          grid-template-columns: 1fr;
-        }
-        .hero-grid { min-height: auto; padding-top: 32px; }
-        .showcase-stage { min-height: auto; }
-        .device, .device.main, .device.side, .device.photo-panel {
-          position: relative; inset: auto;
-          width: 100%; margin-top: 18px;
-          transform: none;
-        }
-        .visual { width: 100%; margin-top: 48px; }
-        .visual::before { display: none; }
-      }
-
-      @media (max-width: 640px) {
-        .button { width: 100%; justify-content: center; }
-        .coach-card { width: 100%; }
-        .signal-row { grid-template-columns: 1fr; }
-        footer { flex-direction: column; align-items: flex-start; }
-      }
-    </style>
-  </head>
-  <body>
-
-    <!-- SVG duotone filter: ink #0f1020 → violet #7367F0 -->
-    <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
-      <defs>
-        <filter id="dt-inkviolet" color-interpolation-filters="sRGB">
-          <feColorMatrix type="saturate" values="0"/>
-          <feComponentTransfer>
-            <feFuncR type="table" tableValues="0.059 0.451"/>
-            <feFuncG type="table" tableValues="0.063 0.404"/>
-            <feFuncB type="table" tableValues="0.125 0.941"/>
-          </feComponentTransfer>
-        </filter>
-      </defs>
-    </svg>
-
-    <!-- ── nav ──────────────────────────────────────────────────────── -->
-    <header class="site-nav" id="site-nav">
-      <!-- two logos: white for dark hero, dark for light sections -->
-      <img class="logo logo-white" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
-      <img class="logo logo-dark" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
-      <nav class="nav-links">
-        <a href="#hero-section">Produto</a>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="O Haile é o coach financeiro com IA para famílias. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
+  <title>Haile — Coach financeiro com IA para a sua família</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── tokens ──────────────────────────────────────────────────── */
+    :root {
+      --violet:    #7367F0;
+      --violet-2:  #5048CC;
+      --violet-3:  #9990ff;
+      --soft:      #F0EFFE;
+      --ink:       #0f1020;
+      --slate:     #5b5e73;
+      --slate-2:   #8a8da4;
+      --cream:     #faf9f6;
+      --paper:     #ffffff;
+      --line:      #e6e4f4;
+      --line-2:    #efedf8;
+      --shadow-1:  0 1px 3px rgba(15,16,32,0.04), 0 8px 24px rgba(15,16,32,0.06);
+      --shadow-2:  0 12px 40px rgba(15,16,32,0.10);
+      --shadow-v:  0 20px 60px rgba(115,103,240,0.28);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    h1, h2, h3, h4, p, figure { margin: 0; }
+    button, a { font: inherit; color: inherit; }
+    img { display: block; max-width: 100%; }
+
+    /* ─── nav ─────────────────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 80;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px;
+      padding: 18px clamp(20px, 4vw, 56px);
+      background: transparent;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    /* default state: over dark hero/manifesto */
+    .nav .nav-logo.light { display: none; }
+    .nav .nav-logo.dark { display: block; }
+    .nav .nav-menu a { color: rgba(255,255,255,0.78); }
+    .nav .nav-menu a:hover { color: #fff; }
+    .nav .btn.ghost {
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .nav .btn.ghost:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); }
+    .nav .btn.primary {
+      background: #fff; color: var(--ink);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    }
+    .nav .btn.primary:hover { background: #fff; }
+    .nav.scrolled {
+      background: rgba(15,16,32,0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* light state: after scrolling past hero+manifesto */
+    .nav.light {
+      background: rgba(250, 249, 246, 0.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--line);
+      box-shadow: none;
+    }
+    .nav.light .nav-logo.light { display: block; }
+    .nav.light .nav-logo.dark { display: none; }
+    .nav.light .nav-menu a { color: var(--ink); opacity: 0.78; }
+    .nav.light .nav-menu a:hover { opacity: 1; color: var(--violet-2); }
+    .nav.light .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .nav.light .btn.ghost:hover { background: #fff; border-color: #cdc9eb; }
+    .nav.light .btn.primary {
+      background: var(--ink); color: #fff;
+      box-shadow: 0 8px 24px rgba(15,16,32,0.18);
+    }
+    .nav.light .btn.primary:hover { background: var(--ink); }
+
+    .nav-left { display: flex; align-items: center; gap: 36px; }
+    .nav-logo { height: 26px; }
+    .nav-menu { display: flex; gap: 28px; }
+    .nav-menu a {
+      font-size: 14px; font-weight: 500;
+      text-decoration: none;
+      transition: color 0.2s, opacity 0.2s;
+    }
+    .nav-right { display: flex; align-items: center; gap: 12px; margin-left: 8px; }
+    .nav-right .btn { padding: 11px 20px; font-size: 14px; }
+
+    /* ─── buttons ─────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 0; border-radius: 999px; cursor: pointer;
+      padding: 13px 22px;
+      font-size: 14px; font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary {
+      background: var(--ink); color: #fff;
+      box-shadow: 0 8px 24px rgba(15,16,32,0.18);
+    }
+    .btn.primary:hover { box-shadow: 0 14px 32px rgba(15,16,32,0.26); }
+    .btn.violet {
+      background: var(--violet); color: #fff;
+      box-shadow: var(--shadow-v);
+    }
+    .btn.violet:hover { background: var(--violet-2); }
+    .btn.ghost {
+      background: transparent; color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn.ghost:hover { background: #fff; border-color: #cdc9eb; }
+    .btn.light {
+      background: #fff; color: var(--ink);
+    }
+    .btn.lg { padding: 15px 26px; font-size: 15px; }
+
+    .btn .arrow {
+      display: inline-flex; transition: transform 0.2s;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    .btn:hover .arrow { transform: translateX(3px); }
+    .btn.ghost .arrow,
+    .btn.light .arrow { background: var(--soft); color: var(--violet-2); }
+
+    /* ─── reveal animations ───────────────────────────────────────── */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal[data-delay="1"] { transition-delay: 0.08s; }
+    .reveal[data-delay="2"] { transition-delay: 0.16s; }
+    .reveal[data-delay="3"] { transition-delay: 0.24s; }
+    .reveal[data-delay="4"] { transition-delay: 0.32s; }
+
+    /* ─── layout ──────────────────────────────────────────────────── */
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px); }
+
+    /* ─── hero (dark) ────────────────────────────────────────────── */
+    .hero {
+      padding: 100px 0 80px;
+      position: relative;
+      overflow: hidden;
+      background: var(--ink);
+      color: #fff;
+      margin-top: -68px;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 12%;
+      width: 720px; height: 480px;
+      background: radial-gradient(ellipse, rgba(115,103,240,0.32), transparent 70%);
+      filter: blur(80px); pointer-events: none;
+      z-index: 0;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -180px; right: -120px;
+      width: 540px; height: 420px;
+      background: radial-gradient(ellipse, rgba(80,72,204,0.30), transparent 70%);
+      filter: blur(80px); pointer-events: none;
+      z-index: 0;
+    }
+    .hero .wrap { position: relative; z-index: 1; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: clamp(36px, 5vw, 80px);
+      align-items: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 6px 14px 6px 6px;
+      border-radius: 999px;
+      background: rgba(115,103,240,0.18);
+      border: 1px solid rgba(115,103,240,0.34);
+      color: var(--violet-3);
+      font-size: 13px; font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .hero-eyebrow .tag {
+      background: var(--violet); color: #fff;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+    }
+    .hero h1 {
+      font-size: clamp(46px, 6.2vw, 88px);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.035em;
+      color: #fff;
+      text-wrap: balance;
+    }
+    .hero h1 .accent { color: var(--violet-3); }
+    .hero .lead {
+      max-width: 520px;
+      margin-top: 26px;
+      font-size: clamp(17px, 1.4vw, 19px);
+      line-height: 1.6;
+      color: rgba(255,255,255,0.7);
+    }
+    .hero-actions { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+    .hero .btn.ghost {
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .hero .btn.ghost:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .hero .btn.ghost .arrow {
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+    }
+    .hero .btn.violet {
+      background: var(--violet);
+      color: #fff;
+    }
+    .hero-trust { display: flex; align-items: center; gap: 14px; margin-top: 36px; }
+    .hero-trust .avs { display: flex; }
+    .hero-trust .avs span {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid var(--ink);
+      background: linear-gradient(135deg, var(--violet-3), var(--violet-2));
+      color: #fff; font-size: 11px; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-left: -8px;
+    }
+    .hero-trust .avs span:first-child { margin-left: 0; }
+    .hero-trust .txt { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.4; }
+    .hero-trust .txt strong { color: #fff; font-weight: 800; }
+
+    /* hero visual: photo + floating cards */
+    .hero-visual {
+      position: relative;
+      aspect-ratio: 4/5;
+      max-height: 640px;
+      width: 100%;
+    }
+    .hero-photo {
+      width: 100%; height: 100%;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--shadow-2);
+      position: relative;
+    }
+    .hero-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-photo::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(15,16,32,0) 40%, rgba(15,16,32,0.18));
+    }
+
+    .float-card {
+      position: absolute;
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow-2);
+      animation: float-bob 6s ease-in-out infinite;
+    }
+    .float-card.fc-coach {
+      top: 8%; left: -8%;
+      width: 240px;
+      animation-delay: 0s;
+    }
+    .float-card.fc-goal {
+      bottom: 6%; right: -6%;
+      width: 250px;
+      animation-delay: 2.5s;
+    }
+    .float-card.fc-stat {
+      top: 56%; left: -10%;
+      width: 180px;
+      animation-delay: 1.2s;
+    }
+
+    .fc-coach .row { display: flex; gap: 10px; align-items: flex-start; }
+    .fc-coach .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--soft);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--violet); font-weight: 800; font-size: 13px;
+    }
+    .fc-coach .label {
+      font-size: 11px; font-weight: 700; color: var(--violet-2);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .fc-coach .msg { margin-top: 4px; font-size: 13px; line-height: 1.4; color: var(--ink); }
+
+    .fc-goal .top { display: flex; justify-content: space-between; font-size: 12px; color: var(--slate); }
+    .fc-goal .title { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--ink); }
+    .fc-goal .meter {
+      margin-top: 12px; height: 6px;
+      background: var(--line); border-radius: 999px; overflow: hidden;
+    }
+    .fc-goal .meter span {
+      display: block; height: 100%; width: 68%;
+      background: linear-gradient(90deg, var(--violet), var(--violet-2));
+      border-radius: inherit;
+    }
+    .fc-goal .meta { margin-top: 10px; font-size: 12px; color: var(--slate); }
+    .fc-goal .meta b { color: var(--ink); font-weight: 700; }
+
+    .fc-stat .label { font-size: 11px; color: var(--slate); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .fc-stat .value { margin-top: 6px; font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .fc-stat .delta { margin-top: 4px; font-size: 12px; color: #10b981; font-weight: 700; }
+
+    @keyframes float-bob {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+
+    /* ─── trust strip (legacy block; manifesto styles below override) ─ */
+
+    /* ─── manifesto (dark marquee) ──────────────────────────────── */
+    .trust {
+      background: var(--ink);
+      color: #fff;
+      padding: 64px 0 72px;
+      border-top: 0;
+      border-bottom: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .trust::before {
+      content: '';
+      position: absolute;
+      top: 30%; left: 50%;
+      transform: translateX(-50%);
+      width: 900px; height: 280px;
+      background: radial-gradient(ellipse, rgba(115,103,240,0.34), transparent 70%);
+      filter: blur(60px); pointer-events: none;
+    }
+    .manifesto-eyebrow {
+      position: relative;
+      text-align: center;
+      font-size: 12px; font-weight: 800;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--violet-3);
+      margin-bottom: 20px;
+    }
+    .manifesto-marquee {
+      position: relative;
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    }
+    .manifesto-marquee + .manifesto-marquee { margin-top: 18px; }
+    .mm-track {
+      display: flex;
+      gap: 56px;
+      width: max-content;
+      align-items: center;
+      animation: mm-scroll 32s linear infinite;
+    }
+    .mm-track.reverse {
+      animation-direction: reverse;
+      animation-duration: 38s;
+    }
+    .mm-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 22px;
+      font-size: clamp(32px, 4.2vw, 60px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .mm-item .anti {
+      color: rgba(255,255,255,0.32);
+      text-decoration: line-through;
+      text-decoration-color: rgba(115,103,240,0.65);
+      text-decoration-thickness: 3px;
+      font-weight: 500;
+    }
+    .mm-item .arr {
+      color: var(--violet-3);
+      font-size: 0.5em;
+      font-weight: 700;
+    }
+    .mm-item .pro { color: #fff; }
+    .mm-item .pro .ac { color: var(--violet-3); }
+    .mm-item .sep {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      flex-shrink: 0;
+    }
+    @keyframes mm-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ─── section header ──────────────────────────────────────────── */
+    .sec { padding: 110px 0; }
+    .sec.dark { background: var(--ink); color: #fff; }
+    .sec.paper { background: var(--paper); }
+    .sec.cream { background: var(--cream); }
+    .sec.violet {
+      background: var(--violet);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .sec.violet::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 460px; height: 460px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+    .sec.violet::after {
+      content: '';
+      position: absolute;
+      bottom: -180px; left: 6%;
+      width: 360px; height: 360px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.14);
+      pointer-events: none;
+      filter: blur(8px);
+    }
+    .sec.violet > .wrap { position: relative; z-index: 1; }
+    .sec.violet .sec-head .eyebrow { color: rgba(255,255,255,0.78); }
+    .sec.violet .sec-head .copy { color: rgba(255,255,255,0.82); }
+    .sec.violet .ab-copy .tag { background: rgba(255,255,255,0.16); color: #fff; }
+    .sec.violet .ab-copy h3 { color: #fff; }
+    .sec.violet .ab-copy h3 .accent { color: #fff; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.5); text-decoration-thickness: 3px; text-underline-offset: 6px; }
+    .sec.violet .ab-copy p { color: rgba(255,255,255,0.84); }
+    .sec.violet .ab-bullet .check { background: rgba(255,255,255,0.22); color: #fff; }
+    .sec.violet .ab-bullet b { color: #fff; }
+    .sec.violet .ab-bullet p { color: rgba(255,255,255,0.78); }
+    .sec.violet .ab-copy .ab-cta { color: #fff; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.5); }
+
+    .sec-head { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: end; margin-bottom: 64px; }
+    .sec-head .eyebrow {
+      font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--violet);
+      margin-bottom: 18px;
+    }
+    .sec.dark .sec-head .eyebrow { color: var(--violet-3); }
+    .sec-head h2 {
+      font-size: clamp(36px, 4.6vw, 64px);
+      font-weight: 800; line-height: 1.04;
+      letter-spacing: -0.025em;
+      max-width: 760px;
+      text-wrap: balance;
+    }
+    .sec-head h2 .accent { color: var(--violet); }
+    .sec.dark .sec-head h2 .accent { color: var(--violet-3); }
+    .sec-head .copy {
+      font-size: 18px; line-height: 1.6;
+      color: var(--slate); max-width: 520px;
+    }
+    .sec.dark .sec-head .copy { color: rgba(255,255,255,0.66); }
+
+    @media (max-width: 820px) {
+      .sec-head { grid-template-columns: 1fr; gap: 24px; }
+    }
+
+    /* ─── feature grid (3 col) ───────────────────────────────────── */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .feat-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      display: flex; flex-direction: column;
+    }
+    .feat-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-2);
+    }
+    .feat-media {
+      aspect-ratio: 4/3;
+      position: relative;
+      overflow: hidden;
+      background: var(--soft);
+    }
+    .feat-media img { width: 100%; height: 100%; object-fit: cover; }
+    .feat-media.violet { background: linear-gradient(160deg, var(--violet) 0%, var(--violet-2) 100%); }
+    .feat-media.ink { background: var(--ink); }
+    .feat-media-inner {
+      position: absolute; inset: 0;
+      padding: 28px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      color: #fff;
+    }
+    .feat-mock {
+      background: rgba(255,255,255,0.94);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+      color: var(--ink);
+    }
+    .feat-mock .mock-label {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--violet);
+    }
+    .feat-mock .mock-msg { margin-top: 6px; font-size: 12px; line-height: 1.45; color: var(--ink); }
+
+    .feat-body {
+      padding: 28px;
+      flex: 1;
+      display: flex; flex-direction: column;
+    }
+    .feat-tag {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--violet);
+      margin-bottom: 12px;
+    }
+    .feat-body h3 {
+      font-size: 22px; font-weight: 700; line-height: 1.2;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .feat-body p {
+      margin-top: 12px; font-size: 15px; line-height: 1.62;
+      color: var(--slate);
+      flex: 1;
+    }
+    .feat-link {
+      margin-top: 20px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 700;
+      color: var(--violet-2); text-decoration: none;
+      transition: gap 0.2s;
+    }
+    .feat-link:hover { gap: 12px; }
+
+    @media (max-width: 900px) {
+      .feat-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── alternating blocks (text + visual) ─────────────────────── */
+    .altblock + .altblock { margin-top: 110px; }
+    .altblock {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(40px, 6vw, 96px);
+      align-items: center;
+    }
+    .altblock.reverse { direction: rtl; }
+    .altblock.reverse > * { direction: ltr; }
+
+    .ab-copy .tag {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--violet-2);
+      font-size: 12px; font-weight: 800;
+      letter-spacing: 0.06em;
+      margin-bottom: 22px;
+    }
+    .sec.dark .ab-copy .tag { background: rgba(115,103,240,0.18); color: var(--violet-3); }
+    .ab-copy h3 {
+      font-size: clamp(32px, 4vw, 56px);
+      font-weight: 800; line-height: 1.05;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+    }
+    .ab-copy h3 .accent { color: var(--violet); }
+    .sec.dark .ab-copy h3 .accent { color: var(--violet-3); }
+    .ab-copy p {
+      margin-top: 22px;
+      font-size: 18px; line-height: 1.62;
+      color: var(--slate);
+      max-width: 480px;
+    }
+    .sec.dark .ab-copy p { color: rgba(255,255,255,0.7); }
+    .ab-copy .bullets {
+      margin-top: 28px;
+      display: grid; gap: 14px;
+    }
+    .ab-bullet {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .ab-bullet .check {
+      flex-shrink: 0; width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--soft); color: var(--violet-2);
+      font-weight: 800; font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 2px;
+    }
+    .sec.dark .ab-bullet .check { background: rgba(115,103,240,0.22); color: var(--violet-3); }
+    .ab-bullet b { font-weight: 700; }
+    .ab-bullet p { margin: 4px 0 0; font-size: 15px; max-width: none; color: var(--slate); }
+    .sec.dark .ab-bullet p { color: rgba(255,255,255,0.66); }
+    .ab-copy .ab-cta {
+      margin-top: 32px;
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--violet-2); font-weight: 700; font-size: 15px;
+      text-decoration: none;
+      transition: gap 0.2s;
+    }
+    .ab-copy .ab-cta:hover { gap: 14px; }
+    .sec.dark .ab-copy .ab-cta { color: var(--violet-3); }
+
+    /* ab visual */
+    .ab-visual {
+      position: relative;
+      aspect-ratio: 5/4;
+      max-height: 560px;
+      width: 100%;
+    }
+    .ab-photo {
+      width: 100%; height: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow-2);
+    }
+    .ab-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+    .ab-mock {
+      position: absolute;
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow-2);
+      animation: float-bob 7s ease-in-out infinite;
+    }
+    .ab-mock.left-low { bottom: 8%; left: -6%; width: 240px; }
+    .ab-mock.right-top { top: 6%; right: -6%; width: 230px; animation-delay: 2s; }
+
+    /* dashboard visual block (alternating with screen mockup) */
+    .ab-screen {
+      width: 100%;
+      background: var(--ink);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: var(--shadow-2);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .ab-screen::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -80px;
+      width: 320px; height: 280px;
+      background: radial-gradient(ellipse, rgba(115,103,240,0.4), transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+    }
+    .ab-screen .ab-screen-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+    }
+    .ab-screen .ab-screen-header span { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .ab-screen .ab-screen-header em { font-size: 12px; color: rgba(255,255,255,0.4); font-style: normal; }
+    .ab-screen .ab-screen-img {
+      margin-top: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .ab-screen .ab-screen-img img {
+      width: 100%; height: auto;
+      display: block;
+    }
+
+    @media (max-width: 820px) {
+      .altblock { grid-template-columns: 1fr; }
+      .altblock.reverse { direction: ltr; }
+      .ab-mock.left-low, .ab-mock.right-top { display: none; }
+    }
+
+    /* ─── moments band (replaces stats) ──────────────────────────── */
+    .moments {
+      background: var(--ink);
+      color: #fff;
+      padding: 110px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .moments::before {
+      content: ''; position: absolute;
+      top: -120px; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 400px;
+      background: radial-gradient(ellipse, rgba(115,103,240,0.22), transparent 70%);
+      filter: blur(60px); pointer-events: none;
+    }
+    .moments-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin-top: 56px;
+    }
+    .moment {
+      padding: 38px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.025);
+      transition: background 0.3s, border-color 0.3s, transform 0.3s;
+    }
+    .moment:hover {
+      background: rgba(115,103,240,0.06);
+      border-color: rgba(115,103,240,0.34);
+      transform: translateY(-4px);
+    }
+    .moment-head {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 22px;
+    }
+    .moment-num {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: rgba(115,103,240,0.18);
+      border: 1px solid rgba(115,103,240,0.4);
+      color: var(--violet-3);
+      font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .moment-tag {
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+    }
+    .moment h3 {
+      font-size: clamp(22px, 2.4vw, 30px);
+      font-weight: 700;
+      letter-spacing: -0.018em;
+      line-height: 1.18;
+      color: #fff;
+    }
+    .moment p {
+      margin-top: 12px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.66);
+    }
+    .moment-coach {
+      margin-top: 22px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border-left: 2px solid var(--violet);
+    }
+    .moment-coach .mc-label {
+      font-size: 10px; font-weight: 800;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--violet-3);
+    }
+    .moment-coach .mc-msg {
+      margin-top: 6px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.92);
+      font-style: italic;
+    }
+    @media (max-width: 820px) { .moments-grid { grid-template-columns: 1fr; } }
+
+    /* ─── color block (full violet family section) ──────────────── */
+    .colorblock {
+      position: relative;
+      padding: 110px 0;
+      background: var(--violet);
+      color: #fff;
+      overflow: hidden;
+    }
+    .colorblock::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 460px; height: 460px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+    .colorblock::after {
+      content: '';
+      position: absolute;
+      bottom: -180px; left: 6%;
+      width: 360px; height: 360px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.16);
+      pointer-events: none;
+      filter: blur(8px);
+    }
+    .colorblock .wrap { position: relative; z-index: 1; }
+    .colorblock .sec-head .eyebrow { color: rgba(255,255,255,0.78); }
+    .colorblock .sec-head h2 { color: #fff; }
+    .colorblock .sec-head h2 .accent { color: #fff; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.4); text-decoration-thickness: 3px; text-underline-offset: 6px; }
+    .colorblock .sec-head .copy { color: rgba(255,255,255,0.82); }
+
+    .cb-grid {
+      margin-top: 56px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .cb-pillars { display: grid; gap: 14px; }
+    .cb-pillar {
+      display: flex; gap: 18px;
+      padding: 22px 24px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      transition: background 0.25s, transform 0.25s;
+    }
+    .cb-pillar:hover {
+      background: rgba(255,255,255,0.16);
+      transform: translateX(6px);
+    }
+    .cb-pillar-num {
+      flex-shrink: 0;
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: #fff; color: var(--violet-2);
+      font-weight: 800; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cb-pillar h4 { margin: 0; font-size: 19px; font-weight: 700; color: #fff; }
+    .cb-pillar p {
+      margin: 6px 0 0;
+      font-size: 15px; line-height: 1.6;
+      color: rgba(255,255,255,0.82);
+    }
+    .cb-quote {
+      position: relative;
+      padding: 36px;
+      background: rgba(0,0,0,0.18);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .cb-quote .q-mark {
+      font-family: Georgia, "DM Sans", serif;
+      font-size: 100px;
+      line-height: 0.7;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: -4px;
+    }
+    .cb-quote .q-body {
+      font-size: clamp(22px, 2.4vw, 30px);
+      line-height: 1.34;
+      color: #fff;
+      font-weight: 500;
+      letter-spacing: -0.012em;
+    }
+    .cb-quote .q-author {
+      margin-top: 24px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .cb-quote .q-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      border: 2px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 14px; color: #fff;
+    }
+    .cb-quote .q-name { color: #fff; font-weight: 700; font-size: 15px; }
+    .cb-quote .q-role { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 2px; }
+    @media (max-width: 820px) {
+      .cb-grid { grid-template-columns: 1fr; gap: 32px; }
+    }
+
+    /* moments-on-violet (used in the unified family/moments section) */
+    .cb-moments {
+      margin-top: 56px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+    .cb-moment {
+      padding: 32px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      transition: background 0.25s, transform 0.25s;
+    }
+    .cb-moment:hover {
+      background: rgba(255,255,255,0.14);
+      transform: translateY(-4px);
+    }
+    .cb-moment-head {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 18px;
+    }
+    .cb-moment-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-weight: 800; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cb-moment-tag {
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+    }
+    .cb-moment h3 {
+      font-size: clamp(20px, 2.2vw, 26px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.015em;
+      line-height: 1.22;
+    }
+    .cb-moment p {
+      margin-top: 12px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.78);
+    }
+    .cb-moment-coach {
+      margin-top: 22px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.22);
+      border-left: 2px solid #fff;
+    }
+    .cb-moment-coach .mc-label {
+      font-size: 10px; font-weight: 800;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.92);
+    }
+    .cb-moment-coach .mc-msg {
+      margin-top: 6px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.95);
+      font-style: italic;
+    }
+    @media (max-width: 820px) {
+      .cb-moments { grid-template-columns: 1fr; }
+    }
+
+    /* ─── cases (3 stories) ──────────────────────────────────────── */
+    .cases-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 22px;
+    }
+    .case {
+      position: relative;
+      aspect-ratio: 4/5;
+      border-radius: 24px;
+      overflow: hidden;
+      cursor: pointer;
+      box-shadow: var(--shadow-1);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .case:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-2);
+    }
+    .case img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.5s;
+    }
+    .case:hover img { transform: scale(1.04); }
+    .case::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(15,16,32,0) 30%, rgba(15,16,32,0.85));
+    }
+    .case-body {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 28px;
+      color: #fff;
+      z-index: 1;
+    }
+    .case-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      backdrop-filter: blur(8px);
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .case h3 {
+      font-size: 22px; font-weight: 700; line-height: 1.22;
+      letter-spacing: -0.01em;
+    }
+    .case-meta {
+      margin-top: 14px;
+      font-size: 13px; color: rgba(255,255,255,0.7);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .case-meta .sep { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+    @media (max-width: 820px) {
+      .cases-grid { grid-template-columns: 1fr; }
+      .case { aspect-ratio: 4/3; }
+    }
+
+    /* ─── testimonial wall (auto-scroll columns) ─────────────────── */
+    .test-columns {
+      margin-top: 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      max-height: 620px;
+      overflow: hidden;
+      mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+      -webkit-mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+    }
+    .test-col {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      animation: test-scroll 38s linear infinite;
+    }
+    .test-col.reverse { animation-direction: reverse; animation-duration: 44s; }
+    .test-col.slow    { animation-duration: 52s; }
+
+    @keyframes test-scroll {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-50%); }
+    }
+
+    .test-card {
+      flex-shrink: 0;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 6px 24px rgba(15,16,32,0.04);
+    }
+    .test-card p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+    .test-author {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .test-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--soft);
+      color: var(--violet-2);
+      font-weight: 800;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .test-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .test-meta {
+      font-size: 12px;
+      color: var(--slate);
+      margin-top: 1px;
+    }
+    @media (max-width: 820px) {
+      .test-columns { grid-template-columns: 1fr; max-height: 540px; }
+      .test-col:nth-child(n+2) { display: none; }
+    }
+
+    /* ─── resources (article cards) ──────────────────────────────── */
+    .res-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .res {
+      display: flex; flex-direction: column;
+      text-decoration: none;
+      transition: transform 0.3s;
+    }
+    .res:hover { transform: translateY(-4px); }
+    .res-thumb {
+      aspect-ratio: 4/3;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--soft);
+      margin-bottom: 16px;
+    }
+    .res-thumb.violet { background: var(--violet); }
+    .res-thumb.ink { background: var(--ink); }
+    .res-thumb.cream { background: var(--cream); border: 1px solid var(--line); }
+    .res-thumb-inner {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      font-family: "DM Sans", sans-serif;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+    .res-thumb.violet .res-thumb-inner { color: #fff; font-size: 22px; }
+    .res-thumb.ink .res-thumb-inner { color: var(--violet-3); font-size: 22px; }
+    .res-thumb.cream .res-thumb-inner { color: var(--ink); font-size: 22px; }
+    .res-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    .res-tag {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--violet-2);
+    }
+    .res h4 {
+      margin-top: 8px;
+      font-size: 17px; font-weight: 700; line-height: 1.3;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .res p {
+      margin-top: 6px;
+      font-size: 13px; color: var(--slate);
+      line-height: 1.5;
+    }
+    @media (max-width: 900px) { .res-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .res-grid { grid-template-columns: 1fr; } }
+
+    /* ─── faq ────────────────────────────────────────────────────── */
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      align-items: start;
+      gap: clamp(40px, 6vw, 80px);
+    }
+    .faq-grid .eyebrow {
+      font-size: 12px; font-weight: 800; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--violet);
+      margin-bottom: 18px;
+    }
+    .faq-grid h2 {
+      font-size: clamp(34px, 4.4vw, 56px);
+      font-weight: 800; line-height: 1.04;
+      letter-spacing: -0.025em;
+      max-width: 480px;
+      text-wrap: balance;
+    }
+    .faq-grid h2 .accent { color: var(--violet); }
+    .faq-grid .copy {
+      margin-top: 20px;
+      font-size: 17px; line-height: 1.6;
+      color: var(--slate);
+      max-width: 360px;
+    }
+    .faq-cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-top: 24px;
+      padding: 13px 20px 13px 22px;
+      background: var(--violet);
+      color: #fff;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: var(--shadow-v);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .faq-cta:hover { transform: translateY(-1px); background: var(--violet-2); }
+    .faq-list { display: flex; flex-direction: column; }
+    .faq-item { border-bottom: 1px solid var(--line); }
+    .faq-q {
+      width: 100%; display: flex; align-items: center;
+      justify-content: space-between; gap: 16px;
+      padding: 22px 0;
+      background: none; border: 0;
+      text-align: left; font: inherit; cursor: pointer;
+      font-size: 16px; font-weight: 700; color: var(--ink);
+      transition: color 0.2s;
+    }
+    .faq-q:hover { color: var(--violet-2); }
+    .faq-icon {
+      flex-shrink: 0; width: 24px; height: 24px;
+      border: 1px solid var(--line); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--slate);
+      transition: background 0.2s, border-color 0.2s, transform 0.3s, color 0.2s;
+    }
+    .faq-item.open .faq-icon {
+      background: var(--violet); border-color: var(--violet);
+      color: #fff; transform: rotate(45deg);
+    }
+    .faq-a {
+      overflow: hidden; max-height: 0;
+      transition: max-height 0.4s ease, padding 0.3s;
+      color: var(--slate); font-size: 15px; line-height: 1.65;
+    }
+    .faq-item.open .faq-a { max-height: 240px; padding-bottom: 24px; }
+    @media (max-width: 820px) {
+      .faq-grid { grid-template-columns: 1fr; gap: 36px; }
+    }
+
+    /* ─── dashboard stage (iPad landscape with rotating screens) ─── */
+    .sec.violet .dashboard-stage {
+      position: relative;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 clamp(20px, 4vw, 40px);
+      margin-bottom: -110px;
+      z-index: 2;
+    }
+    .ipad {
+      position: relative;
+      background: #15172a;
+      border-radius: 36px;
+      padding: 18px;
+      box-shadow:
+        0 40px 100px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(255,255,255,0.06),
+        inset 0 0 0 1px rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .ipad::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 7px;
+      transform: translateY(-50%);
+      width: 3px; height: 60px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.10);
+    }
+    .ipad::after {
+      content: '';
+      position: absolute;
+      top: 50%; right: 7px;
+      transform: translateY(-50%);
+      width: 3px; height: 36px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+    }
+    .ipad-screen {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      border-radius: 22px;
+      overflow: hidden;
+      background: #0c0e1d;
+    }
+    .ipad-screen img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      opacity: 0;
+      transform: scale(1.02);
+      transition: opacity 0.7s ease, transform 0.9s ease;
+    }
+    .ipad-screen img.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .ipad-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .ipad-tab {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.84);
+      border-radius: 999px;
+      padding: 10px 20px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .ipad-tab:hover:not(.active) {
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+    }
+    .ipad-tab.active {
+      background: #fff;
+      color: var(--violet-2);
+      border-color: #fff;
+    }
+
+    .sec.violet.has-stage { padding-bottom: 60px; }
+
+    @media (max-width: 820px) {
+      .sec.violet .dashboard-stage { margin-bottom: -60px; }
+      .ipad { padding: 10px; border-radius: 24px; }
+      .ipad-screen { border-radius: 14px; }
+      .ipad::before, .ipad::after { display: none; }
+    }
+
+    /* ─── poder de escolha · composition of UI cards on violet ─── */
+    .poder-head {
+      max-width: 760px;
+      margin: 0 auto 56px;
+      text-align: center;
+    }
+    .poder-head .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 12px; font-weight: 800;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,0.82);
+      margin-bottom: 22px;
+    }
+    .poder-head .eyebrow::before,
+    .poder-head .eyebrow::after {
+      content: '';
+      width: 22px; height: 1px;
+      background: rgba(255,255,255,0.4);
+    }
+    .poder-head h2 {
+      font-size: clamp(36px, 4.8vw, 62px);
+      font-weight: 800; line-height: 1.04;
+      letter-spacing: -0.025em;
+      color: #fff;
+      text-wrap: balance;
+    }
+    .poder-head h2 .accent {
+      color: #fff;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.5);
+      text-decoration-thickness: 3px;
+      text-underline-offset: 6px;
+    }
+    .poder-head .copy {
+      margin: 22px auto 0;
+      font-size: 17px; line-height: 1.6;
+      color: rgba(255,255,255,0.84);
+      max-width: 560px;
+    }
+    .poder-head .copy strong { color: #fff; font-weight: 700; }
+
+    .poder-stage {
+      position: relative;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 clamp(20px, 4vw, 40px);
+    }
+    .poder-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+    @media (max-width: 820px) { .poder-grid { grid-template-columns: 1fr; } }
+
+    /* card base — matches Haile Dashboard visual system */
+    .ucard {
+      background: #1b1e31;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 28px;
+      position: relative;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.32);
+      color: #edf0ff;
+      font-family: "DM Sans", sans-serif;
+    }
+    .ucard .u-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(237,240,255,0.5);
+    }
+    .ucard .u-label .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+
+    /* Poder de Escolha — hero card (central, violet glow inside) */
+    .uc-poder {
+      grid-row: span 2;
+      background: linear-gradient(140deg, #6b5ef5 0%, #5048cc 100%);
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 36px 36px 32px;
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(80,72,204,0.45), 0 0 0 1px rgba(255,255,255,0.10) inset;
+    }
+    .uc-poder::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -80px;
+      width: 320px; height: 280px;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.18), transparent 70%);
+      filter: blur(40px); pointer-events: none;
+    }
+    .uc-poder > * { position: relative; }
+    .uc-poder .u-label { color: rgba(255,255,255,0.88); }
+    .uc-poder .u-month {
+      position: absolute; top: 28px; right: 28px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 11px; font-weight: 600;
+    }
+    .uc-poder h3 {
+      margin-top: 14px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+    .uc-poder .u-sub {
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(255,255,255,0.78);
+      max-width: 280px;
+    }
+    .uc-poder .u-value {
+      margin-top: 28px;
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1;
+      color: #fff;
+    }
+    .uc-poder .u-pct {
+      margin-top: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.78);
+    }
+    .uc-poder .u-bar {
+      margin-top: 22px;
+      height: 6px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .uc-poder .u-bar span {
+      display: block; height: 100%;
+      width: 14.9%;
+      background: #fff;
+      border-radius: inherit;
+      animation: bar-grow 1.4s cubic-bezier(0.22,1,0.36,1) 0.4s both;
+    }
+    @keyframes bar-grow { from { width: 0%; } }
+    .uc-poder .u-foot {
+      margin-top: 14px;
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: rgba(255,255,255,0.72);
+    }
+    .uc-poder .u-foot b { color: #fff; font-weight: 700; }
+
+    /* Coach insight card — teal accent */
+    .uc-coach {
+      background: linear-gradient(135deg, #0b2828 0%, #1b1e31 100%);
+      border: 1px solid rgba(45,207,192,0.30);
+    }
+    .uc-coach .u-coach-head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 14px;
+    }
+    .uc-coach .u-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2dcfc0, #4aa8ff);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .uc-coach .u-coach-meta { font-size: 12px; color: rgba(237,240,255,0.6); }
+    .uc-coach .u-coach-name { color: #2dcfc0; font-weight: 700; font-size: 13px; }
+    .uc-coach .u-badge {
+      display: inline-block; margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(45,207,192,0.16);
+      color: #2dcfc0;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .uc-coach .u-msg {
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: rgba(237,240,255,0.92);
+    }
+    .uc-coach .u-msg em {
+      color: #1dc97e;
+      font-style: normal;
+      font-weight: 600;
+    }
+    .uc-coach .u-msg strong {
+      color: #fff;
+      font-weight: 700;
+    }
+    .uc-coach .u-msg .accent-meta {
+      color: #6b5ef5;
+      font-weight: 600;
+    }
+    .uc-coach .u-action {
+      margin-top: 18px;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px;
+      border: 1px solid rgba(45,207,192,0.4);
+      background: rgba(45,207,192,0.10);
+      color: #2dcfc0;
+      border-radius: 999px;
+      font-size: 12px; font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* Saúde Financeira card */
+    .uc-saude .u-label { margin-bottom: 16px; }
+    .uc-saude .u-value-row {
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .uc-saude .u-value-num {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .uc-saude .u-value-sub {
+      font-size: 13px;
+      color: rgba(237,240,255,0.6);
+    }
+    .uc-saude .u-tribar {
+      margin-top: 16px;
+      display: flex; gap: 4px;
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .uc-saude .u-tribar span {
+      display: block;
+      height: 100%;
+    }
+    .uc-saude .u-tribar .seg-g { flex: 33; background: #1dc97e; }
+    .uc-saude .u-tribar .seg-a { flex: 52; background: #ffa930; }
+    .uc-saude .u-tribar .seg-r { flex: 15; background: rgba(255,255,255,0.06); }
+    .uc-saude .u-hint {
+      margin-top: 14px;
+      font-size: 12px;
+      color: rgba(237,240,255,0.6);
+    }
+    .uc-saude .u-hint b { color: #ffa930; font-weight: 700; }
+
+    /* ─── big CTA banner (signup split) ──────────────────────────── */
+    .cta { padding: 80px 0 110px; }
+    .cta-box {
+      position: relative;
+      border-radius: 32px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      box-shadow: var(--shadow-2);
+      min-height: 460px;
+    }
+    .cta-left {
+      position: relative;
+      background: var(--violet);
+      color: #fff;
+      padding: clamp(40px, 6vw, 72px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+    .cta-watermark {
+      position: absolute;
+      right: -8%; top: 12%;
+      width: 75%;
+      max-width: 520px;
+      opacity: 0.12;
+      pointer-events: none;
+      filter: brightness(0) invert(1);
+    }
+    .cta-left > * { position: relative; z-index: 1; }
+    .cta-left .eyebrow {
+      font-size: 12px; font-weight: 800;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,0.78);
+      margin-bottom: 18px;
+    }
+    .cta-left h2 {
+      font-size: clamp(34px, 4vw, 56px);
+      font-weight: 800; line-height: 1.04;
+      letter-spacing: -0.025em;
+      max-width: 520px;
+      color: #fff;
+    }
+    .cta-left p.cta-sub {
+      margin-top: 22px;
+      font-size: 17px; line-height: 1.6;
+      color: rgba(255,255,255,0.84);
+      max-width: 440px;
+    }
+    .cta-left .cta-login {
+      margin-top: 28px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.78);
+    }
+    .cta-left .cta-login a {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-weight: 700;
+    }
+    .cta-right {
+      background: #fff;
+      padding: clamp(36px, 4vw, 56px) clamp(28px, 3.5vw, 48px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .form-field {
+      margin-bottom: 18px;
+    }
+    .form-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--slate);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .form-field input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--cream);
+      font: inherit;
+      font-size: 15px;
+      color: var(--ink);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .form-field input:focus {
+      outline: none;
+      border-color: var(--violet);
+      background: #fff;
+    }
+    .form-check {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; line-height: 1.45; color: var(--slate);
+      margin: 18px 0;
+      cursor: pointer;
+    }
+    .form-check input {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      margin-top: 2px;
+      accent-color: var(--violet);
+      cursor: pointer;
+    }
+    .form-submit {
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--violet);
+      color: #fff;
+      border: 0;
+      border-radius: 999px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: var(--shadow-v);
+    }
+    .form-submit:hover {
+      background: var(--violet-2);
+      transform: translateY(-1px);
+    }
+    .form-divider {
+      display: flex; align-items: center; gap: 14px;
+      margin: 22px 0;
+      color: var(--slate-2);
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .form-divider::before, .form-divider::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: var(--line);
+    }
+    .form-social {
+      width: 100%;
+      padding: 12px 20px;
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .form-social:hover {
+      background: var(--cream);
+      border-color: #cdc9eb;
+    }
+    .form-social svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .form-mini-foot {
+      margin-top: 22px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--slate-2);
+      text-align: center;
+    }
+    .form-mini-foot a { color: var(--violet-2); text-decoration: none; font-weight: 600; }
+    .form-mini-foot a:hover { text-decoration: underline; }
+
+    @media (max-width: 820px) {
+      .cta-box { grid-template-columns: 1fr; }
+      .cta-watermark { width: 90%; right: -20%; top: auto; bottom: -20%; }
+    }
+
+    /* ─── footer ─────────────────────────────────────────────────── */
+    footer.site {
+      position: relative;
+      background: var(--cream);
+      color: var(--ink);
+      padding: 72px 0 28px;
+      overflow: hidden;
+      border-top: 1px solid var(--line);
+    }
+    .foot-watermark {
+      position: absolute;
+      right: -6%; top: 8%;
+      width: 38%;
+      max-width: 540px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .foot-watermark img {
+      width: 100%; height: auto;
+      opacity: 0.06;
+    }
+    footer.site .wrap { position: relative; z-index: 1; }
+
+    .foot-grid {
+      display: grid;
+      grid-template-columns: 1.3fr repeat(3, 1fr);
+      gap: 56px;
+      padding-bottom: 72px;
+    }
+    .foot-brand img { height: 28px; }
+    .foot-brand p {
+      margin-top: 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--slate);
+      max-width: 260px;
+    }
+    .foot-col h5 {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 20px;
+      letter-spacing: 0.04em;
+    }
+    .foot-col ul {
+      list-style: none; margin: 0; padding: 0;
+      display: grid; gap: 12px;
+    }
+    .foot-col a {
+      font-size: 14px;
+      color: var(--slate);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .foot-col a:hover { color: var(--violet-2); }
+
+    .foot-bottom {
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .foot-legal {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--slate-2);
+    }
+    .foot-legal a {
+      color: var(--slate-2);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .foot-legal a:hover { color: var(--ink); }
+    .foot-socials {
+      display: flex; gap: 8px;
+    }
+    .foot-social {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--slate);
+      text-decoration: none;
+      font-size: 13px; font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+    }
+    .foot-social:hover { background: rgba(115,103,240,0.08); color: var(--violet-2); }
+
+    @media (max-width: 900px) {
+      .foot-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
+      .foot-watermark { width: 90%; right: -30%; top: auto; bottom: -10%; }
+    }
+    @media (max-width: 540px) {
+      .foot-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── responsive ─────────────────────────────────────────────── */
+    @media (max-width: 820px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 56px; }
+      .hero-visual { aspect-ratio: 3/4; max-width: 480px; margin: 0 auto; }
+      .float-card.fc-coach { left: -4%; }
+      .float-card.fc-goal  { right: -4%; }
+      .float-card.fc-stat  { left: -4%; }
+      .nav-menu { display: none; }
+      .sec { padding: 80px 0; }
+    }
+    @media (max-width: 640px) {
+      .float-card.fc-stat { display: none; }
+      .nav-right a.sign { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ───────── NAV ───────── -->
+  <header class="nav" id="nav">
+    <div class="nav-left">
+      <a href="index.html" aria-label="Haile — ir para início" style="display:inline-flex">
+        <img class="nav-logo dark" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+        <img class="nav-logo light" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
+      </a>
+      <nav class="nav-menu">
+        <a href="#produto">Produto</a>
         <a href="como-funciona.html">Como funciona</a>
         <a href="precos.html">Planos</a>
         <a href="contato.html">Contato</a>
       </nav>
-      <a href="waitlist.html" class="button outline" id="nav-cta">Solicitar acesso</a>
-    </header>
+    </div>
+    <div class="nav-right">
+      <a href="login.html" class="btn ghost">Entrar</a>
+      <a href="contato.html" class="btn primary">Começar grátis</a>
+    </div>
+  </header>
 
-    <main>
-      <!-- ── hero ──────────────────────────────────────────────────── -->
-      <section class="hero" id="hero-section">
-        <div class="glow one"></div>
-        <div class="glow two"></div>
+  <main>
 
-        <!-- wordmark watermark behind hero (discreet ghost) -->
-        <div class="hero-watermark" aria-hidden="true">
-          <img src="assets/svg/haile-wordmark-white.svg" alt="" />
-        </div>
-
+    <!-- ───────── HERO ───────── -->
+    <section class="hero">
+      <div class="wrap">
         <div class="hero-grid">
-
-          <!-- LEFT — editorial typography -->
           <div>
-            <div class="hero-label">
-              <span class="hero-label-rule"></span>
-              <span class="hero-label-text">Coach Financeiro Familiar com IA</span>
-            </div>
-
+            <span class="hero-eyebrow">
+              <span class="tag">NOVO</span>
+              Coach financeiro com IA para famílias
+            </span>
             <h1>
-              Escolhas<br>
-              <em>inteligentes</em><br>
-              transformam vidas.
+              O poder de escolher
+              <span class="accent">com clareza.</span>
             </h1>
-
-            <p class="lead">Não é um app para lançar despesas. O Haile é seu Coach financeiro pessoal com inteligência artificial que analisa suas condições financeiras, te ajuda a tomar decisões melhores com seu dinheiro e conquistar seus objetivos.</p>
-
-            <div class="actions">
-              <a href="como-funciona.html" class="button primary">Conhecer o Haile</a>
-              <a href="waitlist.html" class="button outline">Quero acesso antecipado</a>
-            </div>
-
-            <div class="social-proof">
-              <p class="sp-text">
-                Acesso por convite enquanto finalizamos os últimos ajustes.
-              </p>
-            </div>
-          </div>
-
-          <!-- RIGHT — coach card, glowing on dark -->
-          <div class="visual">
-            <div class="coach-card">
-              <button class="coach-replay-btn" id="coach-replay" aria-label="Refazer animação">↺ Refazer</button>
-              <div class="coach-screen">
-                <div class="coach-top ca" id="ca-top">
-                  <div>
-                    <p class="muted">Seu coach financeiro hoje</p>
-                    <p class="coach-title" id="ca-title">...</p>
-                  </div>
-                  <span class="tag ca" id="ca-tag" style="transition-delay:0.15s">Plano atualizado</span>
-                </div>
-
-                <div class="coach-note ca" id="ca-note">
-                  <strong>Orientação do Haile</strong>
-                  <p id="ca-note-p"></p>
-                </div>
-
-                <div class="goal-card ca" id="ca-goal">
-                  <div class="goal-row">
-                    <div>
-                      <p class="muted">Próxima conquista</p>
-                      <p><b>Itália em família</b></p>
-                    </div>
-                    <b>68%</b>
-                  </div>
-                  <div class="progress">
-                    <span class="coach-progress-bar" id="ca-bar"></span>
-                  </div>
-                </div>
-
-                <div class="signal-row ca" id="ca-signals">
-                  <div class="signal dark">
-                    <p class="muted">Patrimônio</p>
-                    <p id="ca-patrimonio">R$ 0</p>
-                  </div>
-                  <div class="signal light">
-                    <p class="muted">Ritmo mensal</p>
-                    <p id="ca-ritmo">+R$ 0</p>
-                  </div>
-                </div>
-              </div>
+            <p class="lead">A gente acredita que um dos maiores benefícios do dinheiro é o poder de escolha. O Haile é o coach financeiro com IA que entende seu contexto, mostra suas opções reais e devolve cada decisão pra suas mãos. 
+Sem promessa, sem moralismo. Só clareza.</p>
+            <div class="hero-actions">
+              <a href="contato.html" class="btn violet lg">
+                Começar grátis
+                <span class="arrow">→</span>
+              </a>
+              <a href="como-funciona.html" class="btn ghost lg">
+                Ver como funciona
+                <span class="arrow">→</span>
+              </a>
             </div>
           </div>
 
-        </div>
-
-        <p class="scroll-cue">Role para conhecer a inteligência por trás</p>
-      </section>
-
-      <!-- ── coach section ─────────────────────────────────────────── -->
-      <section id="coach" class="content white">
-        <div class="wrap">
-          <div class="split reveal">
-            <div>
-              <p class="eyebrow">Coach financeiro com IA</p>
-              <h2>Seu dinheiro, suas escolhas.</h2>
+          <div class="hero-visual">
+            <div class="hero-photo">
+              <img src="assets/photos/familia-dia.jpg" alt="Família planejando o futuro com o Haile" />
             </div>
-            <p class="section-copy">O Haile não registra só gasto, ele pensa junto com você. Com base no comportamento e seu contexto financeiro, antecipa consequências e mostra o próximo passo antes que o problema apareça.</p>
-          </div>
 
-
-          <div class="carousel reveal" id="coach-carousel">
-            <div class="carousel-track" id="c-track">
-
-              <!-- slide 1: Visibilidade -->
-              <div class="carousel-slide">
-                <div class="slide-left">
-                  <p class="slide-eyebrow">Visibilidade real</p>
-                  <h3>Para onde está indo<br><em>o seu dinheiro?</em></h3>
-                  <p>O Haile te dá clareza total sobre hábitos, padrões e oportunidades — sem planilha, sem gráfico difícil. Só o que importa, quando importa.</p>
-                  <a href="como-funciona.html" class="slide-link">Como funciona →</a>
-                </div>
-                <div class="slide-right">
-                  <div class="slide-coach">
-                    <p class="sc-label">Orientação do Haile</p>
-                    <p class="sc-msg">Você gastou R$ 340 a mais em delivery este mês em comparação com sua média. Isso está afetando o ritmo da meta Itália.</p>
-                    <div class="sc-meta">
-                      <span class="sc-tag">Visibilidade</span>
-                      <span class="sc-tone">Tom orientador</span>
-                    </div>
-                  </div>
+            <div class="float-card fc-coach">
+              <div class="row">
+                <div class="avatar">H</div>
+                <div>
+                  <div class="label">Orientação do Haile</div>
+                  <p class="msg">Sua meta Itália está em ritmo saudável. Já é possível antecipar 3 semanas.</p>
                 </div>
               </div>
+            </div>
 
-              <!-- slide 2: Decisão inteligente -->
-              <div class="carousel-slide">
-                <div class="slide-left">
-                  <p class="slide-eyebrow">Decisão inteligente</p>
-                  <h3>A IA analisa<br><em>antes de você gastar.</em></h3>
-                  <p>Antes de uma compra grande, o Haile avalia seu momento financeiro e mostra o impacto real nas suas metas — sem proibir, só informar.</p>
-                  <a href="como-funciona.html" class="slide-link">Como funciona →</a>
-                </div>
-                <div class="slide-right" style="background-image:url('assets/photos/familia-dia.jpg');background-size:cover;background-position:center;"><div style="position:absolute;inset:0;background:rgba(15,16,32,0.68);z-index:0"></div>
-                  <div class="slide-coach">
-                    <p class="sc-label">Orientação do Haile</p>
-                    <p class="sc-msg">Antes de confirmar essa compra de R$ 2.400, vale ver: ela atrasa a meta Itália em 6 semanas. Ainda quer prosseguir?</p>
-                    <div class="sc-meta">
-                      <span class="sc-tag">Preventivo</span>
-                      <span class="sc-tone">Tom cauteloso</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div class="float-card fc-stat">
+              <div class="label">Economia este mês</div>
+              <div class="value">+R$ 540</div>
+              <div class="delta">↗ 12% vs. mês anterior</div>
+            </div>
 
-              <!-- slide 3: Conquistas -->
-              <div class="carousel-slide">
-                <div class="slide-left">
-                  <p class="slide-eyebrow">Conquistas</p>
-                  <h3>Metas que viram<br><em>realidade, não intenção.</em></h3>
-                  <p>Cada ajuste no orçamento se conecta a uma conquista real. O Haile celebra com você — e já aponta o próximo passo.</p>
-                  <a href="como-funciona.html" class="slide-link">Como funciona →</a>
-                </div>
-                <div class="slide-right">
-                  <div class="slide-coach">
-                    <p class="sc-label">Orientação do Haile</p>
-                    <p class="sc-msg">Meta atingida! Vocês chegaram aos R$ 18.000 para a Itália. 8 meses de consistência real. Hora de planejar a próxima conquista.</p>
-                    <div class="sc-meta">
-                      <span class="sc-tag">Conquista</span>
-                      <span class="sc-tone">Tom celebrativo</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- slide 4: Revisão -->
-              <div class="carousel-slide">
-                <div class="slide-left">
-                  <p class="slide-eyebrow">Visão do mês</p>
-                  <h3>O Haile acompanha<br><em>sua evolução.</em></h3>
-                  <p>Todo mês, o Haile entrega uma leitura clara da evolução financeira da família — tendências, padrões e o que ajustar para o próximo ciclo.</p>
-                  <a href="como-funciona.html" class="slide-link">Como funciona →</a>
-                </div>
-                <div class="slide-right">
-                  <div class="slide-coach">
-                    <p class="sc-label">Orientação do Haile</p>
-                    <p class="sc-msg">Nos últimos 3 meses, lazer cresceu 18% mas poupança ficou estável. O equilíbrio está saudável — vale atenção se o ritmo continuar.</p>
-                    <div class="sc-meta">
-                      <span class="sc-tag">Revisão mensal</span>
-                      <span class="sc-tone">Tom analítico</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div><!-- /track -->
-
-            <div class="carousel-controls">
-              <span class="carousel-progress" id="c-progress">1 / 4</span>
-              <div class="carousel-dots" id="c-dots">
-                <button class="c-dot active" data-idx="0"></button>
-                <button class="c-dot" data-idx="1"></button>
-                <button class="c-dot" data-idx="2"></button>
-                <button class="c-dot" data-idx="3"></button>
-              </div>
-              <div class="carousel-arrows">
-                <button class="c-arrow" id="c-prev">←</button>
-                <button class="c-arrow" id="c-next">→</button>
-              </div>
+            <div class="float-card fc-goal">
+              <div class="top"><span>Próxima conquista</span><span>68%</span></div>
+              <div class="title">Itália em família</div>
+              <div class="meter"><span></span></div>
+              <div class="meta"><b>R$ 18.000</b> de R$ 26.500 · 4 meses restantes</div>
             </div>
           </div>
         </div>
-      </section>
-
-      <!-- ── showcase ──────────────────────────────────────────────── -->
-      <section id="showcase" class="content showcase">
-        <div class="wrap">
-          <div class="split reveal">
-            <div>
-              <p class="eyebrow">A IA trabalhando para você</p>
-              <h2>Orientação em tempo real, não relatório depois.</h2>
-            </div>
-            <p class="section-copy">
-              O Haile acompanha suas finanças em segundo plano e aparece
-              quando importa — com contexto, clareza e o próximo passo certo
-              para a sua família.
-            </p>
-          </div>
-
-          <div class="showcase-stage">
-            <div class="device main screenshot reveal">
-              <div class="device-header">
-                <span>Visão Geral</span>
-                <em>Maio 2026</em>
-              </div>
-              <img
-                class="device-screen"
-                src="assets/screens/visao-geral.png"
-                alt="Haile — painel Visão Geral com patrimônio, receitas, despesas e orientação do coach"
-                loading="lazy"
-              />
-            </div>
-
-            <div class="device photo-panel">
-              <img
-                src="assets/photos/casal-planejando.jpg"
-                alt="Casal planejando financeiramente" loading="lazy"
-              />
-            </div>
-
-            <div class="device side screenshot">
-              <div class="device-header">
-                <span>Metas &amp; Projetos</span>
-                <em>4 objetivos</em>
-              </div>
-              <img
-                class="device-screen"
-                src="assets/screens/metas.png"
-                alt="Haile — tela de Metas e Projetos"
-                loading="lazy"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── family ────────────────────────────────────────────────── -->
-      <section id="family" class="content family">
-        <div class="family-photo-bg" aria-hidden="true">
-          <img src="assets/photos/familia-noite.jpg" alt="" loading="lazy" />
-        </div>
-        <div class="glow"></div>
-        <div class="wrap family-grid">
-          <div class="reveal">
-            <p class="eyebrow">Família unida, finanças alinhadas</p>
-            <h2>Colaboração financeira começa aqui.</h2>
-            <p class="lead" style="color:rgba(255,255,255,0.72)">
-              O Haile conecta toda a família em torno dos mesmos objetivos —
-              com clareza, responsabilidade e inteligência para cada decisão.
-            </p>
-          </div>
-          <div class="family-stack">
-            <article class="family-card reveal" data-delay="1">
-              <h3>Visibilidade financeira real</h3>
-              <p>Entenda para onde o dinheiro está indo — com inteligência, não com planilhas.</p>
-            </article>
-            <article class="family-card reveal" data-delay="2">
-              <h3>Metas que viram tração</h3>
-              <p>Do sonho ao plano com impacto real no orçamento — o Haile acompanha cada passo até a conquista.</p>
-            </article>
-            <article class="family-card reveal" data-delay="3">
-              <h3>Cada membro, um papel</h3>
-              <p>Organize responsabilidades e prioridades de toda a família com clareza — juntos por um objetivo compartilhado.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── FAQ ──────────────────────────────────────────────────────── -->
-      <section class="content white faq">
-        <div class="wrap">
-          <div class="faq-grid">
-            <div class="reveal">
-              <p class="eyebrow">Dúvidas frequentes</p>
-              <h2>Perguntas e respostas</h2>
-              <p class="lead" style="margin-top:20px">
-                Alguma dúvida que não está aqui?
-                Fale com a gente.
-                <a href="contato.html" style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;background:var(--violet);color:#fff;border-radius:999px;padding:13px 22px;font-weight:700;font-size:14px;text-decoration:none;transition:transform 0.2s;box-shadow:0 12px 40px rgba(115,103,240,0.25)" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Oi Haile →</a>
-              </p>
-            </div>
-            <div class="faq-list reveal" data-delay="1">
-              <div class="faq-item">
-                <button class="faq-q">O Haile é seguro para conectar minhas contas? <span class="faq-icon">+</span></button>
-                <div class="faq-a">Sim. Utilizamos criptografia de ponta a ponta e nunca armazenamos senhas bancárias. A conexão é feita via Open Finance, o padrão regulado pelo Banco Central do Brasil.</div>
-              </div>
-              <div class="faq-item">
-                <button class="faq-q">Preciso de cartão de crédito para o Trial? <span class="faq-icon">+</span></button>
-                <div class="faq-a">Não. O Trial de 14 dias é completamente gratuito, sem necessidade de cartão. Só pedimos e-mail e criação de conta.</div>
-              </div>
-              <div class="faq-item">
-                <button class="faq-q">Funciona para casal sem filhos? <span class="faq-icon">+</span></button>
-                <div class="faq-a">Sim. O Haile entende qualquer configuração familiar — casal, família com filhos, ou mesmo um indivíduo que quer organizar seu futuro. O coach se adapta ao seu contexto.</div>
-              </div>
-              <div class="faq-item">
-                <button class="faq-q">O Haile substitui um planejador financeiro? <span class="faq-icon">+</span></button>
-                <div class="faq-a">Não — e nem quer. O Haile é seu coach do dia a dia: orienta decisões rotineiras, acompanha metas e dá visibilidade. Para planejamento patrimonial complexo, ele trabalha junto com seu assessor.</div>
-              </div>
-              <div class="faq-item">
-                <button class="faq-q">Posso cancelar a qualquer momento? <span class="faq-icon">+</span></button>
-                <div class="faq-a">Sim, sem burocracia. Se cancelar, você mantém acesso até o fim do período já pago.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── CTA ───────────────────────────────────────────────────── -->
-      <section class="cta">
-        <div class="cta-box reveal">
-          <div style="position:absolute;inset:0;z-index:0;overflow:hidden">
-            <img src="assets/photos/casal-planejando.jpg" alt="" aria-hidden="true" loading="lazy"
-              style="width:100%;height:100%;object-fit:cover;object-position:center 30%;filter:brightness(0.35) saturate(0.8)" />
-          </div>
-          <!-- flow mark removido -->
-
-          <p class="eyebrow">Haile</p>
-          <h2>Seu coach financeiro com inteligência artificial.</h2>
-          <p>Tome decisões mais inteligentes com seu dinheiro. Planeje conquistas reais. Construa tranquilidade financeira com a sua família.</p>
-          <div class="actions">
-            <a href="waitlist.html" class="button white">Solicitar acesso antecipado</a>
-            <a href="como-funciona.html" class="button outline">Como funciona</a>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- ── disclaimer legal ──────────────────────────────────────────── -->
-    <section class="legal">
-      <div class="legal-wrap">
-        <p>O Haile é uma plataforma de organização e coaching financeiro pessoal e familiar, potencializada por inteligência artificial. As informações, análises, insights e projeções disponibilizados têm caráter exclusivamente informativo, educativo e de apoio à tomada de decisão do usuário.</p>
-        <p>O Haile <strong>não</strong>:</p>
-        <ul class="legal-list">
-          <li>é instituição financeira;</li>
-          <li>realiza intermediação financeira;</li>
-          <li>presta consultoria de investimentos;</li>
-          <li>fornece recomendações personalizadas reguladas;</li>
-          <li>executa ordens ou transações financeiras;</li>
-          <li>garante rentabilidade, ganhos ou resultados específicos.</li>
-        </ul>
-        <p>Os insights gerados por inteligência artificial são automatizados e podem conter limitações, imprecisões ou inconsistências — a validação das informações é de responsabilidade do usuário e não substitui análise profissional especializada.</p>
-        <p>As decisões financeiras tomadas pelo usuário são de sua exclusiva responsabilidade.</p>
       </div>
     </section>
 
-    <!-- ── footer ────────────────────────────────────────────────────── -->
-    <footer>
-      <img class="logo" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
-      <nav class="footer-links">
-        <a href="precos.html">Planos</a>
-        <a href="privacidade.html">Privacidade</a>
-        <a href="termos.html">Termos</a>
-        <a href="contato.html">Contato</a>
-      </nav>
-      <p class="footer-copy">© 2026 Haile. Todos os direitos reservados.</p>
-    </footer>
-    <script>
-      // ── nav: dark on hero, light after ─────────────────────────────
-      const nav    = document.getElementById('site-nav');
-      const navCta = document.getElementById('nav-cta');
-      const hero   = document.getElementById('hero-section');
+    <!-- ───────── MANIFESTO (dark marquee) ───────── -->
+    <section class="trust">
+      <p class="manifesto-eyebrow">O Haile, em manifesto</p>
 
-      function updateNav() {
-        const heroBottom = hero.getBoundingClientRect().bottom;
-        const pastHero   = heroBottom <= 0;
-        const scrolled   = window.scrollY > 48;
+      <div class="manifesto-marquee">
+        <div class="mm-track">
+          <span class="mm-item">
+            <span class="anti">planilha</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">conversa</span> direta</span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">julgamento</span>
+            <span class="arr">→</span>
+            <span class="pro">contexto e <span class="ac">clareza</span></span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">ditar caminho</span>
+            <span class="arr">→</span>
+            <span class="pro">mostrar <span class="ac">opções</span></span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">dashboard frio</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="sep"></span>
+          </span>
+          <!-- duplicate for seamless loop -->
+          <span class="mm-item">
+            <span class="anti">planilha</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">conversa</span> direta</span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">julgamento</span>
+            <span class="arr">→</span>
+            <span class="pro">contexto e <span class="ac">clareza</span></span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">ditar caminho</span>
+            <span class="arr">→</span>
+            <span class="pro">mostrar <span class="ac">opções</span></span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">dashboard frio</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="sep"></span>
+          </span>
+        </div>
+      </div>
 
-        nav.classList.toggle('scrolled', scrolled && !pastHero);
-        nav.classList.toggle('light',    pastHero);
+      <div class="manifesto-marquee">
+        <div class="mm-track reverse">
+          <span class="mm-item">
+            <span class="anti">ditar caminho</span>
+            <span class="arr">→</span>
+            <span class="pro">mostrar <span class="ac">opções</span></span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">dashboard frio</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">planilha</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">conversa</span> direta</span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">julgamento</span>
+            <span class="arr">→</span>
+            <span class="pro">contexto e <span class="ac">clareza</span></span>
+            <span class="sep"></span>
+          </span>
+          <!-- duplicate for seamless loop -->
+          <span class="mm-item">
+            <span class="anti">ditar caminho</span>
+            <span class="arr">→</span>
+            <span class="pro">mostrar <span class="ac">opções</span></span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">dashboard frio</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">planilha</span>
+            <span class="arr">→</span>
+            <span class="pro"><span class="ac">conversa</span> direta</span>
+            <span class="sep"></span>
+          </span>
+          <span class="mm-item">
+            <span class="anti">julgamento</span>
+            <span class="arr">→</span>
+            <span class="pro">contexto e <span class="ac">clareza</span></span>
+            <span class="sep"></span>
+          </span>
+        </div>
+      </div>
+    </section>
 
-        // CTA button: outline on dark hero, dark on light sections
-        if (pastHero) {
-          navCta.className = 'button dark';
-        } else {
-          navCta.className = 'button outline';
+    <!-- ───────── FEATURE GRID (3 col) ───────── -->
+    <section class="sec paper" id="produto">
+      <div class="wrap">
+        <div class="sec-head">
+          <div>
+            <p class="eyebrow">Coach financeiro com IA</p>
+            <h2>Um coach que <span class="accent">conversa</span> com o seu dia a dia.</h2>
+          </div>
+          <p class="copy">
+            O Haile não é mais um app de despesa. É uma camada de análise
+            que entende seu contexto, antecipa cenários e te ajuda a escolher
+            melhor — todo dia, em cada decisão.
+          </p>
+        </div>
+
+        <div class="feat-grid">
+          <article class="feat-card reveal">
+            <div class="feat-media">
+              <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&amp;q=80&amp;auto=format&amp;fit=crop" alt="Jovem com laptop planejando finanças em casa"
+                   onerror="this.src='assets/photos/familia-dia.jpg'" />
+            </div>
+            <div class="feat-body">
+              <p class="feat-tag">Decisão consciente</p>
+              <h3>Pensar antes de gastar — não depois.</h3>
+              <p>O coach analisa o impacto de uma compra grande na sua meta antes do clique. Sem proibir, só informando o que acontece se você prosseguir.</p>
+              <a href="como-funciona.html" class="feat-link">Entenda como →</a>
+            </div>
+          </article>
+
+          <article class="feat-card reveal" data-delay="1">
+            <div class="feat-media violet">
+              <div class="feat-media-inner">
+                <div></div>
+                <div class="feat-mock">
+                  <p class="mock-label">Coach do dia</p>
+                  <p class="mock-msg">Você gastou R$ 340 a mais em delivery este mês. Isso atrasa a meta Itália em ~3 semanas.</p>
+                </div>
+              </div>
+            </div>
+            <div class="feat-body">
+              <p class="feat-tag">Visibilidade real</p>
+              <h3>Sem planilha, sem gráfico difícil.</h3>
+              <p>Clareza total sobre hábitos, padrões e oportunidades — entregue em frases simples, no momento certo. Só o que importa, quando importa.</p>
+              <a href="como-funciona.html" class="feat-link">Veja em ação →</a>
+            </div>
+          </article>
+
+          <article class="feat-card reveal" data-delay="2">
+            <div class="feat-media">
+              <img src="https://images.unsplash.com/photo-1609220136736-443140cffec6?w=1200&amp;q=80&amp;auto=format&amp;fit=crop" alt="Família com crianças conversando sobre finanças"
+                   onerror="this.src='assets/photos/familia-noite.jpg'" />
+            </div>
+            <div class="feat-body">
+              <p class="feat-tag">Família alinhada</p>
+              <h3>Todo mundo na mesma página.</h3>
+              <p>Casal, filhos, mesada, decisões grandes da família. O Haile organiza papéis, prioridades e conversas em torno de objetivos compartilhados.</p>
+              <a href="como-funciona.html" class="feat-link">Como funciona em família →</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── PODER DE ESCOLHA · composition on violet ───────── -->
+    <section class="sec violet" id="poder">
+      <div class="wrap">
+        <div class="poder-head reveal">
+          <p class="eyebrow">Método LLP · Poder de Escolha</p>
+          <h2>O número que <span class="accent">muda tudo</span> no fim do mês.</h2>
+          <p class="copy">
+            Depois das contas, contratos e metas, o que sobra é seu — pra
+            gastar, investir, ou acelerar um sonho. O Haile calcula em tempo
+            real. <strong>É ele que devolve a sua liberdade de escolher.</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="poder-stage reveal">
+        <div class="poder-grid">
+
+          <!-- HERO card: Poder de Escolha -->
+          <article class="ucard uc-poder">
+            <span class="u-month">Maio 2026</span>
+            <span class="u-label"><span class="dot"></span>Disponível agora</span>
+            <h3>Poder de Escolha</h3>
+            <p class="u-sub">O que você pode gastar este mês sem comprometer metas e contratos.</p>
+            <p class="u-value">R$ 5.822,68</p>
+            <p class="u-pct">14,9% da receita líquida</p>
+            <div class="u-bar"><span></span></div>
+            <div class="u-foot">
+              <span>Receita: <b>R$ 39.079</b></span>
+              <span>Comprometido: <b>R$ 33.256</b></span>
+            </div>
+          </article>
+
+          <!-- Coach IA card -->
+          <article class="ucard uc-coach">
+            <div class="u-coach-head">
+              <div class="u-avatar">Hai</div>
+              <div>
+                <div class="u-coach-name">Haile Coach <span class="u-badge">Análise de Maio</span></div>
+                <div class="u-coach-meta">IA · contextualizada por sua família</div>
+              </div>
+            </div>
+            <p class="u-msg">
+              Seus gastos com <em>Alimentação caíram 12%</em> em relação ao mês passado — ótima evolução. Com o seu <strong>Poder de Escolha de R$ 5.822,68</strong>, você consegue acelerar a meta <span class="accent-meta">Reserva de Emergência</span> esse mês.
+            </p>
+            <span class="u-action">Ver análise completa →</span>
+          </article>
+
+          <!-- Saúde Financeira card -->
+          <article class="ucard uc-saude">
+            <span class="u-label"><span class="dot"></span>Saúde financeira</span>
+            <div class="u-value-row">
+              <span class="u-value-num">85,2%</span>
+              <span class="u-value-sub">comprometido</span>
+            </div>
+            <div class="u-tribar">
+              <span class="seg-g"></span>
+              <span class="seg-a"></span>
+              <span class="seg-r"></span>
+            </div>
+            <p class="u-hint"><b>Atenção</b> · limite ideal LLP é 33%. Reorganize compromissos pra liberar Poder de Escolha.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── FAQ ───────── -->
+    <section class="sec cream" id="faq">
+      <div class="wrap">
+        <div class="faq-grid">
+          <div class="reveal">
+            <p class="eyebrow">Dúvidas frequentes</p>
+            <h2>Perguntas e <span class="accent">respostas</span>.</h2>
+            <p class="copy">
+              Alguma dúvida que não está aqui? Fale com a gente — a gente
+              responde de verdade.
+            </p>
+            <a href="contato.html" class="faq-cta">
+              Oi, Haile
+              <span style="font-size: 13px">→</span>
+            </a>
+          </div>
+
+          <div class="faq-list reveal" data-delay="1">
+            <div class="faq-item">
+              <button class="faq-q">O Haile é seguro para conectar minhas contas? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Sim. Utilizamos criptografia de ponta a ponta e nunca armazenamos senhas bancárias. A conexão é feita via Open Finance, o padrão regulado pelo Banco Central do Brasil.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q">Preciso de cartão de crédito para o Trial? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Não. O Trial de 14 dias é completamente gratuito, sem necessidade de cartão. Só pedimos e-mail e criação de conta.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q">Funciona para casal sem filhos? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Sim. O Haile entende qualquer configuração familiar — casal, família com filhos, ou mesmo um indivíduo que quer organizar seu futuro. O coach se adapta ao seu contexto.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q">O Haile substitui um planejador financeiro? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Não — e nem quer. O Haile é seu coach do dia a dia: orienta decisões rotineiras, acompanha metas e dá visibilidade. Para planejamento patrimonial complexo, ele trabalha junto com seu assessor.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q">Posso cancelar a qualquer momento? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Sim, sem burocracia. Se cancelar, você mantém acesso até o fim do período já pago.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── BIG CTA (signup split) ───────── -->
+    <section class="cta">
+      <div class="wrap">
+        <div class="cta-box reveal">
+          <div class="cta-left">
+            <img class="cta-watermark" src="assets/svg/haile-mark-indigo-deep.svg" alt="" aria-hidden="true" />
+            <div>
+              <p class="eyebrow">Acesso antecipado</p>
+              <h2>Comece sua próxima <span class="accent">escolha consciente.</span></h2>
+              <p class="cta-sub">14 dias grátis. Sem cartão. Ative seu coach financeiro e tome sua próxima decisão com clareza — não no escuro.</p>
+            </div>
+            <p class="cta-login">Já tem conta? <a href="login.html">Fazer login</a></p>
+          </div>
+
+          <div class="cta-right">
+            <form onsubmit="event.preventDefault(); this.querySelector('.form-submit').textContent='Inscrito ✓'; this.querySelector('.form-submit').disabled = true;">
+              <div class="form-field">
+                <label for="cta-email">E-mail</label>
+                <input id="cta-email" type="email" placeholder="seu@email.com" required />
+              </div>
+              <label class="form-check">
+                <input type="checkbox" />
+                <span>Quero receber novidades, leituras e cases do Haile. Posso cancelar a qualquer momento.</span>
+              </label>
+              <button type="submit" class="form-submit">
+                Quero meu acesso antecipado
+                <span style="font-size: 13px">→</span>
+              </button>
+              <div class="form-divider">ou</div>
+              <button type="button" class="form-social">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.22-4.74 3.22-8.32z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.85 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.67-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.67 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+                Continuar com Google
+              </button>
+              <p class="form-mini-foot">Ao continuar, você concorda com os <a href="#">Termos</a> e a <a href="#">Política de Privacidade</a> do Haile.</p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ───────── FOOTER ───────── -->
+  <footer class="site">
+    <div class="foot-watermark" aria-hidden="true">
+      <img src="assets/svg/haile-mark-indigo-deep.svg" alt="" />
+    </div>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <img src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
+          <p>Coach financeiro com IA para famílias que querem decidir melhor com o dinheiro.</p>
+        </div>
+
+        <div class="foot-col">
+          <h5>Produto</h5>
+          <ul>
+            <li><a href="como-funciona.html">Como funciona</a></li>
+            <li><a href="precos.html">Planos</a></li>
+            <li><a href="contato.html">Acesso antecipado</a></li>
+          </ul>
+        </div>
+
+        <div class="foot-col">
+          <h5>Empresa</h5>
+          <ul>
+            <li><a href="#">Sobre</a></li>
+            <li><a href="#">Manifesto</a></li>
+            <li><a href="#">Carreiras</a></li>
+            <li><a href="contato.html">Contato</a></li>
+          </ul>
+        </div>
+
+        <div class="foot-col">
+          <h5>Suporte</h5>
+          <ul>
+            <li><a href="#">Central de ajuda</a></li>
+            <li><a href="#">Segurança</a></li>
+            <li><a href="#">LGPD</a></li>
+            <li><a href="#">Status</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="foot-bottom">
+        <div class="foot-legal">
+          <span>© 2026 Haile</span>
+          <a href="#">Termos</a>
+          <a href="#">Privacidade</a>
+        </div>
+
+        <div class="foot-socials">
+          <a href="#" class="foot-social" aria-label="Instagram">IG</a>
+          <a href="#" class="foot-social" aria-label="LinkedIn">in</a>
+          <a href="#" class="foot-social" aria-label="X / Twitter">𝕏</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // nav: dark state over hero+manifesto, light state after
+    const nav = document.getElementById('nav');
+    const darkSections = [
+      document.querySelector('.hero'),
+      document.querySelector('.trust'),
+    ].filter(Boolean);
+
+    function updateNav() {
+      const last = darkSections[darkSections.length - 1];
+      const pastDark = last ? last.getBoundingClientRect().bottom <= 60 : false;
+      const scrolled = window.scrollY > 24;
+      nav.classList.toggle('light', pastDark);
+      nav.classList.toggle('scrolled', scrolled && !pastDark);
+    }
+    window.addEventListener('scroll', updateNav, { passive: true });
+    window.addEventListener('resize', updateNav, { passive: true });
+    updateNav();
+
+    // reveal on scroll
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
         }
-      }
-
-      window.addEventListener('scroll', updateNav, { passive: true });
-      updateNav();
-
-      // ── scroll reveal ───────────────────────────────────────────────
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.12 });
-
-      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    </script>
-
-    <script>
-      // ── coach card animation ────────────────────────────────────────
-      (function () {
-        const ms = n => new Promise(r => setTimeout(r, n));
-        const NOTE = "A viagem continua viável sem reduzir investimentos. O melhor ajuste é antecipar R$ 540/mês de gastos recorrentes pouco usados para a meta familiar.";
-
-        function fmtBRL(n) {
-          return n.toLocaleString('pt-BR');
-        }
-
-        function counter(el, end, duration, prefix, suffix) {
-          suffix = suffix || '';
-          const t0 = performance.now();
-          (function tick(now) {
-            const p = Math.min((now - t0) / duration, 1);
-            const ease = 1 - Math.pow(1 - p, 3);
-            el.textContent = prefix + fmtBRL(Math.round(end * ease)) + suffix;
-            if (p < 1) requestAnimationFrame(tick);
-          })(t0);
-        }
-
-        async function typeText(el, text, speed) {
-          speed = speed || 22;
-          el.innerHTML = '';
-          const cur = document.createElement('span');
-          cur.className = 'tcursor';
-          el.appendChild(cur);
-          for (let i = 0; i < text.length; i++) {
-            el.insertBefore(document.createTextNode(text[i]), cur);
-            await ms(speed);
-          }
-          cur.remove();
-        }
-
-        async function run() {
-          const top     = document.getElementById('ca-top');
-          const title   = document.getElementById('ca-title');
-          const tag     = document.getElementById('ca-tag');
-          const note    = document.getElementById('ca-note');
-          const noteP   = document.getElementById('ca-note-p');
-          const goal    = document.getElementById('ca-goal');
-          const bar     = document.getElementById('ca-bar');
-          const signals = document.getElementById('ca-signals');
-          const pat     = document.getElementById('ca-patrimonio');
-          const ritmo   = document.getElementById('ca-ritmo');
-          if (!top) return;
-
-          // reset
-          [top, note, goal, signals, tag].forEach(el => el.classList.remove('show'));
-          title.textContent = '...';
-          noteP.innerHTML   = '';
-          bar.style.width   = '0%';
-          pat.textContent   = 'R$ 0';
-          ritmo.textContent = '+R$ 0';
-
-          await ms(300);
-
-          // header fades in
-          top.classList.add('show');
-          await ms(520);
-
-          // status resolves
-          title.textContent = 'Excelente';
-          tag.classList.add('show');
-          await ms(320);
-
-          // coach note — thinking first
-          note.classList.add('show');
-          noteP.innerHTML = '<span class="thinking"><span></span><span></span><span></span></span>';
-          await ms(920);
-
-          // then type the advice
-          await typeText(noteP, NOTE, 21);
-          await ms(200);
-
-          // goal card
-          goal.classList.add('show');
-          await ms(180);
-
-          // progress bar
-          bar.style.width = '68%';
-          await ms(500);
-
-          // signals + counters
-          signals.classList.add('show');
-          counter(pat,   248400, 1400, 'R$ ');
-          counter(ritmo,   1840, 1100, '+R$ ');
-        }
-
-        // script is at end of body — DOMContentLoaded may have already fired
-        function startAnim() {
-          setTimeout(run, 650);
-          var btn = document.getElementById('coach-replay');
-          if (btn) btn.addEventListener('click', run);
-        }
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', startAnim);
-        } else {
-          startAnim();
-        }
-      })();
-    </script>
-    <script>
-      // ── faq accordion ──────────────────────────────────────────────
-      document.querySelectorAll('.faq-q').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var item = btn.parentElement;
-          var wasOpen = item.classList.contains('open');
-          document.querySelectorAll('.faq-item').forEach(function (i) { i.classList.remove('open'); });
-          if (!wasOpen) item.classList.add('open');
-        });
       });
-    </script>
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-  
-    <script>
-      // ── coach carousel ──────────────────────────────────────────────
-      (function() {
-        var track   = document.getElementById('c-track');
-        var dots    = document.querySelectorAll('.c-dot');
-        var prog    = document.getElementById('c-progress');
-        var total   = 4;
-        var current = 0;
-        var timer;
+    // faq accordion
+    document.querySelectorAll('.faq-q').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var item = btn.parentElement;
+        var wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item').forEach(function (i) { i.classList.remove('open'); });
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
 
-        function goTo(n) {
-          current = (n + total) % total;
-          track.style.transform = 'translateX(-' + (current * 100) + '%)';
-          dots.forEach(function(d, i) { d.classList.toggle('active', i === current); });
-          prog.textContent = (current + 1) + ' / ' + total;
-          resetTimer();
-        }
+    // ipad screen carousel
+    (function() {
+      var imgs = document.querySelectorAll('.ipad-screen img');
+      var tabs = document.querySelectorAll('.ipad-tab');
+      if (!imgs.length) return;
+      var idx = 0;
+      var timer;
 
-        function resetTimer() {
-          clearInterval(timer);
-          timer = setInterval(function() { goTo(current + 1); }, 5000);
-        }
-
-        document.getElementById('c-next').addEventListener('click', function() { goTo(current + 1); });
-        document.getElementById('c-prev').addEventListener('click', function() { goTo(current - 1); });
-        dots.forEach(function(d) {
-          d.addEventListener('click', function() { goTo(parseInt(d.dataset.idx)); });
-        });
-
+      function show(i) {
+        idx = (i + imgs.length) % imgs.length;
+        imgs.forEach(function(im, j) { im.classList.toggle('active', j === idx); });
+        tabs.forEach(function(t, j) { t.classList.toggle('active', j === idx); });
         resetTimer();
-      })();
-    </script>
+      }
+      function resetTimer() {
+        clearInterval(timer);
+        timer = setInterval(function() { show(idx + 1); }, 5500);
+      }
+      tabs.forEach(function(t) {
+        t.addEventListener('click', function() { show(parseInt(t.dataset.idx)); });
+      });
+      resetTimer();
+    })();
+  </script>
+
 </body>
 </html>
