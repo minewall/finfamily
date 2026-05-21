@@ -28,16 +28,33 @@ const App = (function () {
     personColor(name) {
       return name === 'Roberto' ? '#3B82F6' : name === 'Mariana' ? '#D946EF' : name === 'Manuela' ? '#22C55E' : '#7C6EF8';
     },
-    personInitial(name) { return name ? name[0] : '?'; },
-    // Retorna URL de avatar pra pessoa. Prioridade:
-    // 1) Avatar customizado salvo em settings.pessoaAvatars[name] (URL completa)
-    // 2) DiceBear "lorelei" com seed determinístico pelo nome
+    personInitial(name) { return name ? name[0].toUpperCase() : '?'; },
+    // Retorna URL de avatar customizado (settings.pessoaAvatars), se houver.
+    // Caso contrário retorna null — o consumidor usa personAvatarHtml().
+    // Mantido para compat com handlers de upload custom em Configurações.
     personAvatar(name) {
       if (!name) return null;
       const overrides = (Store?.get?.()?.settings?.pessoaAvatars) || {};
-      if (overrides[name]) return overrides[name];
-      const seed = encodeURIComponent(name);
-      return `https://api.dicebear.com/9.x/lorelei/svg?seed=${seed}&backgroundColor=ede9fe,ddd6fe,e0e7ff,c7d2fe&radius=50`;
+      return overrides[name] || null;
+    },
+    /**
+     * Retorna HTML do avatar padrão (iniciais sobre fundo da cor da pessoa).
+     * @param {string} name - nome da pessoa
+     * @param {Object} opts - { size?: 28, fontSize?: 12, title?: name }
+     */
+    personAvatarHtml(name, opts = {}) {
+      if (!name) return '<span style="color:var(--text-4)">—</span>';
+      const size = opts.size || 28;
+      const fontSize = opts.fontSize || Math.round(size * 0.42);
+      const color = Utils.personColor(name);
+      const initial = Utils.personInitial(name);
+      const title = opts.title || name;
+      // Se houver foto custom em settings.pessoaAvatars[name], usa
+      const custom = Utils.personAvatar(name);
+      if (custom) {
+        return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" title="${title}"><img src="${custom}" alt="${name}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.replaceWith(document.createTextNode('${initial}'))"></span>`;
+      }
+      return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${fontSize}px;font-weight:700;letter-spacing:0" title="${title}">${initial}</span>`;
     },
     fmtDate(dateStr) {
       const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -1267,7 +1284,7 @@ ${renderPrevisaoCaixa(saldo)}
     return Object.entries(byPerson).map(([p, v]) => `
       <div class="stat-row">
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="person-avatar" style="background:${Utils.personColor(p)}"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></div>
+          ${Utils.personAvatarHtml(p, { size: 28 })}
           <span class="stat-row-label">${p}</span>
         </div>
         <div>
@@ -1307,7 +1324,7 @@ ${renderPrevisaoCaixa(saldo)}
     return entries.map(([p, v]) => `
       <div class="stat-row">
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="person-avatar" style="background:${Utils.personColor(p)}"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></div>
+          ${Utils.personAvatarHtml(p, { size: 28 })}
           <span class="stat-row-label">${p}</span>
         </div>
         <div>
@@ -1497,7 +1514,7 @@ ${filtered.map(r => {
   return `<tr class="row-clickable${isFuture ? '" style="opacity:0.55"' : '"'} data-row-rec="${r.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${r.desc}</td>
-  <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
+  <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
   <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
@@ -1946,7 +1963,7 @@ ${coachInlineHTML({
       </tr></thead>
       <tbody>
         ${Object.entries(byPerson).map(([p, vals]) => `<tr>
-          <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(p)}"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></span>${p}</span></td>
+          <td><span class="person-chip">${Utils.personAvatarHtml(p, { size: 22, fontSize: 10 })}${p}</span></td>
           ${vals.map(v => `<td class="num ${v>0?'positive':'muted'}">${v>0?Utils.currency(v):'—'}</td>`).join('')}
           <td class="num positive fw-700">${Utils.currency(vals.reduce((a,b)=>a+b,0))}</td>
         </tr>`).join('')}
@@ -1987,7 +2004,7 @@ ${coachInlineHTML({
             <div>${r.desc}</div>
             ${subLabel ? `<div class="lancamentos-sub">${subLabel}</div>` : ''}
           </td>
-          <td><span class="person-chip"><span class="person-avatar" style="background:${Utils.personColor(r.person)}"><img src="${Utils.personAvatar(r.person)}" alt="${r.person}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(r.person)}'))"></span>${r.person}</span></td>
+          <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
           <td class="num positive">${Utils.currency(r.amount)}</td>
         </tr>`;}).join('')}
       </tbody>
@@ -8445,7 +8462,7 @@ ${memberData.length === 0 ? `
         const top = [...memberData].sort((a,b) => b.receita - a.receita)[0];
         if (!top) return `<div class="metric-card-empty">Sem dados</div>`;
         return `<div class="metric-card-row">
-          <img src="${top.avatar}" alt="${top.person}" style="width:42px;height:42px;border-radius:50%;flex-shrink:0;border:2px solid ${top.color}"/>
+          <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;background:${top.color};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${Utils.personInitial(top.person)}</span>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">${top.person}</div>
             <div style="font-size:18px;font-weight:700;color:var(--green);letter-spacing:-0.4px;line-height:1">${Utils.currency(top.receita)}</div>
@@ -8473,7 +8490,7 @@ ${memberData.length === 0 ? `
     const comprometido = m.receita - m.poder;
     return `<div class="family-member-card" style="--member-color:${m.color}">
       <div class="family-member-head">
-        <img src="${m.avatar}" alt="${m.person}" class="family-member-avatar"/>
+        <div class="family-member-avatar" style="background:${m.color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">${Utils.personInitial(m.person)}</div>
         <div style="flex:1;min-width:0">
           <div class="family-member-name">${m.person}</div>
           <div class="family-member-role">${m.pctContribReceita.toFixed(0)}% da receita familiar</div>
@@ -10202,7 +10219,7 @@ ${personalities.map(p => `
     const usage = Store.get().receitas.filter(r => r.person === p).length;
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
-      <div class="person-avatar" style="background:${Utils.personColor(p)};width:36px;height:36px;font-size:14px"><img src="${Utils.personAvatar(p)}" alt="${p}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${Utils.personInitial(p)}'))"></div>
+      ${Utils.personAvatarHtml(p, { size: 36, fontSize: 14 })}
       <div style="flex:1">
         <div style="font-size:14px;font-weight:700;color:var(--text-1)">${p}</div>
         <div style="font-size:11px;color:var(--text-4)">${usage} receita(s) vinculada(s)</div>
