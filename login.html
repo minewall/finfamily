@@ -535,6 +535,10 @@
   const inviteSource = urlParams.get('source');
   const recoveryType = hashParams.get('type') || urlParams.get('type');
   const errorDesc    = hashParams.get('error_description') || urlParams.get('error_description');
+  const isWaitlistInvite = inviteSource === 'waitlist' && !!inviteToken;
+
+  // Dados do lead carregados da waitlist (preenchidos por validateWaitlistToken)
+  let waitlistLead = null;
 
   /* ═══════════════════════════════════════════════════════════
      ESTADO + ELEMENTOS
@@ -632,20 +636,79 @@
       return;
     }
 
-    // 4. Convite familiar — mostra contexto e abre direto em "Criar conta"
+    // 4. Convite via WAITLIST — valida token + pré-preenche form
+    if (isWaitlistInvite) {
+      showCard('form');
+      switchMode(true);
+      await validateWaitlistToken();
+      return;
+    }
+
+    // 5. Convite FAMILIAR — mostra contexto e abre direto em "Criar conta"
     if (inviteToken) {
       inviteBanner.innerHTML = '<strong>Você foi convidado para um grupo familiar do Haile.</strong><br>Crie sua conta abaixo para entrar no grupo.';
       inviteBanner.classList.add('visible');
       switchMode(true);
     }
 
-    // 5. Vindo da waitlist — abre em "Criar conta"
-    if (inviteSource === 'waitlist') {
-      switchMode(true);
-    }
-
     showCard('form');
   })();
+
+  /* ═══════════════════════════════════════════════════════════
+     WAITLIST — valida invite_token e pré-preenche o form
+  ═══════════════════════════════════════════════════════════ */
+  async function validateWaitlistToken() {
+    try {
+      const { data, error } = await sb.rpc('get_waitlist_invite', { token: inviteToken });
+      if (error) throw error;
+
+      // Sem resultado = token inválido
+      if (!data || data.length === 0) {
+        inviteBanner.innerHTML = '<strong>Link inválido.</strong><br>Este convite não foi encontrado. Solicite um novo em haile.com.br.';
+        inviteBanner.style.background = 'rgba(201,39,100,0.06)';
+        inviteBanner.style.borderColor = 'rgba(201,39,100,0.25)';
+        inviteBanner.style.color = 'var(--red)';
+        inviteBanner.classList.add('visible');
+        return;
+      }
+
+      const lead = data[0];
+      // Token expirado
+      if (lead.expired) {
+        inviteBanner.innerHTML = '<strong>Convite expirado.</strong><br>Este link tinha 30 dias de validade. Entre em contato para receber um novo.';
+        inviteBanner.style.background = 'rgba(201,39,100,0.06)';
+        inviteBanner.style.borderColor = 'rgba(201,39,100,0.25)';
+        inviteBanner.style.color = 'var(--red)';
+        inviteBanner.classList.add('visible');
+        return;
+      }
+
+      // Token válido — pré-preenche e personaliza
+      waitlistLead = lead;
+      const firstName = (lead.name || '').split(' ')[0];
+      inviteBanner.innerHTML = `<strong>Bem-vindo${firstName ? ', ' + firstName : ''}!</strong><br>Você fazia parte da lista de espera. Crie sua senha abaixo para começar.`;
+      inviteBanner.classList.add('visible');
+
+      // Preenche e bloqueia campos vindos da waitlist
+      const fName  = document.getElementById('fName');
+      const fEmail = document.getElementById('fEmail');
+      if (fName  && lead.name)  { fName.value  = lead.name; }
+      if (fEmail && lead.email) { fEmail.value = lead.email; fEmail.setAttribute('readonly', 'readonly'); }
+    } catch (err) {
+      console.warn('validateWaitlistToken failed:', err);
+      // Falha silenciosa — usuário pode tentar cadastro normal
+    }
+  }
+
+  // Marca conversão no signup bem-sucedido (não bloqueia o fluxo se falhar)
+  async function _markWaitlistConversion() {
+    if (!isWaitlistInvite || !waitlistLead) return;
+    try {
+      await sb.rpc('mark_waitlist_signup', { token: inviteToken });
+    } catch (e) {
+      console.warn('mark_waitlist_signup failed:', e);
+    }
+  }
 
   /* ═══════════════════════════════════════════════════════════
      LOGIN / SIGNUP — toggle e submit
@@ -709,6 +772,9 @@
           showError(errorMsg, translateError(error));
           return;
         }
+
+        // Marca conversão na waitlist (não bloqueia em caso de falha)
+        await _markWaitlistConversion();
 
         // Se o Supabase devolve sessão direto = e-mail já confirmado (raro)
         if (data?.session) {
