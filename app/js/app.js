@@ -9665,233 +9665,480 @@ ${isConnected && isAdmin ? `
   }
 
   // ══════════════════════════════════════════════════════════════
-  // ONBOARDING WIZARD
+  // ONBOARDING COACH-LED (7 steps alinhados com Store.ONBOARDING_STEPS)
+  // Spec: docs/SPEC_AUTH_ONBOARDING.md §7
   // ══════════════════════════════════════════════════════════════
+
+  // Detecta se este usuário foi convidado (skip steps familia/situacao)
+  // Heurística: já existe family context herdado OU user_metadata.invite_token.
+  function _onboardingIsInvited() {
+    try {
+      if (typeof SupabaseSync !== 'undefined' && SupabaseSync.getFamilyContext) {
+        const fam = SupabaseSync.getFamilyContext();
+        if (fam && fam.role && fam.role !== 'admin') return true;
+      }
+      const u = (typeof SupabaseSync !== 'undefined' && SupabaseSync.getUser) ? SupabaseSync.getUser() : null;
+      if (u?.user_metadata?.invite_token) return true;
+    } catch (e) { /* noop */ }
+    return false;
+  }
+
+  // Tenta pegar nome do user_metadata do Supabase (vindo da waitlist ou cadastro)
+  function _onboardingPrefillName() {
+    try {
+      const u = (typeof SupabaseSync !== 'undefined' && SupabaseSync.getUser) ? SupabaseSync.getUser() : null;
+      const n = u?.user_metadata?.full_name || u?.user_metadata?.name;
+      if (n && n.trim()) return n.trim();
+    } catch (e) { /* noop */ }
+    const p = Store.getProfile();
+    return (p?.name && p.name !== 'Usuário') ? p.name : '';
+  }
+
   function showOnboarding() {
-    const personalities = [
-      { key: 'mentor', iconName: 'heart-handshake', label: 'Mentor', short: 'Conselho dos pais',
-        desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
-        sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
-      { key: 'educador', iconName: 'graduation-cap', label: 'Educador', short: 'Mestre paciente',
-        desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
-        sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. Em 12 meses, a diferença gira em torno de R$ 240."' },
-      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
-        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
-        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
+    // ── Definições estáveis ──────────────────────────────────────
+    const PERSONALITIES = [
+      {
+        key: 'mentor', iconName: 'heart-handshake', label: 'Mentor', short: 'Acolhedor e encorajador',
+        desc: 'Celebra conquistas com genuinidade, sugere sem impor. Foco em construir confiança.',
+        sample: 'Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte pra viagem da família? Vocês merecem esse descanso.',
+      },
+      {
+        key: 'educador', iconName: 'graduation-cap', label: 'Educador', short: 'Didático e explicativo',
+        desc: 'Ensina o porquê junto com o quê. Usa analogias e exemplos do dia-a-dia.',
+        sample: 'Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI está em 14,40% a.a. Em 12 meses, a diferença gira em torno de R$ 240.',
+      },
+      {
+        key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO direto e técnico',
+        desc: 'Respeita seu tempo, foca em dados. Sem rodeios emocionais. Para quem prefere objetividade.',
+        sample: 'Seu Poder de Escolha este mês é R$ 4.850. Considerando comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco.',
+      },
     ];
 
-    const STEPS = [
-      {
-        key: 'familia',
+    const AVATAR_SEEDS = ['Aurora','Apolo','Bento','Cora','Dante','Eva','Flora','Gael','Helena','Ícaro','Lis','Theo'];
+
+    // 7 steps na ordem do Store.ONBOARDING_STEPS
+    const STEPS_ALL = [
+      { key: 'apresentacao',  type: 'intro' },
+      { key: 'personalidade', type: 'personality' },
+      { key: 'nome',          type: 'name' },
+      { key: 'familia',       type: 'single', skipIfInvited: true,
         title: 'Como é a sua família?',
-        type: 'single',
         options: [
-          { value: 'solo',     label: 'Só eu',                    icon: 'user-round' },
-          { value: 'casal',    label: 'Eu e minha(meu) parceira(o)', icon: 'users' },
-          { value: 'filhos',   label: 'Família com filhos',        icon: 'baby' },
-          { value: 'outro',    label: 'Outro arranjo',             icon: 'heart-handshake' },
+          { value: 'solo',   label: 'Só eu',                       icon: 'user-round' },
+          { value: 'casal',  label: 'Eu e minha(meu) parceira(o)', icon: 'users' },
+          { value: 'filhos', label: 'Família com filhos',          icon: 'baby' },
+          { value: 'outro',  label: 'Outro arranjo',               icon: 'heart-handshake' },
         ],
       },
-      {
-        key: 'patrimonio',
-        title: 'O que você já tem?',
-        type: 'multi',
+      { key: 'situacao',      type: 'single', skipIfInvited: true,
+        title: 'Como você descreveria sua situação financeira hoje?',
         options: [
-          { value: 'imovel',        label: 'Imóvel próprio',          icon: 'home' },
-          { value: 'veiculo',       label: 'Veículo(s)',               icon: 'car' },
-          { value: 'investimentos', label: 'Investimentos',            icon: 'trending-up' },
-          { value: 'financiamento', label: 'Financiamento ativo',      icon: 'landmark' },
-          { value: 'nenhum',        label: 'Nenhum dos anteriores',    icon: 'circle-off' },
+          { value: 'apertado',     label: 'Estou apertado',             icon: 'alert-circle', sub: 'Dívidas e contas no limite' },
+          { value: 'organizando',  label: 'Estou me organizando',       icon: 'layout-list',   sub: 'Conhecendo onde meu dinheiro vai' },
+          { value: 'no_controle',  label: 'Tenho controle',             icon: 'check-circle',  sub: 'Pago tudo em dia, sobra pouco' },
+          { value: 'sobrando',     label: 'Sobra todo mês',             icon: 'trending-up',   sub: 'Quero fazer o dinheiro render' },
         ],
       },
-      {
-        key: 'objetivo',
-        title: 'Qual é a sua prioridade financeira hoje?',
-        type: 'single',
+      { key: 'objetivo',      type: 'single',
+        title: 'Qual é a sua prioridade financeira agora?',
         options: [
           { value: 'dividas',  label: 'Sair do vermelho / quitar dívidas', icon: 'circle-x' },
           { value: 'reserva',  label: 'Montar reserva de emergência',       icon: 'shield' },
-          { value: 'imovel',   label: 'Comprar imóvel / veículo',           icon: 'home' },
+          { value: 'imovel',   label: 'Comprar imóvel ou veículo',          icon: 'home' },
           { value: 'investir', label: 'Investir e crescer patrimônio',      icon: 'trending-up' },
           { value: 'controle', label: 'Organizar e ter controle',           icon: 'layout-dashboard' },
         ],
       },
-      {
-        key: 'estilo',
-        title: 'Como você prefere acompanhar seus gastos?',
-        type: 'single',
-        options: [
-          { value: 'realtime', label: 'Lanço tudo em tempo real',        icon: 'zap' },
-          { value: 'mensal',   label: 'Reviso no fim do mês',            icon: 'calendar' },
-          { value: 'coach',    label: 'Quero que o Coach me lembre',      icon: 'bell' },
-        ],
-      },
-      {
-        key: 'coach',
-        title: 'Como prefere que o Haile fale com você?',
-        type: 'single',
-        options: personalities.map(p => ({ value: p.key, label: p.label, icon: p.iconName, sub: p.short, desc: p.desc })),
-      },
-      {
-        key: 'confirmacao',
-        title: 'confirmacao',
-        type: 'confirm',
-      },
+      { key: 'primeira_acao', type: 'first_action' },
     ];
 
-    let currentStep = 0;
-    const answers = {};
+    const ob = Store.getOnboarding();
+    const isInvited = _onboardingIsInvited();
+    const STEPS = STEPS_ALL.filter(s => !(s.skipIfInvited && isInvited));
 
+    // Estado local — reusa respostas anteriores se pausou
+    const answers = Object.assign({}, ob.answers || {});
+    let currentStep = Math.min(Math.max(ob.pausedAtStep || 0, 0), STEPS.length - 1);
+    const isResuming = currentStep > 0;
+
+    // ── Overlay + card ───────────────────────────────────────────
     const overlay = document.createElement('div');
     overlay.id = 'onboardingOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg-base);display:flex;align-items:center;justify-content:center;padding:16px';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,16,32,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:16px;animation:obFade .25s ease';
 
     const card = document.createElement('div');
-    card.style.cssText = 'max-width:560px;width:100%;background:var(--bg-card);border-radius:var(--radius-xl);padding:40px;box-shadow:var(--shadow-lg);position:relative';
+    card.style.cssText = 'max-width:560px;width:100%;max-height:92vh;overflow-y:auto;background:var(--bg-card);border-radius:var(--radius-xl);padding:36px;box-shadow:0 24px 80px rgba(15,16,32,0.4);position:relative';
+
+    // Keyframes injetados uma vez
+    if (!document.getElementById('obStyles')) {
+      const st = document.createElement('style');
+      st.id = 'obStyles';
+      st.textContent = `
+        @keyframes obFade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes obSlide { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+        .ob-fade-in { animation: obSlide .3s ease both }
+      `;
+      document.head.appendChild(st);
+    }
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    function renderStep() {
-      const step = STEPS[currentStep];
+    // ── Helpers ──────────────────────────────────────────────────
+    function coachBubble(text) {
+      return `
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:24px">
+          <div style="width:42px;height:42px;border-radius:50%;background:var(--haile-indigo-soft);border:1px solid var(--haile-indigo);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+            <img src="../assets/svg/haile-mark-indigo.svg" alt="Haile" style="width:24px;height:24px"/>
+          </div>
+          <div style="flex:1;background:var(--bg-elevated);border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.6;color:var(--text-1)">
+            ${text}
+          </div>
+        </div>`;
+    }
+
+    function progressBar() {
       const total = STEPS.length;
       const pct = Math.round(((currentStep + 1) / total) * 100);
-      const profile = Store.getProfile();
-      const name = (profile.name && profile.name !== 'Usuário') ? profile.name : '';
-
-      let optionsHtml = '';
-      if (step.type === 'single' || step.type === 'multi') {
-        const selected = answers[step.key] || (step.type === 'multi' ? [] : null);
-        optionsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:24px 0">` +
-          step.options.map(o => {
-            const isSel = step.type === 'multi'
-              ? selected.includes(o.value)
-              : selected === o.value;
-            return `<button class="ob-opt" data-val="${o.value}"
-              style="background:${isSel ? 'var(--haile-indigo-soft)' : 'var(--bg-elevated)'};
-                     border:2px solid ${isSel ? 'var(--haile-indigo)' : 'var(--border)'};
-                     border-radius:var(--radius-lg);padding:14px 16px;text-align:left;cursor:pointer;
-                     transition:border-color .15s,background .15s;color:var(--text-1);width:100%">
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:${o.desc ? '8px' : '0'}">
-                <div style="width:32px;height:32px;border-radius:50%;background:${isSel ? 'var(--haile-indigo)' : 'var(--bg-base)'};
-                            display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s">
-                  ${icon(o.icon, { size: 16, color: isSel ? '#fff' : 'var(--text-2)' })}
-                </div>
-                <div>
-                  <div style="font-size:13px;font-weight:600;color:${isSel ? 'var(--haile-indigo-deep)' : 'var(--text-1)'}">${o.label}</div>
-                  ${o.sub ? `<div style="font-size:11px;color:var(--text-3)">${o.sub}</div>` : ''}
-                </div>
-              </div>
-              ${o.desc ? `<div style="font-size:11px;color:var(--text-3);line-height:1.5">${o.desc}</div>` : ''}
-            </button>`;
-          }).join('') + `</div>`;
-      } else if (step.type === 'confirm') {
-        const familiaOpt = STEPS[0].options.find(o => o.value === answers.familia);
-        const objetivoOpt = STEPS[2].options.find(o => o.value === answers.objetivo);
-        const coachOpt = personalities.find(p => p.key === answers.coach);
-        optionsHtml = `
-        <div style="margin:24px 0;display:flex;flex-direction:column;gap:10px">
-          ${familiaOpt ? `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius-md)">
-            <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon(familiaOpt.icon, { size: 16, color: '#fff' })}</div>
-            <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Família</div><div style="font-size:13px;font-weight:600;color:var(--text-1)">${familiaOpt.label}</div></div>
-          </div>` : ''}
-          ${objetivoOpt ? `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius-md)">
-            <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon(objetivoOpt.icon, { size: 16, color: '#fff' })}</div>
-            <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Prioridade</div><div style="font-size:13px;font-weight:600;color:var(--text-1)">${objetivoOpt.label}</div></div>
-          </div>` : ''}
-          ${coachOpt ? `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius-md)">
-            <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon(coachOpt.iconName, { size: 16, color: '#fff' })}</div>
-            <div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Coach</div><div style="font-size:13px;font-weight:600;color:var(--text-1)">${coachOpt.label}</div></div>
-          </div>` : ''}
-        </div>`;
-      }
-
-      const isLast = currentStep === STEPS.length - 1;
-      const isFirst = currentStep === 0;
-      const titleHtml = step.type === 'confirm'
-        ? `<h2 style="font-size:22px;font-weight:800;color:var(--text-1);margin:0 0 6px">Tudo pronto${name ? ', ' + name : ''}!</h2>
-           <p style="font-size:14px;color:var(--text-2);margin:0">O Haile já está configurado para o seu perfil.</p>`
-        : `<h2 style="font-size:20px;font-weight:700;color:var(--text-1);margin:0">${step.title}</h2>`;
-
-      card.innerHTML = `
-        <div style="margin-bottom:24px">
-          <div style="font-size:11px;color:var(--haile-indigo);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">
-            haile — passo ${currentStep + 1} de ${total}
+      return `
+        <div style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:11px;color:var(--haile-indigo);font-weight:700;letter-spacing:.1em;text-transform:uppercase">Passo ${currentStep + 1} de ${total}</span>
+            ${canPauseHere() ? `<button id="obPause" type="button" style="background:none;border:0;color:var(--text-3);font-size:12px;cursor:pointer;padding:4px">Continuar depois</button>` : ''}
           </div>
           <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
             <div style="height:100%;width:${pct}%;background:var(--haile-indigo);transition:width .3s;border-radius:2px"></div>
           </div>
-        </div>
-        ${titleHtml}
-        ${optionsHtml}
-        <div style="display:flex;justify-content:${isFirst ? 'flex-end' : 'space-between'};align-items:center;margin-top:8px;gap:10px">
-          ${isFirst ? '' : `<button id="obBack" class="btn-secondary" style="min-width:90px">Voltar</button>`}
-          <button id="obNext" class="btn-primary" style="min-width:120px">${isLast ? 'Começar' : 'Continuar'}</button>
         </div>`;
+    }
 
+    function canPauseHere() {
+      // Steps 1-3 (apresentacao/personalidade/nome) são obrigatórios; pausa libera a partir do 4
+      return currentStep >= 3;
+    }
+
+    function pause() {
+      Store.pauseOnboarding(currentStep, answers);
+      overlay.remove();
+      // Re-renderiza dashboard para mostrar banner persistente
+      if (typeof renderDashboard === 'function' && Router?.current === '#dashboard') {
+        renderDashboard();
+      } else {
+        toast('Você pode continuar depois pelo banner no Dashboard', 'success');
+      }
+    }
+
+    // ── Render ───────────────────────────────────────────────────
+    function render() {
+      const step = STEPS[currentStep];
+      card.innerHTML = `<div class="ob-fade-in">${progressBar()}${renderStepBody(step)}</div>`;
       upgradeIcons(card);
+      bindStepEvents(step);
 
-      card.querySelectorAll('.ob-opt').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const val = btn.dataset.val;
-          const step = STEPS[currentStep];
-          if (step.type === 'multi') {
-            let arr = answers[step.key] || [];
-            if (val === 'nenhum') {
-              arr = arr.includes('nenhum') ? [] : ['nenhum'];
-            } else {
-              arr = arr.filter(v => v !== 'nenhum');
-              if (arr.includes(val)) arr = arr.filter(v => v !== val);
-              else arr = [...arr, val];
-            }
-            answers[step.key] = arr;
-          } else {
-            answers[step.key] = val;
-          }
-          renderStep();
-        });
-      });
-
-      card.querySelector('#obNext')?.addEventListener('click', () => {
-        const step = STEPS[currentStep];
-        if (step.type !== 'confirm') {
-          const sel = answers[step.key];
-          if (!sel || (Array.isArray(sel) && sel.length === 0)) {
-            toast('Selecione uma opção para continuar', 'error');
-            return;
-          }
-        }
-        if (isLast) {
-          completeOnboardingFlow(answers);
-        } else {
-          currentStep++;
-          renderStep();
-        }
-      });
-
-      card.querySelector('#obBack')?.addEventListener('click', () => {
-        if (currentStep > 0) { currentStep--; renderStep(); }
+      // Pause button
+      card.querySelector('#obPause')?.addEventListener('click', () => {
+        if (confirm('Continuar depois? Suas respostas até aqui ficam salvas.')) pause();
       });
     }
 
-    function completeOnboardingFlow(answers) {
+    function renderStepBody(step) {
+      const name = (answers.nome && answers.nome.name) || _onboardingPrefillName();
+      const firstName = name ? name.split(' ')[0] : '';
+
+      switch (step.type) {
+        case 'intro': {
+          const greeting = isResuming
+            ? `Que bom que você voltou${firstName ? ', ' + firstName : ''}! Vamos continuar de onde paramos?`
+            : (isInvited
+                ? `Olá${firstName ? ', ' + firstName : ''}! Sou o Haile, seu coach financeiro com IA. Você foi convidado para um grupo familiar — em alguns minutos te apresento como funciona.`
+                : `Oi${firstName ? ', ' + firstName : ''}! Sou o Haile, seu coach financeiro com IA. Antes de começar, preciso te conhecer um pouco. São 7 perguntas rápidas — leva uns 3 minutos.`);
+          return `
+            ${coachBubble(greeting)}
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+              <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text-2);line-height:1.55">
+                <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--haile-indigo);font-weight:700">·</span>Suas respostas ficam só com você. Nada compartilhado.</li>
+                <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--haile-indigo);font-weight:700">·</span>Você pode pausar e voltar quando quiser.</li>
+                <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--haile-indigo);font-weight:700">·</span>Quanto mais eu sei, mais úteis ficam minhas orientações.</li>
+              </ul>
+              <div style="display:flex;justify-content:flex-end;margin-top:24px">
+                <button id="obNext" class="btn-primary" style="min-width:140px">${isResuming ? 'Continuar' : 'Vamos lá'}</button>
+              </div>
+            </div>`;
+        }
+
+        case 'personality': {
+          const selected = answers.personalidade;
+          return `
+            ${coachBubble('Eu falo de 3 jeitos diferentes. Qual combina mais com você? Você pode mudar depois nas configurações.')}
+            <div style="display:flex;flex-direction:column;gap:10px;margin:8px 0 24px">
+              ${PERSONALITIES.map(p => {
+                const isSel = selected === p.key;
+                return `<button class="ob-opt" data-val="${p.key}" type="button"
+                  style="background:${isSel ? 'var(--haile-indigo-soft)' : 'var(--bg-elevated)'};
+                         border:2px solid ${isSel ? 'var(--haile-indigo)' : 'var(--border)'};
+                         border-radius:var(--radius-lg);padding:16px;text-align:left;cursor:pointer;
+                         transition:all .15s;color:var(--text-1);width:100%">
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="width:36px;height:36px;border-radius:50%;background:${isSel ? 'var(--haile-indigo)' : 'var(--bg-base)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                      ${icon(p.iconName, { size: 18, color: isSel ? '#fff' : 'var(--text-2)' })}
+                    </div>
+                    <div style="flex:1;min-width:0">
+                      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+                        <div style="font-size:14px;font-weight:700;color:${isSel ? 'var(--haile-indigo-deep)' : 'var(--text-1)'}">${p.label}</div>
+                        <div style="font-size:11px;color:var(--text-3)">${p.short}</div>
+                      </div>
+                      <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:8px">${p.desc}</div>
+                      <div style="font-size:12px;color:var(--text-2);line-height:1.55;font-style:italic;padding:8px 10px;background:var(--bg-base);border-radius:8px;border-left:2px solid ${isSel ? 'var(--haile-indigo)' : 'var(--border)'}">"${p.sample}"</div>
+                    </div>
+                  </div>
+                </button>`;
+              }).join('')}
+            </div>
+            ${navButtons()}`;
+        }
+
+        case 'name': {
+          const curName  = (answers.nome && answers.nome.name)   || _onboardingPrefillName();
+          const curAvSeed = (answers.nome && answers.nome.avatarSeed) || curName || 'Aurora';
+          return `
+            ${coachBubble('Como posso te chamar? E escolhe um avatar pra te representar.')}
+            <div class="field" style="margin-bottom:16px">
+              <label style="font-size:12px;font-weight:700;color:var(--text-1);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;display:block">Como você quer ser chamado(a)</label>
+              <input id="obName" type="text" value="${curName.replace(/"/g, '&quot;')}" placeholder="Seu primeiro nome"
+                style="font:inherit;font-size:15px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--bg-base);color:var(--text-1);width:100%;outline:none">
+            </div>
+            <div style="margin-bottom:24px">
+              <label style="font-size:12px;font-weight:700;color:var(--text-1);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;display:block">Escolha seu avatar</label>
+              <div id="obAvatarGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+                ${AVATAR_SEEDS.map(s => {
+                  const isSel = s === curAvSeed;
+                  const url = `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(s)}&backgroundColor=ede9fe,ddd6fe,e0e7ff,c7d2fe&radius=50`;
+                  return `<button type="button" class="ob-avatar" data-seed="${s}"
+                    style="background:none;border:2px solid ${isSel ? 'var(--haile-indigo)' : 'transparent'};border-radius:50%;padding:2px;cursor:pointer;transition:border-color .15s;aspect-ratio:1">
+                    <img src="${url}" alt="" style="width:100%;height:100%;border-radius:50%;display:block">
+                  </button>`;
+                }).join('')}
+              </div>
+            </div>
+            ${navButtons()}`;
+        }
+
+        case 'single': {
+          const selected = answers[step.key];
+          return `
+            ${coachBubble(step.title)}
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:8px 0 24px">
+              ${step.options.map(o => {
+                const isSel = selected === o.value;
+                return `<button class="ob-opt" data-val="${o.value}" type="button"
+                  style="background:${isSel ? 'var(--haile-indigo-soft)' : 'var(--bg-elevated)'};
+                         border:2px solid ${isSel ? 'var(--haile-indigo)' : 'var(--border)'};
+                         border-radius:var(--radius-lg);padding:14px;text-align:left;cursor:pointer;transition:all .15s;color:var(--text-1)">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:32px;height:32px;border-radius:50%;background:${isSel ? 'var(--haile-indigo)' : 'var(--bg-base)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                      ${icon(o.icon, { size: 16, color: isSel ? '#fff' : 'var(--text-2)' })}
+                    </div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:13px;font-weight:600;color:${isSel ? 'var(--haile-indigo-deep)' : 'var(--text-1)'}">${o.label}</div>
+                      ${o.sub ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${o.sub}</div>` : ''}
+                    </div>
+                  </div>
+                </button>`;
+              }).join('')}
+            </div>
+            ${navButtons()}`;
+        }
+
+        case 'first_action': {
+          const objetivo = answers.objetivo;
+          let suggestion = 'Que tal começarmos juntos? Você pode lançar sua primeira despesa, definir uma meta, ou só explorar o app.';
+          if (objetivo === 'reserva')  suggestion = 'Como sua prioridade é montar reserva de emergência, sugiro começarmos criando essa meta agora.';
+          if (objetivo === 'dividas')  suggestion = 'Como sua prioridade é quitar dívidas, vamos começar mapeando o que você deve. Cada conta vira um pequeno plano de ação.';
+          if (objetivo === 'imovel')   suggestion = 'Como sua prioridade é comprar um imóvel ou veículo, vamos criar essa meta com prazo e valor. Eu acompanho o avanço com você.';
+          if (objetivo === 'investir') suggestion = 'Como sua prioridade é fazer o dinheiro render, vamos começar olhando seus investimentos atuais. Você adiciona o que já tem e eu ajudo a planejar os próximos aportes.';
+          if (objetivo === 'controle') suggestion = 'Como sua prioridade é ter controle, vamos começar pelas suas despesas fixas. Em alguns lançamentos eu já consigo te mostrar onde está indo seu dinheiro.';
+          return `
+            ${coachBubble(`Tudo pronto${(answers.nome?.name || _onboardingPrefillName()) ? ', ' + (answers.nome.name || _onboardingPrefillName()).split(' ')[0] : ''}! ${suggestion}`)}
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+              <button class="ob-action" data-action="meta" type="button"
+                style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;text-align:left;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:12px;width:100%">
+                <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon('target', { size: 16, color: '#fff' })}</div>
+                <div style="flex:1"><div style="font-size:13px;font-weight:600">Criar minha primeira meta</div><div style="font-size:11px;color:var(--text-3)">Define um objetivo concreto e eu acompanho</div></div>
+              </button>
+              <button class="ob-action" data-action="lancamento" type="button"
+                style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;text-align:left;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:12px;width:100%">
+                <div style="width:32px;height:32px;border-radius:50%;background:var(--haile-indigo);display:flex;align-items:center;justify-content:center">${icon('plus-circle', { size: 16, color: '#fff' })}</div>
+                <div style="flex:1"><div style="font-size:13px;font-weight:600">Lançar minha primeira despesa</div><div style="font-size:11px;color:var(--text-3)">Comece registrando o dia-a-dia</div></div>
+              </button>
+              <button class="ob-action" data-action="explorar" type="button"
+                style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;text-align:left;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:12px;width:100%">
+                <div style="width:32px;height:32px;border-radius:50%;background:var(--bg-base);border:1px solid var(--border);display:flex;align-items:center;justify-content:center">${icon('compass', { size: 16, color: 'var(--text-2)' })}</div>
+                <div style="flex:1"><div style="font-size:13px;font-weight:600">Só explorar primeiro</div><div style="font-size:11px;color:var(--text-3)">Você decide quando começar</div></div>
+              </button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px">
+              <button id="obBack" class="btn-secondary" type="button" style="min-width:90px">Voltar</button>
+              <button id="obFinish" class="btn-primary" type="button" style="min-width:140px" disabled>Concluir</button>
+            </div>`;
+        }
+      }
+      return '';
+    }
+
+    function navButtons() {
+      const isFirst = currentStep === 0;
+      return `
+        <div style="display:flex;justify-content:${isFirst ? 'flex-end' : 'space-between'};align-items:center;margin-top:8px;gap:10px">
+          ${isFirst ? '' : `<button id="obBack" class="btn-secondary" type="button" style="min-width:90px">Voltar</button>`}
+          <button id="obNext" class="btn-primary" type="button" style="min-width:140px">Continuar</button>
+        </div>`;
+    }
+
+    // ── Event binding por tipo de step ───────────────────────────
+    function bindStepEvents(step) {
+      // Voltar
+      card.querySelector('#obBack')?.addEventListener('click', () => {
+        if (currentStep > 0) { currentStep--; render(); }
+      });
+
+      if (step.type === 'intro') {
+        card.querySelector('#obNext')?.addEventListener('click', () => goNext('apresentacao'));
+        return;
+      }
+
+      if (step.type === 'personality') {
+        card.querySelectorAll('.ob-opt').forEach(btn => {
+          btn.addEventListener('click', () => {
+            answers.personalidade = btn.dataset.val;
+            render();
+          });
+        });
+        card.querySelector('#obNext')?.addEventListener('click', () => {
+          if (!answers.personalidade) return toast('Escolha um estilo para continuar', 'error');
+          goNext('personalidade');
+        });
+        return;
+      }
+
+      if (step.type === 'name') {
+        const input = card.querySelector('#obName');
+        // Inicializa avatarSeed se ainda não tem
+        if (!answers.nome) answers.nome = { name: '', avatarSeed: '' };
+        if (!answers.nome.avatarSeed) {
+          answers.nome.avatarSeed = (input?.value || _onboardingPrefillName() || 'Aurora');
+        }
+        input?.addEventListener('input', () => {
+          answers.nome.name = input.value.trim();
+        });
+        card.querySelectorAll('.ob-avatar').forEach(btn => {
+          btn.addEventListener('click', () => {
+            answers.nome.avatarSeed = btn.dataset.seed;
+            // Atualiza UI sem re-render completo
+            card.querySelectorAll('.ob-avatar').forEach(b => {
+              b.style.borderColor = b.dataset.seed === btn.dataset.seed ? 'var(--haile-indigo)' : 'transparent';
+            });
+          });
+        });
+        card.querySelector('#obNext')?.addEventListener('click', () => {
+          const v = (input?.value || '').trim();
+          if (!v) return toast('Diz seu nome pra eu te chamar', 'error');
+          answers.nome.name = v;
+          if (!answers.nome.avatarSeed) answers.nome.avatarSeed = v;
+          goNext('nome');
+        });
+        return;
+      }
+
+      if (step.type === 'single') {
+        card.querySelectorAll('.ob-opt').forEach(btn => {
+          btn.addEventListener('click', () => {
+            answers[step.key] = btn.dataset.val;
+            render();
+          });
+        });
+        card.querySelector('#obNext')?.addEventListener('click', () => {
+          if (!answers[step.key]) return toast('Selecione uma opção', 'error');
+          goNext(step.key);
+        });
+        return;
+      }
+
+      if (step.type === 'first_action') {
+        card.querySelectorAll('.ob-action').forEach(btn => {
+          btn.addEventListener('click', () => {
+            answers.primeira_acao = btn.dataset.action;
+            card.querySelectorAll('.ob-action').forEach(b => {
+              const sel = b.dataset.action === btn.dataset.action;
+              b.style.borderColor    = sel ? 'var(--haile-indigo)' : 'var(--border)';
+              b.style.background     = sel ? 'var(--haile-indigo-soft)' : 'var(--bg-elevated)';
+            });
+            const fin = card.querySelector('#obFinish');
+            if (fin) fin.disabled = false;
+          });
+        });
+        card.querySelector('#obFinish')?.addEventListener('click', () => {
+          if (!answers.primeira_acao) return toast('Escolha uma opção pra terminar', 'error');
+          completeOnboardingFlow();
+        });
+        return;
+      }
+    }
+
+    function goNext(stepKey) {
+      try { Store.markOnboardingStep(stepKey); } catch (e) {}
+      // Aplica side-effects parciais conforme avança
+      applyPartialAnswers();
+      currentStep++;
+      render();
+    }
+
+    function applyPartialAnswers() {
       const data = Store.get();
       if (!data.settings) data.settings = {};
-      if (answers.coach) {
-        data.settings.coachPersonality = answers.coach;
-        Store.persist();
+
+      // Personalidade
+      if (answers.personalidade) {
+        data.settings.coachPersonality = answers.personalidade;
       }
-      if (answers.objetivo === 'reserva') {
-        Store.addMeta({ label: 'Reserva de emergência', type: 'reserva', target: 0, atual: 0, active: true });
-      } else if (answers.objetivo === 'imovel') {
-        Store.addMeta({ label: 'Comprar imóvel', type: 'objetivo', target: 0, atual: 0, active: true });
+      // Nome + avatar
+      if (answers.nome && answers.nome.name) {
+        const seed = answers.nome.avatarSeed || answers.nome.name;
+        Store.setProfile({ name: answers.nome.name });
+        // Salva override de avatar pra essa pessoa
+        if (!data.settings.pessoaAvatars) data.settings.pessoaAvatars = {};
+        data.settings.pessoaAvatars[answers.nome.name] =
+          `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(seed)}&backgroundColor=ede9fe,ddd6fe,e0e7ff,c7d2fe&radius=50`;
       }
-      Store.completeOnboarding(answers);
-      overlay.remove();
-      toast('Bem-vindo ao Haile!', 'success');
+      Store.persist();
     }
 
-    renderStep();
+    // ── Finalizador ──────────────────────────────────────────────
+    function completeOnboardingFlow() {
+      applyPartialAnswers();
+      try { Store.markOnboardingStep('primeira_acao'); } catch (e) {}
+
+      // Cria meta sugerida conforme objetivo
+      if (answers.objetivo === 'reserva') {
+        try { Store.addMeta({ label: 'Reserva de emergência', type: 'reserva', target: 0, atual: 0, active: true }); } catch (e) {}
+      } else if (answers.objetivo === 'imovel') {
+        try { Store.addMeta({ label: 'Comprar imóvel', type: 'objetivo', target: 0, atual: 0, active: true }); } catch (e) {}
+      }
+
+      Store.completeOnboarding(answers);
+      overlay.remove();
+      const first = (answers.nome?.name || _onboardingPrefillName() || '').split(' ')[0];
+      toast(`Bem-vindo${first ? ', ' + first : ''}!`, 'success');
+
+      // Roteamento conforme escolha de primeira ação
+      const act = answers.primeira_acao;
+      setTimeout(() => {
+        if (act === 'meta')        Router.navigate('#metas');
+        else if (act === 'lancamento') Router.navigate('#lancamentos');
+        else                           renderDashboard?.();
+      }, 300);
+    }
+
+    render();
   }
 
   // ══════════════════════════════════════════════════════════════
