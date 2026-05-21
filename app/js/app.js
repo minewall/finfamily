@@ -213,6 +213,8 @@ const App = (function () {
       // Picker mês/ano inserido dentro da página (não no header)
       if (MONTH_AWARE_PAGES.has(page)) renderPageMonthPicker(wrap);
       upgradeIcons(); // converte placeholders <i data-lucide> em SVGs
+      // Liga handlers do Coach inline contextual (dismiss + ações)
+      try { bindCoachInline(wrap); } catch (e) { /* helper opcional */ }
     },
     register(name, fn) { this.pages[name] = fn; },
   };
@@ -286,6 +288,66 @@ const App = (function () {
       return { start: s, end: s+2, label: `Q${q} ${year} (${Utils.months[s-1]}–${Utils.months[s+1]})` };
     }
     return { start: month, end: month, label: `${Utils.monthsFull[month-1]} ${year}` };
+  }
+
+  /**
+   * Coach inline contextual — banner com avatar Hai + insight da tela.
+   * Renderiza no formato compacto (1 linha de texto + 1-2 ações).
+   *
+   * @param {Object} cfg
+   *   @param {string} cfg.contexto   - chip de contexto (ex: "Receitas · Maio")
+   *   @param {string} cfg.titulo     - título curto
+   *   @param {string} cfg.texto      - corpo do insight (suporta HTML inline)
+   *   @param {string} [cfg.tone]     - 'positive' | 'attention' | 'critical' | 'neutral' (default)
+   *   @param {Array<{label, action, color}>} [cfg.acoes] - botões (max 2)
+   *   @param {string} [cfg.id]       - id do bloco (para event handlers únicos)
+   */
+  function coachInlineHTML(cfg) {
+    if (!cfg) return '';
+    const tone = cfg.tone || 'neutral';
+    const id = cfg.id || 'coachInline_' + Math.random().toString(36).slice(2, 7);
+    const acoes = (cfg.acoes || []).slice(0, 2);
+    return `
+<div class="coach-inline-card coach-inline--${tone} mb-4" id="${id}">
+  <div class="coach-inline-avatar">
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+  </div>
+  <div class="coach-inline-body">
+    <div class="coach-inline-header">
+      <span class="coach-inline-titulo">${cfg.titulo || 'Análise do Coach'}</span>
+      ${cfg.contexto ? `<span class="coach-inline-label">${cfg.contexto}</span>` : ''}
+    </div>
+    <div class="coach-inline-texto">${cfg.texto || ''}</div>
+    ${acoes.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      ${acoes.map((a, i) => `<button data-coach-action="${a.action || ''}" data-coach-host="${id}" style="background:${i === 0 ? 'var(--teal-coach-dim)' : 'transparent'};color:${i === 0 ? 'var(--teal-coach)' : 'var(--text-2)'};border:1px solid ${i === 0 ? 'rgba(45,207,192,0.3)' : 'var(--border)'};border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer">${a.label}</button>`).join('')}
+    </div>` : ''}
+  </div>
+  <button class="coach-inline-dismiss" data-coach-dismiss="${id}" title="Dispensar" style="background:none;border:none;color:var(--text-3);padding:4px;cursor:pointer;align-self:flex-start;display:flex">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>`;
+  }
+
+  /**
+   * Liga os botões de dismiss/ação do Coach inline. Roda 1x após render.
+   */
+  function bindCoachInline(container) {
+    container.querySelectorAll('[data-coach-dismiss]').forEach(b => {
+      b.addEventListener('click', () => {
+        const host = document.getElementById(b.dataset.coachDismiss);
+        if (host) host.style.display = 'none';
+      });
+    });
+    container.querySelectorAll('[data-coach-action]').forEach(b => {
+      b.addEventListener('click', () => {
+        const act = b.dataset.coachAction;
+        // Ações padrão: abrir painel do Coach
+        if (act === 'open-coach' || !act) {
+          document.getElementById('coachToggleBtn')?.click();
+        }
+        // Outras ações: deixa o handler específico cuidar
+      });
+    });
   }
 
   function periodToggleHTML(stateKey, current) {
@@ -1755,6 +1817,27 @@ ${filtered.map(r => {
       byPerson[r.person][r.month-1] += r.amount;
     });
 
+    // ── Coach inline contextual (redesign 2026-05) ───────────────
+    const recMesAtual = Store.sumReceitas(month, year);
+    const recMesAnt   = Store.sumReceitas(month > 1 ? month-1 : 12, month > 1 ? year : year-1);
+    const recChg = recMesAnt > 0 ? ((recMesAtual - recMesAnt) / recMesAnt * 100) : 0;
+    const recRecorrentes = Store.get().receitas
+      .filter(r => r.year === year && r.month === month && r.type === 'contrato')
+      .reduce((s, r) => s + r.amount, 0);
+    const pctRecorrente = recMesAtual > 0 ? (recRecorrentes / recMesAtual * 100) : 0;
+    const _recCoach = (() => {
+      if (recMesAtual === 0) return { tone: 'neutral', titulo: 'Sem receitas registradas neste mês',
+        texto: 'Comece registrando seu salário, contratos recorrentes ou rendimentos eventuais.' };
+      if (recChg >= 10) return { tone: 'positive', titulo: 'Receita em alta este mês',
+        texto: `Sua receita de <strong>${Utils.currency(recMesAtual)}</strong> está <strong style="color:var(--green)">${recChg.toFixed(1)}% acima</strong> do mês anterior. Boa hora para reforçar metas ou reserva.` };
+      if (recChg <= -10) return { tone: 'attention', titulo: 'Receita caiu vs mês anterior',
+        texto: `Sua receita de <strong>${Utils.currency(recMesAtual)}</strong> está <strong style="color:var(--amber)">${Math.abs(recChg).toFixed(1)}% abaixo</strong> do mês anterior. Verifique se contratos recorrentes estão em dia.` };
+      if (pctRecorrente >= 70) return { tone: 'positive', titulo: 'Receita majoritariamente recorrente',
+        texto: `<strong>${pctRecorrente.toFixed(0)}%</strong> da sua receita vem de fontes recorrentes — boa previsibilidade para planejar compromissos e metas.` };
+      return { tone: 'neutral', titulo: 'Sua receita está estável',
+        texto: `${Utils.currency(recMesAtual)} este mês. ${pctRecorrente > 0 ? `<strong>${pctRecorrente.toFixed(0)}%</strong> vem de fontes recorrentes.` : 'Considere registrar fontes recorrentes para previsibilidade.'}` };
+    })();
+
     container.innerHTML = `
 <div class="page-head mb-4">
   <div>
@@ -1766,6 +1849,14 @@ ${filtered.map(r => {
     </p>
   </div>
 </div>
+
+${coachInlineHTML({
+  contexto: `Receitas · ${Utils.monthsFull[month-1]}`,
+  titulo: _recCoach.titulo,
+  texto: _recCoach.texto,
+  tone: _recCoach.tone,
+  acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+})}
 
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
@@ -2050,6 +2141,23 @@ ${filtered.map(r => {
 
     const anomalias = period === 'mes' ? detectAnomalias(month, year) : [];
 
+    // ── Coach inline contextual (redesign 2026-05) ───────────────
+    const _despCoach = (() => {
+      if (despesas.length === 0) return { tone: 'neutral', titulo: 'Sem despesas no período',
+        texto: 'Comece registrando seus gastos para o Coach analisar padrões e categorias.' };
+      const topCat = catSorted[0];
+      const topPct = total > 0 ? (topCat[1] / total * 100) : 0;
+      const catLabel = Store.CATEGORIES[topCat[0]]?.label || topCat[0];
+      if (anomalias.length >= 2) return { tone: 'critical', titulo: `${anomalias.length} categorias com salto detectado`,
+        texto: `O Coach identificou aumentos significativos em <strong>${anomalias.slice(0,2).map(a => Store.CATEGORIES[a.cat]?.label || a.cat).join(', ')}</strong> este mês. Vale revisar antes de virar comprometimento.` };
+      if (topPct >= 50) return { tone: 'attention', titulo: `${catLabel} concentra ${topPct.toFixed(0)}% das despesas`,
+        texto: `${Utils.currency(topCat[1])} foi em <strong>${catLabel}</strong>. Uma única categoria com mais de metade dos gastos vale uma revisão por subcategoria.` };
+      if (topPct >= 35) return { tone: 'attention', titulo: 'Concentração em uma categoria',
+        texto: `<strong>${catLabel}</strong> representa <strong>${topPct.toFixed(0)}%</strong> das suas despesas (${Utils.currency(topCat[1])}). Vale acompanhar a evolução nos próximos meses.` };
+      return { tone: 'neutral', titulo: 'Despesas distribuídas',
+        texto: `${Utils.currency(total)} em ${despesas.length} lançamentos, lideradas por <strong>${catLabel}</strong> (${topPct.toFixed(0)}%). Distribuição saudável.` };
+    })();
+
     container.innerHTML = `
 <div class="page-head mb-4">
   <div>
@@ -2069,6 +2177,14 @@ ${isMember ? `
     Você está no modo Membro — veja apenas suas despesas e rateios.
   </div>
 </div>` : ''}
+${coachInlineHTML({
+  contexto: `Despesas · ${Utils.monthsFull[month-1]}`,
+  titulo: _despCoach.titulo,
+  texto: _despCoach.texto,
+  tone: _despCoach.tone,
+  acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+})}
+
 <div class="filter-header mb-4">
   <div class="filter-row-1" id="despFilterRow1">
     <div class="filter-sep"></div>
@@ -3161,6 +3277,30 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   </button>
 </div>
 
+${(() => {
+  // Coach inline contextual — Compromissos
+  const pctComp = receitaMes > 0 ? (totDespesaMes / receitaMes * 100) : 0;
+  const atrasadas = rows.filter(r => r.status === 'atrasado').length;
+  let cc;
+  if (contratos.length === 0) cc = { tone: 'neutral', titulo: 'Nenhum compromisso cadastrado',
+    texto: 'Adicione contratos recorrentes (assinaturas, aluguel) e dívidas (financiamento) para o Coach acompanhar parcelas e comprometimento automaticamente.' };
+  else if (atrasadas > 0) cc = { tone: 'critical', titulo: `${atrasadas} parcela${atrasadas>1?'s':''} atrasada${atrasadas>1?'s':''}`,
+    texto: `Há compromissos com pagamento em atraso. Quitar primeiro evita juros e mantém sua Saúde Financeira em verde.` };
+  else if (pctComp >= 70) cc = { tone: 'critical', titulo: 'Comprometimento crítico',
+    texto: `Seus compromissos consomem <strong style="color:var(--red)">${pctComp.toFixed(0)}%</strong> da receita do mês. O ideal LLP é ≤ 33%. Hora de renegociar dívidas ou reduzir recorrentes.` };
+  else if (pctComp >= 50) cc = { tone: 'attention', titulo: 'Comprometimento elevado',
+    texto: `<strong style="color:var(--amber)">${pctComp.toFixed(0)}%</strong> da receita está em compromissos fixos. Reduzir ${naturezaTab === 'todos' ? 'recorrentes não-essenciais' : 'parcelas'} aumenta seu Poder de Escolha.` };
+  else cc = { tone: 'positive', titulo: 'Comprometimento saudável',
+    texto: `Seus compromissos consomem <strong style="color:var(--green)">${pctComp.toFixed(0)}%</strong> da receita — dentro do ideal LLP de 33%. Continue assim.` };
+  return coachInlineHTML({
+    contexto: `Compromissos · ${Utils.monthsFull[month-1]}`,
+    titulo: cc.titulo,
+    texto: cc.texto,
+    tone: cc.tone,
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+  });
+})()}
+
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -3991,6 +4131,29 @@ ${(() => {
     <button class="btn-primary"   id="btnAddInv">+ Novo Investimento</button>
   </div>
 </div>
+
+${(() => {
+  // Coach inline contextual — Patrimônio
+  const pctRend = totalInv > 0 ? (rendimento / totalInv * 100) : 0;
+  const concentrado = Object.values(byType).sort((a,b)=>b-a)[0] || 0;
+  const pctTopClass = total > 0 ? (concentrado / total * 100) : 0;
+  let pc;
+  if (total === 0) pc = { tone: 'neutral', titulo: 'Comece a construir seu patrimônio',
+    texto: 'Registre seus investimentos, imóveis e ativos para o Coach acompanhar evolução, distribuição por classe e estratégia de aporte.' };
+  else if (pctRend >= 12) pc = { tone: 'positive', titulo: 'Rendimento acima do CDI',
+    texto: `Seus investimentos rendem em média <strong style="color:var(--green)">${pctRend.toFixed(1)}% ao ano</strong>. Mantenha o foco em produtos isentos (LCI/LCA) e acima de 100% CDI.` };
+  else if (pctTopClass >= 70) pc = { tone: 'attention', titulo: 'Concentração elevada em uma classe',
+    texto: `<strong>${pctTopClass.toFixed(0)}%</strong> do patrimônio está em uma única classe. Diversificar reduz risco — vale considerar realocar parte para classes complementares.` };
+  else pc = { tone: 'neutral', titulo: 'Patrimônio diversificado',
+    texto: `Total atual: <strong>${Utils.currency(total)}</strong> com rendimento estimado de <strong>${Utils.currency(rendimento)}/ano</strong> (${pctRend.toFixed(1)}% a.a.). Distribuição saudável entre classes.` };
+  return coachInlineHTML({
+    contexto: `Patrimônio · ${new Date().getFullYear()}`,
+    titulo: pc.titulo,
+    texto: pc.texto,
+    tone: pc.tone,
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+  });
+})()}
 
 <!-- KPIs -->
 <div class="kpi-grid mb-6">
@@ -5730,6 +5893,26 @@ ${topCats.length ? `
     Dívidas
   </button>
 </div>
+
+${(() => {
+  // Coach inline contextual — Simulador
+  const tips = {
+    investir:  { tone: 'neutral', titulo: 'Compare antes de investir',
+      texto: 'Use o comparador de produtos para ver CDB vs LCI vs Tesouro lado a lado. Considere prazo, liquidez e imposto antes de decidir.' },
+    objetivos: { tone: 'neutral', titulo: 'Defina prazo + valor + rentabilidade',
+      texto: 'Cada simulador exige 3 inputs: quanto você quer, em quanto tempo, e a rentabilidade esperada. O Coach sugere quanto aportar por mês.' },
+    dividas:   { tone: 'attention', titulo: 'Quitar dívida cara é o melhor investimento',
+      texto: 'Dívidas com juros acima de 1% ao mês geralmente rendem mais quitar do que investir. Use a amortização SAC para ver o impacto de antecipar parcelas.' },
+  };
+  const tc = tips[bucket] || tips.investir;
+  return coachInlineHTML({
+    contexto: `Simulador · ${cur.label}`,
+    titulo: tc.titulo,
+    texto: tc.texto,
+    tone: tc.tone,
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+  });
+})()}
 
 <div id="simBucketContent"></div>`;
 
@@ -8378,6 +8561,28 @@ ${isMultiUser ? '' : `
   <button class="btn-primary" id="btnAddTributo">+ Novo Tributo</button>
 </div>
 
+${!isEmpty ? (() => {
+  // Coach inline — próximo vencimento + insight
+  const proximaCell = calendar.find(c => c.items.length > 0);
+  const proximoItem = proximaCell?.items[0];
+  let tc;
+  if (irpf?.aReceber) tc = { tone: 'positive', titulo: 'Restituição de IRPF prevista',
+    texto: `Você tem <strong style="color:var(--green)">${Utils.currency(irpf.aReceber)}</strong> a receber de restituição. Direcionar para reserva de emergência ou amortizar uma dívida costuma ser o uso mais eficiente.` };
+  else if (irpf?.aPagar && (irpf.pagas || 0) < (irpf.totalParcelas || 1)) tc = { tone: 'attention', titulo: 'IRPF em parcelamento',
+    texto: `${irpf.pagas || 0}/${irpf.totalParcelas} parcelas pagas. Próxima parcela: <strong>${Utils.currency((irpf.aPagar || 0) / irpf.totalParcelas)}</strong>. Mantenha o débito automático para evitar multa.` };
+  else if (proximoItem) tc = { tone: 'attention', titulo: `Próximo vencimento: ${proximaCell.mes}/${proximaCell.ano}`,
+    texto: `${proximoItem.label} no dia ${proximoItem.dia} — <strong>${Utils.currency(proximoItem.valor)}</strong>. Programe pagamento ou débito automático.` };
+  else tc = { tone: 'neutral', titulo: 'Calendário fiscal em dia',
+    texto: `${allTribs.length} tributo${allTribs.length!==1?'s':''} cadastrado${allTribs.length!==1?'s':''} para ${ano}. Total a planejar: <strong>${totAno >= 0 ? Utils.currency(totAno) : Utils.currency(Math.abs(totAno)) + ' (recebimento líquido)'}</strong>.` };
+  return coachInlineHTML({
+    contexto: `Tributário · ${ano}`,
+    titulo: tc.titulo,
+    texto: tc.texto,
+    tone: tc.tone,
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+  });
+})() : ''}
+
 ${isEmpty ? `
 <div class="card" style="padding:36px;text-align:center">
   <div style="font-size:14px;color:var(--text-2);margin-bottom:6px">Nenhum tributo cadastrado para ${ano}.</div>
@@ -9044,6 +9249,15 @@ ${outrs.length ? `
   </div>
   <button class="btn-secondary" id="btnPersonalizarPainel">${icon('sliders-horizontal',{size:14})} Personalizar</button>
 </div>
+
+${coachInlineHTML({
+  contexto: `Meu Painel · ${Utils.monthsFull[getMonth()-1]}`,
+  titulo: 'Personalize seu painel',
+  texto: 'O Coach mostra os widgets mais relevantes ao seu perfil. Use <strong>Personalizar</strong> para ajustar quais blocos quer ver — receitas, despesas, metas, contratos, reembolsos.',
+  tone: 'neutral',
+  acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+})}
+
 ${renderPageMonthPicker(container)}
 <div id="painelWidgetsArea" style="display:grid;grid-template-columns:1fr;gap:16px">
   ${buildPainel()}
