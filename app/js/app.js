@@ -9651,22 +9651,44 @@ ${renderPageMonthPicker(container)}
     const tipos = Store.getTipos();
     const cats = Store.categoriesOrdered();
     const COMPORT = {
-      essencial:    { label: 'Essencial',    desc: 'Não posso viver sem isso este mês — sai do Poder de Escolha' },
-      obrigatorio:  { label: 'Obrigatório',  desc: 'Imposição externa (pensão, multa, IR) — sai do Poder de Escolha' },
-      comprometido: { label: 'Comprometido', desc: 'Tem custo de cancelar — sai do Poder de Escolha' },
-      opcional:     { label: 'Opcional',     desc: 'Posso cortar amanhã sem dor — entra no Poder de Escolha' },
-      eventual:     { label: 'Eventual',     desc: 'Não é mensal, pontual — entra no Poder de Escolha' },
+      essencial:    { label: 'Essencial',    tag: 'SOBREVIVÊNCIA', desc: 'Não posso viver sem isso este mês — sai do Poder de Escolha', impact: 'comprometido' },
+      obrigatorio:  { label: 'Obrigatório',  tag: 'IMPOSTO',       desc: 'Imposição externa (pensão, multa, IR) — sai do Poder de Escolha', impact: 'comprometido' },
+      comprometido: { label: 'Comprometido', tag: 'COM CUSTO',     desc: 'Tem custo de cancelar — sai do Poder de Escolha', impact: 'comprometido' },
+      opcional:     { label: 'Opcional',     tag: 'LIVRE',         desc: 'Posso cortar amanhã sem dor — entra no Poder de Escolha', impact: 'livre' },
+      eventual:     { label: 'Eventual',     tag: 'IRREGULAR',     desc: 'Não é mensal, pontual — entra no Poder de Escolha', impact: 'livre' },
     };
 
-    // Conta categorias por tipo (cats vem como [key, {label, color, icon}])
+    // Conta categorias por tipo + calcula pesos reais a partir das despesas do mês
+    const month = getMonth(), year = getYear();
+    const receita = Store.sumReceitas(month, year);
+    const despMes = Store.despesasByMonth(month, year);
+    const totalDesp = despMes.reduce((s, d) => s + d.amount, 0);
+
     const catsPorTipo = {};
-    tipos.forEach(t => { catsPorTipo[t.id] = []; });
+    const valorPorTipo = {};
+    tipos.forEach(t => { catsPorTipo[t.id] = []; valorPorTipo[t.id] = 0; });
     cats.forEach(([key, info]) => {
       if (!info || key === 'receita') return;
       const tid = Store.getCatTipo(key);
-      if (!catsPorTipo[tid]) catsPorTipo[tid] = [];
+      if (!catsPorTipo[tid]) { catsPorTipo[tid] = []; valorPorTipo[tid] = 0; }
       catsPorTipo[tid].push({ key, label: info.label, color: info.color, icon: info.icon });
+      // Soma despesas dessa categoria no mês
+      const catTotal = despMes.filter(d => d.category === key).reduce((s, d) => s + d.amount, 0);
+      valorPorTipo[tid] += catTotal;
     });
+
+    // Calcula peso (% da receita) por tipo
+    const pesoPorTipo = {};
+    tipos.forEach(t => {
+      pesoPorTipo[t.id] = receita > 0 ? (valorPorTipo[t.id] / receita * 100) : 0;
+    });
+    const totalCompr = tipos
+      .filter(t => COMPORT[t.comportamento]?.impact === 'comprometido')
+      .reduce((s, t) => s + pesoPorTipo[t.id], 0);
+    const pctLivre = Math.max(0, 100 - totalCompr);
+    const poder = receita - tipos
+      .filter(t => COMPORT[t.comportamento]?.impact === 'comprometido')
+      .reduce((s, t) => s + valorPorTipo[t.id], 0);
 
     content.innerHTML = `
 <div class="section-header mb-4">
@@ -9677,24 +9699,100 @@ ${renderPageMonthPicker(container)}
   <button class="btn-primary" id="btnAddTipo">+ Novo Tipo</button>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px">
+${receita > 0 ? `
+<!-- ── LLP Flow: visualização do Poder de Escolha (redesign 2026-05) ── -->
+<div class="llp-flow-card mb-4">
+  <div class="llp-flow-label">Como os tipos formam seu Poder de Escolha · ${Utils.monthsFull[month-1]}</div>
+  <div class="llp-flow-row">
+    <div class="llp-flow-receita">
+      <div class="llp-flow-mini-lbl">RECEITA</div>
+      <div class="llp-flow-mini-val" style="color:var(--green)">${Utils.currency(receita)}</div>
+    </div>
+    <div class="llp-flow-op">−</div>
+    <div class="llp-flow-compr">
+      <div class="llp-flow-mini-lbl">COMPROMETIMENTOS (${totalCompr.toFixed(0)}%)</div>
+      <div class="llp-flow-compr-row">
+        ${tipos.filter(t => COMPORT[t.comportamento]?.impact === 'comprometido').map(t => `
+          <div class="llp-flow-compr-cell" style="flex:${Math.max(1, pesoPorTipo[t.id])};background:${t.color}22;border-color:${t.color}30">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="width:6px;height:6px;border-radius:2px;background:${t.color};flex-shrink:0"></span>
+              <span style="font-size:10px;font-weight:600;color:${t.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.label}</span>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums">${pesoPorTipo[t.id].toFixed(0)}%</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="llp-flow-op">→</div>
+    <div class="llp-flow-poder">
+      <div class="llp-flow-mini-lbl" style="color:rgba(180,175,255,0.6)">PODER DE ESCOLHA</div>
+      <div style="font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.5px">${pctLivre.toFixed(0)}%</div>
+      <div style="font-size:10px;color:rgba(180,175,255,0.6);font-variant-numeric:tabular-nums">${Utils.currency(Math.max(0, poder))}</div>
+    </div>
+  </div>
+
+  <div class="llp-flow-stacked">
+    ${tipos.map(t => {
+      const cmpt = COMPORT[t.comportamento]?.impact === 'comprometido';
+      const w = Math.max(0.5, pesoPorTipo[t.id]);
+      return `<div title="${t.label}: ${pesoPorTipo[t.id].toFixed(0)}%" style="width:${w}%;background:${t.color};opacity:${cmpt?0.9:0.55}"></div>`;
+    }).join('')}
+    <div style="flex:1;background:var(--accent-2);opacity:0.7" title="Livre: ${pctLivre.toFixed(0)}%"></div>
+  </div>
+
+  <div class="llp-flow-legend">
+    ${tipos.map(t => `
+      <div class="llp-flow-legend-item">
+        <span style="width:7px;height:7px;border-radius:2px;background:${t.color}"></span>
+        <span style="color:var(--text-2)">${t.label}</span>
+        <span style="color:var(--text-1);font-weight:600;font-variant-numeric:tabular-nums">${pesoPorTipo[t.id].toFixed(0)}%</span>
+      </div>
+    `).join('')}
+    <div class="llp-flow-legend-item">
+      <span style="width:7px;height:7px;border-radius:2px;background:var(--accent-2);opacity:0.7"></span>
+      <span style="color:var(--text-2)">Livre</span>
+      <span style="color:var(--accent-2);font-weight:600;font-variant-numeric:tabular-nums">${pctLivre.toFixed(0)}%</span>
+    </div>
+  </div>
+
+  <div class="llp-flow-caption">
+    <span style="color:var(--red);font-weight:600">Essencial</span>,
+    <span style="color:var(--blue);font-weight:600">Obrigatório</span> e
+    <span style="color:var(--amber);font-weight:600">Comprometido</span>
+    reduzem seu Poder de Escolha antes do mês começar.
+    <span style="color:var(--green);font-weight:600">Opcional</span> e
+    <span style="color:var(--accent-2);font-weight:600">Eventual</span>
+    são gastos <em>dentro</em> do que sobra — você decide.
+  </div>
+</div>
+` : ''}
+
+<div class="tipos-grid">
 ${tipos.map(t => {
   const info = COMPORT[t.comportamento] || COMPORT.opcional;
   const catsAqui = catsPorTipo[t.id] || [];
+  const peso = pesoPorTipo[t.id] || 0;
   return `
-  <div class="card" style="border-top:3px solid ${t.color};position:relative">
-    ${!t.builtin ? `<button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-tipo="${t.id}" title="Remover">${icon('trash-2', {size:14})}</button>` : ''}
-    <button class="btn-icon-sm" style="position:absolute;top:8px;right:${t.builtin?10:36}px" data-edit-tipo="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <span style="font-size:22px">${t.icon || '✦'}</span>
-      <div>
-        <div style="font-size:15px;font-weight:700;color:var(--text-1)">${t.label}${t.builtin?' <span style="font-size:10px;color:var(--text-4);font-weight:500">padrão</span>':''}</div>
-        <div style="font-size:11px;color:${t.color};font-weight:600;text-transform:uppercase;letter-spacing:.06em">${info.label}</div>
-      </div>
+  <div class="tipo-card-redesign" style="--tipo-color:${t.color}">
+    <div class="tipo-card-actions-top">
+      <button class="btn-icon-sm" data-edit-tipo="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
+      ${!t.builtin ? `<button class="btn-icon-sm danger" data-del-tipo="${t.id}" title="Remover">${icon('trash-2', {size:14})}</button>` : ''}
     </div>
-    ${t.desc ? `<div style="font-size:12px;color:var(--text-3);margin-bottom:10px;line-height:1.45">${t.desc}</div>` : ''}
-    <div style="font-size:11px;color:var(--text-4);margin-top:8px">${catsAqui.length} categoria${catsAqui.length===1?'':'s'}</div>
-    ${catsAqui.length > 0 ? `<div style="font-size:12px;color:var(--text-2);line-height:1.6;margin-top:4px">${catsAqui.slice(0,6).map(c => `<span style="display:inline-block;background:${c.color}20;color:${c.color};padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0;font-size:11px;font-weight:600">${c.label}</span>`).join('')}${catsAqui.length>6?` <span style="color:var(--text-4);font-size:11px">+${catsAqui.length-6}</span>`:''}</div>` : ''}
+    <div class="tipo-card-head">
+      <span class="tipo-card-tag" style="background:${t.color}22;color:${t.color}">${info.tag}</span>
+      ${t.builtin ? `<span style="font-size:10px;color:var(--text-4);font-weight:500">padrão</span>` : ''}
+    </div>
+    <div class="tipo-card-name">${t.label}</div>
+    <div class="tipo-card-headline" style="color:${t.color}">${info.desc.split(' — ')[0]}</div>
+    ${t.desc && t.desc !== info.desc ? `<div class="tipo-card-desc">${t.desc}</div>` : `<div class="tipo-card-desc">${info.desc.split(' — ')[1] || ''}</div>`}
+    <div class="tipo-card-meta">
+      <span>${catsAqui.length} categoria${catsAqui.length===1?'':'s'}</span>
+      ${peso > 0 ? `<span class="tipo-card-peso" style="color:${t.color}">${peso.toFixed(0)}% da receita</span>` : ''}
+    </div>
+    ${catsAqui.length > 0 ? `<div class="tipo-card-chips">
+      ${catsAqui.slice(0,8).map(c => `<span style="background:${c.color}20;color:${c.color}">${c.label}</span>`).join('')}
+      ${catsAqui.length>8?`<span style="background:transparent;color:var(--text-4)">+${catsAqui.length-8}</span>`:''}
+    </div>` : ''}
   </div>`;
 }).join('')}
 </div>
