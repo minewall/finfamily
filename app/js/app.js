@@ -10615,32 +10615,86 @@ ${isConnected && isAdmin ? `
 
   function renderConfigPerfil(content) {
     const p = Store.getProfile();
+    const fullName = p.name || '';
+    const initial = (fullName.trim()[0] || '?').toUpperCase();
+    const profileColor = Utils.personColor(fullName) || 'var(--accent)';
+    const email = (typeof SupabaseSync !== 'undefined' ? SupabaseSync.getUser?.()?.email : null) || '';
+
+    // Calcula idade a partir da data de nascimento
+    const idadeStr = (() => {
+      if (!p.birthdate) return '';
+      const dt = new Date(p.birthdate);
+      if (isNaN(dt.getTime())) return '';
+      const diff = Date.now() - dt.getTime();
+      const idade = Math.floor(diff / (365.25 * 86400000));
+      return idade > 0 ? `${idade} anos` : '';
+    })();
+
     content.innerHTML = `
 <div class="section-header mb-4"><div>
   <div class="section-title">Perfil</div>
-  <div class="section-sub">Nome exibido no app e configurações regionais</div>
+  <div class="section-sub">Suas informações pessoais — o Coach usa esses dados pra te conhecer melhor.</div>
 </div></div>
-<div class="card" style="max-width:480px">
-  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
-    <div id="avatarPreview" style="font-size:48px;line-height:1;cursor:pointer;padding:8px;border-radius:12px;border:2px solid var(--border);background:var(--bg-elevated)" title="Clique para trocar">${p.avatar || '👤'}</div>
-    <div>
-      <div style="font-size:13px;color:var(--text-2);margin-bottom:6px">Avatar (emoji)</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;max-width:300px" id="avatarPicker">
-        ${AVATAR_OPTIONS.map(a => `<button data-av="${a}" style="font-size:22px;padding:4px 6px;border-radius:8px;border:2px solid ${a===p.avatar?'var(--accent)':'var(--border)'};background:var(--bg-elevated);cursor:pointer">${a}</button>`).join('')}
+<div class="card" style="max-width:640px">
+  <!-- Header com avatar + nome em destaque -->
+  <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+    <div style="position:relative;flex-shrink:0">
+      <div style="width:76px;height:76px;border-radius:50%;background:${profileColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;box-shadow:0 6px 20px ${profileColor}33">${initial}</div>
+      <button class="btn-secondary btn-sm" disabled title="Em breve" style="position:absolute;bottom:-4px;right:-4px;width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border:2px solid var(--bg-card);color:var(--text-3);cursor:not-allowed">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:4px">${fullName || '—'}</div>
+      <div style="font-size:12px;color:var(--text-3)">
+        ${email ? `<span>${email}</span>` : ''}
+        ${idadeStr ? `${email?'<span style="opacity:0.5;margin:0 6px">·</span>':''}<span>${idadeStr}</span>` : ''}
       </div>
+      <div style="font-size:10.5px;color:var(--text-4);margin-top:4px">Foto de perfil — em breve</div>
     </div>
   </div>
-  <div style="display:grid;gap:14px">
+
+  <!-- Form -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
     <div>
-      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Nome</label>
-      <input id="pfName" class="form-input" value="${(p.name||'').replace(/"/g,'&quot;')}" placeholder="Seu nome" style="max-width:320px"/>
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Nome</label>
+      <input id="pfFirstName" class="form-input" value="${(p.firstName||fullName.split(' ')[0]||'').replace(/"/g,'&quot;')}" placeholder="Primeiro nome"/>
     </div>
     <div>
-      <label style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Fuso Horário</label>
-      <select id="pfTz" class="month-select" style="max-width:320px">
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Sobrenome</label>
+      <input id="pfLastName" class="form-input" value="${(p.lastName||fullName.split(' ').slice(1).join(' ')||'').replace(/"/g,'&quot;')}" placeholder="Sobrenome"/>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Data de nascimento</label>
+      <input id="pfBirthdate" type="date" class="form-input" value="${p.birthdate || ''}"/>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Gênero <span style="font-weight:400;text-transform:none;color:var(--text-4);letter-spacing:0">opcional</span></label>
+      <select id="pfGender" class="form-input">
+        <option value="" ${!p.gender?'selected':''}>Prefiro não dizer</option>
+        <option value="feminino" ${p.gender==='feminino'?'selected':''}>Feminino</option>
+        <option value="masculino" ${p.gender==='masculino'?'selected':''}>Masculino</option>
+        <option value="nao-binario" ${p.gender==='nao-binario'?'selected':''}>Não-binário</option>
+        <option value="outro" ${p.gender==='outro'?'selected':''}>Outro</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Profissão</label>
+      <input id="pfProfession" class="form-input" value="${(p.profession||'').replace(/"/g,'&quot;')}" placeholder="Ex: Desenvolvedor, Médica…"/>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Cidade</label>
+      <input id="pfCity" class="form-input" value="${(p.city||'').replace(/"/g,'&quot;')}" placeholder="Ex: São Paulo, SP"/>
+    </div>
+    <div style="grid-column:1/-1">
+      <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Fuso horário</label>
+      <select id="pfTz" class="form-input" style="max-width:320px">
         ${TIMEZONES.map(tz => `<option value="${tz}" ${tz===(p.timezone||'America/Sao_Paulo')?'selected':''}>${tz}</option>`).join('')}
       </select>
     </div>
+  </div>
+  <div style="margin-top:14px;font-size:11px;color:var(--text-4);line-height:1.5">
+    Esses dados ficam armazenados em sua conta e são usados para personalizar o Coach. Você pode editá-los a qualquer momento.
   </div>
   <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn-primary" id="btnSavePerfil">Salvar</button>
@@ -10738,23 +10792,25 @@ ${(() => {
 </div>`;
 })()}`;
 
-    let selectedAvatar = p.avatar || '👤';
-    content.querySelectorAll('[data-av]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedAvatar = btn.dataset.av;
-        content.querySelectorAll('[data-av]').forEach(b => b.style.borderColor = 'var(--border)');
-        btn.style.borderColor = 'var(--accent)';
-        document.getElementById('avatarPreview').textContent = selectedAvatar;
-      });
-    });
-
     document.getElementById('btnSavePerfil').addEventListener('click', () => {
-      const name = document.getElementById('pfName').value.trim();
-      if (!name) { toast('Nome obrigatório', 'error'); return; }
-      Store.setProfile({ name, avatar: selectedAvatar, timezone: document.getElementById('pfTz').value });
+      const firstName = document.getElementById('pfFirstName').value.trim();
+      const lastName  = document.getElementById('pfLastName').value.trim();
+      if (!firstName) { toast('Nome obrigatório', 'error'); return; }
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+      Store.setProfile({
+        name: fullName,
+        firstName, lastName,
+        birthdate:  document.getElementById('pfBirthdate').value || null,
+        gender:     document.getElementById('pfGender').value || null,
+        profession: document.getElementById('pfProfession').value.trim() || null,
+        city:       document.getElementById('pfCity').value.trim() || null,
+        timezone:   document.getElementById('pfTz').value,
+      });
+      // Refresh tela pra atualizar avatar + cálculo de idade
+      renderConfigPerfil(content);
       const msg = document.getElementById('perfilMsg');
-      msg.style.display = 'block';
-      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+      if (msg) { msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2500); }
+      toast('Perfil salvo', 'success');
     });
 
     document.getElementById('btnRefazerOnboarding').addEventListener('click', () => {
