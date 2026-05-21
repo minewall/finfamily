@@ -121,6 +121,53 @@ serve(async (req) => {
         });
       }
 
+      // Waitlist stats — devolve linhas da view public.waitlist_stats
+      // (agregação por dia/source; front consolida os números globais)
+      case 'waitlistStats': {
+        const { data, error } = await adminClient
+          .from('waitlist_stats')
+          .select('*');
+        if (error) return json(500, { error: error.message });
+        return json(200, { stats: data });
+      }
+
+      // Lista leads da waitlist — paginação simples + filtros opcionais
+      // params: { limit?: number<=500, source?, invited?: bool, converted?: bool }
+      case 'listWaitlist': {
+        const limit = Math.min((params.limit as number) || 50, 500);
+        let q = adminClient
+          .from('waitlist')
+          .select('id, name, email, profile, source, invited_at, signup_at, created_at')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        if (params.source)              q = q.eq('source', params.source as string);
+        if (params.invited === false)   q = q.is('invited_at', null);
+        if (params.invited === true)    q = q.not('invited_at', 'is', null);
+        if (params.converted === true)  q = q.not('signup_at', 'is', null);
+        if (params.converted === false) q = q.is('signup_at', null);
+        const { data, error } = await q;
+        if (error) return json(500, { error: error.message });
+        return json(200, { leads: data });
+      }
+
+      // Proxy interno para a Edge Function waitlist-launch.
+      // Encapsula o service role: o cliente nunca recebe a chave.
+      case 'launchWaitlist': {
+        const batchSize = (params.batchSize as number) || 50;
+        const source    = params.source as string | undefined;
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/waitlist-launch`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SERVICE_KEY}`,
+          },
+          body: JSON.stringify({ batchSize, ...(source ? { source } : {}) }),
+        });
+        const body = await res.json().catch(() => ({}));
+        console.log(`[admin] launchWaitlist batchSize=${batchSize} source=${source ?? 'all'} by admin=${user.id}`);
+        return json(res.status, body);
+      }
+
       // App stats: total users, by tier, MAU estimate
       case 'stats': {
         const { data: counts } = await adminClient

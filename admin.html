@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Haile</title>
+  <meta name="robots" content="noindex, nofollow" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --violet: #7367F0;
+      --deep:   #5048CC;
+      --ink:    #0f1020;
+      --ink-2:  #161830;
+      --card:   #1a1d3a;
+      --line:   rgba(255,255,255,0.08);
+      --line-2: rgba(255,255,255,0.14);
+      --text:   #F8FAFC;
+      --muted:  #94A3B8;
+      --dim:    #5b5e73;
+      --green:  #1DAF6A;
+      --amber:  #F59E0B;
+      --red:    #E04A6E;
+      --teal:   #06B6D4;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: var(--ink);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { color: var(--violet); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font-family: inherit; }
+    code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+
+    /* ── layout ─────────────────────────────────────────────────── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px clamp(20px, 4vw, 48px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(15,16,32,0.85);
+      backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-left img { height: 22px; }
+    .topbar-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--violet);
+      padding: 4px 10px; border: 1px solid rgba(115,103,240,0.4); border-radius: 999px;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
+    .topbar-right .email { color: var(--text); font-weight: 500; }
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--line-2); border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-ghost:hover { border-color: var(--violet); color: var(--violet); }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: clamp(24px, 4vw, 48px) clamp(20px, 4vw, 48px) 64px;
+    }
+
+    .section { margin-bottom: 56px; }
+    .section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 16px; margin-bottom: 18px;
+    }
+    .section-title {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(22px, 2.5vw, 28px); font-weight: 400;
+      letter-spacing: -0.01em;
+    }
+    .section-subtitle { font-size: 13px; color: var(--muted); }
+
+    /* ── cards de métrica ───────────────────────────────────────── */
+    .metric-grid {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 22px;
+    }
+    .metric-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    }
+    .metric-value {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: 36px; line-height: 1.1; color: var(--text);
+    }
+    .metric-suffix { font-size: 14px; color: var(--muted); margin-left: 6px; font-family: "DM Sans"; }
+    .metric-foot { margin-top: 6px; font-size: 12px; color: var(--dim); }
+
+    /* ── form / inputs ──────────────────────────────────────────── */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .form-row {
+      display: grid; gap: 14px;
+      grid-template-columns: 160px 200px auto;
+      align-items: end;
+    }
+    @media (max-width: 720px) { .form-row { grid-template-columns: 1fr; } }
+    .field-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 6px; display: block;
+    }
+    input[type="number"], select {
+      width: 100%;
+      background: var(--ink-2);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input[type="number"]:focus, select:focus {
+      outline: none; border-color: var(--violet);
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--violet); color: #fff;
+      border: 0; border-radius: 10px;
+      padding: 12px 22px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-primary:hover { background: var(--deep); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    .warning {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.28);
+      border-radius: 10px;
+      color: var(--amber);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .launch-result {
+      margin-top: 16px; padding: 14px 16px;
+      border-radius: 10px; font-size: 13px; line-height: 1.5;
+    }
+    .launch-result.ok    { background: rgba(29,175,106,0.08); border: 1px solid rgba(29,175,106,0.3); color: var(--green); }
+    .launch-result.err   { background: rgba(224,74,110,0.08); border: 1px solid rgba(224,74,110,0.3); color: var(--red); }
+    .launch-result ul { margin: 8px 0 0 18px; }
+
+    /* ── tabela ─────────────────────────────────────────────────── */
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center;
+      margin-bottom: 16px;
+    }
+    .filters label.checkbox {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--muted); cursor: pointer;
+    }
+    .filters input[type="checkbox"] { accent-color: var(--violet); }
+    .filters select { width: 180px; padding: 8px 12px; font-size: 13px; }
+
+    .table-wrap {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left; padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    th {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      background: rgba(255,255,255,0.02);
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: rgba(115,103,240,0.04); }
+
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge.pendente   { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.35); }
+    .badge.convidado  { background: rgba(115,103,240,0.14); color: var(--violet); border: 1px solid rgba(115,103,240,0.4); }
+    .badge.convertido { background: rgba(29,175,106,0.12); color: var(--green); border: 1px solid rgba(29,175,106,0.35); }
+
+    .empty {
+      padding: 32px; text-align: center; color: var(--dim); font-size: 14px;
+    }
+    .table-foot {
+      padding: 14px 16px; display: flex; justify-content: center;
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* ── loading / erro globais ─────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: var(--violet); border-radius: 50%;
+      animation: spin .8s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-row { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+    .loading-row .spinner { margin-right: 8px; }
+
+    .err-inline {
+      font-size: 12px; color: var(--red); margin-top: 8px;
+    }
+
+    /* ── gate ───────────────────────────────────────────────────── */
+    .gate {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .gate-card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 40px; max-width: 420px; width: 100%; text-align: center;
+    }
+    .gate-card h1 {
+      font-family: "DM Serif Display", Georgia, serif; font-size: 26px;
+      font-weight: 400; margin-bottom: 12px;
+    }
+    .gate-card p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 22px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Gate: enquanto valida sessão + role admin -->
+  <div id="gate" class="gate">
+    <div class="gate-card">
+      <h1 id="gate-title">Verificando acesso</h1>
+      <p id="gate-msg"><span class="spinner"></span> Carregando sessão…</p>
+      <a id="gate-back" href="/login.html" class="btn-ghost hidden" style="display:inline-block">Voltar</a>
+    </div>
+  </div>
+
+  <!-- Conteúdo do admin -->
+  <div id="app" class="hidden">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <img src="/assets/svg/haile-wordmark-white.svg" alt="Haile" />
+        <span class="topbar-label">Admin</span>
+      </div>
+      <div class="topbar-right">
+        <span class="email" id="user-email">—</span>
+        <button id="btn-logout" class="btn-ghost">Sair</button>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- ── Seção 1: Métricas ─────────────────────────────────── -->
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Métricas da Waitlist</div>
+            <div class="section-subtitle">Dados consolidados da view <code>waitlist_stats</code>.</div>
+          </div>
+          <button id="btn-refresh-metrics" class="btn-ghost">Atualizar</button>
+        </div>
+        <div id="metrics-host">
+          <div class="loading-row"><span class="spinner"></span> Carregando métricas…</div>
+        </div>
+        <div id="metrics-err" class="err-inline hidden"></div>
+      </section>
+
+      <!-- ── Seção 2: Disparo ──────────────────────────────────── -->
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Campanha de Lançamento</div>
+            <div class="section-subtitle">Dispara o convite de abertura para os leads pendentes.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="form-row">
+            <div>
+              <label class="field-label" for="batch-size">Batch size</label>
+              <input id="batch-size" type="number" min="1" max="500" value="50" />
+            </div>
+            <div>
+              <label class="field-label" for="batch-source">Source</label>
+              <select id="batch-source">
+                <option value="">Todos</option>
+                <option value="home">home</option>
+                <option value="precos">precos</option>
+                <option value="contato">contato</option>
+              </select>
+            </div>
+            <div>
+              <button id="btn-launch" class="btn-primary">Disparar campanha</button>
+            </div>
+          </div>
+
+          <div class="warning">
+            <strong>Atenção:</strong> este botão envia e-mails reais. Só dispare quando estiver pronto pra abrir o acesso.
+          </div>
+
+          <div id="launch-result" class="launch-result hidden"></div>
+        </div>
+      </section>
+
+      <!-- ── Seção 3: Tabela ───────────────────────────────────── -->
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Leads na Waitlist</div>
+            <div class="section-subtitle">Filtros e paginação simples.</div>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div>
+            <label class="field-label" for="flt-source">Source</label>
+            <select id="flt-source">
+              <option value="">Todos</option>
+              <option value="home">home</option>
+              <option value="precos">precos</option>
+              <option value="contato">contato</option>
+              <option value="indicacao">indicacao</option>
+            </select>
+          </div>
+          <label class="checkbox">
+            <input type="checkbox" id="flt-pending" /> Apenas pendentes
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="flt-converted" /> Apenas convertidos
+          </label>
+          <button id="btn-apply-filters" class="btn-ghost" style="margin-left:auto">Aplicar</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Source</th>
+                <th>Inscrito</th>
+                <th>Convidado</th>
+                <th>Convertido</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="leads-body">
+              <tr><td colspan="8" class="loading-row"><span class="spinner"></span> Carregando leads…</td></tr>
+            </tbody>
+          </table>
+          <div class="table-foot">
+            <button id="btn-load-more" class="btn-ghost hidden">Carregar mais</button>
+          </div>
+        </div>
+        <div id="leads-err" class="err-inline hidden"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Supabase SDK + módulo do projeto -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/app/js/supabase-client.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const $ = (id) => document.getElementById(id);
+    const PAGE_LIMIT = 100;
+
+    let leadsLoaded = 0;
+    let lastFilters = {};
+
+    // ── boot ─────────────────────────────────────────────────────
+    function showGate(title, msg, showBack) {
+      $('gate-title').textContent = title;
+      $('gate-msg').innerHTML = msg;
+      $('gate-back').classList.toggle('hidden', !showBack);
+      $('gate').classList.remove('hidden');
+      $('app').classList.add('hidden');
+    }
+    function revealApp(email) {
+      $('user-email').textContent = email || '—';
+      $('gate').classList.add('hidden');
+      $('app').classList.remove('hidden');
+    }
+
+    async function waitForSupabase() {
+      // Aguarda o SDK + o módulo init() popular a sessão (init é síncrono no carregamento).
+      if (typeof SupabaseSync === 'undefined') {
+        throw new Error('Cliente Supabase não disponível.');
+      }
+      SupabaseSync.init();
+      // Pequena espera assíncrona pra getSession() do init() resolver.
+      for (let i = 0; i < 25; i++) {
+        const token = await SupabaseSync.getAccessToken();
+        if (token) return token;
+        await new Promise((r) => setTimeout(r, 80));
+      }
+      return null;
+    }
+
+    async function boot() {
+      try {
+        const token = await waitForSupabase();
+        if (!token) {
+          location.href = '/login.html?next=' + encodeURIComponent('/admin.html');
+          return;
+        }
+        const user = SupabaseSync.getUser();
+        // Sonda role chamando o admin — se 403, mostra acesso restrito.
+        try {
+          await SupabaseSync.adminCall('waitlistStats');
+        } catch (e) {
+          const msg = String(e && e.message || e);
+          if (/forbidden|admin/i.test(msg) || /403/.test(msg)) {
+            showGate(
+              'Acesso restrito',
+              'Sua conta não tem permissão de administrador.',
+              true,
+            );
+            return;
+          }
+          throw e;
+        }
+        revealApp(user && user.email);
+        // Primeira carga
+        loadMetrics();
+        loadLeads(true);
+      } catch (e) {
+        console.error('[admin] boot error:', e);
+        showGate('Erro ao carregar', escapeHtml(String(e.message || e)), true);
+      }
+    }
+
+    // ── helpers ──────────────────────────────────────────────────
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    }
+    function pct(num, den) {
+      if (!den || den === 0) return 0;
+      return Math.round((num / den) * 1000) / 10;
+    }
+    function showInlineErr(el, msg) {
+      el.textContent = msg || '';
+      el.classList.toggle('hidden', !msg);
+    }
+
+    // ── métricas ─────────────────────────────────────────────────
+    async function loadMetrics() {
+      const host = $('metrics-host');
+      const errEl = $('metrics-err');
+      showInlineErr(errEl, '');
+      host.innerHTML = '<div class="loading-row"><span class="spinner"></span> Carregando métricas…</div>';
+
+      try {
+        const { stats } = await SupabaseSync.adminCall('waitlistStats');
+        const rows = Array.isArray(stats) ? stats : [];
+
+        // Agrega: a view retorna por (source, dia). Somamos as colunas relevantes.
+        let total = 0, invited = 0, converted = 0;
+        let weightedHours = 0;          // soma (avg_hours_to_signup * total_converted)
+        let weightedHoursDen = 0;       // soma de total_converted onde avg existe
+
+        for (const r of rows) {
+          total     += Number(r.total)           || 0;
+          invited   += Number(r.total_invited)   || 0;
+          converted += Number(r.total_converted) || 0;
+          if (r.avg_hours_to_signup != null && r.total_converted) {
+            weightedHours    += Number(r.avg_hours_to_signup) * Number(r.total_converted);
+            weightedHoursDen += Number(r.total_converted);
+          }
+        }
+
+        const invitedPct   = pct(invited, total);
+        const convertedPct = pct(converted, invited);
+
+        let avgLabel = '—';
+        let avgFoot  = '';
+        if (weightedHoursDen > 0) {
+          const avgHours = weightedHours / weightedHoursDen;
+          if (avgHours >= 24) {
+            avgLabel = (avgHours / 24).toFixed(1);
+            avgFoot  = 'dias entre convite e cadastro';
+          } else {
+            avgLabel = avgHours.toFixed(1);
+            avgFoot  = 'horas entre convite e cadastro';
+          }
+        } else {
+          avgFoot = 'ainda sem conversões';
+        }
+
+        if (total === 0) {
+          host.innerHTML = '<div class="empty">Ninguém na lista ainda.</div>';
+          return;
+        }
+
+        host.innerHTML = `
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-label">Inscritos</div>
+              <div class="metric-value">${total.toLocaleString('pt-BR')}</div>
+              <div class="metric-foot">no total</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Convidados</div>
+              <div class="metric-value">${invited.toLocaleString('pt-BR')}<span class="metric-suffix">(${invitedPct}%)</span></div>
+              <div class="metric-foot">sobre o total</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Convertidos</div>
+              <div class="metric-value">${converted.toLocaleString('pt-BR')}<span class="metric-suffix">(${convertedPct}%)</span></div>
+              <div class="metric-foot">sobre convidados</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Tempo médio</div>
+              <div class="metric-value">${avgLabel}</div>
+              <div class="metric-foot">${escapeHtml(avgFoot)}</div>
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        host.innerHTML = '<div class="empty">Não foi possível carregar as métricas.</div>';
+        showInlineErr(errEl, e.message || String(e));
+      }
+    }
+
+    // ── tabela de leads ──────────────────────────────────────────
+    function readFilters() {
+      const f = { limit: PAGE_LIMIT };
+      const source = $('flt-source').value;
+      if (source) f.source = source;
+      if ($('flt-pending').checked)   f.invited = false;
+      if ($('flt-converted').checked) f.converted = true;
+      return f;
+    }
+
+    async function loadLeads(reset) {
+      const body = $('leads-body');
+      const errEl = $('leads-err');
+      const moreBtn = $('btn-load-more');
+      showInlineErr(errEl, '');
+
+      if (reset) {
+        leadsLoaded = 0;
+        lastFilters = readFilters();
+        body.innerHTML = '<tr><td colspan="8" class="loading-row"><span class="spinner"></span> Carregando leads…</td></tr>';
+        moreBtn.classList.add('hidden');
+      }
+
+      try {
+        const filters = { ...lastFilters, limit: leadsLoaded + PAGE_LIMIT };
+        const { leads } = await SupabaseSync.adminCall('listWaitlist', filters);
+        const rows = Array.isArray(leads) ? leads : [];
+
+        if (rows.length === 0) {
+          body.innerHTML = '<tr><td colspan="8" class="empty">Ninguém na lista ainda.</td></tr>';
+          moreBtn.classList.add('hidden');
+          return;
+        }
+
+        body.innerHTML = rows.map(renderRow).join('');
+        leadsLoaded = rows.length;
+
+        // Heurística: se voltou exatamente o limite pedido, é provável haver mais.
+        moreBtn.classList.toggle('hidden', rows.length < filters.limit);
+      } catch (e) {
+        body.innerHTML = '<tr><td colspan="8" class="empty">Não foi possível carregar os leads.</td></tr>';
+        showInlineErr(errEl, e.message || String(e));
+      }
+    }
+
+    function renderRow(r) {
+      let status = 'pendente', label = 'Pendente';
+      if (r.signup_at)  { status = 'convertido'; label = 'Convertido'; }
+      else if (r.invited_at) { status = 'convidado'; label = 'Convidado'; }
+      return `
+        <tr>
+          <td>${escapeHtml(r.name)}</td>
+          <td>${escapeHtml(r.email)}</td>
+          <td>${escapeHtml(r.profile || '—')}</td>
+          <td>${escapeHtml(r.source || '—')}</td>
+          <td>${fmtDate(r.created_at)}</td>
+          <td>${fmtDate(r.invited_at)}</td>
+          <td>${fmtDate(r.signup_at)}</td>
+          <td><span class="badge ${status}">${label}</span></td>
+        </tr>
+      `;
+    }
+
+    // ── disparo de campanha ──────────────────────────────────────
+    async function launchCampaign() {
+      const btn = $('btn-launch');
+      const resEl = $('launch-result');
+      const batchSize = Math.max(1, Math.min(500, parseInt($('batch-size').value, 10) || 50));
+      const source = $('batch-source').value || undefined;
+
+      const label = source ? `source="${source}"` : 'todos os sources';
+      if (!confirm(`Disparar até ${batchSize} convites (${label})?\n\nIsso envia e-mails reais e não pode ser desfeito.`)) {
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>&nbsp; Disparando…';
+      resEl.className = 'launch-result';
+      resEl.classList.remove('hidden');
+      resEl.innerHTML = 'Aguardando resposta da Edge Function…';
+
+      try {
+        const out = await SupabaseSync.adminCall('launchWaitlist', { batchSize, ...(source ? { source } : {}) });
+        const sent   = Number(out.sent || 0);
+        const failed = Number(out.failed || 0);
+        const errors = Array.isArray(out.errors) ? out.errors : [];
+
+        const tone = failed > 0 ? 'err' : 'ok';
+        resEl.className = 'launch-result ' + tone;
+        let html = `Enviados: <strong>${sent}</strong> &middot; Falhas: <strong>${failed}</strong>`;
+        if (out.message) html += `<br>${escapeHtml(out.message)}`;
+        if (errors.length) {
+          html += '<ul>' + errors.slice(0, 10).map((er) =>
+            `<li>${escapeHtml(er.email || '?')} — ${escapeHtml(er.type || '')}: ${escapeHtml(er.message || '')}</li>`
+          ).join('') + '</ul>';
+          if (errors.length > 10) html += `<div style="margin-top:6px;opacity:.7">+ ${errors.length - 10} erros adicionais</div>`;
+        }
+        resEl.innerHTML = html;
+
+        // Recarrega métricas e tabela porque o estado mudou.
+        loadMetrics();
+        loadLeads(true);
+      } catch (e) {
+        resEl.className = 'launch-result err';
+        resEl.textContent = e.message || String(e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Disparar campanha';
+      }
+    }
+
+    // ── eventos ──────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      $('btn-refresh-metrics').addEventListener('click', loadMetrics);
+      $('btn-apply-filters').addEventListener('click', () => loadLeads(true));
+      $('btn-load-more').addEventListener('click', () => loadLeads(false));
+      $('btn-launch').addEventListener('click', launchCampaign);
+      $('btn-logout').addEventListener('click', async () => {
+        try { await SupabaseSync.signOut && SupabaseSync.signOut(); } catch (_) {}
+        location.href = '/login.html';
+      });
+      boot();
+    });
+  })();
+  </script>
+</body>
+</html>
