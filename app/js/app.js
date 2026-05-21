@@ -1283,16 +1283,28 @@ ${renderPrevisaoCaixa(saldo)}
     let activeTab = localStorage.getItem('ff_lanc_tab') || 'desp';
 
     container.innerHTML = `
-<div class="section-header mb-3">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Lançamentos — ${periodLabel}</div>
-    <div class="section-sub">${despesas.length + receitas.length} registros · ${despesas.length} despesas · ${receitas.length} receitas</div>
+    <h1 class="page-head-title">Lançamentos <span class="page-head-year">— ${year}</span></h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">${despesas.length + receitas.length} registros</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-red">${despesas.length} despesas</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-green">${receitas.length} receitas</span>
+    </p>
   </div>
-  <div class="flex gap-2">
-    <button class="btn-secondary ${activeTab==='desp'?'active':''}" id="btnTabDesp">Despesas</button>
-    <button class="btn-secondary ${activeTab==='rec'?'active':''}" id="btnTabRec">Receitas</button>
-    <button class="btn-secondary ${activeTab==='cal'?'active':''}" id="btnTabCal">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+  <div class="view-tabs">
+    <button class="view-tab view-tab--red ${activeTab==='desp'?'active':''}" id="btnTabDesp">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+      Despesas
+    </button>
+    <button class="view-tab view-tab--green ${activeTab==='rec'?'active':''}" id="btnTabRec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      Receitas
+    </button>
+    <button class="view-tab view-tab--violet ${activeTab==='cal'?'active':''}" id="btnTabCal">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
       Calendário
     </button>
   </div>
@@ -1744,6 +1756,17 @@ ${filtered.map(r => {
     });
 
     container.innerHTML = `
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">Receitas <span class="page-head-year">— ${year}</span></h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-green">${Utils.currency(totalAno)}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-total">média ${Utils.currency(media)}/mês</span>
+    </p>
+  </div>
+</div>
+
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -2028,10 +2051,15 @@ ${filtered.map(r => {
     const anomalias = period === 'mes' ? detectAnomalias(month, year) : [];
 
     container.innerHTML = `
-<div class="section-header mb-3">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Despesas — ${periodLabel}</div>
-    <div class="section-sub">${despesas.length} lançamentos · total: <strong>${Utils.currency(total)}</strong></div>
+    <h1 class="page-head-title">Despesas <span class="page-head-year">— ${periodLabel}</span></h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-red">${Utils.currency(total)}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-total">${despesas.length} lançamentos</span>
+      ${catSorted.length ? `<span class="page-head-meta-sep">·</span><span class="page-head-meta-total">${catSorted.length} categorias</span>` : ''}
+    </p>
   </div>
 </div>
 ${isMember ? `

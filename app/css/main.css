@@ -3206,3 +3206,72 @@ body.sidebar-open { overflow: hidden; }
   .dash-annual-grid { grid-template-columns: 1fr; }
   .dash-greeting-title { font-size: 22px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Sprint 2A: Headers padronizados
+   page-head: header de página com título + metadata colorida
+   view-tab:  pílulas de visualização (Despesas/Receitas/Calendário)
+═══════════════════════════════════════════════════════════════════ */
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.page-head-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+  margin: 0;
+}
+.page-head-year {
+  color: var(--text-3);
+  font-weight: 500;
+}
+.page-head-meta {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: 5px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.page-head-meta-total { color: var(--text-2); }
+.page-head-meta-sep   { color: var(--text-4); }
+.page-head-meta-red   { color: var(--red); font-weight: 600; }
+.page-head-meta-green { color: var(--green); font-weight: 600; }
+
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.view-tab:hover {
+  color: var(--text-1);
+  border-color: var(--border-2);
+}
+/* Active states por cor */
+.view-tab.active { color: #fff; }
+.view-tab--red.active    { background: var(--red);    border-color: var(--red);    box-shadow: 0 4px 14px rgba(255,74,104,0.25); }
+.view-tab--green.active  { background: var(--green);  border-color: var(--green);  box-shadow: 0 4px 14px rgba(29,201,126,0.25); }
+.view-tab--violet.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 14px var(--accent-glow); }
