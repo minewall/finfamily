@@ -3360,6 +3360,39 @@ ${(() => {
   });
 })()}
 
+${(() => {
+  // Card resumo de Financiamentos (mostra em aba "Dívidas" ou "Todos")
+  if (naturezaTab === 'recorrente') return '';
+  const fins = (typeof Store.getFinanciamentos === 'function') ? Store.getFinanciamentos() : [];
+  if (fins.length === 0) return '';
+  const totSaldo = fins.reduce((s, f) => {
+    const pagas = f.parcelasPagas || 0;
+    const totalParc = f.prazo || 0;
+    const valor = f.valorFinanciado || 0;
+    const restante = Math.max(0, ((totalParc - pagas) / Math.max(1, totalParc)) * valor);
+    return s + restante;
+  }, 0);
+  return `
+<div class="card mb-4" style="border-color:rgba(255,74,104,0.25);background:linear-gradient(135deg,rgba(255,74,104,0.05),var(--bg-card))">
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,74,104,0.15);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:2px">${fins.length} financiamento${fins.length!==1?'s':''} ativo${fins.length!==1?'s':''}</div>
+      <div style="font-size:11.5px;color:var(--text-3)">Saldo devedor estimado: <strong style="color:var(--red)">${Utils.currency(totSaldo)}</strong></div>
+    </div>
+    <button class="btn-secondary" onclick="Router.navigate('financiamentos')" style="white-space:nowrap">
+      Gerenciar
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+  </div>
+  <div style="font-size:11px;color:var(--text-4);margin-top:10px;line-height:1.5">
+    Financiamentos com cálculo SAC/Price ficam em tela dedicada por terem amortização e juros calculados separadamente. Eles também são tipo "Dívida" mas o detalhamento fica em <a href="#financiamentos" style="color:var(--accent)">Financiamentos</a>.
+  </div>
+</div>`;
+})()}
+
 <div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -6719,10 +6752,19 @@ ${reservas.length > 0 ? `
     }, 0);
 
     container.innerHTML = `
-<div class="section-header mb-6">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Financiamentos</div>
-    <div class="section-sub">Imóveis, veículos e outros — controle de saldo devedor, juros e antecipação</div>
+    <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">
+      <a href="#contratos" onclick="Router.navigate('contratos')" style="color:var(--text-3);text-decoration:none">Compromissos</a>
+      <span style="opacity:0.5">/</span>
+      <span style="color:var(--text-2)">Financiamentos</span>
+    </div>
+    <h1 class="page-head-title">Financiamentos</h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">imóveis, veículos e outros</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">controle de saldo devedor, juros e antecipação (SAC/Price)</span>
+    </p>
   </div>
   <button class="btn-primary" id="btnAddFin">+ Novo Financiamento</button>
 </div>
