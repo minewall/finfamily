@@ -3677,3 +3677,104 @@ body.sidebar-open { overflow: hidden; }
   padding-top: 6px;
   border-top: 1px solid var(--border);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Recados card refinado
+═══════════════════════════════════════════════════════════════════ */
+.recado-card-redesign {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  margin-bottom: 8px;
+}
+.recado-card-redesign.nao-lido {
+  background: var(--bg-elevated);
+  border-color: color-mix(in srgb, var(--rc-color, var(--accent)) 30%, var(--border));
+  border-left: 3px solid var(--rc-color, var(--accent));
+}
+.recado-card-redesign:hover {
+  border-color: var(--border-2);
+}
+.recado-tipo-icon-redesign {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recado-card-body { flex: 1; min-width: 0; }
+.recado-card-head-redesign {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.recado-card-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.recado-card-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rc-color, var(--accent)) 30%, transparent);
+}
+.recado-card-time {
+  font-size: 10.5px;
+  color: var(--text-3);
+  margin-left: auto;
+}
+.recado-card-title-redesign {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.recado-card-redesign.nao-lido .recado-card-title-redesign {
+  font-weight: 700;
+}
+.recado-card-text-redesign {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.55;
+  margin-bottom: 10px;
+}
+.recado-card-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.recado-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid;
+  border-radius: 7px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter .15s;
+}
+.recado-action-primary:hover { filter: brightness(1.15); }
+.recado-action-secondary {
+  background: transparent;
+  color: var(--text-3);
+  border: none;
+  padding: 5px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: color .15s;
+}
+.recado-action-secondary:hover { color: var(--text-1); }

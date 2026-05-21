@@ -9351,10 +9351,12 @@ ${renderPageMonthPicker(container)}
     }
 
     const TIPO_CONFIG = {
-      insight: { icon: '⚡', label: 'Insight', bgColor: 'var(--accent-dim)', badgeColor: 'var(--accent)',       badgeBg: 'var(--accent-dim)' },
-      alerta:  { icon: '⚠️', label: 'Alerta',  bgColor: 'var(--amber-dim)',  badgeColor: 'var(--amber)',        badgeBg: 'var(--amber-dim)' },
-      dica:    { icon: '💡', label: 'Dica',    bgColor: 'var(--green-dim)',  badgeColor: 'var(--green)',        badgeBg: 'var(--green-dim)' },
-      meta:    { icon: '✅', label: 'Meta',    bgColor: 'var(--green-dim)',  badgeColor: 'var(--teal)',         badgeBg: 'var(--teal-dim,#14B8A618)' },
+      insight:     { iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', label: 'Insight',     iconColor: 'var(--accent)',     bgColor: 'var(--accent-dim)' },
+      alerta:      { iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>', label: 'Alerta',      iconColor: 'var(--amber)',      bgColor: 'var(--amber-dim)' },
+      dica:        { iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15"/></svg>', label: 'Dica',        iconColor: 'var(--green)',      bgColor: 'var(--green-dim)' },
+      meta:        { iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>', label: 'Meta',        iconColor: 'var(--teal-coach)', bgColor: 'var(--teal-coach-dim)' },
+      oportunidade:{ iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', label: 'Oportunidade',iconColor: 'var(--green)',      bgColor: 'var(--green-dim)' },
+      conquista:   { iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8z"/></svg>',           label: 'Conquista',    iconColor: 'var(--accent-2)',   bgColor: 'var(--accent-dim)' },
     };
 
     const PESSOA_CONFIG = [
@@ -9386,18 +9388,35 @@ ${renderPageMonthPicker(container)}
       if (!recs.length) return `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="color:var(--text-4)"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor" opacity=".3"/></svg><p>Nenhum recado encontrado.</p></div>`;
       return recs.map(r => {
         const tc = TIPO_CONFIG[r.tipo] || TIPO_CONFIG.insight;
-        return `<div class="recado-card${r.lido ? '' : ' nao-lido'}" data-rc-id="${r.id}">
-  <div class="recado-tipo-icon" style="background:${tc.bgColor}">${tc.icon}</div>
+        // Heurística: link contextual baseado no tipo
+        const acoes = {
+          alerta:       { label: 'Ver detalhes',   target: 'despesas' },
+          oportunidade: { label: 'Simular agora',  target: 'simulador' },
+          conquista:    { label: 'Ver meta',       target: 'metas' },
+          meta:         { label: 'Ver meta',       target: 'metas' },
+          insight:      { label: 'Ver análise',    target: null },
+          dica:         { label: 'Aprender mais',  target: null },
+        };
+        const act = acoes[r.tipo] || acoes.insight;
+        return `<div class="recado-card-redesign${r.lido ? '' : ' nao-lido'}" data-rc-id="${r.id}" style="--rc-color:${tc.iconColor}">
+  <div class="recado-tipo-icon-redesign" style="background:${tc.bgColor};color:${tc.iconColor}">${tc.iconSvg}</div>
   <div class="recado-card-body">
-    <div class="recado-card-head">
-      <div class="recado-card-title">${r.titulo}</div>
-      ${!r.lido ? '<div class="recado-unread-dot"></div>' : ''}
+    <div class="recado-card-head-redesign">
+      <span class="recado-card-tag" style="background:${tc.bgColor};color:${tc.iconColor}">${tc.label}</span>
+      ${!r.lido ? `<span class="recado-card-unread-dot" style="background:${tc.iconColor}"></span>` : ''}
+      <span class="recado-card-time">${fmtRelTime(r.data)}</span>
     </div>
-    <div class="recado-card-meta">
-      <span style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:6px;background:${tc.badgeBg};color:${tc.badgeColor}">${tc.label}</span>
-      <span style="color:var(--text-4)">· ${fmtRelTime(r.data)}</span>
+    <div class="recado-card-title-redesign">${r.titulo}</div>
+    <div class="recado-card-text-redesign">${r.texto}</div>
+    <div class="recado-card-actions">
+      <button class="recado-action-primary" data-rc-action="${act.target || ''}" data-rc-host="${r.id}" style="background:${tc.bgColor};color:${tc.iconColor};border-color:${tc.iconColor}40">
+        ${act.label}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <button class="recado-action-secondary" data-rc-toggle-lido="${r.id}">
+        ${r.lido ? 'Marcar como não lido' : 'Marcar como lido'}
+      </button>
     </div>
-    <div class="recado-card-text">${r.texto}</div>
   </div>
 </div>`;
       }).join('');
@@ -9423,8 +9442,35 @@ ${renderPageMonthPicker(container)}
         nl.style.display = n > 0 ? '' : 'none';
         nl.textContent = `● ${n} não lido${n !== 1 ? 's' : ''}`;
       }
-      // Bind card clicks
-      container.querySelectorAll('[data-rc-id]').forEach(card => {
+      // Toggle lido/não-lido (botão secundário)
+      container.querySelectorAll('[data-rc-toggle-lido]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.rcToggleLido;
+          const recs = Store.get().recados || [];
+          const rec = recs.find(x => x.id === id);
+          if (rec) {
+            rec.lido = !rec.lido;
+            Store.persist();
+            renderCards();
+          }
+        });
+      });
+      // Ação primária (navega) + marca como lido
+      container.querySelectorAll('[data-rc-action]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.rcHost;
+          const target = btn.dataset.rcAction;
+          const recs = Store.get().recados || [];
+          const rec = recs.find(x => x.id === id);
+          if (rec && !rec.lido) { rec.lido = true; Store.persist(); }
+          if (target) Router.navigate(target);
+          else { document.getElementById('coachToggleBtn')?.click(); }
+        });
+      });
+      // Clique no card todo: marca como lido (sem navegar)
+      container.querySelectorAll('.recado-card-redesign').forEach(card => {
         card.addEventListener('click', () => {
           const id = card.dataset.rcId;
           const recs = Store.get().recados || [];
