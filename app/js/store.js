@@ -2046,6 +2046,16 @@ const Store = (function () {
     _ensureContexto();
     const cat = _data.contexto[categoria];
     if (!cat) return;
+    // Resposta vazia → remove (campo limpo no Perfil deve sumir do contador)
+    if (resp.resposta == null || resp.resposta === '') {
+      cat.respostas = cat.respostas.filter(r => r.perguntaId !== resp.perguntaId);
+      // Atualiza last com a última resposta remanescente
+      cat.last = cat.respostas.length
+        ? (cat.respostas[cat.respostas.length - 1].resposta || null)
+        : null;
+      persist();
+      return;
+    }
     const existing = cat.respostas.findIndex(r => r.perguntaId === resp.perguntaId);
     const entry = {
       perguntaId: resp.perguntaId,
@@ -2058,6 +2068,10 @@ const Store = (function () {
     else cat.respostas.push(entry);
     cat.last = typeof resp.resposta === 'string' ? resp.resposta : (resp.pergunta || null);
     persist();
+  }
+
+  function removeContextoResposta(categoria, perguntaId) {
+    addContextoResposta(categoria, { perguntaId, resposta: '' });
   }
 
   /**
@@ -2439,7 +2453,7 @@ const Store = (function () {
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData, clearAll,
     getContextoCategories, calculateICP, getContextoLevel, getContextoNextLevel,
-    addContextoResposta, CONTEXTO_CATEGORIES, CONTEXTO_LEVELS,
+    addContextoResposta, removeContextoResposta, CONTEXTO_CATEGORIES, CONTEXTO_LEVELS,
     getProximasParcelas,
     getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,

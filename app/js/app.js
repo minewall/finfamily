@@ -10793,24 +10793,42 @@ ${(() => {
 })()}`;
 
     document.getElementById('btnSavePerfil').addEventListener('click', () => {
-      const firstName = document.getElementById('pfFirstName').value.trim();
-      const lastName  = document.getElementById('pfLastName').value.trim();
+      const firstName  = document.getElementById('pfFirstName').value.trim();
+      const lastName   = document.getElementById('pfLastName').value.trim();
+      const birthdate  = document.getElementById('pfBirthdate').value || null;
+      const gender     = document.getElementById('pfGender').value || null;
+      const profession = document.getElementById('pfProfession').value.trim() || null;
+      const city       = document.getElementById('pfCity').value.trim() || null;
+      const timezone   = document.getElementById('pfTz').value;
+
       if (!firstName) { toast('Nome obrigatório', 'error'); return; }
       const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
       Store.setProfile({
         name: fullName,
-        firstName, lastName,
-        birthdate:  document.getElementById('pfBirthdate').value || null,
-        gender:     document.getElementById('pfGender').value || null,
-        profession: document.getElementById('pfProfession').value.trim() || null,
-        city:       document.getElementById('pfCity').value.trim() || null,
-        timezone:   document.getElementById('pfTz').value,
+        firstName, lastName, birthdate, gender, profession, city, timezone,
       });
-      // Refresh tela pra atualizar avatar + cálculo de idade
+
+      // ── Alimenta categoria 'basic' do ICP automaticamente ────────
+      // 5 campos = 5 perguntas da categoria basic (total: 5 → 100%)
+      // Campos vazios são removidos da contagem (não inflam falsamente o ICP).
+      const fmtBirthdate = birthdate ? new Date(birthdate + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+      const camposBasic = [
+        { id: 'basic.nome',       pergunta: 'Como podemos te chamar?',         resposta: fullName },
+        { id: 'basic.nascimento', pergunta: 'Quando você nasceu?',             resposta: fmtBirthdate },
+        { id: 'basic.profissao',  pergunta: 'Qual sua profissão?',             resposta: profession },
+        { id: 'basic.cidade',     pergunta: 'Onde você mora?',                 resposta: city },
+        { id: 'basic.fuso',       pergunta: 'Em qual fuso horário você está?', resposta: timezone },
+      ];
+      camposBasic.forEach(c => {
+        Store.addContextoResposta('basic', { perguntaId: c.id, pergunta: c.pergunta, resposta: c.resposta || '' });
+      });
+
+      // Refresh tela pra atualizar avatar + cálculo de idade + ICP
       renderConfigPerfil(content);
       const msg = document.getElementById('perfilMsg');
       if (msg) { msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2500); }
-      toast('Perfil salvo', 'success');
+      toast('Perfil salvo · ICP atualizado', 'success');
     });
 
     document.getElementById('btnRefazerOnboarding').addEventListener('click', () => {
