@@ -3113,8 +3113,17 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     const pessoas = [...new Set(contratos.map(c => c.responsavel).filter(Boolean))];
 
     container.innerHTML = `
-<div class="section-header mb-6">
-  <div><div class="section-title">Contratos</div><div class="section-sub">Contratos recorrentes — parcelas alimentam Receitas/Despesas automaticamente</div></div>
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">Contratos</h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">${contratos.length} contrato${contratos.length!==1?'s':''}</span>
+      ${rows.filter(r => r.status === 'ativo').length ? `<span class="page-head-meta-sep">·</span><span style="color:var(--green);font-weight:600">${rows.filter(r => r.status === 'ativo').length} ativo${rows.filter(r => r.status === 'ativo').length!==1?'s':''}</span>` : ''}
+      ${rows.filter(r => r.status === 'atrasado').length ? `<span class="page-head-meta-sep">·</span><span style="color:var(--red);font-weight:600">${rows.filter(r => r.status === 'atrasado').length} atrasado${rows.filter(r => r.status === 'atrasado').length!==1?'s':''}</span>` : ''}
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">parcelas alimentam Receitas/Despesas automaticamente</span>
+    </p>
+  </div>
   <button class="btn-primary" id="btnAddContrato">+ Novo Contrato</button>
 </div>
 
@@ -3448,8 +3457,17 @@ ${contratos.length === 0 ? `
                        : 'Gerencie suas contas bancárias e cartões de crédito';
 
     container.innerHTML = `
-<div class="section-header mb-6">
-  <div><div class="section-title">${headerTitle}</div><div class="section-sub">${headerSub}</div></div>
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">${headerTitle}</h1>
+    <p class="page-head-meta">
+      ${showContas  ? `<span class="page-head-meta-total">${contas.length} conta${contas.length!==1?'s':''}</span>` : ''}
+      ${showContas && showCartoes ? `<span class="page-head-meta-sep">·</span>` : ''}
+      ${showCartoes ? `<span class="page-head-meta-total">${cartoes.length} cartão${cartoes.length!==1?'ões':''}</span>` : ''}
+      ${(showContas || showCartoes) ? `<span class="page-head-meta-sep">·</span>` : ''}
+      <span style="color:var(--text-3)">${headerSub}</span>
+    </p>
+  </div>
   <div class="flex gap-2">
     ${showContas ? `<button class="btn-secondary" id="btnAddConta">+ Nova Conta</button>` : ''}
     ${showCartoes ? `<button class="btn-primary" id="btnAddCartao">+ Novo Cartão</button>` : ''}
