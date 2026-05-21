@@ -8061,6 +8061,256 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   window._coachRoutine = { runCoachRoutine, _coachWeeklyRecap, _coachMidweekCheck, _coachMonthOpen, _coachMonthClose, _coachEventAlerts };
 
   // ══════════════════════════════════════════════════════════════
+  // PAGE: PAINEL DA FAMÍLIA (redesign 2026-05)
+  // Visão consolidada por membro com dados reais do Store.
+  // ══════════════════════════════════════════════════════════════
+  function renderPainelFamilia(container) {
+    const month = getMonth(), year = getYear();
+    const monthLabel = `${Utils.monthsFull[month-1]} ${year}`;
+    const pessoas = (Store.PESSOAS || []).filter(p => p !== 'Família');
+    const receita = Store.sumReceitas(month, year);
+    const despesa = Store.sumDespesas(month, year);
+    const poder   = Store.calcPoderDeEscolha(month, year);
+    const familyCtx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
+
+    // Por pessoa: receita, despesa (considerando split), e poder estimado
+    const allRec   = Store.receitasByMonth(month, year);
+    const allDesp  = Store.despesasByMonth(month, year);
+    const totalRec = allRec.reduce((s, r) => s + r.amount, 0);
+
+    const memberData = pessoas.map(p => {
+      const recP = allRec.filter(r => r.person === p).reduce((s, r) => s + r.amount, 0);
+      const despP = allDesp.reduce((s, d) => {
+        // Considera split se existir; senão considera 100% do "pagador" (d.person)
+        if (Array.isArray(d.split) && d.split.length) {
+          const sl = d.split.find(x => x.person === p);
+          return s + (sl?.valor || 0);
+        }
+        return d.person === p ? s + d.amount : s;
+      }, 0);
+      const poderP = recP - despP;
+      return {
+        person: p,
+        receita: recP,
+        despesa: despP,
+        poder: poderP,
+        pctContribReceita: totalRec > 0 ? (recP / totalRec * 100) : 0,
+        color: Utils.personColor(p),
+        avatar: Utils.personAvatar(p),
+      };
+    }).filter(m => m.receita > 0 || m.despesa > 0);
+
+    // Metas familiares (heurística: meta cuja descrição menciona "famí" ou que tem tag familiar)
+    const allMetas = (Store.get().metas || []).filter(m => m.active !== false);
+    const metasFamilia = allMetas.filter(m =>
+      /famí|familia/i.test(m.label || '') ||
+      m.tipo === 'familia' ||
+      // se não há tag clara, fallback: metas tipo viagem, casa, carro são compartilhadas
+      /viagem|casa|carro|imóvel|imovel/i.test(m.label || '')
+    ).slice(0, 4);
+
+    // Tem família multi-usuário ativa?
+    const isMultiUser = familyCtx && (familyCtx.role === 'admin' || familyCtx.role === 'editor' || familyCtx.role === 'member');
+    const familyName = familyCtx?.groupName || 'Minha Família';
+
+    container.innerHTML = `
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">Painel da Família</h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">${familyName}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-total">${memberData.length} ${memberData.length === 1 ? 'pessoa ativa' : 'pessoas ativas'}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">${monthLabel}</span>
+    </p>
+  </div>
+</div>
+
+${memberData.length === 0 ? `
+<div class="card" style="padding:36px;text-align:center">
+  <div style="font-size:14px;color:var(--text-2);margin-bottom:6px">Ainda não há movimento nas pessoas da família.</div>
+  <div style="font-size:12px;color:var(--text-3)">Lance receitas e despesas para ver a consolidação aqui.</div>
+</div>` : `
+
+<!-- Hero consolidado da família -->
+<div class="dash-hero-grid mb-4">
+  <div class="poder-hero ${poder.poderDeEscolha < 0 ? 'is-negative' : ''}">
+    <div class="poder-hero-glow"></div>
+    <div class="poder-hero-header">
+      <div class="poder-hero-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div class="poder-hero-meta">
+        <div class="poder-hero-tag">Família consolidada</div>
+        <div class="poder-hero-label">Poder de Escolha</div>
+      </div>
+      <div class="poder-hero-month">${Utils.monthsFull[month-1].slice(0,3)} ${year}</div>
+    </div>
+    <div class="poder-hero-main">
+      <div class="poder-hero-value-wrap">
+        <div class="poder-hero-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
+        <div class="poder-hero-sub">
+          ${(poder.pct*100).toFixed(1)}% da receita familiar
+          <span style="display:block;margin-top:2px;opacity:0.85">livre após todos os compromissos da família</span>
+        </div>
+      </div>
+      <div class="poder-hero-gauge">
+        ${SvgCharts.gauge(Math.max(0, Math.min(100, poder.pct*100)), { size: 78, color: 'var(--accent-2)', thickness: 9 })}
+        <div class="poder-hero-gauge-label">
+          <div class="poder-hero-gauge-pct">${Math.round(poder.pct*100)}%</div>
+          <div class="poder-hero-gauge-cap">livre</div>
+        </div>
+      </div>
+    </div>
+    <div class="poder-hero-flow">
+      <div class="poder-hero-flow-foot">
+        <div>
+          <div class="poder-hero-flow-foot-lbl">Receita família</div>
+          <div class="poder-hero-flow-foot-val">${Utils.currency(receita)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="poder-hero-flow-foot-lbl">Compromissos</div>
+          <div class="poder-hero-flow-foot-val">${Utils.currency(despesa)}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-metric-col">
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Receita Familiar</span>
+        <div class="metric-card-icon" style="background:var(--green-dim);color:var(--green)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">${Utils.currency(receita)}</div>
+      <div class="metric-card-delta-cap">soma de todas as pessoas</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Despesa Familiar</span>
+        <div class="metric-card-icon" style="background:var(--red-dim);color:var(--red)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">${Utils.currency(despesa)}</div>
+      <div class="metric-card-delta-cap">incluindo rateios</div>
+    </div>
+  </div>
+
+  <div class="dash-metric-col">
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Maior Contribuição</span>
+      </div>
+      ${(() => {
+        const top = [...memberData].sort((a,b) => b.receita - a.receita)[0];
+        if (!top) return `<div class="metric-card-empty">Sem dados</div>`;
+        return `<div class="metric-card-row">
+          <img src="${top.avatar}" alt="${top.person}" style="width:42px;height:42px;border-radius:50%;flex-shrink:0;border:2px solid ${top.color}"/>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">${top.person}</div>
+            <div style="font-size:18px;font-weight:700;color:var(--green);letter-spacing:-0.4px;line-height:1">${Utils.currency(top.receita)}</div>
+          </div>
+        </div>
+        <div class="metric-card-foot">${top.pctContribReceita.toFixed(0)}% da receita da família</div>`;
+      })()}
+    </div>
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Saúde da Família</span>
+      </div>
+      <div class="metric-card-value" style="color:${despesa/receita > 0.85 ? 'var(--red)' : despesa/receita > 0.66 ? 'var(--amber)' : 'var(--green)'}">${Utils.pct(receita > 0 ? despesa/receita : 0)} <span style="font-size:11px;color:var(--text-3);font-weight:500">comprometido</span></div>
+      ${SvgCharts.healthBar(Math.min((receita > 0 ? despesa/receita : 0)*100, 100))}
+      <div class="metric-card-delta-cap" style="margin-top:2px">Ideal LLP: ≤ 33% comprometido</div>
+    </div>
+  </div>
+</div>
+
+<!-- Membros -->
+<div class="dash-section-tag mb-2">CONTRIBUIÇÃO POR MEMBRO · ${monthLabel.toUpperCase()}</div>
+<div class="family-members-grid mb-6">
+  ${memberData.map(m => {
+    const poderPct = m.receita > 0 ? Math.max(0, m.poder / m.receita * 100) : 0;
+    const comprometido = m.receita - m.poder;
+    return `<div class="family-member-card" style="--member-color:${m.color}">
+      <div class="family-member-head">
+        <img src="${m.avatar}" alt="${m.person}" class="family-member-avatar"/>
+        <div style="flex:1;min-width:0">
+          <div class="family-member-name">${m.person}</div>
+          <div class="family-member-role">${m.pctContribReceita.toFixed(0)}% da receita familiar</div>
+        </div>
+      </div>
+      <div class="family-member-stats">
+        <div>
+          <div class="family-member-stat-lbl">Receita</div>
+          <div class="family-member-stat-val" style="color:var(--green)">${Utils.currency(m.receita)}</div>
+        </div>
+        <div>
+          <div class="family-member-stat-lbl">Comprometido</div>
+          <div class="family-member-stat-val" style="color:var(--red)">${Utils.currency(comprometido)}</div>
+        </div>
+        <div>
+          <div class="family-member-stat-lbl">Poder de Escolha</div>
+          <div class="family-member-stat-val" style="color:${m.poder >= 0 ? 'var(--accent-2)' : 'var(--red)'}">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</div>
+        </div>
+      </div>
+      <div class="family-member-bar">
+        <div class="family-member-bar-fill" style="width:${Math.max(0, Math.min(100, poderPct))}%;background:${m.color}"></div>
+      </div>
+      <div class="family-member-bar-cap">${poderPct.toFixed(0)}% livre · ${(100-poderPct).toFixed(0)}% comprometido</div>
+    </div>`;
+  }).join('')}
+</div>
+
+${metasFamilia.length ? `
+<!-- Metas compartilhadas -->
+<div class="dash-section-tag mb-2">METAS COMPARTILHADAS</div>
+<div class="chart-grid mb-6" style="grid-template-columns:1fr">
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${metasFamilia.map(m => {
+        const target = m.target || 0;
+        const atual  = m.atual || 0;
+        const pct = target > 0 ? Math.min(atual/target*100, 100) : 0;
+        return `<div style="display:flex;align-items:center;gap:14px">
+          <div style="width:40px;height:40px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent-2)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:13px;font-weight:600;color:var(--text-1)">${m.label}</span>
+              <span style="font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums">${Utils.currency(atual)} <span style="color:var(--text-4)">/ ${Utils.currency(target)}</span></span>
+            </div>
+            <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">${pct.toFixed(0)}% concluído</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+</div>` : ''}
+
+${isMultiUser ? '' : `
+<div class="card mb-4" style="border-color:rgba(74,168,255,0.3);background:rgba(74,168,255,0.05)">
+  <div style="display:flex;gap:12px;align-items:flex-start">
+    <div style="width:32px;height:32px;border-radius:10px;background:rgba(74,168,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--blue)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">Modo individual</div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.55">Para acompanhar a família com múltiplos logins, convide membros em <a href="#config" style="color:var(--accent)">Configurações → Grupo Familiar</a>.</div>
+    </div>
+  </div>
+</div>`}
+`}`;
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // PAGE: REEMBOLSOS
   // ══════════════════════════════════════════════════════════════
   function renderReembolsos(container, mode = 'standalone') {
@@ -9918,6 +10168,7 @@ ${isConnected && isAdmin ? `
     Router.register('comparativo',   renderComparativo);
     Router.register('recados',       renderRecados);
     Router.register('reembolsos',    renderReembolsos);
+    Router.register('familia',       renderPainelFamilia); // redesign 2026-05
     Router.register('config',        renderConfig);
 
 
