@@ -62,7 +62,8 @@
     .nav .nav-menu a:hover, .nav .nav-menu a.active { color: #fff; }
     .nav .nav-menu a.active { font-weight: 700; }
     .nav .btn.primary { background: #fff; color: var(--ink); }
-    .nav .nav-right .sign { color: rgba(255,255,255,0.78); }
+    .nav .btn.ghost { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.18); }
+    .nav .btn.ghost:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); }
     .nav.scrolled {
       background: rgba(15,16,32,0.78);
       backdrop-filter: blur(18px);
@@ -80,14 +81,14 @@
     .nav.light .nav-menu a:hover { opacity: 1; color: var(--violet-2); }
     .nav.light .nav-menu a.active { color: var(--violet-2); opacity: 1; }
     .nav.light .btn.primary { background: var(--ink); color: #fff; }
-    .nav.light .nav-right .sign { color: var(--ink); opacity: 0.7; }
+    .nav.light .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+    .nav.light .btn.ghost:hover { background: #fff; border-color: #cdc9eb; }
 
     .nav-left { display: flex; align-items: center; gap: 36px; }
     .nav-logo { height: 26px; }
     .nav-menu { display: flex; gap: 28px; font-size: 14px; font-weight: 500; }
     .nav-menu a { text-decoration: none; transition: color 0.2s, opacity 0.2s; }
     .nav-right { display: flex; align-items: center; gap: 12px; }
-    .nav-right .sign { font-size: 14px; font-weight: 600; text-decoration: none; transition: opacity 0.2s; }
 
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
@@ -798,7 +799,7 @@
       </nav>
     </div>
     <div class="nav-right">
-      <a href="login.html" class="sign">Entrar</a>
+      <a href="login.html" class="btn ghost">Entrar</a>
       <a href="contato.html" class="btn primary">Começar grátis</a>
     </div>
   </header>

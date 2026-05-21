@@ -71,6 +71,7 @@
     .nav-links a { color: rgba(255,255,255,0.62); font-size: 14px; transition: color 0.2s; }
     .nav-links a:hover { color: var(--white); }
     .nav-back { color: rgba(255,255,255,0.55); font-size: 14px; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
     .btn-dark-nav {
       border: 0; border-radius: 999px; cursor: pointer;
       padding: 12px 20px; font-weight: 700; font-size: 14px;
@@ -80,6 +81,15 @@
       white-space: nowrap;
     }
     .btn-dark-nav:hover { transform: translateY(-2px); }
+    .btn-ghost-nav {
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; cursor: pointer;
+      padding: 12px 20px; font-weight: 700; font-size: 14px;
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.88);
+      text-decoration: none; display: inline-flex;
+      transition: background 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .btn-ghost-nav:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.34); }
     .nav-back:hover { color: var(--white); }
 
     /* ── buttons ─────────────────────────────────────────────────── */
@@ -431,7 +441,10 @@
       <a href="precos.html" style="color:#fff;font-size:14px;text-decoration:none">Planos</a>
       <a href="contato.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Contato</a>
     </nav>
-    <a href="waitlist.html" class="btn-dark-nav">Solicitar acesso</a>
+    <div class="nav-right">
+      <a href="login.html" class="btn-ghost-nav">Entrar</a>
+      <a href="contato.html" class="btn-dark-nav">Começar grátis</a>
+    </div>
   </header>
 
   <!-- hero -->
