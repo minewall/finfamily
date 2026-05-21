@@ -10605,7 +10605,96 @@ ${isConnected && isAdmin ? `
     <button class="btn-secondary" id="btnRefazerOnboarding">Refazer configuração inicial</button>
   </div>
   <div id="perfilMsg" style="display:none;margin-top:10px;font-size:13px;color:var(--green)">✓ Perfil salvo</div>
+</div>
+
+${(() => {
+  // ──────────────────────────────────────────────────────────────
+  // ICP — Índice de Contexto Pessoal (Sprint 1 — esqueleto)
+  // Schema persiste em Store.contexto. Modal de pergunta vem em sprint
+  // futura — por enquanto cards mostram "Em breve" no CTA.
+  // ──────────────────────────────────────────────────────────────
+  const cats   = Store.getContextoCategories();
+  const icp    = Store.calculateICP();
+  const level  = Store.getContextoLevel(icp);
+  const next   = Store.getContextoNextLevel(icp);
+  const totalRespondidas = cats.reduce((s, c) => s + c.answered, 0);
+  const totalPerguntas   = cats.reduce((s, c) => s + c.total, 0);
+
+  return `
+<div class="section-header mb-4" style="margin-top:32px">
+  <div>
+    <div class="section-title">Contexto pessoal pro Coach</div>
+    <div class="section-sub">Quanto mais o Coach te conhece, mais útil ele consegue ser. Você decide o que quer compartilhar.</div>
+  </div>
+</div>
+
+<!-- HeroICP -->
+<div class="icp-hero">
+  <div class="icp-hero-glow" style="background:radial-gradient(circle, ${level.color}28 0%, transparent 70%)"></div>
+  <div class="icp-hero-glow icp-hero-glow-2"></div>
+  <div class="icp-hero-grid">
+    <div class="icp-hero-visual">
+      ${SvgCharts.gauge(icp, { size: 168, color: level.color, thickness: 14, bg: 'rgba(255,255,255,0.06)' })}
+      <div class="icp-hero-visual-label">
+        <div class="icp-hero-pct" style="color:${level.color}">${icp}%</div>
+        <div class="icp-hero-pct-cap">ICP</div>
+      </div>
+    </div>
+    <div class="icp-hero-story">
+      <div class="icp-hero-level-pill" style="background:${level.color}1c;border-color:${level.color}30;color:${level.color}">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+        Nível · ${level.name}
+      </div>
+      <h2 class="icp-hero-title">${icp === 0 ? 'O Coach ainda está te conhecendo.' : icp >= 86 ? 'O Coach te conhece de verdade.' : 'O Coach está aprendendo sobre você.'}</h2>
+      <p class="icp-hero-desc">${level.desc}</p>
+      ${next ? `
+      <div class="icp-hero-next">
+        <div class="icp-hero-next-head">
+          <span class="icp-hero-next-lbl">Próximo nível</span>
+          <span class="icp-hero-next-val" style="color:${next.color}">${next.name} · ${next.min}%</span>
+        </div>
+        <div class="icp-hero-next-bar"><div style="width:${Math.min(100, (icp / next.min) * 100)}%;background:linear-gradient(90deg, ${level.color}, ${next.color})"></div></div>
+        <div class="icp-hero-next-cap">Faltam <strong style="color:var(--text-1)">${next.min - icp}%</strong> — responda mais perguntas em qualquer categoria abaixo.</div>
+      </div>` : ''}
+      <div class="icp-hero-hai">
+        <div class="icp-hero-hai-avatar">Hai</div>
+        <div class="icp-hero-hai-quote">"Quanto mais eu sei sobre suas crenças, medos e sonhos, mais útil consigo ser quando você precisa decidir."</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CategoryGrid -->
+<div class="dash-section-tag mt-6 mb-2">CATEGORIAS DE CONTEXTO</div>
+<div class="icp-cat-grid">
+  ${cats.map(c => {
+    const pct = c.total > 0 ? Math.round((c.answered / c.total) * 100) : 0;
+    const isEmpty = c.answered === 0;
+    return `<div class="icp-cat-card${isEmpty ? ' is-empty' : ''}" style="--cat-color:${c.color}">
+      <div class="icp-cat-head">
+        <div class="icp-cat-icon">${icon(c.icon, { size: 16 })}</div>
+        <div class="icp-cat-pct">${c.answered}/${c.total}</div>
+      </div>
+      <div class="icp-cat-name">${c.name}</div>
+      <div class="icp-cat-desc">${c.desc}</div>
+      <div class="icp-cat-bar"><div style="width:${pct}%"></div></div>
+      ${c.last ? `<div class="icp-cat-last">${c.last.length > 60 ? c.last.slice(0, 60) + '…' : c.last}</div>` : `<div class="icp-cat-empty">Nenhuma resposta ainda</div>`}
+      <button class="icp-cat-cta" disabled title="Disponível em breve">Em breve</button>
+    </div>`;
+  }).join('')}
+</div>
+
+<!-- Footer info -->
+<div class="card mb-4" style="margin-top:24px;padding:14px 18px;border-style:dashed;background:transparent">
+  <div style="display:flex;gap:12px;align-items:flex-start">
+    <div style="color:var(--accent);flex-shrink:0">${icon('info', { size: 16 })}</div>
+    <div style="font-size:12px;color:var(--text-3);line-height:1.6">
+      <strong style="color:var(--text-2)">Sprint 1 entregue.</strong> Esta tela já lê o ICP de cada categoria, mas o modal de perguntas ainda não está disponível. Em breve você poderá responder perguntas guiadas pelo Coach para enriquecer seu contexto pessoal — o resultado será orientações mais profundas e personalizadas.
+      Total atual: <strong style="color:var(--text-1)">${totalRespondidas}/${totalPerguntas} perguntas respondidas</strong>.
+    </div>
+  </div>
 </div>`;
+})()}`;
 
     let selectedAvatar = p.avatar || '👤';
     content.querySelectorAll('[data-av]').forEach(btn => {

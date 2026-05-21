@@ -1962,6 +1962,104 @@ const Store = (function () {
     return _data;
   }
 
+  // ─── PERFIL & CONTEXTO PESSOAL (ICP — redesign 2026-05) ─────────
+  // 9 categorias de contexto que alimentam o "Índice de Contexto Pessoal"
+  // (quanto o Coach conhece o usuário, 0-100%).
+  const CONTEXTO_CATEGORIES = [
+    { id: 'basic',  name: 'Perfil básico',          icon: 'user',      color: '#6b5ef5', desc: 'Nome, foto, fuso, idioma',                       total: 5  },
+    { id: 'onbo',   name: 'Onboarding inicial',     icon: 'flag',      color: '#4aa8ff', desc: 'Suas respostas no setup do app',                  total: 15 },
+    { id: 'money',  name: 'Relação com dinheiro',   icon: 'brain',     color: '#b06ef5', desc: 'Crenças, traumas, mindset financeiro',            total: 10 },
+    { id: 'dreams', name: 'Objetivos de vida',      icon: 'compass',   color: '#2dcfc0', desc: 'Sonhos, metas pessoais, propósito',               total: 10 },
+    { id: 'family', name: 'Família & responsab.',   icon: 'users',     color: '#ff70b8', desc: 'Dependentes, projetos com a família',             total: 8  },
+    { id: 'career', name: 'Carreira & renda',       icon: 'briefcase', color: '#ffa930', desc: 'Estabilidade, ambições, transição',               total: 10 },
+    { id: 'risk',   name: 'Tolerância a risco',     icon: 'scale',     color: '#ff4a68', desc: 'Como você decide diante de incerteza',            total: 10 },
+    { id: 'values', name: 'Valores & prioridades',  icon: 'star',      color: '#1dc97e', desc: 'O que importa de verdade pra você',               total: 10 },
+    { id: 'health', name: 'Saúde & bem-estar',      icon: 'heart',     color: '#4aa8ff', desc: 'Impactos indiretos no seu orçamento',             total: 6  },
+  ];
+
+  const CONTEXTO_LEVELS = [
+    { min: 0,  max: 20,  name: 'Recém-chegado', desc: 'O Coach ainda não te conhece. As sugestões são genéricas.',  color: '#7c82a4' },
+    { min: 21, max: 40,  name: 'Apresentado',   desc: 'O Coach sabe o básico. Já adapta o tom à sua família.',      color: '#4aa8ff' },
+    { min: 41, max: 65,  name: 'Conhecido',     desc: 'O Coach personaliza dicas usando seu histórico e contexto.', color: '#6b5ef5' },
+    { min: 66, max: 85,  name: 'Próximo',       desc: 'O Coach antecipa decisões com base nos seus valores.',       color: '#2dcfc0' },
+    { min: 86, max: 100, name: 'Confidente',    desc: 'O Coach age como um mentor que te conhece de verdade.',      color: '#1dc97e' },
+  ];
+
+  /**
+   * Estrutura interna: _data.contexto = {
+   *   [categoriaId]: {
+   *     respostas: [{ perguntaId, pergunta, resposta, version, ts }],
+   *     last: string|null,
+   *   }
+   * }
+   * O Sprint 1 inicializa vazio. Sprints futuras populam via Modal.
+   */
+  function _ensureContexto() {
+    if (!_data.contexto) _data.contexto = {};
+    for (const cat of CONTEXTO_CATEGORIES) {
+      if (!_data.contexto[cat.id]) {
+        _data.contexto[cat.id] = { respostas: [], last: null };
+      }
+    }
+  }
+
+  function getContextoCategories() {
+    _ensureContexto();
+    return CONTEXTO_CATEGORIES.map(cat => {
+      const data = _data.contexto[cat.id] || { respostas: [], last: null };
+      return {
+        ...cat,
+        answered: data.respostas.length,
+        last: data.last,
+      };
+    });
+  }
+
+  function calculateICP() {
+    _ensureContexto();
+    // Média simples: respondidas/total somando todas as categorias
+    let totalAnswered = 0, totalQuestions = 0;
+    for (const cat of CONTEXTO_CATEGORIES) {
+      const respostas = _data.contexto[cat.id]?.respostas?.length || 0;
+      totalAnswered  += Math.min(respostas, cat.total); // cap em total
+      totalQuestions += cat.total;
+    }
+    return totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
+  }
+
+  function getContextoLevel(pct) {
+    const p = pct == null ? calculateICP() : pct;
+    return CONTEXTO_LEVELS.find(l => p >= l.min && p <= l.max) || CONTEXTO_LEVELS[0];
+  }
+
+  function getContextoNextLevel(pct) {
+    const p = pct == null ? calculateICP() : pct;
+    return CONTEXTO_LEVELS.find(l => l.min > p) || null;
+  }
+
+  /**
+   * Persiste resposta a uma pergunta. Suporta edição (sobrescreve mesma perguntaId).
+   * @param {string} categoria - id da categoria
+   * @param {{ perguntaId, pergunta, resposta, version? }} resp
+   */
+  function addContextoResposta(categoria, resp) {
+    _ensureContexto();
+    const cat = _data.contexto[categoria];
+    if (!cat) return;
+    const existing = cat.respostas.findIndex(r => r.perguntaId === resp.perguntaId);
+    const entry = {
+      perguntaId: resp.perguntaId,
+      pergunta:   resp.pergunta,
+      resposta:   resp.resposta,
+      version:    resp.version || 1,
+      ts:         new Date().toISOString(),
+    };
+    if (existing >= 0) cat.respostas[existing] = entry;
+    else cat.respostas.push(entry);
+    cat.last = typeof resp.resposta === 'string' ? resp.resposta : (resp.pergunta || null);
+    persist();
+  }
+
   /**
    * Limpa TODOS os dados do usuário (zera todas as listas), mantendo
    * apenas settings, pessoas, perfil e estrutura básica.
@@ -2340,6 +2438,8 @@ const Store = (function () {
     getCatTipo, setCatTipo, getDespesaTipo, calcPoderDeEscolha,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData, clearAll,
+    getContextoCategories, calculateICP, getContextoLevel, getContextoNextLevel,
+    addContextoResposta, CONTEXTO_CATEGORIES, CONTEXTO_LEVELS,
     getProximasParcelas,
     getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,
