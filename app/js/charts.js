@@ -9,6 +9,15 @@ const Charts = (function () {
     return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   }
 
+  // Resolve CSS custom properties to concrete values before using in canvas
+  // e.g. "var(--green)" → "#22C55E"  |  "#22C55E" → "#22C55E" (passthrough)
+  function resolveColor(color) {
+    if (!color) return color;
+    const m = color.match(/^var\((--[^)]+)\)/);
+    if (m) return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || color;
+    return color;
+  }
+
   const PALETTE = [
     '#7C6EF8','#22C55E','#3B82F6','#EC4899','#F59E0B',
     '#F97316','#14B8A6','#6366F1','#8B5CF6','#EF4444',
@@ -101,7 +110,7 @@ const Charts = (function () {
     const barW    = opts.stacked ? barTotal : barTotal / dsCount;
 
     datasets.forEach((ds, di) => {
-      ctx.fillStyle = ds.color || PALETTE[di] || PALETTE[0];
+      ctx.fillStyle = resolveColor(ds.color || PALETTE[di] || PALETTE[0]);
 
       ds.values.forEach((val, i) => {
         const barH = (val / maxVal) * chartH;
@@ -176,7 +185,7 @@ const Charts = (function () {
 
     // Lines + Areas
     datasets.forEach((ds, di) => {
-      const color = ds.color || PALETTE[di] || PALETTE[0];
+      const color = resolveColor(ds.color || PALETTE[di] || PALETTE[0]);
       const pts = ds.values.map((v, i) => ({
         x: padL + i * (chartW / (n - 1 || 1)),
         y: padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH,
@@ -258,7 +267,7 @@ const Charts = (function () {
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, outerR, angle, angle + sweep);
       ctx.closePath();
-      ctx.fillStyle = item.color || PALETTE[i % PALETTE.length];
+      ctx.fillStyle = resolveColor(item.color || PALETTE[i % PALETTE.length]);
       ctx.fill();
       angle += sweep;
     });
@@ -289,7 +298,8 @@ const Charts = (function () {
   }
 
   // ── MINI SPARKLINE ─────────────────────────────────────────────
-  function Sparkline(canvasEl, values, color) {
+  function Sparkline(canvasEl, values, colorRaw) {
+    const color = resolveColor(colorRaw);
     canvasEl.width  = 80;
     canvasEl.height = 32;
     canvasEl.style.width  = '80px';
@@ -340,7 +350,7 @@ const Charts = (function () {
     data.forEach((item, i) => {
       const y   = i * (barH + gap) + 10;
       const bW  = (item.value / maxVal) * chartW;
-      const col = item.color || PALETTE[i % PALETTE.length];
+      const col = resolveColor(item.color || PALETTE[i % PALETTE.length]);
 
       // Background track
       ctx.fillStyle = css('--bg-elevated');
