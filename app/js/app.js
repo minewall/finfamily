@@ -2774,8 +2774,15 @@ ${anomaliasHTML(anomalias, total)}
     })();
 
     container.innerHTML = `
-<div class="section-header mb-4">
-  <div><div class="section-title">Metas & Projetos</div><div class="section-sub">Limites, mínimos, reservas e objetivos — com performance automática</div></div>
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">Metas <span class="page-head-year">&amp; Projetos</span></h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">${metas.length} meta${metas.length!==1?'s':''} ativa${metas.length!==1?'s':''}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">limites, reservas e objetivos com performance automática</span>
+    </p>
+  </div>
   <button class="btn-primary" id="btnAddMeta">+ Nova Meta</button>
 </div>
 
@@ -3832,10 +3839,16 @@ ${(() => {
     const pctMeta  = metaRes ? Math.min((totalInv / metaRes.target) * 100, 100).toFixed(0) : null;
 
     container.innerHTML = `
-<div class="section-header mb-6">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Reserva & Patrimônio</div>
-    <div class="section-sub">Cotações: 1 USD = R$ ${usdBrl} · 1 EUR = R$ ${eurBrl}</div>
+    <h1 class="page-head-title">Reserva <span class="page-head-year">&amp; Patrimônio</span></h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-green">${Utils.currency(total)}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-total">${investimentos.length} investimento${investimentos.length!==1?'s':''}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">USD R$ ${usdBrl} · EUR R$ ${eurBrl}</span>
+    </p>
   </div>
   <div class="flex gap-2">
     <button class="btn-secondary" id="btnEditRates">${icon('pencil', {size:14})} Cotações</button>
@@ -5586,10 +5599,16 @@ ${topCats.length ? `
     const saldoMedio = mesesUsados ? Math.max(0, Math.round(saldoSomado / mesesUsados)) : 500;
 
     container.innerHTML = `
-<div class="section-header mb-6">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Investimentos</div>
-    <div class="section-sub">Portfólio, evolução patrimonial e comparativo de produtos</div>
+    <h1 class="page-head-title">Investimentos</h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-green">${Utils.currency(totalAtual)}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span class="page-head-meta-total">${reservas.length} aplicação${reservas.length!==1?'ões':''}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">portfólio, evolução e comparativo de produtos</span>
+    </p>
   </div>
   <button class="btn-secondary" onclick="Router.navigate('patrimonio')" style="white-space:nowrap">${icon('bar-chart-2',{size:14})} Reserva & Patrimônio</button>
 </div>
@@ -6650,10 +6669,14 @@ ${fins.length === 0
     const patrimonio = Store.totalAtivos();
 
     container.innerHTML = `
-<div class="section-header mb-6">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Simulações</div>
-    <div class="section-sub">Calcule cenários financeiros com base nos seus dados reais</div>
+    <h1 class="page-head-title">Simulações</h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">cenários financeiros</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">baseado nos seus dados reais</span>
+    </p>
   </div>
 </div>
 
