@@ -3451,3 +3451,86 @@ body.sidebar-open { overflow: hidden; }
   font-size: 11px;
   color: var(--text-3);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Tributário (módulo NOVO)
+═══════════════════════════════════════════════════════════════════ */
+.tributario-calendar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .tributario-calendar { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 720px) {
+  .tributario-calendar { grid-template-columns: repeat(2, 1fr); }
+}
+.tributario-cal-cell {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tributario-cal-cell.empty {
+  opacity: 0.55;
+}
+.tributario-cal-cell.current {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent-dim), var(--bg-card));
+}
+.tributario-cal-mes {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tributario-cal-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tributario-cal-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tributario-cal-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.tributario-cal-tag.tag-irpf  { background: rgba(255,169,48,0.18);  color: var(--amber); }
+.tributario-cal-tag.tag-iptu  { background: rgba(74,168,255,0.16);  color: var(--blue); }
+.tributario-cal-tag.tag-ipva  { background: rgba(255,112,184,0.16); color: var(--pink); }
+.tributario-cal-tag.tag-outros{ background: var(--bg-elevated);     color: var(--text-2); }
+.tributario-cal-tag.tag-rest  { background: rgba(29,201,126,0.18);  color: var(--green); }
+.tributario-cal-lbl {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tributario-cal-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tributario-cal-empty {
+  font-size: 11px;
+  color: var(--text-4);
+  font-style: italic;
+}

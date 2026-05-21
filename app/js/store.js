@@ -812,6 +812,43 @@ const Store = (function () {
     return _data.despesas.filter(d => d.reembolso && d.reembolso.status === 'pendente');
   }
 
+  // ── TRIBUTÁRIO (redesign 2026-05) ────────────────────────────────
+  // Schema: { id, tipo, label, valor, parcelas, pagas, vencimentoMes,
+  //           vencimentoDia, ano, pessoa, anexo? }
+  // tipo ∈ 'irpf' | 'iptu' | 'ipva' | 'outros'
+  function _ensureTributos() {
+    if (!_data.tributos) { _data.tributos = []; persist(); }
+  }
+  function getTributos() {
+    _ensureTributos();
+    return _data.tributos;
+  }
+  function getTributosByTipo(tipo) {
+    return getTributos().filter(t => t.tipo === tipo);
+  }
+  function addTributo(entry) {
+    _ensureTributos();
+    entry.id = entry.id || newId();
+    entry.ano = entry.ano || new Date().getFullYear();
+    entry.parcelas = entry.parcelas || 1;
+    entry.pagas = entry.pagas || 0;
+    entry.createdAt = new Date().toISOString();
+    _data.tributos.push(entry);
+    persist();
+    return entry;
+  }
+  function updateTributo(id, patch) {
+    _ensureTributos();
+    const t = _data.tributos.find(x => x.id === id);
+    if (t) { Object.assign(t, patch); persist(); }
+    return t;
+  }
+  function deleteTributo(id) {
+    _ensureTributos();
+    _data.tributos = _data.tributos.filter(t => t.id !== id);
+    persist();
+  }
+
   function marcarReembolsoPago(despesaId) {
     const d = _data.despesas.find(x => x.id === despesaId);
     if (d && d.reembolso) {
@@ -2240,6 +2277,7 @@ const Store = (function () {
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
     addConta, deleteConta, updateConta, getContasByCategoria,
+    getTributos, getTributosByTipo, addTributo, updateTributo, deleteTributo,
     addCartao, deleteCartao,
     updateMeta, deleteMeta,
     addReserva, updateReserva, deleteReserva,

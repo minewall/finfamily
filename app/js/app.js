@@ -8311,6 +8311,347 @@ ${isMultiUser ? '' : `
   }
 
   // ══════════════════════════════════════════════════════════════
+  // PAGE: TRIBUTÁRIO (redesign 2026-05 — módulo NOVO)
+  // IRPF + IPTU + IPVA + Outros + Calendário Fiscal de 12 meses
+  // ══════════════════════════════════════════════════════════════
+  function renderTributario(container) {
+    const ano = getYear();
+    const allTribs = Store.getTributos().filter(t => (t.ano || ano) === ano);
+    const irpf  = allTribs.find(t => t.tipo === 'irpf');
+    const iptus = allTribs.filter(t => t.tipo === 'iptu');
+    const ipvas = allTribs.filter(t => t.tipo === 'ipva');
+    const outrs = allTribs.filter(t => t.tipo === 'outros');
+
+    const totIptu = iptus.reduce((s, t) => s + (t.valor || 0), 0);
+    const totIpva = ipvas.reduce((s, t) => s + (t.valor || 0), 0);
+    const totOutr = outrs.reduce((s, t) => s + (t.valor || 0), 0);
+    const irpfNet = irpf ? ((irpf.aReceber || 0) - (irpf.aPagar || 0)) : 0;
+    const totAno  = totIptu + totIpva + totOutr - irpfNet;
+
+    // Calendário fiscal: gera próximos 12 meses com vencimentos
+    const today = new Date();
+    const calendar = [];
+    for (let k = 0; k < 12; k++) {
+      const dt = new Date(today.getFullYear(), today.getMonth() + k, 1);
+      const mIdx = dt.getMonth(), yIdx = dt.getFullYear();
+      const items = [];
+      // IRPF: ajusta parcelas mensais a partir de Maio do ano da declaração
+      if (irpf && irpf.totalParcelas) {
+        for (let p = 1; p <= irpf.totalParcelas; p++) {
+          const irpfMes = 4 + (p - 1);  // Maio = mês 4 (zero-indexed)
+          if (irpfMes === mIdx && yIdx === ano) {
+            items.push({ tag: 'irpf', label: `IRPF · ${p}ª parc.`, dia: 30, valor: (irpf.aPagar || 0) / irpf.totalParcelas });
+          }
+        }
+      }
+      // IPTU/IPVA/Outros — parcelas a partir do vencimentoMes (default Janeiro)
+      for (const t of [...iptus, ...ipvas, ...outrs]) {
+        const vMes = (t.vencimentoMes || 1) - 1;
+        const parcelas = t.parcelas || 1;
+        const valorParc = (t.valor || 0) / parcelas;
+        for (let p = 0; p < parcelas; p++) {
+          const pMes = (vMes + p) % 12;
+          const pAno = (t.ano || ano) + Math.floor((vMes + p) / 12);
+          if (pMes === mIdx && pAno === yIdx) {
+            items.push({
+              tag: t.tipo, label: `${t.label} · ${p + 1}ª`,
+              dia: t.vencimentoDia || 10, valor: valorParc,
+            });
+          }
+        }
+      }
+      calendar.push({ mes: Utils.months[mIdx], ano: yIdx, items: items.sort((a,b) => a.dia - b.dia) });
+    }
+
+    const isEmpty = allTribs.length === 0;
+
+    container.innerHTML = `
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">Tributário <span class="page-head-year">— ${ano}</span></h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">${allTribs.length} item${allTribs.length!==1?'s':''}</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">IRPF, IPTU, IPVA e calendário fiscal</span>
+    </p>
+  </div>
+  <button class="btn-primary" id="btnAddTributo">+ Novo Tributo</button>
+</div>
+
+${isEmpty ? `
+<div class="card" style="padding:36px;text-align:center">
+  <div style="font-size:14px;color:var(--text-2);margin-bottom:6px">Nenhum tributo cadastrado para ${ano}.</div>
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">Adicione IRPF, IPTU, IPVA ou outros tributos para ver o calendário fiscal.</div>
+  <button class="btn-primary" id="btnAddTributoEmpty">+ Cadastrar primeiro tributo</button>
+</div>` : `
+
+<!-- KPIs -->
+<div class="dash-annual-grid mb-6" style="grid-template-columns:repeat(4,1fr)">
+  <div class="annual-card">
+    <span class="annual-card-label">Total do Ano</span>
+    <div class="annual-card-value" style="color:${totAno >= 0 ? 'var(--red)' : 'var(--green)'}">${totAno<0?'-':''}${Utils.currency(Math.abs(totAno))}</div>
+    <div class="annual-card-progress-cap" style="margin-top:6px">${totAno >= 0 ? 'a pagar' : 'a receber líquido'}</div>
+  </div>
+  <div class="annual-card">
+    <span class="annual-card-label">IRPF</span>
+    <div class="annual-card-value" style="color:${irpf?.aReceber ? 'var(--green)' : 'var(--text-1)'}">${irpf ? (irpf.aReceber ? '+' + Utils.currency(irpf.aReceber) : irpf.aPagar ? '-' + Utils.currency(irpf.aPagar) : '—') : '—'}</div>
+    <div class="annual-card-progress-cap" style="margin-top:6px">${irpf ? (irpf.aReceber ? 'restituição prevista' : irpf.aPagar ? 'parcelado ' + (irpf.pagas || 0) + '/' + (irpf.totalParcelas || 1) : 'declaração entregue') : 'não declarado'}</div>
+  </div>
+  <div class="annual-card">
+    <span class="annual-card-label">IPTU</span>
+    <div class="annual-card-value" style="color:var(--amber)">${Utils.currency(totIptu)}</div>
+    <div class="annual-card-progress-cap" style="margin-top:6px">${iptus.length} imóvel${iptus.length!==1?'s':''}</div>
+  </div>
+  <div class="annual-card">
+    <span class="annual-card-label">IPVA</span>
+    <div class="annual-card-value" style="color:var(--blue)">${Utils.currency(totIpva)}</div>
+    <div class="annual-card-progress-cap" style="margin-top:6px">${ipvas.length} veículo${ipvas.length!==1?'s':''}</div>
+  </div>
+</div>
+
+<!-- IRPF Card detalhado -->
+${irpf ? `
+<div class="dash-section-tag mb-2">DECLARAÇÃO DE IMPOSTO DE RENDA · ${irpf.ano || ano - 1}</div>
+<div class="card mb-6" style="border-left:3px solid ${irpf.aReceber ? 'var(--green)' : 'var(--amber)'};padding:18px 22px">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+    <div>
+      <div style="font-size:9.5px;font-weight:700;color:var(--text-3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Status</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-1)">${irpf.status === 'declarada' ? 'Declarada' : irpf.status === 'pendente' ? 'Pendente' : 'Em rascunho'}</div>
+      ${irpf.dataEntrega ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">Entrega: ${irpf.dataEntrega}</div>` : ''}
+    </div>
+    <div>
+      <div style="font-size:9.5px;font-weight:700;color:var(--text-3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">${irpf.aReceber ? 'A receber' : 'A pagar'}</div>
+      <div style="font-size:18px;font-weight:700;color:${irpf.aReceber ? 'var(--green)' : 'var(--red)'};letter-spacing:-0.3px;font-variant-numeric:tabular-nums">${Utils.currency(irpf.aReceber || irpf.aPagar || 0)}</div>
+      ${irpf.aPagar && irpf.totalParcelas ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">Parcela: ${Utils.currency(irpf.aPagar/irpf.totalParcelas)}</div>` : ''}
+    </div>
+    <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:8px">
+      <button class="btn-secondary btn-sm" data-edit-trib="${irpf.id}">${icon('pencil',{size:13})} Editar</button>
+    </div>
+  </div>
+  ${irpf.aPagar && irpf.totalParcelas ? `
+  <div style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--text-3)">Parcelas pagas: ${irpf.pagas || 0} de ${irpf.totalParcelas}</span>
+      <span style="font-size:11px;color:var(--text-2);font-weight:600">${Math.round((irpf.pagas || 0) / irpf.totalParcelas * 100)}%</span>
+    </div>
+    <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
+      <div style="height:100%;width:${(irpf.pagas || 0) / irpf.totalParcelas * 100}%;background:var(--amber);border-radius:3px"></div>
+    </div>
+  </div>` : ''}
+</div>` : ''}
+
+${iptus.length ? `
+<div class="dash-section-tag mb-2">IPTU — IMÓVEIS</div>
+<div class="card mb-6" style="padding:0;overflow:hidden">
+  <table class="data-table">
+    <thead><tr><th>Imóvel</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th><th></th></tr></thead>
+    <tbody>
+      ${iptus.map(t => `<tr>
+        <td>${t.label}</td>
+        <td>${t.pessoa || '—'}</td>
+        <td class="num">${Utils.currency(t.valor || 0)}</td>
+        <td class="num">${t.parcelas || 1}</td>
+        <td class="num"><span class="badge ${t.pagas >= (t.parcelas || 1) ? 'badge-green' : 'badge-amber'}">${t.pagas || 0}/${t.parcelas || 1}</span></td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn-icon-sm" data-edit-trib="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-del-trib="${t.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>` : ''}
+
+${ipvas.length ? `
+<div class="dash-section-tag mb-2">IPVA — VEÍCULOS</div>
+<div class="card mb-6" style="padding:0;overflow:hidden">
+  <table class="data-table">
+    <thead><tr><th>Veículo</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th><th></th></tr></thead>
+    <tbody>
+      ${ipvas.map(t => `<tr>
+        <td>${t.label}${t.placa ? `<div style="font-size:10px;color:var(--text-4);margin-top:2px;font-family:var(--mono)">${t.placa}</div>` : ''}</td>
+        <td>${t.pessoa || '—'}</td>
+        <td class="num">${Utils.currency(t.valor || 0)}</td>
+        <td class="num">${t.parcelas || 1}</td>
+        <td class="num"><span class="badge ${t.pagas >= (t.parcelas || 1) ? 'badge-green' : 'badge-amber'}">${t.pagas || 0}/${t.parcelas || 1}</span></td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn-icon-sm" data-edit-trib="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-del-trib="${t.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>` : ''}
+
+${outrs.length ? `
+<div class="dash-section-tag mb-2">OUTROS TRIBUTOS E TAXAS</div>
+<div class="card mb-6" style="padding:0;overflow:hidden">
+  <table class="data-table">
+    <thead><tr><th>Descrição</th><th>Responsável</th><th class="num">Valor</th><th></th></tr></thead>
+    <tbody>
+      ${outrs.map(t => `<tr>
+        <td>${t.label}</td>
+        <td>${t.pessoa || '—'}</td>
+        <td class="num">${Utils.currency(t.valor || 0)}</td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn-icon-sm" data-edit-trib="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
+          <button class="btn-icon-sm danger" data-del-trib="${t.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>` : ''}
+
+<!-- Calendário fiscal -->
+<div class="dash-section-tag mb-2">CALENDÁRIO FISCAL — PRÓXIMOS 12 MESES</div>
+<div class="tributario-calendar mb-6">
+  ${calendar.map((c, i) => `
+    <div class="tributario-cal-cell ${c.items.length ? '' : 'empty'} ${i === 0 ? 'current' : ''}">
+      <div class="tributario-cal-mes">${c.mes} <span style="opacity:0.6;font-weight:400">${c.ano}</span></div>
+      ${c.items.length ? `
+        <div class="tributario-cal-items">
+          ${c.items.map(it => `
+            <div class="tributario-cal-item">
+              <span class="tributario-cal-tag tag-${it.tag}">${it.tag.toUpperCase()}</span>
+              <span class="tributario-cal-lbl">${it.label}</span>
+              <span class="tributario-cal-val">${Utils.currency(it.valor)}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : `<div class="tributario-cal-empty">sem vencimentos</div>`}
+    </div>
+  `).join('')}
+</div>
+`}`;
+
+    // Handlers
+    function bindActions() {
+      container.querySelectorAll('#btnAddTributo, #btnAddTributoEmpty').forEach(b =>
+        b.addEventListener('click', () => openTributoModal(null, container))
+      );
+      container.querySelectorAll('[data-edit-trib]').forEach(b =>
+        b.addEventListener('click', () => {
+          const t = Store.getTributos().find(x => x.id === b.dataset.editTrib);
+          if (t) openTributoModal(t, container);
+        })
+      );
+      container.querySelectorAll('[data-del-trib]').forEach(b =>
+        b.addEventListener('click', () => {
+          if (!confirm('Excluir este tributo? A ação não pode ser desfeita.')) return;
+          Store.deleteTributo(b.dataset.delTrib);
+          renderTributario(container);
+          toast('Tributo removido', 'success');
+        })
+      );
+    }
+    bindActions();
+  }
+
+  function openTributoModal(tributo, container) {
+    const isEdit = !!tributo;
+    const t = tributo || {};
+    const pessoas = (Store.PESSOAS || []).concat(['Família']);
+    const html = `<div class="form-grid">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="fTbTipo">
+          <option value="irpf"   ${t.tipo==='irpf'  ?'selected':''}>IRPF (Declaração)</option>
+          <option value="iptu"   ${t.tipo==='iptu'  ?'selected':''}>IPTU (Imóvel)</option>
+          <option value="ipva"   ${t.tipo==='ipva'  ?'selected':''}>IPVA (Veículo)</option>
+          <option value="outros" ${t.tipo==='outros'?'selected':''}>Outros (Taxa, contribuição)</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Ano</label>
+        <input class="form-input" id="fTbAno" type="number" value="${t.ano || getYear()}"/>
+      </div>
+      <div class="form-group form-full"><label class="form-label">Descrição</label>
+        <input class="form-input" id="fTbLabel" placeholder="Ex: Casa Vila Madalena, Volvo XC60..." value="${(t.label||'').replace(/"/g,'&quot;')}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Valor (R$)</label>
+        <input class="form-input" id="fTbValor" type="number" step="0.01" value="${t.valor || ''}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Parcelas</label>
+        <input class="form-input" id="fTbParcelas" type="number" min="1" value="${t.parcelas || 1}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Parcelas pagas</label>
+        <input class="form-input" id="fTbPagas" type="number" min="0" value="${t.pagas || 0}"/>
+      </div>
+      <div class="form-group"><label class="form-label">Mês 1ª parcela</label>
+        <select class="form-select" id="fTbVencMes">
+          ${Utils.months.map((m,i)=>`<option value="${i+1}" ${(t.vencimentoMes||1)===i+1?'selected':''}>${Utils.monthsFull[i]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Dia do vencimento</label>
+        <input class="form-input" id="fTbVencDia" type="number" min="1" max="31" value="${t.vencimentoDia || 10}"/>
+      </div>
+      <div class="form-group form-full"><label class="form-label">Responsável</label>
+        <select class="form-select" id="fTbPessoa">
+          <option value="">—</option>
+          ${pessoas.map(p=>`<option ${t.pessoa===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group form-full irpf-only" style="display:${(t.tipo||'iptu')==='irpf'?'block':'none'}">
+        <label class="form-label">Status da declaração</label>
+        <select class="form-select" id="fTbStatus">
+          <option value="rascunho" ${t.status==='rascunho'?'selected':''}>Em rascunho</option>
+          <option value="declarada" ${t.status==='declarada'?'selected':''}>Declarada</option>
+          <option value="pendente" ${t.status==='pendente'?'selected':''}>Pendente</option>
+        </select>
+      </div>
+      <div class="form-group irpf-only" style="display:${(t.tipo||'iptu')==='irpf'?'block':'none'}">
+        <label class="form-label">A receber (R$)</label>
+        <input class="form-input" id="fTbAReceber" type="number" step="0.01" value="${t.aReceber || ''}"/>
+      </div>
+      <div class="form-group irpf-only" style="display:${(t.tipo||'iptu')==='irpf'?'block':'none'}">
+        <label class="form-label">A pagar parcelado (R$)</label>
+        <input class="form-input" id="fTbAPagar" type="number" step="0.01" value="${t.aPagar || ''}"/>
+      </div>
+      <div class="form-group ipva-only" style="display:${(t.tipo||'iptu')==='ipva'?'block':'none'}">
+        <label class="form-label">Placa</label>
+        <input class="form-input" id="fTbPlaca" placeholder="ABC1A23" value="${t.placa||''}"/>
+      </div>
+    </div>`;
+    Modal.open(isEdit ? 'Editar Tributo' : 'Novo Tributo', html, () => {
+      const tipo = document.getElementById('fTbTipo').value;
+      const data = {
+        tipo,
+        ano: parseInt(document.getElementById('fTbAno').value, 10) || getYear(),
+        label: document.getElementById('fTbLabel').value.trim(),
+        valor: parseFloat(document.getElementById('fTbValor').value) || 0,
+        parcelas: parseInt(document.getElementById('fTbParcelas').value, 10) || 1,
+        pagas: parseInt(document.getElementById('fTbPagas').value, 10) || 0,
+        vencimentoMes: parseInt(document.getElementById('fTbVencMes').value, 10) || 1,
+        vencimentoDia: parseInt(document.getElementById('fTbVencDia').value, 10) || 10,
+        pessoa: document.getElementById('fTbPessoa').value || null,
+      };
+      if (tipo === 'irpf') {
+        data.status = document.getElementById('fTbStatus').value;
+        data.aReceber = parseFloat(document.getElementById('fTbAReceber').value) || 0;
+        data.aPagar = parseFloat(document.getElementById('fTbAPagar').value) || 0;
+        if (data.aPagar > 0 && !data.totalParcelas) data.totalParcelas = data.parcelas;
+      }
+      if (tipo === 'ipva') {
+        data.placa = (document.getElementById('fTbPlaca')?.value || '').toUpperCase();
+      }
+      if (!data.label) return toast('Informe a descrição', 'error');
+      if (isEdit) Store.updateTributo(tributo.id, data);
+      else        Store.addTributo(data);
+      Modal.close();
+      renderTributario(container);
+      toast(isEdit ? 'Tributo atualizado' : 'Tributo criado', 'success');
+    });
+    // Toggle de campos por tipo
+    setTimeout(() => {
+      const tipoSel = document.getElementById('fTbTipo');
+      function refresh() {
+        const v = tipoSel.value;
+        document.querySelectorAll('.irpf-only').forEach(el => el.style.display = v === 'irpf' ? 'block' : 'none');
+        document.querySelectorAll('.ipva-only').forEach(el => el.style.display = v === 'ipva' ? 'block' : 'none');
+      }
+      tipoSel.addEventListener('change', refresh);
+      refresh();
+    }, 50);
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // PAGE: REEMBOLSOS
   // ══════════════════════════════════════════════════════════════
   function renderReembolsos(container, mode = 'standalone') {
@@ -10169,6 +10510,7 @@ ${isConnected && isAdmin ? `
     Router.register('recados',       renderRecados);
     Router.register('reembolsos',    renderReembolsos);
     Router.register('familia',       renderPainelFamilia); // redesign 2026-05
+    Router.register('tributario',    renderTributario);    // redesign 2026-05 — módulo novo
     Router.register('config',        renderConfig);
 
 
