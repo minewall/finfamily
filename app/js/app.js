@@ -1623,9 +1623,14 @@ ${filtered.map(r => {
         byDay[r.date].rec.push(r);
       });
 
+      // Totais do mês para sumário no rodapé
+      const totMesRec  = receitas.reduce((s, r) => s + r.amount, 0);
+      const totMesDesp = despesas.reduce((s, d) => s + d.amount, 0);
+      const saldoMes   = totMesRec - totMesDesp;
+
       const daysInMonth = new Date(year, month, 0).getDate();
       const firstWeekday = new Date(year, month - 1, 1).getDay(); // 0=Sun
-      const weeks = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      const weeks = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 
       let html = `<div class="cal-grid">`;
       html += weeks.map(w => `<div class="cal-head">${w}</div>`).join('');
@@ -1656,6 +1661,24 @@ ${filtered.map(r => {
 </div>`;
       }
       html += `</div>`;
+
+      // Rodapé com sumário do mês (redesign 2026-05)
+      html += `<div class="cal-summary">
+  <div class="cal-summary-item">
+    <span class="cal-summary-dot" style="background:var(--green)"></span>
+    <span class="cal-summary-lbl">Receitas</span>
+    <span class="cal-summary-val" style="color:var(--green)">+${Utils.currency(totMesRec)}</span>
+  </div>
+  <div class="cal-summary-item">
+    <span class="cal-summary-dot" style="background:var(--red)"></span>
+    <span class="cal-summary-lbl">Despesas</span>
+    <span class="cal-summary-val" style="color:var(--red)">-${Utils.currency(totMesDesp)}</span>
+  </div>
+  <div class="cal-summary-item cal-summary-saldo">
+    <span class="cal-summary-lbl">Saldo do mês</span>
+    <span class="cal-summary-val" style="color:${saldoMes >= 0 ? 'var(--green)' : 'var(--red)'}">${saldoMes < 0 ? '-' : '+'}${Utils.currency(Math.abs(saldoMes))}</span>
+  </div>
+</div>`;
 
       // Popover HTML (hidden, shown on click)
       html += `<div id="calPopover" class="cal-popover" style="display:none"></div>`;

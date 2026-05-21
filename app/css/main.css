@@ -3534,3 +3534,40 @@ body.sidebar-open { overflow: hidden; }
   color: var(--text-4);
   font-style: italic;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Calendário de Lançamentos (rodapé sumário)
+═══════════════════════════════════════════════════════════════════ */
+.cal-summary {
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: -1px; /* cola no grid */
+  border-radius: 0 0 12px 12px;
+}
+.cal-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.cal-summary-item.cal-summary-saldo {
+  margin-left: auto;
+}
+.cal-summary-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal-summary-lbl {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.cal-summary-val {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
