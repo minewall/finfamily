@@ -146,8 +146,23 @@
       margin-bottom: 32px;
     }
 
+    /* invite banner */
+    .invite-banner {
+      display: none;
+      background: var(--soft);
+      border: 1px solid rgba(115,103,240,0.22);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--deep);
+      line-height: 1.5;
+    }
+    .invite-banner.visible { display: block; }
+    .invite-banner strong { font-weight: 700; }
+
     /* fields */
-    .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+    .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
     label {
       font-size: 12px; font-weight: 700; color: var(--ink);
       letter-spacing: 0.04em; text-transform: uppercase;
@@ -158,19 +173,27 @@
       padding: 13px 16px; background: var(--white); color: var(--ink);
       outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
     }
-    input:focus {
+    input[readonly] { background: #f5f4fa; color: var(--slate); cursor: not-allowed; }
+    input:focus:not([readonly]) {
       border-color: var(--violet);
       box-shadow: 0 0 0 3px rgba(115,103,240,0.12);
     }
     input::placeholder { color: #b0adc8; }
 
+    .field-hint {
+      font-size: 11px; color: var(--slate); margin-top: 2px;
+      letter-spacing: normal; text-transform: none;
+    }
+
     .forgot {
-      text-align: right; margin-top: -10px; margin-bottom: 4px;
+      text-align: right; margin-top: -8px; margin-bottom: 4px;
     }
-    .forgot a {
-      font-size: 12px; color: var(--slate); text-decoration: none; transition: color 0.2s;
+    .forgot button {
+      font: inherit; font-size: 12px; color: var(--slate);
+      background: none; border: 0; padding: 0; cursor: pointer;
+      transition: color 0.2s;
     }
-    .forgot a:hover { color: var(--violet); }
+    .forgot button:hover { color: var(--violet); }
 
     /* submit */
     .btn-submit {
@@ -233,6 +256,83 @@
       font-size: 11px; color: var(--slate);
     }
     .form-footer a { color: var(--violet); text-decoration: none; }
+    .form-footer a:hover { text-decoration: underline; }
+
+    /* ── confirmation card / generic state card ─────────────────── */
+    .state-card { display: none; text-align: center; padding: 8px 0; }
+    .state-card.visible { display: block; }
+
+    .state-icon {
+      width: 64px; height: 64px;
+      background: rgba(115,103,240,0.10);
+      border: 1px solid rgba(115,103,240,0.28);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .state-icon.success {
+      background: rgba(29,175,106,0.10);
+      border-color: rgba(29,175,106,0.28);
+    }
+
+    .state-title {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: 24px; font-weight: 400; letter-spacing: -0.01em;
+      color: var(--ink); margin-bottom: 8px;
+    }
+    .state-text {
+      font-size: 14px; color: var(--slate); line-height: 1.65;
+      margin-bottom: 24px;
+    }
+    .state-text strong { color: var(--ink); }
+
+    .state-actions { display: flex; flex-direction: column; gap: 10px; }
+    .link-btn {
+      font: inherit; font-size: 13px; color: var(--violet);
+      background: none; border: 0; padding: 4px; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .link-btn:hover { color: var(--deep); text-decoration: underline; }
+
+    /* ── modal (recuperar senha) ─────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15, 16, 32, 0.62);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 420px; width: 100%;
+      box-shadow: 0 24px 80px rgba(15,16,32,0.32);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 32px; height: 32px;
+      border: 0; background: transparent; cursor: pointer;
+      border-radius: 50%; transition: background 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--slate);
+    }
+    .modal-close:hover { background: var(--line); color: var(--ink); }
+
+    .modal-title {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: 24px; font-weight: 400; letter-spacing: -0.01em;
+      color: var(--ink); margin-bottom: 8px;
+    }
+    .modal-sub {
+      color: var(--slate); font-size: 14px; line-height: 1.55;
+      margin-bottom: 24px;
+    }
 
     /* ── responsive ──────────────────────────────────────────────── */
     @media (max-width: 760px) {
@@ -287,131 +387,489 @@
   <!-- RIGHT -->
   <div class="login-right">
     <div class="form-wrap">
-      <h2 class="form-title" id="cardTitle">Bem-vindo de volta.</h2>
-      <p class="form-sub" id="cardSub">Entre com seu e-mail e senha para continuar.</p>
 
-      <form id="loginForm" autocomplete="off">
-        <div class="field">
-          <label for="fEmail">E-mail</label>
-          <input id="fEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+      <!-- ───────────────────────────────── LOGIN / SIGNUP FORM ── -->
+      <div id="formCard">
+        <h2 class="form-title" id="cardTitle">Bem-vindo de volta.</h2>
+        <p class="form-sub" id="cardSub">Entre com seu e-mail e senha para continuar.</p>
+
+        <div class="invite-banner" id="inviteBanner"></div>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="field" id="fNameGroup" style="display:none">
+            <label for="fName">Nome completo</label>
+            <input id="fName" type="text" placeholder="Como podemos te chamar?" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="fEmail">E-mail</label>
+            <input id="fEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="fPass">Senha</label>
+            <input id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+            <span class="field-hint" id="fPassHint" style="display:none">Mínimo 8 caracteres.</span>
+          </div>
+          <div class="forgot"><button type="button" id="btnForgot">Esqueci minha senha</button></div>
+          <div class="field" id="fPassConfirmGroup" style="display:none">
+            <label for="fPassConfirm">Confirmar senha</label>
+            <input id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+          </div>
+
+          <button class="btn-submit" type="submit" id="btnSubmit">
+            <div class="spinner"></div>
+            <span id="btnLabel">Entrar</span>
+          </button>
+
+          <div class="msg error"   id="errorMsg"></div>
+          <div class="msg success" id="successMsg"></div>
+        </form>
+
+        <div class="divider" id="divider">ou</div>
+
+        <button class="btn-toggle" id="btnToggleMode">Primeiro acesso? Criar conta</button>
+
+        <div class="sync-badge">
+          <span class="sync-dot"></span>
+          Sincronizado com segurança via Supabase
         </div>
-        <div class="field">
-          <label for="fPass">Senha</label>
-          <input id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
-        </div>
-        <div class="forgot"><a href="#">Esqueci minha senha</a></div>
-        <div class="field" id="fPassConfirmGroup" style="display:none">
-          <label for="fPassConfirm">Confirmar senha</label>
-          <input id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
-        </div>
 
-        <button class="btn-submit" type="submit" id="btnSubmit">
-          <div class="spinner"></div>
-          <span id="btnLabel">Entrar</span>
-        </button>
-
-        <div class="msg error"   id="errorMsg"></div>
-        <div class="msg success" id="successMsg"></div>
-      </form>
-
-      <div class="divider" id="divider">ou</div>
-
-      <button class="btn-toggle" id="btnToggleMode">Primeiro acesso? Criar conta</button>
-
-      <div class="sync-badge">
-        <span class="sync-dot"></span>
-        Sincronizado com segurança via Supabase
+        <p class="form-footer">
+          Ao entrar, você concorda com nossa <a href="privacidade.html">Política de Privacidade</a> e <a href="termos.html">Termos de Uso</a>.
+        </p>
       </div>
 
-      <p class="form-footer">
-        Ao entrar, você concorda com nossa <a href="#">Política de Privacidade</a>.
-      </p>
+      <!-- ───────────────────────────────── ESTADO: CONFIRME E-MAIL -->
+      <div class="state-card" id="cardCheckEmail">
+        <div class="state-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7367F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+        <h2 class="state-title">Confirme seu e-mail</h2>
+        <p class="state-text">
+          Enviamos um link de confirmação para<br>
+          <strong id="checkEmailAddress"></strong>.<br>
+          Clique nele para ativar sua conta.
+        </p>
+        <div class="state-actions">
+          <button class="link-btn" id="btnResendConfirm">Não recebi — reenviar</button>
+          <button class="link-btn" id="btnBackToLogin">Usar outro e-mail</button>
+        </div>
+        <div class="msg error"   id="checkEmailError"></div>
+        <div class="msg success" id="checkEmailSuccess"></div>
+      </div>
+
+      <!-- ───────────────────────────────── ESTADO: NOVA SENHA (recovery) -->
+      <div class="state-card" id="cardNewPassword">
+        <h2 class="form-title" style="text-align:left">Definir nova senha</h2>
+        <p class="form-sub" style="text-align:left">Escolha uma nova senha para sua conta.</p>
+
+        <form id="newPasswordForm" autocomplete="off">
+          <div class="field">
+            <label for="npPass">Nova senha</label>
+            <input id="npPass" type="password" placeholder="••••••••" autocomplete="new-password" />
+            <span class="field-hint">Mínimo 8 caracteres.</span>
+          </div>
+          <div class="field">
+            <label for="npPassConfirm">Confirmar nova senha</label>
+            <input id="npPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+          </div>
+
+          <button class="btn-submit" type="submit" id="btnNewPass">
+            <div class="spinner"></div>
+            <span>Salvar nova senha</span>
+          </button>
+
+          <div class="msg error"   id="newPassError"></div>
+          <div class="msg success" id="newPassSuccess"></div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────────── MODAL: ESQUECI SENHA -->
+  <div class="modal-overlay" id="forgotModal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <button class="modal-close" id="closeForgotModal" aria-label="Fechar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h3 class="modal-title">Recuperar acesso</h3>
+      <p class="modal-sub">Informe o e-mail da sua conta. Enviaremos as instruções para você redefinir a senha.</p>
+
+      <form id="forgotForm" autocomplete="off">
+        <div class="field">
+          <label for="forgotEmail">E-mail</label>
+          <input id="forgotEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+        </div>
+
+        <button class="btn-submit" type="submit" id="btnForgotSubmit">
+          <div class="spinner"></div>
+          <span>Enviar link de recuperação</span>
+        </button>
+
+        <div class="msg error"   id="forgotError"></div>
+        <div class="msg success" id="forgotSuccess"></div>
+      </form>
     </div>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+  /* ═══════════════════════════════════════════════════════════
+     CONFIG
+  ═══════════════════════════════════════════════════════════ */
   const SUPABASE_URL = 'https://lpudgulhnfuwdttetwdn.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  sb.auth.getSession().then(({ data }) => {
-    if (data?.session) {
-      sessionStorage.setItem('ff_auth', '1');
-      window.location.replace('app/app.html');
-    }
-  });
+  /* ═══════════════════════════════════════════════════════════
+     URL PARAMS — detecta intenção via hash ou query
+     Supabase manda recovery/confirmação no hash (#access_token=...&type=recovery)
+  ═══════════════════════════════════════════════════════════ */
+  const urlParams  = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
+  const inviteToken = urlParams.get('invite_token');
+  const inviteSource = urlParams.get('source');
+  const recoveryType = hashParams.get('type') || urlParams.get('type');
+  const errorDesc    = hashParams.get('error_description') || urlParams.get('error_description');
+
+  /* ═══════════════════════════════════════════════════════════
+     ESTADO + ELEMENTOS
+  ═══════════════════════════════════════════════════════════ */
   let isSignUp = false;
+  let signupEmail = null; // armazena o e-mail do signup para reenvio
+
+  const formCard       = document.getElementById('formCard');
+  const cardCheckEmail = document.getElementById('cardCheckEmail');
+  const cardNewPass    = document.getElementById('cardNewPassword');
+  const forgotModal    = document.getElementById('forgotModal');
 
   const btnToggle    = document.getElementById('btnToggleMode');
   const btnSubmit    = document.getElementById('btnSubmit');
   const btnLabel     = document.getElementById('btnLabel');
   const cardTitle    = document.getElementById('cardTitle');
   const cardSub      = document.getElementById('cardSub');
+  const nameGroup    = document.getElementById('fNameGroup');
   const confirmGroup = document.getElementById('fPassConfirmGroup');
+  const fPassHint    = document.getElementById('fPassHint');
   const errorMsg     = document.getElementById('errorMsg');
   const successMsg   = document.getElementById('successMsg');
   const forgot       = document.querySelector('.forgot');
+  const inviteBanner = document.getElementById('inviteBanner');
 
-  btnToggle.addEventListener('click', () => {
-    isSignUp = !isSignUp;
+  /* ═══════════════════════════════════════════════════════════
+     HELPERS
+  ═══════════════════════════════════════════════════════════ */
+  function setLoading(btn, on) {
+    btn.disabled = on;
+    btn.classList.toggle('loading', on);
+  }
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.classList.remove('error', 'success', 'visible');
+    el.classList.add(type, 'visible');
+  }
+  function clearMsg(el) { el.classList.remove('visible'); }
+  function showError(el, text)   { showMsg(el, text, 'error'); }
+  function showSuccess(el, text) { showMsg(el, text, 'success'); }
+
+  function showCard(id) {
+    [formCard, cardCheckEmail, cardNewPass].forEach(c => c.classList.remove('visible'));
+    if (id === 'form')        formCard.style.display = 'block';
+    else                      formCard.style.display = 'none';
+    if (id === 'checkEmail')  cardCheckEmail.classList.add('visible');
+    if (id === 'newPassword') cardNewPass.classList.add('visible');
+  }
+
+  /**
+   * Traduz mensagens de erro do Supabase para PT-BR (objetivo, sem expor jargão).
+   */
+  function translateError(err) {
+    const msg = (err?.message || err || '').toLowerCase();
+    if (msg.includes('invalid login') || msg.includes('invalid credentials')) return 'E-mail ou senha incorretos.';
+    if (msg.includes('email not confirmed'))                                   return 'Você precisa confirmar seu e-mail antes de entrar.';
+    if (msg.includes('user already registered') || msg.includes('already registered')) return 'Este e-mail já tem uma conta. Faça login.';
+    if (msg.includes('password should be at least'))                           return 'A senha precisa ter ao menos 8 caracteres.';
+    if (msg.includes('rate limit') || msg.includes('too many'))                return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+    if (msg.includes('invalid email'))                                         return 'E-mail inválido.';
+    if (msg.includes('expired') || msg.includes('token has expired'))          return 'Link expirado. Solicite um novo.';
+    if (msg.includes('network'))                                               return 'Sem conexão com o servidor. Verifique sua internet.';
+    return err?.message || 'Algo deu errado. Tente novamente em instantes.';
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     ROTEAMENTO INICIAL — decide qual card exibir
+  ═══════════════════════════════════════════════════════════ */
+  (async function bootstrap() {
+    // 1. Erro do Supabase via callback (ex: link expirado)
+    if (errorDesc) {
+      showCard('form');
+      showError(errorMsg, decodeURIComponent(errorDesc).replace(/\+/g, ' '));
+      // limpa hash
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+
+    // 2. Recovery (usuário clicou no link "redefinir senha")
+    if (recoveryType === 'recovery') {
+      // Supabase já criou a sessão temporária via setSession do hash
+      showCard('newPassword');
+      return;
+    }
+
+    // 3. Sessão ativa → já está logado → vai pro app
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      sessionStorage.setItem('ff_auth', '1');
+      window.location.replace('app/app.html');
+      return;
+    }
+
+    // 4. Convite familiar — mostra contexto e abre direto em "Criar conta"
+    if (inviteToken) {
+      inviteBanner.innerHTML = '<strong>Você foi convidado para um grupo familiar do Haile.</strong><br>Crie sua conta abaixo para entrar no grupo.';
+      inviteBanner.classList.add('visible');
+      switchMode(true);
+    }
+
+    // 5. Vindo da waitlist — abre em "Criar conta"
+    if (inviteSource === 'waitlist') {
+      switchMode(true);
+    }
+
+    showCard('form');
+  })();
+
+  /* ═══════════════════════════════════════════════════════════
+     LOGIN / SIGNUP — toggle e submit
+  ═══════════════════════════════════════════════════════════ */
+  function switchMode(toSignUp) {
+    isSignUp = toSignUp;
     cardTitle.textContent      = isSignUp ? 'Criar conta.' : 'Bem-vindo de volta.';
     cardSub.textContent        = isSignUp ? 'Preencha os dados para criar seu acesso.' : 'Entre com seu e-mail e senha para continuar.';
     btnLabel.textContent       = isSignUp ? 'Criar conta' : 'Entrar';
     btnToggle.textContent      = isSignUp ? 'Já tenho conta — Entrar' : 'Primeiro acesso? Criar conta';
-    confirmGroup.style.display = isSignUp ? 'block' : 'none';
+    nameGroup.style.display    = isSignUp ? 'flex' : 'none';
+    confirmGroup.style.display = isSignUp ? 'flex' : 'none';
+    fPassHint.style.display    = isSignUp ? 'block' : 'none';
     forgot.style.display       = isSignUp ? 'none' : 'block';
-    clearMsgs();
-  });
-
-  function setLoading(on) {
-    btnSubmit.disabled = on;
-    btnSubmit.classList.toggle('loading', on);
-  }
-  function showError(msg) {
-    errorMsg.textContent = msg;
-    errorMsg.classList.add('visible');
-    successMsg.classList.remove('visible');
-  }
-  function showSuccess(msg) {
-    successMsg.textContent = msg;
-    successMsg.classList.add('visible');
-    errorMsg.classList.remove('visible');
-  }
-  function clearMsgs() {
-    errorMsg.classList.remove('visible');
-    successMsg.classList.remove('visible');
+    document.getElementById('fPass').setAttribute('autocomplete', isSignUp ? 'new-password' : 'current-password');
+    clearMsg(errorMsg);
+    clearMsg(successMsg);
   }
 
-  ['fEmail','fPass','fPassConfirm'].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', clearMsgs);
+  btnToggle.addEventListener('click', () => switchMode(!isSignUp));
+
+  ['fName','fEmail','fPass','fPassConfirm'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      clearMsg(errorMsg);
+      clearMsg(successMsg);
+    });
   });
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('fEmail').value.trim();
+    const email = document.getElementById('fEmail').value.trim().toLowerCase();
     const pass  = document.getElementById('fPass').value;
 
-    if (!email || !pass) return showError('Preencha e-mail e senha.');
-
-    setLoading(true);
+    // Validações comuns
+    if (!email || !pass) return showError(errorMsg, 'Preencha e-mail e senha.');
+    if (!isValidEmail(email)) return showError(errorMsg, 'E-mail inválido.');
 
     if (isSignUp) {
+      const name    = document.getElementById('fName').value.trim();
       const confirm = document.getElementById('fPassConfirm').value;
-      if (pass !== confirm) { setLoading(false); return showError('As senhas não coincidem.'); }
-      if (pass.length < 6)  { setLoading(false); return showError('Senha deve ter ao menos 6 caracteres.'); }
-      const { error } = await sb.auth.signUp({ email, password: pass });
-      setLoading(false);
-      if (error) return showError(error.message);
-      showSuccess('Conta criada! Verifique seu e-mail para confirmar o acesso.');
-    } else {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-      setLoading(false);
-      if (error) return showError('E-mail ou senha incorretos.');
+      if (!name)             return showError(errorMsg, 'Informe seu nome.');
+      if (pass !== confirm)  return showError(errorMsg, 'As senhas não coincidem.');
+      if (pass.length < 8)   return showError(errorMsg, 'A senha precisa ter ao menos 8 caracteres.');
+
+      setLoading(btnSubmit, true);
+      try {
+        const metadata = { full_name: name };
+        if (inviteToken) metadata.invite_token = inviteToken;
+        if (inviteSource) metadata.source = inviteSource;
+
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password: pass,
+          options: {
+            data: metadata,
+            emailRedirectTo: 'https://haile.com.br/login.html',
+          },
+        });
+
+        if (error) {
+          showError(errorMsg, translateError(error));
+          return;
+        }
+
+        // Se o Supabase devolve sessão direto = e-mail já confirmado (raro)
+        if (data?.session) {
+          sessionStorage.setItem('ff_auth', '1');
+          window.location.replace('app/app.html');
+          return;
+        }
+
+        // Caminho padrão: precisa confirmar e-mail
+        signupEmail = email;
+        document.getElementById('checkEmailAddress').textContent = email;
+        showCard('checkEmail');
+      } catch (err) {
+        showError(errorMsg, translateError(err));
+      } finally {
+        setLoading(btnSubmit, false);
+      }
+      return;
+    }
+
+    // LOGIN
+    setLoading(btnSubmit, true);
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        showError(errorMsg, translateError(error));
+        return;
+      }
       sessionStorage.setItem('ff_auth', '1');
       sessionStorage.setItem('ff_user_email', email);
       window.location.replace('app/app.html');
+    } catch (err) {
+      showError(errorMsg, translateError(err));
+    } finally {
+      setLoading(btnSubmit, false);
+    }
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     CONFIRMAÇÃO DE E-MAIL — reenvio + voltar
+  ═══════════════════════════════════════════════════════════ */
+  document.getElementById('btnResendConfirm').addEventListener('click', async () => {
+    if (!signupEmail) return;
+    clearMsg(document.getElementById('checkEmailError'));
+    clearMsg(document.getElementById('checkEmailSuccess'));
+    try {
+      const { error } = await sb.auth.resend({
+        type: 'signup',
+        email: signupEmail,
+        options: { emailRedirectTo: 'https://haile.com.br/login.html' },
+      });
+      if (error) {
+        showError(document.getElementById('checkEmailError'), translateError(error));
+        return;
+      }
+      showSuccess(document.getElementById('checkEmailSuccess'), 'Novo link enviado. Verifique também o spam.');
+    } catch (err) {
+      showError(document.getElementById('checkEmailError'), translateError(err));
+    }
+  });
+
+  document.getElementById('btnBackToLogin').addEventListener('click', () => {
+    signupEmail = null;
+    switchMode(false);
+    document.getElementById('fEmail').value = '';
+    document.getElementById('fPass').value = '';
+    showCard('form');
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     RECUPERAR SENHA — modal
+  ═══════════════════════════════════════════════════════════ */
+  const btnForgot          = document.getElementById('btnForgot');
+  const closeForgotModal   = document.getElementById('closeForgotModal');
+  const forgotForm         = document.getElementById('forgotForm');
+  const forgotEmail        = document.getElementById('forgotEmail');
+  const btnForgotSubmit    = document.getElementById('btnForgotSubmit');
+  const forgotError        = document.getElementById('forgotError');
+  const forgotSuccess      = document.getElementById('forgotSuccess');
+
+  btnForgot.addEventListener('click', () => {
+    forgotEmail.value = document.getElementById('fEmail').value.trim();
+    clearMsg(forgotError);
+    clearMsg(forgotSuccess);
+    forgotModal.classList.add('visible');
+    setTimeout(() => forgotEmail.focus(), 50);
+  });
+  closeForgotModal.addEventListener('click', () => forgotModal.classList.remove('visible'));
+  forgotModal.addEventListener('click', (e) => {
+    if (e.target === forgotModal) forgotModal.classList.remove('visible');
+  });
+
+  forgotForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = forgotEmail.value.trim().toLowerCase();
+    if (!email || !isValidEmail(email)) {
+      return showError(forgotError, 'Informe um e-mail válido.');
+    }
+    setLoading(btnForgotSubmit, true);
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://haile.com.br/login.html',
+      });
+      // Por segurança, mostra sucesso mesmo se o e-mail não existir.
+      // (evita enumeração de contas)
+      if (error && !String(error.message).toLowerCase().includes('not found')) {
+        showError(forgotError, translateError(error));
+        return;
+      }
+      showSuccess(forgotSuccess, 'Se este e-mail estiver cadastrado, você receberá as instruções em instantes. Verifique também o spam.');
+      forgotEmail.value = '';
+    } catch (err) {
+      showError(forgotError, translateError(err));
+    } finally {
+      setLoading(btnForgotSubmit, false);
+    }
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     NOVA SENHA — após callback de recovery
+  ═══════════════════════════════════════════════════════════ */
+  const newPasswordForm = document.getElementById('newPasswordForm');
+  const npPass          = document.getElementById('npPass');
+  const npPassConfirm   = document.getElementById('npPassConfirm');
+  const btnNewPass      = document.getElementById('btnNewPass');
+  const newPassError    = document.getElementById('newPassError');
+  const newPassSuccess  = document.getElementById('newPassSuccess');
+
+  newPasswordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pass    = npPass.value;
+    const confirm = npPassConfirm.value;
+    clearMsg(newPassError);
+    clearMsg(newPassSuccess);
+
+    if (pass.length < 8)    return showError(newPassError, 'A senha precisa ter ao menos 8 caracteres.');
+    if (pass !== confirm)   return showError(newPassError, 'As senhas não coincidem.');
+
+    setLoading(btnNewPass, true);
+    try {
+      const { error } = await sb.auth.updateUser({ password: pass });
+      if (error) {
+        showError(newPassError, translateError(error));
+        return;
+      }
+      showSuccess(newPassSuccess, 'Senha atualizada. Redirecionando...');
+      // Limpa hash da URL antes de redirecionar
+      history.replaceState(null, '', window.location.pathname);
+      sessionStorage.setItem('ff_auth', '1');
+      setTimeout(() => window.location.replace('app/app.html'), 1200);
+    } catch (err) {
+      showError(newPassError, translateError(err));
+    } finally {
+      setLoading(btnNewPass, false);
+    }
+  });
+
+  // ESC fecha modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && forgotModal.classList.contains('visible')) {
+      forgotModal.classList.remove('visible');
     }
   });
 </script>
