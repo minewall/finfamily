@@ -2074,6 +2074,12 @@ const Store = (function () {
     addContextoResposta(categoria, { perguntaId, resposta: '' });
   }
 
+  /** Retorna os perguntaIds já respondidos em uma categoria (para filtrar pendentes). */
+  function getContextoAnsweredIds(categoria) {
+    _ensureContexto();
+    return (_data.contexto[categoria]?.respostas || []).map(r => r.perguntaId);
+  }
+
   /**
    * Limpa TODOS os dados do usuário (zera todas as listas), mantendo
    * apenas settings, pessoas, perfil e estrutura básica.
@@ -2453,7 +2459,8 @@ const Store = (function () {
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
     exportData, importData, resetData, clearAll,
     getContextoCategories, calculateICP, getContextoLevel, getContextoNextLevel,
-    addContextoResposta, removeContextoResposta, CONTEXTO_CATEGORIES, CONTEXTO_LEVELS,
+    addContextoResposta, removeContextoResposta, getContextoAnsweredIds,
+    CONTEXTO_CATEGORIES, CONTEXTO_LEVELS,
     getProximasParcelas,
     getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,

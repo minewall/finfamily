@@ -10619,6 +10619,300 @@ ${isConnected && isAdmin ? `
     'UTC',
   ];
 
+  // ─── ICP Sprint 2 — Banco de perguntas + modal ─────────────────
+  // Adicionar novas categorias aqui conforme sprints avançam.
+  const ICP_QUESTIONS = {
+    risk: [
+      {
+        id: 'risk_1', version: 1,
+        pergunta: 'Se você tivesse R$ 20.000 disponíveis hoje, o que faria?',
+        opcoes: [
+          { id: 'a', label: 'Deixaria na poupança ou conta corrente, sem risco' },
+          { id: 'b', label: 'Aplicaria em renda fixa conservadora (Tesouro, CDB)' },
+          { id: 'c', label: 'Dividiria entre renda fixa e algum fundo de renda variável' },
+          { id: 'd', label: 'Investiria boa parte em ações, fundos ou cripto buscando retorno maior' },
+        ],
+      },
+      {
+        id: 'risk_2', version: 1,
+        pergunta: 'Um investimento seu caiu 30% em dois meses. O que você faz?',
+        opcoes: [
+          { id: 'a', label: 'Resgato tudo imediatamente para evitar perder mais' },
+          { id: 'b', label: 'Fico tenso, mas aguardo sem mexer' },
+          { id: 'c', label: 'Analiso a situação e possivelmente compro mais na queda' },
+          { id: 'd', label: 'Encaro como parte do jogo e sigo o plano sem ansiedade' },
+        ],
+      },
+      {
+        id: 'risk_3', version: 1,
+        pergunta: 'Qual frase descreve melhor sua relação com dívida?',
+        opcoes: [
+          { id: 'a', label: 'Evito a qualquer custo — dívida me tira o sono' },
+          { id: 'b', label: 'Aceito dívida só para bens essenciais (imóvel, carro)' },
+          { id: 'c', label: 'Uso crédito de forma estratégica quando o retorno vale' },
+          { id: 'd', label: 'Me sinto confortável alavancando para crescer mais rápido' },
+        ],
+      },
+      {
+        id: 'risk_4', version: 1,
+        pergunta: 'Em quanto tempo você precisaria resgatar uma reserva de emergência, se necessário?',
+        opcoes: [
+          { id: 'a', label: 'Imediatamente — preciso de liquidez diária' },
+          { id: 'b', label: 'Em até 30 dias' },
+          { id: 'c', label: 'Em até 6 meses está bom' },
+          { id: 'd', label: 'Poderia esperar mais de 1 ano sem problema' },
+        ],
+      },
+      {
+        id: 'risk_5', version: 1,
+        pergunta: 'Você já perdeu dinheiro em algum investimento ou negócio?',
+        opcoes: [
+          { id: 'a', label: 'Não, e prefiro que continue assim' },
+          { id: 'b', label: 'Sim, pequenas perdas que me deixaram mais cauteloso' },
+          { id: 'c', label: 'Sim, aprendi com isso e estou mais tranquilo hoje' },
+          { id: 'd', label: 'Sim, várias vezes — faz parte do processo' },
+        ],
+      },
+      {
+        id: 'risk_6', version: 1,
+        pergunta: 'Qual cenário de investimento você prefere?',
+        opcoes: [
+          { id: 'a', label: 'Ganhar 6% ao ano com certeza absoluta' },
+          { id: 'b', label: 'Ganhar entre 4% e 10% com baixo risco de perda' },
+          { id: 'c', label: 'Ganhar entre 0% e 20% com chance real de perda temporária' },
+          { id: 'd', label: 'Arriscar perder 20% para ter chance de ganhar 40% ou mais' },
+        ],
+      },
+      {
+        id: 'risk_7', version: 1,
+        pergunta: 'Quando ouve "a bolsa caiu 5% hoje", qual é sua primeira reação?',
+        opcoes: [
+          { id: 'a', label: 'Fico apreensivo e checo meus investimentos' },
+          { id: 'b', label: 'Noto, mas não deixo afetar meu humor' },
+          { id: 'c', label: 'Penso se é hora de comprar mais' },
+          { id: 'd', label: 'Não ligo — volatilidade é normal' },
+        ],
+      },
+      {
+        id: 'risk_8', version: 1,
+        pergunta: 'Na sua carreira ou negócio, você prefere:',
+        opcoes: [
+          { id: 'a', label: 'Estabilidade garantida, mesmo com salário menor' },
+          { id: 'b', label: 'Boa estabilidade com algum bônus por desempenho' },
+          { id: 'c', label: 'Renda variável com potencial de crescimento alto' },
+          { id: 'd', label: 'Máximo de autonomia e risco, buscando grande retorno' },
+        ],
+      },
+      {
+        id: 'risk_9', version: 1,
+        pergunta: 'Quando toma uma decisão importante e dá errado, como costuma reagir?',
+        opcoes: [
+          { id: 'a', label: 'Fico mal por muito tempo e demoro a retomar' },
+          { id: 'b', label: 'Fico abalado, mas me recupero em algumas semanas' },
+          { id: 'c', label: 'Analiso o que deu errado e sigo em frente' },
+          { id: 'd', label: 'Encaro como aprendizado e parto para o próximo passo' },
+        ],
+      },
+      {
+        id: 'risk_10', version: 1,
+        pergunta: 'Como você se descreveria como investidor hoje?',
+        opcoes: [
+          { id: 'a', label: 'Conservador — proteger o que tenho é prioridade' },
+          { id: 'b', label: 'Moderado — aceito algum risco com equilíbrio' },
+          { id: 'c', label: 'Arrojado — busco crescimento mesmo com oscilações' },
+          { id: 'd', label: 'Agressivo — maximizar retorno é o que importa' },
+        ],
+      },
+    ],
+  };
+
+  // Estado do modal de perguntas ICP
+  let _icpModal = { catId: null, qIdx: 0, selected: null, extra: '' };
+
+  function _icpCatMeta(catId) {
+    const cats = Store.getContextoCategories();
+    return cats.find(c => c.id === catId) || null;
+  }
+
+  function _icpPendingQuestions(catId) {
+    // Perguntas ainda não respondidas para essa categoria
+    const answered = Store.getContextoAnsweredIds(catId);
+    return (ICP_QUESTIONS[catId] || []).filter(q => !answered.includes(q.id));
+  }
+
+  function openICPModal(catId) {
+    const qs = _icpPendingQuestions(catId);
+    if (!qs.length) {
+      toast('Todas as perguntas desta categoria já foram respondidas!', 'success');
+      return;
+    }
+    _icpModal = { catId, qIdx: 0, selected: null, extra: '' };
+    _renderICPModal();
+  }
+
+  function _renderICPModal() {
+    const { catId, qIdx } = _icpModal;
+    const cat  = _icpCatMeta(catId);
+    const qs   = _icpPendingQuestions(catId);
+    const total = ICP_QUESTIONS[catId]?.length || 0;
+    const alreadyAnswered = total - qs.length;
+
+    // Remover overlay existente, se houver
+    document.getElementById('icpModalOverlay')?.remove();
+
+    if (!qs.length) {
+      // Tela de conclusão
+      const overlay = document.createElement('div');
+      overlay.className = 'icp-modal-overlay';
+      overlay.id = 'icpModalOverlay';
+      overlay.style.setProperty('--cat-color', cat?.color || 'var(--accent)');
+      overlay.innerHTML = `
+        <div class="icp-modal" role="dialog" aria-modal="true">
+          <div class="icp-modal-done">
+            <div class="icp-modal-done-icon">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h3>Categoria concluída!</h3>
+            <p>Você respondeu todas as ${total} perguntas de <strong>${cat?.name}</strong>. O Coach já tem contexto suficiente nessa área.</p>
+            <button class="icp-modal-done-close" id="icpDoneClose">Fechar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('icpDoneClose').addEventListener('click', _closeICPModal);
+      overlay.addEventListener('click', e => { if (e.target === overlay) _closeICPModal(); });
+      return;
+    }
+
+    const q = qs[Math.min(qIdx, qs.length - 1)];
+    const currentNum = alreadyAnswered + qIdx + 1; // número absoluto de perguntas
+    const pct = Math.round((currentNum - 1) / total * 100);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'icp-modal-overlay';
+    overlay.id = 'icpModalOverlay';
+    overlay.style.setProperty('--cat-color', cat?.color || 'var(--accent)');
+    overlay.innerHTML = `
+      <div class="icp-modal" role="dialog" aria-modal="true" aria-label="Pergunta ${currentNum} de ${total}">
+        <div class="icp-modal-header">
+          <div class="icp-modal-cat-chip" style="background:${cat?.color || 'var(--accent)'}">
+            ${cat?.name || catId}
+          </div>
+          <div class="icp-modal-meta">
+            <span class="icp-modal-count">${currentNum} de ${total}</span>
+            <button class="icp-modal-close" id="icpClose" aria-label="Fechar">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="icp-modal-bar-wrap">
+          <div class="icp-modal-bar"><div style="width:${pct}%"></div></div>
+        </div>
+        <div class="icp-modal-body">
+          <p class="icp-modal-question">${q.pergunta}</p>
+          <div class="icp-modal-options" id="icpOptions">
+            ${q.opcoes.map(op => `
+              <button class="icp-option${_icpModal.selected === op.id ? ' selected' : ''}"
+                      type="button" data-val="${op.id}">
+                <span class="icp-option-dot"></span>
+                ${op.label}
+              </button>`).join('')}
+          </div>
+          <div class="icp-modal-elaborate">
+            <label>Quer elaborar? (opcional)</label>
+            <textarea id="icpExtra" placeholder="Adicione contexto ou detalhes se quiser...">${_icpModal.extra}</textarea>
+          </div>
+        </div>
+        <div class="icp-modal-footer">
+          <button class="icp-modal-skip" id="icpSkip">Pular pergunta</button>
+          <button class="icp-modal-next" id="icpNext" ${_icpModal.selected ? '' : 'disabled'}>
+            ${qIdx + 1 >= qs.length ? 'Concluir' : 'Próxima'}
+          </button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    // Fechar ao clicar fora
+    overlay.addEventListener('click', e => { if (e.target === overlay) _closeICPModal(); });
+    document.getElementById('icpClose').addEventListener('click', _closeICPModal);
+
+    // Seleção de opção
+    document.getElementById('icpOptions').addEventListener('click', e => {
+      const btn = e.target.closest('.icp-option');
+      if (!btn) return;
+      _icpModal.selected = btn.dataset.val;
+      document.querySelectorAll('#icpOptions .icp-option').forEach(b =>
+        b.classList.toggle('selected', b.dataset.val === _icpModal.selected)
+      );
+      document.getElementById('icpNext').disabled = false;
+    });
+
+    // Textarea
+    document.getElementById('icpExtra').addEventListener('input', e => {
+      _icpModal.extra = e.target.value;
+    });
+
+    // Pular
+    document.getElementById('icpSkip').addEventListener('click', () => {
+      _icpModal.selected = null;
+      _icpModal.extra = '';
+      _icpModalAdvance(true);
+    });
+
+    // Confirmar / Próxima
+    document.getElementById('icpNext').addEventListener('click', () => {
+      if (!_icpModal.selected) return;
+      _icpModalAdvance(false);
+    });
+
+    // Foco na primeira opção para acessibilidade
+    overlay.querySelector('.icp-option')?.focus();
+  }
+
+  function _icpModalAdvance(skipped) {
+    const { catId, qIdx, selected, extra } = _icpModal;
+    const qs = _icpPendingQuestions(catId);
+    const q  = qs[qIdx];
+
+    if (!skipped && selected && q) {
+      const opcaoLabel = q.opcoes.find(o => o.id === selected)?.label || selected;
+      const resposta   = extra ? `${opcaoLabel} — ${extra.trim()}` : opcaoLabel;
+      Store.addContextoResposta(catId, {
+        perguntaId: q.id,
+        pergunta:   q.pergunta,
+        resposta,
+        version:    q.version || 1,
+      });
+    }
+
+    const nextIdx = qIdx + 1;
+    const remaining = _icpPendingQuestions(catId); // recalcula após save
+    _icpModal.selected = null;
+    _icpModal.extra    = '';
+
+    if (nextIdx >= qs.length || !remaining.length) {
+      // Terminou as perguntas desta sessão
+      _icpModal.qIdx = 0;
+      _renderICPModal(); // vai para tela de conclusão ou próxima pendente
+    } else {
+      _icpModal.qIdx = nextIdx;
+      _renderICPModal();
+    }
+  }
+
+  function _closeICPModal() {
+    const overlay = document.getElementById('icpModalOverlay');
+    if (!overlay) return;
+    overlay.classList.add('closing');
+    overlay.addEventListener('animationend', () => {
+      overlay.remove();
+      // Refresh da tela de Perfil para atualizar ICP
+      const content = document.getElementById('config-content');
+      if (content) renderConfigPerfil(content);
+    }, { once: true });
+  }
+
+  // ─────────────────────────────────────────────────────────────────
   function renderConfigPerfil(content) {
     const p = Store.getProfile();
     const fullName = p.name || '';
@@ -10781,7 +11075,9 @@ ${(() => {
       <div class="icp-cat-desc">${c.desc}</div>
       <div class="icp-cat-bar"><div style="width:${pct}%"></div></div>
       ${c.last ? `<div class="icp-cat-last">${c.last.length > 60 ? c.last.slice(0, 60) + '…' : c.last}</div>` : `<div class="icp-cat-empty">Nenhuma resposta ainda</div>`}
-      <button class="icp-cat-cta" disabled title="Disponível em breve">Em breve</button>
+      ${ICP_QUESTIONS[c.id]
+        ? `<button class="icp-cat-cta" data-icp-open="${c.id}">${c.answered > 0 ? 'Continuar' : 'Responder'}</button>`
+        : `<button class="icp-cat-cta" disabled title="Disponível em breve">Em breve</button>`}
     </div>`;
   }).join('')}
 </div>
@@ -10791,7 +11087,7 @@ ${(() => {
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div style="color:var(--accent);flex-shrink:0">${icon('info', { size: 16 })}</div>
     <div style="font-size:12px;color:var(--text-3);line-height:1.6">
-      <strong style="color:var(--text-2)">Sprint 1 entregue.</strong> Esta tela já lê o ICP de cada categoria, mas o modal de perguntas ainda não está disponível. Em breve você poderá responder perguntas guiadas pelo Coach para enriquecer seu contexto pessoal — o resultado será orientações mais profundas e personalizadas.
+      <strong style="color:var(--text-2)">Como funciona:</strong> responda as perguntas de cada categoria para ajudar o Coach a entender melhor o seu perfil. Suas respostas ficam salvas e podem ser atualizadas a qualquer momento.
       Total atual: <strong style="color:var(--text-1)">${totalRespondidas}/${totalPerguntas} perguntas respondidas</strong>.
     </div>
   </div>
@@ -10835,6 +11131,11 @@ ${(() => {
       const msg = document.getElementById('perfilMsg');
       if (msg) { msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2500); }
       toast('Perfil salvo · ICP atualizado', 'success');
+    });
+
+    // ICP — botões "Responder / Continuar" nas categorias com perguntas
+    document.querySelectorAll('[data-icp-open]').forEach(btn => {
+      btn.addEventListener('click', () => openICPModal(btn.dataset.icpOpen));
     });
 
     document.getElementById('btnRefazerOnboarding').addEventListener('click', () => {
