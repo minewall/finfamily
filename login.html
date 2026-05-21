@@ -391,7 +391,7 @@
   sb.auth.getSession().then(({ data }) => {
     if (data?.session) {
       sessionStorage.setItem('ff_auth', '1');
-      window.location.replace('index.html');
+      window.location.replace('app/app.html');
     }
   });
 
@@ -464,7 +464,7 @@
       if (error) return showError('E-mail ou senha incorretos.');
       sessionStorage.setItem('ff_auth', '1');
       sessionStorage.setItem('ff_user_email', email);
-      window.location.replace('index.html');
+      window.location.replace('app/app.html');
     }
   });
 </script>

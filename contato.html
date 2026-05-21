@@ -316,7 +316,7 @@
 <body>
 
   <!-- nav -->
-    <header class="site-nav" id="site-nav">
+    <header class="site-nav light" id="site-nav">
     <a href="index.html" style="display:inline-flex" aria-label="Haile">
       <img class="logo-w" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
       <img class="logo-d" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
@@ -497,10 +497,8 @@
 
   <script>
     (function () {
-      var nav = document.getElementById('site-nav');
-      function tick() { nav.classList.toggle('light', window.scrollY > 60); }
-      window.addEventListener('scroll', tick, { passive: true });
-      tick();
+      /* contato não tem hero escuro — nav sempre no estado light */
+      document.getElementById('site-nav').classList.add('light');
     }());
   </script>
 </body>
