@@ -3571,3 +3571,109 @@ body.sidebar-open { overflow: hidden; }
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.3px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Cards de Meta com gauge SVG
+═══════════════════════════════════════════════════════════════════ */
+.metas-objetivos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.meta-card-redesign {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.meta-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.meta-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--accent-dim);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.meta-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.2px;
+}
+.meta-card-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.meta-card-left {
+  flex: 1;
+  min-width: 0;
+}
+.meta-card-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.meta-card-target {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 3px;
+  margin-bottom: 8px;
+}
+.meta-card-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.meta-card-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .3s;
+}
+.meta-card-status {
+  font-size: 11px;
+  font-weight: 500;
+}
+.meta-card-gauge {
+  position: relative;
+  flex-shrink: 0;
+}
+.meta-card-gauge-label {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  line-height: 1;
+}
+.meta-card-gauge-pct {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+.meta-card-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}

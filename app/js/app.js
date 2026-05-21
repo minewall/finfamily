@@ -3027,34 +3027,51 @@ ${indicadores.length === 0 ? '' : `
 </div>`}
 
 ${objetivos.length === 0 ? '' : `
-<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Objetivos</div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
+<div class="dash-section-tag mb-2">OBJETIVOS</div>
+<div class="metas-objetivos-grid mb-6">
   ${objetivos.map(m => {
     const perf = Store.getMetaPerformance(m.id, year, month);
     const pct = Math.min(perf.pct, 1);
-    const color = pct >= 1 ? 'green' : pct > 0.5 ? 'accent' : 'amber';
+    const pctNum = Math.round(pct * 100);
+    const gaugeColor = pct >= 1 ? 'var(--green)' : pct > 0.5 ? 'var(--accent)' : 'var(--amber)';
+    const statusLabel = pct >= 1 ? 'Atingida' : `${pctNum}% concluído`;
+    const statusColor = pct >= 1 ? 'var(--green)' : 'var(--text-2)';
+    const deadlineStr = m.deadline ? new Date(m.deadline + 'T12:00:00').toLocaleDateString('pt-BR') : null;
     return `
-    <div class="card" data-meta-id="${m.id}">
-      <div class="card-header">
-        <span style="font-size:11px;color:var(--text-4)">🎯 Objetivo</span>
-        <div style="display:flex;gap:6px">
+    <div class="meta-card-redesign" data-meta-id="${m.id}">
+      <div class="meta-card-head">
+        <div class="meta-card-tag">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Objetivo
+        </div>
+        <div style="display:flex;gap:4px">
           <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon('pencil', {size:14})}</button>
           <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>
-      <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:8px">${m.label}</div>
-      <div style="margin:4px 0 4px">
-        <span style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--text-1)">${Utils.currency(perf.current)}</span>
-        <span style="font-size:13px;color:var(--text-3)"> / ${Utils.currency(perf.target)}</span>
+      <div class="meta-card-name">${m.label}</div>
+      <div class="meta-card-body">
+        <div class="meta-card-left">
+          <div class="meta-card-value">${Utils.currency(perf.current)}</div>
+          <div class="meta-card-target">de ${Utils.currency(perf.target)}</div>
+          <div class="meta-card-progress">
+            <div class="meta-card-progress-fill" style="width:${pctNum}%;background:${gaugeColor}"></div>
+          </div>
+          <div class="meta-card-status" style="color:${statusColor}">
+            ${statusLabel}${pct < 1 ? ` · faltam ${Utils.currency(perf.target - perf.current)}` : ''}
+          </div>
+        </div>
+        <div class="meta-card-gauge">
+          ${SvgCharts.gauge(pctNum, { size: 72, color: gaugeColor, thickness: 8 })}
+          <div class="meta-card-gauge-label">
+            <div class="meta-card-gauge-pct">${pctNum}%</div>
+          </div>
+        </div>
       </div>
-      <div class="progress-bar progress-lg" style="margin-bottom:8px">
-        <div class="progress-fill ${color}" style="width:${Math.round(pct*100)}%"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3)">
-        <span>${(pct*100).toFixed(0)}% concluído</span>
-        <span>${pct<1?'Faltam '+Utils.currency(perf.target-perf.current):'✓ Atingida'}</span>
-      </div>
-      ${m.deadline?`<div style="font-size:11px;color:var(--text-4);margin-top:8px">⏳ ${new Date(m.deadline+'T12:00:00').toLocaleDateString('pt-BR')}</div>`:''}
+      ${deadlineStr ? `<div class="meta-card-deadline">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Prazo: ${deadlineStr}
+      </div>` : ''}
     </div>`;
   }).join('')}
 </div>`}
