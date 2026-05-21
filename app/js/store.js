@@ -823,10 +823,39 @@ const Store = (function () {
 
   function addConta(entry) {
     entry.id = entry.id || newId();
+    entry.categoria = entry.categoria || 'bancaria';   // redesign 2026-05: bancaria | digital | cripto
     if (!_data.contas) _data.contas = [];
     _data.contas.push(entry);
     persist();
     return entry;
+  }
+
+  // Migration silenciosa: garante `categoria` em contas antigas (heurística)
+  // (NÃO confundir com `tipo`, que guarda Corrente/Poupança/Investimento — pre-existente)
+  function _ensureContasCategoria() {
+    if (!_data.contas) return;
+    let dirty = false;
+    for (const c of _data.contas) {
+      if (c.categoria) continue;
+      const banco = (c.banco || '').toLowerCase();
+      // Wallets de cripto
+      if (/cripto|wallet|metamask|binance|coinbase|ledger|trust\s?wallet|kraken|kucoin/.test(banco)) {
+        c.categoria = 'cripto';
+      }
+      // Bancos digitais conhecidos (PT-BR)
+      else if (/nu(bank)?|inter|c6|picpay|pic\s?pay|mercado\s?pago|next|stone|will\s?bank|neon|original/.test(banco)) {
+        c.categoria = 'digital';
+      } else {
+        c.categoria = 'bancaria';
+      }
+      dirty = true;
+    }
+    if (dirty) persist();
+  }
+
+  function getContasByCategoria(categoria) {
+    _ensureContasCategoria();
+    return (_data.contas || []).filter(c => (c.categoria || 'bancaria') === categoria);
   }
 
   function deleteConta(id) {
@@ -2210,7 +2239,7 @@ const Store = (function () {
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
-    addConta, deleteConta, updateConta,
+    addConta, deleteConta, updateConta, getContasByCategoria,
     addCartao, deleteCartao,
     updateMeta, deleteMeta,
     addReserva, updateReserva, deleteReserva,

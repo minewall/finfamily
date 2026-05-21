@@ -3493,14 +3493,24 @@ ${contratos.length === 0 ? `
   // ══════════════════════════════════════════════════════════════
   function renderContas(container, mode = 'all') {
     const cartoes = Store.get().cartoes;
-    const contas  = Store.get().contas || [];
+    const allContas = Store.get().contas || [];
     const month = getMonth(), year = getYear();
     const showContas  = mode === 'all' || mode === 'contas';
     const showCartoes = mode === 'all' || mode === 'cartoes';
-    const headerTitle = mode === 'cartoes' ? 'Cartões de Crédito' : mode === 'contas' ? 'Contas Bancárias' : 'Contas & Cartões';
+
+    // Sub-nav por categoria (apenas quando mostrando contas) — redesign 2026-05
+    const categoriaTab = showContas ? (localStorage.getItem('ff_contas_categoria') || 'todos') : 'todos';
+    const contas = (showContas && categoriaTab !== 'todos')
+      ? allContas.filter(c => (c.categoria || 'bancaria') === categoriaTab)
+      : allContas;
+    const nBancarias = allContas.filter(c => (c.categoria || 'bancaria') === 'bancaria').length;
+    const nDigitais  = allContas.filter(c => c.categoria === 'digital').length;
+    const nCripto    = allContas.filter(c => c.categoria === 'cripto').length;
+
+    const headerTitle = mode === 'cartoes' ? 'Cartões de Crédito' : mode === 'contas' ? 'Contas' : 'Contas & Cartões';
     const headerSub   = mode === 'cartoes' ? 'Gerencie seus cartões de crédito e parcelamentos'
-                       : mode === 'contas' ? 'Gerencie suas contas bancárias'
-                       : 'Gerencie suas contas bancárias e cartões de crédito';
+                       : mode === 'contas' ? 'Bancárias, digitais e wallets de cripto'
+                       : 'Gerencie suas contas e cartões de crédito';
 
     container.innerHTML = `
 <div class="page-head mb-4">
@@ -3521,7 +3531,26 @@ ${contratos.length === 0 ? `
 </div>
 
 ${showContas ? `
-<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Contas Bancárias</div>
+<div class="view-tabs mb-4">
+  <button class="view-tab view-tab--violet ${categoriaTab==='todos'?'active':''}" data-conta-categoria="todos">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    Todas <span style="opacity:0.7;margin-left:4px">(${allContas.length})</span>
+  </button>
+  <button class="view-tab view-tab--green ${categoriaTab==='bancaria'?'active':''}" data-conta-categoria="bancaria">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l7-4 7 4v11M9 21V13h6v8"/></svg>
+    Bancárias <span style="opacity:0.7;margin-left:4px">(${nBancarias})</span>
+  </button>
+  <button class="view-tab view-tab--violet ${categoriaTab==='digital'?'active':''}" data-conta-categoria="digital">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+    Digitais <span style="opacity:0.7;margin-left:4px">(${nDigitais})</span>
+  </button>
+  <button class="view-tab view-tab--red ${categoriaTab==='cripto'?'active':''}" data-conta-categoria="cripto">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 8h4.5a2.5 2.5 0 010 5h-4.5V8zM9.5 13h5a2.5 2.5 0 010 5h-5v-5z"/></svg>
+    Cripto <span style="opacity:0.7;margin-left:4px">(${nCripto})</span>
+  </button>
+</div>
+
+<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">${categoriaTab==='bancaria'?'Contas Bancárias':categoriaTab==='digital'?'Contas Digitais':categoriaTab==='cripto'?'Wallets Cripto':'Contas'}</div>
 
 ${(() => {
   const saldoTotal = contas.reduce((a, ct) => a + (ct.saldo || 0), 0);
@@ -3770,13 +3799,30 @@ ${(() => {
       });
     });
 
+    // Sub-nav handler — Bancárias/Digitais/Cripto
+    container.querySelectorAll('[data-conta-categoria]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        localStorage.setItem('ff_contas_categoria', btn.dataset.contaCategoria);
+        renderContas(container, mode);
+      });
+    });
+
     document.getElementById('btnAddConta')?.addEventListener('click', () => {
       const COLORS = ['#7C6EF8','#22C55E','#3B82F6','#F59E0B','#EC4899','#14B8A6','#EF4444','#F97316'];
       let selectedColor = COLORS[0];
+      // Pré-seleciona a categoria com base na sub-aba ativa
+      const _defaultCategoria = (categoriaTab && categoriaTab !== 'todos') ? categoriaTab : 'bancaria';
       const html = `<div class="form-grid">
         <div class="form-group form-full"><label class="form-label">Nome da conta</label><input class="form-input" id="fCtNome" placeholder="Ex: Conta Principal"/></div>
-        <div class="form-group"><label class="form-label">Banco</label>
-          <input class="form-input" id="fCtBanco" list="bankListC" placeholder="Itaú, Nubank…"/>
+        <div class="form-group"><label class="form-label">Categoria</label>
+          <select class="form-select" id="fCtCategoria">
+            <option value="bancaria" ${_defaultCategoria==='bancaria'?'selected':''}>Bancária (banco tradicional)</option>
+            <option value="digital"  ${_defaultCategoria==='digital'?'selected':''}>Digital (Nubank, Inter, C6...)</option>
+            <option value="cripto"   ${_defaultCategoria==='cripto'?'selected':''}>Cripto (wallet, exchange)</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Banco / Wallet</label>
+          <input class="form-input" id="fCtBanco" list="bankListC" placeholder="Itaú, Nubank, Binance…"/>
           <datalist id="bankListC">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
         </div>
         <div class="form-group"><label class="form-label">Tipo</label>
@@ -3789,13 +3835,14 @@ ${(() => {
           </div>
         </div>
       </div>`;
-      Modal.open('Nova Conta Bancária', html, () => {
+      Modal.open('Nova Conta', html, () => {
         const nome  = document.getElementById('fCtNome').value;
         const banco = document.getElementById('fCtBanco').value;
         const tipo  = document.getElementById('fCtTipo').value;
+        const categoria = document.getElementById('fCtCategoria').value;
         const saldo = parseFloat(document.getElementById('fCtSaldo').value) || 0;
         if (!nome || !banco) return toast('Preencha nome e banco', 'error');
-        Store.addConta({ nome, banco, tipo, saldo, cor: selectedColor });
+        Store.addConta({ nome, banco, tipo, categoria, saldo, cor: selectedColor });
         Modal.close();
         renderContas(container);
         toast('Conta adicionada!', 'success');
