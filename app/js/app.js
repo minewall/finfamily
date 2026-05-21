@@ -3440,7 +3440,7 @@ ${contratos.length === 0 ? `
     <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Contrato" para começar.</div>
   </div>
 ` : `
-<div class="card">
+<div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap">
     <table class="data-table" style="min-width:900px">
       <thead><tr>
@@ -3511,18 +3511,18 @@ ${contratos.length === 0 ? `
             </tr>`;
           })() : '';
           const TIPO_CONTRATO_CFG = {
-            assinatura: { label: 'Assinatura', icon: '📱', color: 'var(--accent)',  bg: 'var(--accent-dim)' },
-            servico:    { label: 'Serviço',    icon: '🔧', color: 'var(--amber)',   bg: 'var(--amber-dim)' },
-            aluguel:    { label: 'Aluguel',    icon: '🏠', color: 'var(--teal)',    bg: 'var(--teal-dim,#14B8A618)' },
-            seguro:     { label: 'Seguro',     icon: '🛡️', color: 'var(--purple,#8B5CF6)', bg: 'rgba(139,92,246,.12)' },
-            outro:      { label: 'Outro',      icon: '📄', color: 'var(--text-3)', bg: 'var(--surface-2)' },
+            assinatura: { label: 'Assinatura', icon: 'smartphone',  color: 'var(--accent)',     bg: 'var(--accent-dim)' },
+            servico:    { label: 'Serviço',    icon: 'wrench',       color: 'var(--amber)',      bg: 'var(--amber-dim)' },
+            aluguel:    { label: 'Aluguel',    icon: 'home',         color: 'var(--teal)',       bg: 'var(--teal-dim,#14B8A618)' },
+            seguro:     { label: 'Seguro',     icon: 'shield',       color: '#8B5CF6',           bg: 'rgba(139,92,246,.12)' },
+            outro:      { label: 'Outro',      icon: 'file-text',    color: 'var(--text-3)',     bg: 'var(--bg-elevated)' },
           };
           const tc = TIPO_CONTRATO_CFG[c.tipoContrato || 'outro'];
           const dotColor = cat.color || (isRec ? 'var(--green)' : 'var(--accent)');
           return `<tr class="row-clickable" data-action="edit-contrato" data-id="${c.id}">
             <td>
               <span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span>
-              <div style="margin-top:4px"><span style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span></div>
+              <div style="margin-top:4px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:5px;background:${tc.bg};color:${tc.color}">${icon(tc.icon, { size: 10 })} ${tc.label}</span></div>
             </td>
             <td>
               <div style="display:flex;align-items:center;gap:8px">
@@ -3628,11 +3628,11 @@ ${contratos.length === 0 ? `
       </div>
       <div class="form-group"><label class="form-label">Tipo de Contrato</label>
         <select class="form-select" id="fCTipo">
-          <option value="assinatura" ${c.tipoContrato==='assinatura'?'selected':''}>📱 Assinatura</option>
-          <option value="servico" ${c.tipoContrato==='servico'?'selected':''}>🔧 Serviço</option>
-          <option value="aluguel" ${c.tipoContrato==='aluguel'?'selected':''}>🏠 Aluguel</option>
-          <option value="seguro" ${c.tipoContrato==='seguro'?'selected':''}>🛡️ Seguro</option>
-          <option value="outro" ${(!c.tipoContrato||c.tipoContrato==='outro')?'selected':''}>📄 Outro</option>
+          <option value="assinatura" ${c.tipoContrato==='assinatura'?'selected':''}>Assinatura</option>
+          <option value="servico" ${c.tipoContrato==='servico'?'selected':''}>Serviço</option>
+          <option value="aluguel" ${c.tipoContrato==='aluguel'?'selected':''}>Aluguel</option>
+          <option value="seguro" ${c.tipoContrato==='seguro'?'selected':''}>Seguro</option>
+          <option value="outro" ${(!c.tipoContrato||c.tipoContrato==='outro')?'selected':''}>Outro</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Responsável</label>
