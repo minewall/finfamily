@@ -2315,18 +2315,26 @@ ${anomaliasHTML(anomalias, total)}
       if (pessoaFilter) filtered = filtered.filter(d => d.split && d.split.some(s => s.person === pessoaFilter));
       const tot = filtered.reduce((a,d) => a+d.amount, 0);
       return `<table class="data-table">
-<thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th class="num">Valor</th><th></th></tr></thead>
-<tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{const isFut=(d.year||0)*12+(d.month||0)>year*12+month;return`<tr class="row-clickable${isFut?' style="opacity:0.55"':'"'} data-row-desp="${d.id}">
+<thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pessoa</th><th>Pagamento</th><th class="num">Valor</th></tr></thead>
+<tbody>${filtered.sort((a,b)=>a.date.localeCompare(b.date)).map(d=>{
+  const isFut = (d.year||0)*12+(d.month||0) > year*12+month;
+  // Pessoa principal: split[0] (pagador) ou d.person
+  const mainPerson = d.split && d.split.length ? d.split[0].person : (d.person || null);
+  const splitInfo = d.split && d.split.length > 1
+    ? ` <span class="badge badge-accent" style="font-size:10px;margin-left:4px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">+${d.split.length-1}</span>`
+    : '';
+  return`<tr class="row-clickable${isFut?' style="opacity:0.55"':'"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
   <td style="font-weight:500">
-    <div>${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">💰 desc.</span>`:''}</div>
+    <div>${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">desc.</span>`:''}</div>
     ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
   </td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
+  <td>${mainPerson ? `<span class="person-chip">${Utils.personAvatarHtml(mainPerson, { size: 22, fontSize: 10 })}${mainPerson}${splitInfo}</span>` : '<span class="muted">—</span>'}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
 </tr>`}).join('')}</tbody>
-<tfoot><tr><td colspan="4" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td></tr></tfoot>
+<tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td></tr></tfoot>
 </table>`;
     }
 
