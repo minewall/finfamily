@@ -12,40 +12,45 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 input, select, textarea { font-family: inherit; }
 svg { display: block; flex-shrink: 0; }
 
-/* ── HAILE BRAND TOKENS (logo kit oficial) ──────────────────────── */
-/* Fonte canônica dos valores. Variáveis legadas abaixo são apelidos. */
+/* ═══════════════════════════════════════════════════════════════════
+   HAILE BRAND TOKENS — atualizado para redesign 2026-05 (Sprint 0)
+   Paleta do redesign de Maio/26 substitui os valores antigos.
+   Nomes de variáveis preservados para não quebrar telas legadas.
+═══════════════════════════════════════════════════════════════════ */
 :root {
-  /* Indigo Haile — primária (do logo kit oficial) */
-  --haile-indigo:      #6366F1;
-  --haile-indigo-deep: #4F46E5;
-  --haile-indigo-soft: #EEF0FF;
+  /* Purple Haile — accent principal do redesign */
+  --haile-indigo:      #6b5ef5;   /* redesign accent (era #6366F1) */
+  --haile-indigo-deep: #5a4ee4;
+  --haile-indigo-soft: #1a1a4d;   /* hover state em dark theme (era #EEF0FF, claro) */
 
-  /* Apelido legado: --haile-violet aponta pra indigo (compat) */
+  /* Apelido legado: --haile-violet aponta pra purple */
   --haile-violet:       var(--haile-indigo);
-  --haile-violet-light: #9990FF;
+  --haile-violet-light: #8a7ef8;  /* redesign purpleL (era #9990FF) */
   --haile-violet-dark:  var(--haile-indigo-deep);
 
-  /* Teal AI — IA e elementos interativos do Coach */
-  --haile-teal:         #06B6D4;
-  --haile-teal-light:   #22D3EE;
-  --haile-teal-dark:    #0891B2;
+  /* Teal Coach — IDENTIDADE EXCLUSIVA do Haile Coach/IA, NÃO usar p/ receitas */
+  --haile-teal:         #2dcfc0;  /* teal coach do redesign (era #06B6D4) */
+  --haile-teal-light:   #4ddcd0;
+  --haile-teal-dark:    #25a89c;
+  --teal-coach:         #2dcfc0;  /* alias semântico explícito */
+  --teal-coach-dim:     rgba(45, 207, 192, 0.12);
 
-  /* Prosperidade — positivo, ganhos */
-  --haile-prosperity:       #10B981;
-  --haile-prosperity-light: #34D399;
-  --haile-prosperity-dark:  #059669;
+  /* Prosperidade — receitas, positivo */
+  --haile-prosperity:       #1dc97e;  /* redesign green (era #10B981) */
+  --haile-prosperity-light: #36d491;
+  --haile-prosperity-dark:  #16a565;
 
-  /* Neutros (alinhados com kit oficial) */
-  --haile-ink:   #0F1020;
-  --haile-night: var(--haile-ink); /* legado */
-  --haile-slate: #5B5E73;
-  --haile-mist:  #94A3B8;
+  /* Neutros */
+  --haile-ink:   #0d0f1c;        /* redesign bg base (era #0F1020) */
+  --haile-night: var(--haile-ink);
+  --haile-slate: #454b6d;        /* redesign t3 (era #5B5E73) */
+  --haile-mist:  #7c82a4;        /* redesign t2 */
   --haile-cream: #FAF9F6;
   --haile-cloud: #F8FAFC;
   --haile-white: #FFFFFF;
 
-  /* Alerta — rosa menos clínico */
-  --haile-alert: #C92764;
+  /* Alerta */
+  --haile-alert: #ff4a68;        /* redesign red (era #C92764) */
 
   /* Fonte */
   --haile-font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
@@ -53,44 +58,45 @@ svg { display: block; flex-shrink: 0; }
 
 /* ── DESIGN TOKENS (apelidos legados → tokens Haile) ─────────────── */
 :root {
-  /* Backgrounds — Vuexy dark palette */
-  --bg-base:     #25293C;
-  --bg-surface:  #2F3349;
-  --bg-card:     #2F3349;
-  --bg-elevated: #343A56;
-  --bg-hover:    #3A4066;
-  --bg-active:   #3F4570;
+  /* Backgrounds — redesign 3-tier (bg → s1 sidebar → s2 cards → s3 elevated) */
+  --bg-base:     #0d0f1c;        /* redesign bg (era #25293C) */
+  --bg-sidebar:  #141627;        /* novo: redesign s1 */
+  --bg-surface:  #1b1e31;        /* redesign s2 (era #2F3349) */
+  --bg-card:     #1b1e31;        /* redesign s2 */
+  --bg-elevated: #242842;        /* redesign s3 (era #343A56) */
+  --bg-hover:    #2c3054;        /* redesign s4 */
+  --bg-active:   #353a6a;
 
-  /* Accent palette → Violeta Haile */
+  /* Accent palette → Purple Haile */
   --accent:      var(--haile-violet);
   --accent-2:    var(--haile-violet-light);
-  --accent-dim:  rgba(115, 103, 240, 0.16);
-  --accent-glow: rgba(115, 103, 240, 0.35);
-  --accent-grad: linear-gradient(72.47deg, #7367F0 22.16%, rgba(115,103,240,.7) 76.47%);
+  --accent-dim:  rgba(107, 94, 245, 0.14);
+  --accent-glow: rgba(107, 94, 245, 0.35);
+  --accent-grad: linear-gradient(72.47deg, #6b5ef5 22.16%, rgba(107,94,245,.7) 76.47%);
 
-  /* Semantic colors → tokens Haile */
+  /* Semantic colors → redesign palette */
   --green:       var(--haile-prosperity);
-  --green-dim:   rgba(16, 185, 129, 0.12);
+  --green-dim:   rgba(29, 201, 126, 0.13);
   --red:         var(--haile-alert);
-  --red-dim:     rgba(201, 39, 100, 0.12);
-  --amber:       #F59E0B;
-  --amber-dim:   rgba(245, 158, 11, 0.12);
-  --blue:        #3B82F6;
-  --blue-dim:    rgba(59, 130, 246, 0.12);
+  --red-dim:     rgba(255, 74, 104, 0.12);
+  --amber:       #ffa930;         /* redesign (era #F59E0B) */
+  --amber-dim:   rgba(255, 169, 48, 0.13);
+  --blue:        #4aa8ff;         /* redesign (era #3B82F6) */
+  --blue-dim:    rgba(74, 168, 255, 0.12);
   --teal:        var(--haile-teal);
-  --teal-dim:    rgba(6, 182, 212, 0.12);
-  --pink:        #EC4899;
-  --pink-dim:    rgba(236, 72, 153, 0.12);
-  --orange:      #F97316;
-  --orange-dim:  rgba(249, 115, 22, 0.12);
+  --teal-dim:    rgba(45, 207, 192, 0.12);
+  --pink:        #ff70b8;         /* redesign (era #EC4899) */
+  --pink-dim:    rgba(255, 112, 184, 0.12);
+  --orange:      #ffa930;         /* alias amber (cores aproximadas no redesign) */
+  --orange-dim:  rgba(255, 169, 48, 0.13);
 
-  /* Text */
-  --text-1: #CFD3EC;
-  --text-2: #A8AABC;
-  --text-3: #6D7285;
-  --text-4: #474C65;
+  /* Text — redesign t1/t2/t3 + t4 derivado */
+  --text-1: #edf0ff;             /* redesign t1 (era #CFD3EC) */
+  --text-2: #7c82a4;             /* redesign t2 (era #A8AABC) */
+  --text-3: #454b6d;             /* redesign t3 (era #6D7285) */
+  --text-4: #353958;             /* derivado, mais fraco (era #474C65) */
 
-  /* Borders */
+  /* Borders — redesign usa 0.07 padrão (era 0.07 também, mantém) */
   --border:      rgba(255, 255, 255, 0.07);
   --border-2:    rgba(255, 255, 255, 0.11);
   --border-3:    rgba(255, 255, 255, 0.18);
