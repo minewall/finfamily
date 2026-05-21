@@ -11464,11 +11464,15 @@ ${isConnected && isAdmin ? `
       msgs.innerHTML = `
       <div class="coach-welcome">
         <div class="coach-avatar-lg" style="overflow:hidden">
-          <img src="assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
+          <img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
         </div>
         <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
         <div class="coach-suggestions" id="coachSuggestions">
           ${suggestions.map(s => `<button class="coach-suggestion">${s}</button>`).join('')}
+        </div>
+        <div class="coach-privacy-footer">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Seus dados ficam locais. As conversas são processadas com segurança e não treinam o modelo.
         </div>
       </div>`;
       bindSuggestions();
@@ -11514,6 +11518,25 @@ ${isConnected && isAdmin ? `
       resetConversation();
       lastActivity = Date.now();
     });
+
+    // Width presets (380 compact / 440 regular / 520 wide)
+    function updateWidthPresetActive() {
+      document.querySelectorAll('[data-coach-width]').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.coachWidth, 10) === panelWidth);
+      });
+    }
+    document.querySelectorAll('[data-coach-width]').forEach(b => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const w = parseInt(b.dataset.coachWidth, 10);
+        panelWidth = w;
+        panel.style.width = w + 'px';
+        layout.style.setProperty('--coach-panel-w', w + 'px');
+        localStorage.setItem('ff_coach_width', w);
+        updateWidthPresetActive();
+      });
+    });
+    updateWidthPresetActive();
 
     // Click outside → minimiza (preserva conversa)
     document.addEventListener('mousedown', (e) => {
@@ -11960,16 +11983,21 @@ FORMATO DA RESPOSTA (importante):
       html = html.replace(/\n/g, '<br>');
       return html;
     }
+    // Avatar do Coach (SVG inline em vez de emoji ✦)
+    const COACH_AVATAR_HTML = `<div class="coach-msg-avatar coach-msg-avatar--ai"><img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:14px;height:auto;display:block"></div>`;
+
     function appendMsg(role, content) {
       const welcome = msgs.querySelector('.coach-welcome');
       if (welcome) welcome.remove();
-      const initial = role === 'user' ? currentPessoa()[0]?.toUpperCase() || 'U' : '✦';
       const div = document.createElement('div');
       div.className = `coach-msg ${role}`;
       const rendered = role === 'assistant' ? formatCoachContent(content) : escapeHtml(content).replace(/\n/g, '<br>');
-      div.innerHTML = `
-        <div class="coach-msg-avatar">${initial}</div>
-        <div class="coach-bubble">${rendered}</div>`;
+      if (role === 'assistant') {
+        div.innerHTML = `${COACH_AVATAR_HTML}<div class="coach-bubble">${rendered}</div>`;
+      } else {
+        const initial = currentPessoa()[0]?.toUpperCase() || 'U';
+        div.innerHTML = `<div class="coach-msg-avatar">${initial}</div><div class="coach-bubble">${rendered}</div>`;
+      }
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
       return div;
@@ -11979,7 +12007,7 @@ FORMATO DA RESPOSTA (importante):
       const div = document.createElement('div');
       div.className = 'coach-msg assistant';
       div.id = 'coachTypingIndicator';
-      div.innerHTML = `<div class="coach-msg-avatar">✦</div><div class="coach-bubble"><div class="coach-typing"><span></span><span></span><span></span></div></div>`;
+      div.innerHTML = `${COACH_AVATAR_HTML}<div class="coach-bubble"><div class="coach-typing"><span></span><span></span><span></span></div></div>`;
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
     }
