@@ -8223,10 +8223,14 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     }
 
     container.innerHTML = `
-<div class="section-header mb-6">
+<div class="page-head mb-4">
   <div>
-    <div class="section-title">Meu Painel</div>
-    <div class="section-sub">Sua visão personalizada das finanças</div>
+    <h1 class="page-head-title">Meu Painel</h1>
+    <p class="page-head-meta">
+      <span class="page-head-meta-total">sua visão personalizada</span>
+      <span class="page-head-meta-sep">·</span>
+      <span style="color:var(--text-3)">widgets configuráveis das finanças pessoais</span>
+    </p>
   </div>
   <button class="btn-secondary" id="btnPersonalizarPainel">${icon('sliders-horizontal',{size:14})} Personalizar</button>
 </div>
@@ -8373,14 +8377,17 @@ ${renderPageMonthPicker(container)}
     const naoLidosTotal = countNaoLidos();
 
     container.innerHTML = `
-<div class="section-header mb-4">
+<div class="page-head mb-4">
   <div style="display:flex;align-items:center;gap:14px">
-    <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--haile-indigo),var(--haile-teal));display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--teal-coach),var(--blue));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px var(--teal-coach-dim)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="#fff"/><path d="M19 14l.9 2.3L22.2 17l-2.3.9L19 20l-.9-2.1L15.8 17l2.3-.7L19 14z" fill="#fff"/></svg>
     </div>
     <div>
-      <div class="section-title">Recados do Coach</div>
-      <div class="section-sub">Insights e recomendações personalizadas da sua IA financeira</div>
+      <h1 class="page-head-title">Recados do Coach</h1>
+      <p class="page-head-meta">
+        ${naoLidosTotal > 0 ? `<span style="color:var(--teal-coach);font-weight:600">${naoLidosTotal} não lido${naoLidosTotal!==1?'s':''}</span><span class="page-head-meta-sep">·</span>` : ''}
+        <span style="color:var(--text-3)">insights e recomendações personalizadas da sua IA financeira</span>
+      </p>
     </div>
   </div>
 </div>
