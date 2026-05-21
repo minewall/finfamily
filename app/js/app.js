@@ -3598,6 +3598,56 @@ ${(() => {
 ${showCartoes ? `
 ${mode === 'all' ? '<div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Cartões de Crédito</div>' : ''}
 
+${cartoes.length ? (() => {
+  // ── Timeline de vencimentos (redesign 2026-05) ─────────────────
+  const today = new Date();
+  const hoje = today.getDate();
+  // Calcula próximo vencimento de cada cartão (este mês ou próximo)
+  const items = cartoes.map(cc => {
+    const due = cc.dueDay || 10;
+    let target = new Date(today.getFullYear(), today.getMonth(), due);
+    if (target < today) target = new Date(today.getFullYear(), today.getMonth() + 1, due);
+    const dias = Math.ceil((target - today) / (86400000));
+    // Soma parcelas ativas neste mês (fatura aproximada)
+    const fatura = cc.parcelas.reduce((s, p) => {
+      const [sy, sm] = p.inicio.split('-').map(Number);
+      const idx = (target.getFullYear() * 12 + target.getMonth() + 1) - (sy * 12 + sm);
+      return idx >= 0 && idx < p.qtd ? s + p.parcela : s;
+    }, 0);
+    return {
+      id: cc.id,
+      nome: cc.name,
+      cor: cc.color || cc.cor || 'var(--accent)',
+      due, dias, fatura, target,
+    };
+  }).sort((a, b) => a.dias - b.dias);
+
+  return `
+<div class="cards-timeline mb-4">
+  <div class="cards-timeline-head">
+    <div>
+      <div class="cards-timeline-title">Próximos vencimentos</div>
+      <div class="cards-timeline-sub">Faturas dos próximos dias · ordenadas por proximidade</div>
+    </div>
+    <div class="cards-timeline-today">Hoje: dia <strong>${hoje}</strong></div>
+  </div>
+  <div class="cards-timeline-track" style="--n:${items.length}">
+    <div class="cards-timeline-line"></div>
+    ${items.map(it => {
+      const urgent = it.dias <= 5;
+      const past = it.dias <= 0;
+      return `<div class="cards-timeline-item">
+        <div class="cards-timeline-dot" style="background:${urgent ? 'var(--amber)' : it.cor};box-shadow:0 0 0 3px var(--bg-card),0 0 0 4px ${urgent ? 'rgba(255,169,48,0.35)' : 'rgba(255,255,255,0.05)'}"></div>
+        <div class="cards-timeline-day" style="color:${urgent ? 'var(--amber)' : 'var(--text-3)'}">DIA ${it.due}</div>
+        <div class="cards-timeline-name">${it.nome.length > 12 ? it.nome.slice(0,12)+'…' : it.nome}</div>
+        <div class="cards-timeline-amt">${it.fatura >= 1000 ? 'R$ ' + (it.fatura/1000).toFixed(1) + 'k' : 'R$ ' + it.fatura.toFixed(0)}</div>
+        <div class="cards-timeline-dias">${past ? 'venceu' : it.dias === 1 ? 'amanhã' : it.dias + ' dias'}</div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+})() : ''}
+
 ${(() => {
   const limiteTotal = cartoes.reduce((a, cc) => a + (cc.limit || 0), 0);
   const utilizadoTotal = cartoes.reduce((a, cc) => a + cc.parcelas.reduce((s, p) => s + p.parcela, 0), 0);
