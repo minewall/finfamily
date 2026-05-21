@@ -4303,3 +4303,54 @@ tr.row-clickable:hover { background: var(--bg-hover) !important; }
 }
 .icp-cat-cta:hover:not(:disabled) { opacity: 1; }
 .icp-cat-cta:disabled { background: var(--bg-elevated); color: var(--text-4); cursor: not-allowed; opacity: 0.6; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Toggle de Visibilidade (Familiar / Particular)
+═══════════════════════════════════════════════════════════════════ */
+.vis-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.vis-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s, transform .12s;
+}
+.vis-btn:hover { border-color: var(--border-2); transform: translateY(-1px); }
+.vis-btn svg { opacity: 0.85; }
+
+.vis-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.vis-btn.active.vis-btn--particular {
+  border-color: var(--amber);
+  background: var(--amber-dim);
+  color: var(--amber);
+}
+.vis-btn-hint {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0;
+  margin-top: 2px;
+}
+.vis-btn.active .vis-btn-hint {
+  color: currentColor;
+  opacity: 0.7;
+}

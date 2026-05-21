@@ -2688,14 +2688,16 @@ ${anomaliasHTML(anomalias, total)}
       </div>
       <div class="form-group form-full">
         <label class="form-label">Visibilidade</label>
-        <div style="display:flex;gap:8px">
-          <button type="button" class="vis-btn active" data-vis="familiar" id="visBtnFamiliar"
-            style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
-            👨‍👩‍👧 Familiar
+        <div class="vis-toggle">
+          <button type="button" class="vis-btn active" data-vis="familiar" id="visBtnFamiliar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            Familiar
+            <span class="vis-btn-hint">visível pra todos</span>
           </button>
-          <button type="button" class="vis-btn" data-vis="particular" id="visBtnParticular"
-            style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
-            🔒 Particular
+          <button type="button" class="vis-btn" data-vis="particular" id="visBtnParticular">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Particular
+            <span class="vis-btn-hint">só você</span>
           </button>
         </div>
         <input type="hidden" id="fDVis" value="familiar"/>
@@ -2812,18 +2814,14 @@ ${anomaliasHTML(anomalias, total)}
       document.getElementById('fDParcelas')?.addEventListener('change', updateParcelaInfo);
 
       // Visibilidade toggle
-      document.querySelectorAll('.vis-btn').forEach(btn => {
+      document.querySelectorAll('#visBtnFamiliar, #visBtnParticular').forEach(btn => {
         btn.addEventListener('click', () => {
           const vis = btn.dataset.vis;
           document.getElementById('fDVis').value = vis;
-          document.getElementById('visBtnFamiliar').style.cssText =
-            vis === 'familiar'
-              ? 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s'
-              : 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s';
-          document.getElementById('visBtnParticular').style.cssText =
-            vis === 'particular'
-              ? 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--amber);background:var(--amber-dim);color:var(--amber);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s'
-              : 'flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s';
+          document.querySelectorAll('#visBtnFamiliar, #visBtnParticular').forEach(b => {
+            b.classList.toggle('active', b.dataset.vis === vis);
+            b.classList.toggle('vis-btn--particular', b.dataset.vis === 'particular');
+          });
           const reembolsoRow = document.getElementById('fDReembolsoRow');
           if (reembolsoRow) reembolsoRow.style.display = vis === 'particular' ? 'block' : 'none';
         });
@@ -5782,13 +5780,17 @@ ${topCats.length ? `
       })()}
       <div class="form-group form-full">
         <label class="form-label">Visibilidade</label>
-        <div style="display:flex;gap:8px">
-          <button type="button" class="vis-btn${(d.visibilidade||'familiar')==='familiar'?' active':''}" data-vis="familiar" id="eDVisBtnFamiliar"
-            style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-2);cursor:pointer;font-size:13px;transition:all .15s">
-            👨‍👩‍👧 Familiar</button>
-          <button type="button" class="vis-btn${(d.visibilidade||'familiar')==='particular'?' active':''}" data-vis="particular" id="eDVisBtnParticular"
-            style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-2);cursor:pointer;font-size:13px;transition:all .15s">
-            🔒 Particular</button>
+        <div class="vis-toggle">
+          <button type="button" class="vis-btn${(d.visibilidade||'familiar')==='familiar'?' active':''}" data-vis="familiar" id="eDVisBtnFamiliar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            Familiar
+            <span class="vis-btn-hint">visível pra todos</span>
+          </button>
+          <button type="button" class="vis-btn${(d.visibilidade||'familiar')==='particular'?' active':''}" data-vis="particular" id="eDVisBtnParticular">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Particular
+            <span class="vis-btn-hint">só você</span>
+          </button>
         </div>
         <input type="hidden" id="eDVis" value="${d.visibilidade||'familiar'}"/>
       </div>
@@ -5886,11 +5888,14 @@ ${topCats.length ? `
       document.getElementById('eDAmt')?.addEventListener('input', updateEd);
       document.querySelectorAll('#eDVisBtnFamiliar,#eDVisBtnParticular').forEach(btn => {
         btn.addEventListener('click', () => {
-          document.querySelectorAll('#eDVisBtnFamiliar,#eDVisBtnParticular').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById('eDVis').value = btn.dataset.vis;
+          const vis = btn.dataset.vis;
+          document.querySelectorAll('#eDVisBtnFamiliar,#eDVisBtnParticular').forEach(b => {
+            b.classList.toggle('active', b.dataset.vis === vis);
+            b.classList.toggle('vis-btn--particular', b.dataset.vis === 'particular');
+          });
+          document.getElementById('eDVis').value = vis;
           const row = document.getElementById('eDReembolsoRow');
-          if (row) row.style.display = btn.dataset.vis === 'particular' ? 'block' : 'none';
+          if (row) row.style.display = vis === 'particular' ? 'block' : 'none';
         });
       });
       document.getElementById('eDReembolso')?.addEventListener('change', e => {
