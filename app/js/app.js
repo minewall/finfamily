@@ -9023,13 +9023,48 @@ ${isConnected && isAdmin ? `
       }
       const ROLE_LABELS = { admin: 'Admin', editor: 'Editor', member: 'Membro' };
       const ROLE_COLORS = { admin: 'var(--accent)', editor: 'var(--green)', member: 'var(--amber)' };
+      const STATUS_LABELS = { active: 'Ativo', pending: 'Pendente', expired: 'Expirado' };
+      const STATUS_COLORS = { active: 'var(--green)', pending: 'var(--amber)', expired: 'var(--red, #C92764)' };
+
+      function _daysUntil(iso) {
+        const ms = new Date(iso).getTime() - Date.now();
+        return Math.ceil(ms / 86400000);
+      }
+      function _agoLabel(iso) {
+        const d = _daysUntil(iso);
+        if (d > 1)  return `expira em ${d} dias`;
+        if (d === 1) return 'expira amanhã';
+        if (d === 0) return 'expira hoje';
+        return `expirou há ${Math.abs(d)} dia${Math.abs(d) > 1 ? 's' : ''}`;
+      }
+
       listEl.innerHTML = `
 <div style="display:flex;flex-direction:column;gap:6px">
   ${members.map(m => {
-    const accepted = !!m.accepted_at;
     const email = m.invited_email || '—';
     const role  = m.role;
-    const sub   = [accepted ? 'Ativo' : 'Aguardando login', m.pessoa_name ? `→ ${m.pessoa_name}` : ''].filter(Boolean).join(' · ');
+    const status = SupabaseSync.inviteStatus(m);
+    const isActive  = status === 'active';
+    const isPending = status === 'pending';
+    const isExpired = status === 'expired';
+
+    const subParts = [];
+    if (isActive)  subParts.push('Ativo desde ' + new Date(m.accepted_at).toLocaleDateString('pt-BR'));
+    if (isPending) subParts.push(m.expires_at ? _agoLabel(m.expires_at) : 'Aguardando login');
+    if (isExpired) subParts.push(_agoLabel(m.expires_at));
+    if (m.last_resent_at && (isPending || isExpired)) {
+      subParts.push('reenviado em ' + new Date(m.last_resent_at).toLocaleDateString('pt-BR'));
+    }
+    if (m.pessoa_name) subParts.push(`→ ${m.pessoa_name}`);
+    const sub = subParts.join(' · ');
+
+    const actions = isActive
+      ? `<button class="btn-icon-sm danger" data-action="remove" data-member-id="${m.id}" title="Remover acesso">${icon('user-minus', {size:14})}</button>`
+      : `
+        <button class="btn-icon-sm" data-action="resend" data-member-id="${m.id}" title="Reenviar convite" style="color:var(--accent)">${icon('refresh-cw', {size:14})}</button>
+        <button class="btn-icon-sm danger" data-action="cancel" data-member-id="${m.id}" title="Cancelar convite">${icon('x', {size:14})}</button>
+      `;
+
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 16px">
       <div class="person-avatar" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]};width:34px;height:34px;font-size:12px;font-weight:700;border:1px solid ${ROLE_COLORS[role]}40">
@@ -9039,15 +9074,40 @@ ${isConnected && isAdmin ? `
         <div style="font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${email}</div>
         <div style="font-size:11px;color:var(--text-4)">${sub}</div>
       </div>
+      <span class="badge" style="background:${STATUS_COLORS[status]}1a;color:${STATUS_COLORS[status]};border:1px solid ${STATUS_COLORS[status]}40;font-size:10px">${STATUS_LABELS[status]}</span>
       <span class="badge" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]}">${ROLE_LABELS[role]||role}</span>
-      <button class="btn-icon-sm danger" data-member-id="${m.id}" title="Remover acesso">${icon('user-minus', {size:14})}</button>
+      <div style="display:flex;gap:4px">${actions}</div>
     </div>`;
   }).join('')}
 </div>`;
-      listEl.querySelectorAll('[data-member-id]').forEach(b => b.addEventListener('click', async () => {
-        if (!confirm('Remover acesso deste membro?')) return;
+
+      upgradeIcons(listEl);
+
+      // Remover (ativo)
+      listEl.querySelectorAll('[data-action="remove"]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Remover acesso deste membro? Ele perde acesso ao grupo imediatamente.')) return;
         await SupabaseSync.removeMember(b.dataset.memberId);
         toast('Membro removido', 'success');
+        _loadFamilyMembers();
+      }));
+
+      // Cancelar (pendente/expirado)
+      listEl.querySelectorAll('[data-action="cancel"]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Cancelar este convite? Pode convidar novamente depois.')) return;
+        await SupabaseSync.removeMember(b.dataset.memberId);
+        toast('Convite cancelado', 'success');
+        _loadFamilyMembers();
+      }));
+
+      // Reenviar (pendente/expirado)
+      listEl.querySelectorAll('[data-action="resend"]').forEach(b => b.addEventListener('click', async () => {
+        const btn = b;
+        btn.disabled = true;
+        const { error, emailResult } = await SupabaseSync.resendInvite(btn.dataset.memberId);
+        btn.disabled = false;
+        if (error) return toast(typeof error === 'string' ? error : (error.message || 'Erro ao reenviar'), 'error');
+        if (emailResult?.sent) toast('Convite reenviado e validade estendida por 7 dias', 'success');
+        else                   toast('Validade estendida — verifique se o e-mail chegou', 'info');
         _loadFamilyMembers();
       }));
     }
@@ -9467,7 +9527,13 @@ ${isConnected && isAdmin ? `
 
       // Resolve family context, accept pending invites, then pull data
       (async () => {
-        await SupabaseSync.acceptPendingInvite();
+        const inviteResult = await SupabaseSync.acceptPendingInvite();
+        // Convite expirado: avisa o usuário (admin precisa reenviar)
+        if (inviteResult?.expired) {
+          setTimeout(() => {
+            toast('Seu convite familiar expirou. Peça ao administrador para reenviar.', 'error');
+          }, 600);
+        }
         const ctx = await SupabaseSync.resolveFamilyContext();
 
         // Se admin, garante que user_data tem family_id vinculado (para editores/membros lerem)

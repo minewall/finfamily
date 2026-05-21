@@ -117,10 +117,17 @@ const SupabaseSync = (function () {
     if (!_client || !groupId) return [];
     const { data } = await _client
       .from('family_members')
-      .select('id, user_id, role, invited_email, pessoa_name, accepted_at, created_at')
+      .select('id, user_id, role, invited_email, pessoa_name, accepted_at, created_at, expires_at, last_resent_at')
       .eq('family_id', groupId)
       .order('created_at');
     return data || [];
+  }
+
+  // Retorna status visual do convite: 'active' | 'pending' | 'expired'
+  function inviteStatus(member) {
+    if (member.accepted_at) return 'active';
+    if (member.expires_at && new Date(member.expires_at) < new Date()) return 'expired';
+    return 'pending';
   }
 
   async function inviteMember(email, role, pessoaName) {
@@ -197,7 +204,42 @@ const SupabaseSync = (function () {
     await _client.from('family_members').delete().eq('id', memberId);
   }
 
-  // Called on login: check if current user has a pending invite and accept it
+  // Reenvio de convite: estende expires_at +7d, atualiza last_resent_at,
+  // dispara e-mail novamente. Só para convites pendentes (não aceitos).
+  async function resendInvite(memberId) {
+    if (!_client || !_user) return { error: 'Não conectado' };
+    // Busca o convite + grupo
+    const { data: invite, error: ie } = await _client
+      .from('family_members')
+      .select('id, family_id, role, invited_email, pessoa_name, accepted_at, family_groups(id, name, owner_id)')
+      .eq('id', memberId)
+      .maybeSingle();
+    if (ie || !invite) return { error: 'Convite não encontrado' };
+    if (invite.accepted_at) return { error: 'Este convite já foi aceito' };
+    // Só o dono do grupo pode reenviar
+    if (invite.family_groups?.owner_id !== _user.id) return { error: 'Apenas o administrador pode reenviar' };
+
+    // Estende expires_at + 7 dias a partir de agora; marca last_resent_at
+    const now = new Date();
+    const newExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const { error: ue } = await _client
+      .from('family_members')
+      .update({ expires_at: newExpiry.toISOString(), last_resent_at: now.toISOString() })
+      .eq('id', memberId);
+    if (ue) return { error: ue.message };
+
+    // Reenvia e-mail
+    const emailResult = await _sendInviteEmail(
+      invite.invited_email,
+      invite.role,
+      invite.pessoa_name,
+      { id: invite.family_id, name: invite.family_groups?.name }
+    );
+    return { data: { ...invite, expires_at: newExpiry.toISOString() }, emailResult };
+  }
+
+  // Called on login: check if current user has a pending invite and accept it.
+  // Valida expiração: se expirou, NÃO aceita e retorna { expired: true }.
   async function acceptPendingInvite() {
     if (!_client || !_user) return null;
     const email = _user.email;
@@ -205,11 +247,17 @@ const SupabaseSync = (function () {
     // Look for unaccepted invitation matching this email
     const { data: invite } = await _client
       .from('family_members')
-      .select('id, family_id, role')
+      .select('id, family_id, role, expires_at')
       .eq('invited_email', email)
       .is('accepted_at', null)
       .maybeSingle();
     if (!invite) return null;
+
+    // Valida expiração
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+      return { expired: true, invite };
+    }
+
     // Accept: set user_id and accepted_at
     const { error } = await _client
       .from('family_members')
@@ -322,8 +370,8 @@ const SupabaseSync = (function () {
     init, schedulePush, pullFromCloud, pushToCloud, signUp, signIn, signOut,
     getUser, isConnected, hasPendingSync, onStatusChange,
     getAccessToken, adminCall,
-    createOrGetFamilyGroup, getFamilyGroup, getFamilyMembers,
-    inviteMember, removeMember, acceptPendingInvite, resolveFamilyContext, getFamilyContext,
-    ensureFamilyIdLinked,
+    createOrGetFamilyGroup, getFamilyGroup, getFamilyMembers, inviteStatus,
+    inviteMember, removeMember, resendInvite, acceptPendingInvite,
+    resolveFamilyContext, getFamilyContext, ensureFamilyIdLinked,
   };
 })();
