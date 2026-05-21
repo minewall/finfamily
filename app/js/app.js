@@ -9644,6 +9644,7 @@ ${renderPageMonthPicker(container)}
     const profileEmail = (typeof SupabaseSync !== 'undefined' ? SupabaseSync.getUser?.()?.email : null) || '';
 
     container.innerHTML = `
+${section === 'perfil' ? '' : `
 <div class="config-profile-card">
   <div class="config-profile-avatar">${profileInitial}</div>
   <div style="flex:1;min-width:0">
@@ -9651,7 +9652,7 @@ ${renderPageMonthPicker(container)}
     ${profileEmail ? `<div class="config-profile-email">${profileEmail}</div>` : ''}
   </div>
   <button class="btn-outline btn-sm" id="btnEditPerfil">Editar Perfil</button>
-</div>
+</div>`}
 <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
   <aside class="card" style="padding:8px">
     ${[
