@@ -2781,3 +2781,428 @@ body.sidebar-open { overflow: hidden; }
 .toggle-switch input:checked ~ .toggle-track { background:var(--accent); }
 .toggle-thumb { position:absolute; top:3px; left:3px; width:18px; height:18px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
 .toggle-switch input:checked ~ .toggle-track .toggle-thumb { transform:translateX(20px); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REDESIGN 2026-05 — Sprint 1: Dashboard
+   Componentes novos do redesign (poder-hero, metric-card, annual-card).
+   Mantém compatibilidade com componentes legados (kpi-card, dash-hero).
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Greeting ──────────────────────────────────────────────── */
+.dash-greeting {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dash-greeting-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.8px;
+  line-height: 1;
+  margin: 0;
+}
+.dash-greeting-sub {
+  font-size: 12.5px;
+  color: var(--text-3);
+  margin: 6px 0 0;
+}
+.dash-greeting-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 18px var(--accent-glow);
+  transition: transform .15s, box-shadow .15s;
+  white-space: nowrap;
+}
+.dash-greeting-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px var(--accent-glow);
+}
+
+/* ── Hero grid (3 col) ─────────────────────────────────────── */
+.dash-hero-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 12px;
+}
+.dash-metric-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Poder de Escolha (hero) ───────────────────────────────── */
+.poder-hero {
+  position: relative;
+  border-radius: 18px;
+  padding: 22px 22px 20px;
+  background: linear-gradient(145deg, #1c1860 0%, #172050 50%, #131f50 100%);
+  border: 1px solid rgba(107, 94, 245, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.poder-hero.is-negative {
+  background: linear-gradient(145deg, #4a1a2a 0%, #3a1530 50%, #321428 100%);
+  border-color: rgba(255, 74, 104, 0.3);
+}
+.poder-hero-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.poder-hero-glow::before {
+  content: '';
+  position: absolute;
+  top: -70px; right: -70px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(107,94,245,0.28) 0%, transparent 68%);
+}
+.poder-hero-glow::after {
+  content: '';
+  position: absolute;
+  bottom: -50px; left: -30px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(74,168,255,0.14) 0%, transparent 70%);
+}
+.poder-hero > * { position: relative; }
+
+.poder-hero-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.poder-hero-icon {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: rgba(107, 94, 245, 0.25);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-2);
+}
+.poder-hero-meta { flex: 1; }
+.poder-hero-tag {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(138, 126, 248, 0.7);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.poder-hero-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e0ff;
+}
+.poder-hero-month {
+  background: rgba(107, 94, 245, 0.2);
+  border: 1px solid rgba(107, 94, 245, 0.28);
+  border-radius: 7px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--accent-2);
+}
+
+.poder-hero-main {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.poder-hero-value-wrap { flex: 1; min-width: 0; }
+.poder-hero-value {
+  font-size: 38px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -1.8px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.poder-hero.is-negative .poder-hero-value { color: #ffbac8; }
+.poder-hero-sub {
+  font-size: 11.5px;
+  color: rgba(180, 175, 255, 0.5);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.poder-hero-gauge {
+  position: relative;
+  flex-shrink: 0;
+}
+.poder-hero-gauge-label {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  line-height: 1;
+}
+.poder-hero-gauge-pct {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.poder-hero-gauge-cap {
+  font-size: 9px;
+  color: rgba(180, 175, 255, 0.5);
+  margin-top: 2px;
+}
+
+.poder-hero-flow-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.poder-hero-flow-labels span {
+  font-size: 9.5px;
+  color: rgba(180, 175, 255, 0.45);
+}
+.poder-hero-flow-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.poder-hero-flow-fill-c { background: rgba(138, 126, 248, 0.3); }
+.poder-hero-flow-fill-l { background: var(--accent-2); }
+.poder-hero.is-negative .poder-hero-flow-fill-c { background: rgba(255, 74, 104, 0.35); }
+.poder-hero.is-negative .poder-hero-flow-fill-l { background: var(--red); }
+
+.poder-hero-flow-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.poder-hero-flow-foot-lbl {
+  font-size: 9px;
+  color: rgba(180, 175, 255, 0.4);
+  margin-bottom: 2px;
+}
+.poder-hero-flow-foot-val {
+  font-size: 13px;
+  color: rgba(210, 205, 255, 0.8);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Metric card (Receitas/Despesas/Saúde/Maior Gasto) ─────── */
+.metric-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 15px 17px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+  min-height: 0;
+}
+.metric-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.metric-card-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.metric-card-icon {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.metric-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.metric-card-delta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.metric-card-delta-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+.metric-card-delta-pill.pos { color: var(--green); background: var(--green-dim); }
+.metric-card-delta-pill.neg { color: var(--red);   background: var(--red-dim); }
+.metric-card-delta-cap {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.metric-card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.metric-card-row-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.metric-card-foot {
+  font-size: 11px;
+  color: var(--text-3);
+  background: var(--bg-elevated);
+  border-radius: 7px;
+  padding: 5px 10px;
+}
+.metric-card-empty {
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 10px 0;
+  text-align: center;
+}
+
+/* ── Section tag (DISTRIBUIÇÃO · MAIO 2026) ────────────────── */
+.dash-section-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Distribution card (donut + lista) ─────────────────────── */
+.dash-dist-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+}
+.dash-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dash-card-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+}
+.dash-card-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dash-dist-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.dash-dist-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5.5px;
+}
+.dash-dist-pessoa-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.dash-dist-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dash-dist-dot {
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.dash-dist-lbl {
+  flex: 1;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.dash-dist-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Annual grid ───────────────────────────────────────────── */
+.dash-annual-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.annual-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 15px 17px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.annual-card-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.annual-card-value {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.annual-card-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.annual-card-progress-bar > div {
+  height: 100%;
+  border-radius: 2px;
+}
+.annual-card-progress-cap {
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .dash-hero-grid { grid-template-columns: 1fr 1fr; }
+  .poder-hero { grid-column: 1 / -1; }
+  .dash-annual-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 720px) {
+  .dash-hero-grid { grid-template-columns: 1fr; }
+  .dash-annual-grid { grid-template-columns: 1fr; }
+  .dash-greeting-title { font-size: 22px; }
+}

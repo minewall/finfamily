@@ -800,117 +800,152 @@ ${(() => {
 </div>`;
 })()}
 
-<!-- ═══ SEÇÃO 1: MÊS ATUAL ═══════════════════════════════════════ -->
-<div class="dash-hero dash-hero--mood-${heroMood.tone}">
-  <div class="dash-hero-date">${(() => {
-    const t = new Date();
-    return t.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
-  })()}</div>
-  <div class="dash-hero-left">
-    <div class="dash-hero-greeting">${heroMood.title}</div>
-    <div class="dash-hero-sub-text">${heroMood.sub} · ${monthLabel}</div>
-    <div class="dash-hero-saldo ${saldo >= 0 ? 'pos' : 'neg'}">${saldo < 0 ? '-' : '+'}${Utils.currency(Math.abs(saldo))}</div>
-    ${isMemberHero ? '' : `
-    <button class="dash-hero-cta" id="btnNovaEntrada">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-      Novo Lançamento
-    </button>`}
+<!-- ═══ REDESIGN 2026-05 ═══════════════════════════════════════════
+     Sprint 1 — Dashboard (big bang): substitui hero+KPI+coach+charts
+     pelo layout do redesign. Foundation: SvgCharts (svg-charts.js).
+═══════════════════════════════════════════════════════════════════ -->
+
+<!-- Greeting -->
+<div class="dash-greeting mb-4">
+  <div>
+    <h1 class="dash-greeting-title">Olá, ${(() => {
+      const p = Store.getProfile();
+      const name = (p?.name && p.name !== 'Usuário') ? p.name.split(' ')[0] : 'você';
+      return name;
+    })()}.</h1>
+    <p class="dash-greeting-sub">Equilíbrio entre receitas e despesas · ${monthLabel}</p>
   </div>
-  <div class="dash-hero-stats">
-    <div class="dash-hero-stats-header">${Utils.monthsFull[prevM-1]} ${prevY} <span style="opacity:0.6">· mês anterior</span></div>
-    <div class="dash-hero-stat">
-      <div class="dash-hero-stat-label">Receitas</div>
-      <div class="dash-hero-stat-value pos">+${Utils.currency(prevRec)}</div>
-      ${prevRec > 0 ? `<div class="dash-hero-stat-delta ${receita >= prevRec ? 'up' : 'down'}">${receita >= prevRec ? '▲' : '▼'} ${Math.abs((receita - prevRec) / prevRec * 100).toFixed(1)}% este mês</div>` : ''}
-    </div>
-    <div class="dash-hero-stat">
-      <div class="dash-hero-stat-label">Despesas</div>
-      <div class="dash-hero-stat-value neg">-${Utils.currency(prevDesp)}</div>
-      ${prevDesp > 0 ? `<div class="dash-hero-stat-delta ${despesa <= prevDesp ? 'up' : 'down'}">${despesa <= prevDesp ? '▼' : '▲'} ${Math.abs((despesa - prevDesp) / prevDesp * 100).toFixed(1)}% este mês</div>` : ''}
-    </div>
-  </div>
+  ${isMemberHero ? '' : `
+  <button class="dash-greeting-cta" id="btnNovaEntrada">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+    Novo Lançamento
+  </button>`}
 </div>
 
-<div class="kpi-grid-dashboard mb-6" id="kpiGrid">
+<!-- Hero grid 3 col: Poder de Escolha (1.25fr) · Receitas+Despesas · Saúde+Maior Gasto -->
+<div class="dash-hero-grid mb-4">
 
-  <!-- Poder de Escolha — card principal, ocupa coluna esquerda inteira -->
-  <div class="kpi-card kpi-poder-escolha kpi-poder-main ${poder.poderDeEscolha < 0 ? 'kpi-poder-negativo' : ''}" data-kpi-id="poder">
-    <div class="kpi-poder-header">
-      <div class="kpi-poder-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor"/></svg>
+  <!-- Poder de Escolha (hero) -->
+  <div class="poder-hero ${poder.poderDeEscolha < 0 ? 'is-negative' : ''}">
+    <div class="poder-hero-glow"></div>
+    <div class="poder-hero-header">
+      <div class="poder-hero-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor"/></svg>
       </div>
-      <div class="kpi-poder-meta">
-        <div class="kpi-poder-tag">Disponível agora</div>
-        <div class="kpi-poder-label">Poder de Escolha</div>
-        <div class="kpi-poder-month">${monthLabel}</div>
+      <div class="poder-hero-meta">
+        <div class="poder-hero-tag">Disponível agora</div>
+        <div class="poder-hero-label">Poder de Escolha</div>
+      </div>
+      <div class="poder-hero-month">${Utils.monthsFull[month-1].slice(0,3)} ${year}</div>
+    </div>
+
+    <div class="poder-hero-main">
+      <div class="poder-hero-value-wrap">
+        <div class="poder-hero-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
+        <div class="poder-hero-sub">
+          ${(poder.pct*100).toFixed(1)}% da receita mensal
+          <span style="display:block;margin-top:2px;opacity:0.85">${poder.poderDeEscolha>=0?'livre para decidir agora':'já comprometeu sua reserva'}</span>
+        </div>
+      </div>
+      <div class="poder-hero-gauge">
+        ${SvgCharts.gauge(Math.max(0, Math.min(100, poder.pct*100)), { size: 78, color: 'var(--accent-2)', thickness: 9, bg: 'rgba(255,255,255,0.08)' })}
+        <div class="poder-hero-gauge-label">
+          <div class="poder-hero-gauge-pct">${Math.round(poder.pct*100)}%</div>
+          <div class="poder-hero-gauge-cap">livre</div>
+        </div>
       </div>
     </div>
-    <div class="kpi-poder-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
-    <div class="kpi-poder-sub">${poder.poderDeEscolha>=0
-      ? 'Você pode gastar sem comprometer suas contas e metas'
-      : 'Atenção: você ultrapassou o piso de sobrevivência'}</div>
-    <div class="kpi-poder-progress">
-      <div class="kpi-poder-progress-fill" style="width:${Math.min(poder.pct*100,100)}%"></div>
-    </div>
-    <div class="kpi-poder-footer">
-      <span>Receita: ${Utils.currency(receita)}</span>
-      <span>Comprometido: ${Utils.currency(receita - poder.poderDeEscolha)}</span>
+
+    <div class="poder-hero-flow">
+      <div class="poder-hero-flow-labels">
+        <span>Comprometido ${Math.round((1-poder.pct)*100)}%</span>
+        <span>Livre ${Math.round(poder.pct*100)}%</span>
+      </div>
+      <div class="poder-hero-flow-bar">
+        <div class="poder-hero-flow-fill-c" style="width:${Math.round((1-poder.pct)*100)}%"></div>
+        <div class="poder-hero-flow-fill-l" style="width:${Math.round(poder.pct*100)}%"></div>
+      </div>
+      <div class="poder-hero-flow-foot">
+        <div>
+          <div class="poder-hero-flow-foot-lbl">Receita</div>
+          <div class="poder-hero-flow-foot-val">${Utils.currency(receita)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="poder-hero-flow-foot-lbl">Compromissos</div>
+          <div class="poder-hero-flow-foot-val">${Utils.currency(receita - poder.poderDeEscolha)}</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Receitas -->
-    <div class="kpi-card kpi-receitas" data-kpi-id="receitas" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-      <div class="kpi-icon" style="color:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="kpi-body">
-        <div class="kpi-label">Receitas — ${Utils.monthsFull[month-1]}</div>
-        <div class="kpi-value" style="color:var(--green)">+${Utils.currency(receita)}</div>
-        <div class="kpi-change ${chgRec>=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgRec>=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgRec).toFixed(1)}% vs mês anterior</div>
-      </div>
-    </div>
-
-    <!-- Saúde Financeira (D2) -->
-    <div class="kpi-card kpi-saude" data-kpi-id="saude" style="--kpi-color:${healthColor};--kpi-bg:${healthBg}">
-      <div class="kpi-icon" style="color:${healthColor}">${healthIcon}</div>
-      <div class="kpi-body">
-        <div class="kpi-label">Saúde Financeira</div>
-        <div class="kpi-value" style="color:${healthColor}">${Utils.pct(healthPct)} usado</div>
-        <div class="kpi-health-bar">
-          <div class="kpi-health-bar-fill" style="width:${Math.min(healthPct*100,100)}%;background:${healthColor}"></div>
+  <!-- Coluna: Receitas + Despesas empilhadas -->
+  <div class="dash-metric-col">
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Receitas</span>
+        <div class="metric-card-icon" style="background:var(--green-dim);color:var(--green)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         </div>
-        <div class="kpi-sub">${healthLabel} · limite ${Utils.pct(limitePct)}</div>
+      </div>
+      <div class="metric-card-value">${Utils.currency(receita)}</div>
+      <div class="metric-card-delta">
+        <span class="metric-card-delta-pill ${chgRec>=0?'pos':'neg'}">${chgRec>=0?'↑':'↓'} ${Math.abs(chgRec).toFixed(1)}%</span>
+        <span class="metric-card-delta-cap">vs. mês anterior</span>
       </div>
     </div>
-
-    <!-- Despesas -->
-    <div class="kpi-card kpi-despesas" data-kpi-id="despesas" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-      <div class="kpi-body">
-        <div class="kpi-label">Despesas — ${Utils.monthsFull[month-1]}</div>
-        <div class="kpi-value red">${Utils.currency(despesa)}</div>
-        <div class="kpi-change ${chgDesp<=0?'up':'down'}"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="${chgDesp<=0?'M5 1l4 6H1z':'M5 9L1 3h8z'}"/></svg> ${Math.abs(chgDesp).toFixed(1)}% vs mês anterior</div>
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Despesas</span>
+        <div class="metric-card-icon" style="background:var(--red-dim);color:var(--red)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        </div>
+      </div>
+      <div class="metric-card-value">${Utils.currency(despesa)}</div>
+      <div class="metric-card-delta">
+        <span class="metric-card-delta-pill ${chgDesp<=0?'pos':'neg'}">${chgDesp<=0?'↓':'↑'} ${Math.abs(chgDesp).toFixed(1)}%</span>
+        <span class="metric-card-delta-cap">vs. mês anterior</span>
       </div>
     </div>
+  </div>
 
-    <!-- Maior Gasto (D3) -->
+  <!-- Coluna: Saúde Financeira + Maior Gasto -->
+  <div class="dash-metric-col">
+    <div class="metric-card">
+      <div class="metric-card-head">
+        <span class="metric-card-label">Saúde Financeira</span>
+        <div class="metric-card-icon" style="background:${healthBg};color:${healthColor}">${healthIcon.replace('width="22"','width="13"').replace('height="22"','height="13"')}</div>
+      </div>
+      <div class="metric-card-value" style="color:${healthColor}">${Utils.pct(healthPct)} <span style="font-size:12px;color:var(--text-3);font-weight:500">comprometido</span></div>
+      ${SvgCharts.healthBar(Math.min(healthPct*100, 100))}
+      <div class="metric-card-delta-cap" style="margin-top:2px">Ideal: <span style="color:var(--amber)">≤ 33%</span> comprometido (LLP)</div>
+    </div>
     ${(() => {
       const topPct = topDesp && despesa > 0 ? (topDesp.amount / despesa * 100).toFixed(0) : null;
-      const catLabel = topDesp ? (Store.CATEGORIES[topDesp.category]?.label || topDesp.category) : null;
+      const catLabel = topDesp ? (Store.CATEGORIES[topDesp.category]?.label || topDesp.category) : '—';
       const catColor = topDesp ? (Store.CATEGORIES[topDesp.category]?.color || 'var(--amber)') : 'var(--amber)';
-      return `<div class="kpi-card kpi-maior-gasto" data-kpi-id="maior-gasto" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim)">
-      <div class="kpi-icon" style="color:${catColor}">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
-      </div>
-      <div class="kpi-body">
-        <div class="kpi-label">Maior Gasto do Mês</div>
-        <div class="kpi-value" style="color:var(--amber)">${topDesp ? Utils.currency(topDesp.amount) : '—'}</div>
-        ${catLabel ? `<div class="kpi-sub-cat"><span class="kpi-cat-pill" style="background:${catColor}22;color:${catColor}">${catLabel}</span>${topPct ? `<span class="kpi-cat-pct">${topPct}% do total</span>` : ''}</div>` : `<div class="kpi-sub">Sem despesas</div>`}
-        ${topDesp ? `<div class="kpi-sub" style="margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp.desc}</div>` : ''}
-      </div>
-    </div>`;
+      return `<div class="metric-card">
+        <div class="metric-card-head">
+          <span class="metric-card-label">Maior Gasto do Mês</span>
+        </div>
+        ${topDesp ? `
+        <div class="metric-card-row">
+          <div class="metric-card-row-icon" style="background:${catColor}1e;color:${catColor}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${catLabel}</div>
+            <div style="font-size:18px;font-weight:700;color:var(--red);letter-spacing:-0.4px;line-height:1">${Utils.currency(topDesp.amount)}</div>
+          </div>
+        </div>
+        ${topPct ? `<div class="metric-card-foot">${topPct}% do total de despesas</div>` : ''}
+        ` : `<div class="metric-card-empty">Sem despesas no mês</div>`}
+      </div>`;
     })()}
+  </div>
 
 </div>
 
+<!-- Coach inline (banner) -->
 <div class="coach-inline-card coach-inline--${coachInsight.tone} mb-6" id="coachInlineCard">
   <div class="coach-inline-avatar">
     <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
@@ -926,63 +961,98 @@ ${(() => {
   <button class="coach-inline-cta" id="btnCoachInlineVer">Ver análise →</button>
 </div>
 
+<!-- Charts grid 2 col: Distribuição + Receitas por Pessoa -->
+<div class="dash-section-tag mb-2">DISTRIBUIÇÃO · ${Utils.monthsFull[month-1].toUpperCase()} ${year}</div>
 <div class="chart-grid mb-6">
-  <div class="card">
-    <div class="card-header"><span class="card-title">Distribuição de Despesas</span><span class="badge badge-red">${Utils.monthsFull[month-1]}</span></div>
-    <div class="chart-with-legend">
-      <canvas id="chartDonut"></canvas>
-      <div class="donut-legend" id="donutLegend"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Receitas por Pessoa</span><span class="badge badge-green">${Utils.monthsFull[month-1]}</span></div>
-    <div class="chart-with-legend">
-      <canvas id="chartDonutRec"></canvas>
-      <div class="donut-legend" id="donutLegendRec"></div>
-    </div>
-  </div>
+  ${(() => {
+    // Donut SVG inline — despesas por categoria
+    const catData = topCats.map(([cat, val]) => ({
+      label: Store.CATEGORIES[cat]?.label || cat,
+      value: val,
+      color: Store.CATEGORIES[cat]?.color || 'var(--text-3)',
+    }));
+    const totalCat = catData.reduce((a,d) => a+d.value, 0);
+    const segments = catData.map(d => ({ v: d.value, c: d.color }));
+    return `<div class="card dash-dist-card">
+      <div class="dash-card-head">
+        <span class="dash-card-title">DISTRIBUIÇÃO DE DESPESAS</span>
+        <span class="dash-card-pill" style="background:var(--red-dim);color:var(--red)">${Utils.monthsFull[month-1]}</span>
+      </div>
+      ${catData.length ? `
+      <div class="dash-dist-body">
+        ${SvgCharts.donut(segments, { size: 128, thickness: 17, topText: totalCat >= 1000 ? `R$ ${(totalCat/1000).toFixed(0)}k` : `R$ ${totalCat.toFixed(0)}`, botText: 'despesas' })}
+        <div class="dash-dist-legend">
+          ${catData.map(d => `
+            <div class="dash-dist-legend-item">
+              <span class="dash-dist-dot" style="background:${d.color}"></span>
+              <span class="dash-dist-lbl">${d.label}</span>
+              <span class="dash-dist-val">${d.value >= 1000 ? 'R$ ' + (d.value/1000).toFixed(1) + 'k' : Utils.currency(d.value)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : `<div style="padding:32px 0;text-align:center;color:var(--text-3);font-size:13px">Sem despesas no mês</div>`}
+    </div>`;
+  })()}
+
+  ${(() => {
+    // LineChart SVG inline — receitas por pessoa (ano)
+    const pessoas = (Store.PESSOAS || []);
+    const PERSON_COLORS = ['var(--accent)', 'var(--green)', 'var(--amber)', 'var(--blue)', 'var(--pink)'];
+    const series = pessoas.map((p, i) => {
+      const data = [];
+      for (let m = 1; m <= month; m++) {
+        const recs = Store.receitasByMonth(m, year).filter(r => r.person === p);
+        data.push(recs.reduce((a,r) => a + r.amount, 0));
+      }
+      return { name: p, c: PERSON_COLORS[i % PERSON_COLORS.length], data };
+    }).filter(s => s.data.some(v => v > 0));
+    const labels = Utils.months.slice(0, month);
+    return `<div class="card dash-dist-card">
+      <div class="dash-card-head">
+        <span class="dash-card-title">RECEITAS POR PESSOA · ${year}</span>
+        <span class="dash-card-pill" style="background:var(--green-dim);color:var(--green)">Mensal</span>
+      </div>
+      ${series.length ? `
+      <div style="padding:8px 0">
+        ${SvgCharts.lineChart(series, labels, { width: 380, height: 140 })}
+      </div>
+      <div class="dash-dist-pessoa-legend">
+        ${series.map(s => `
+          <div class="dash-dist-legend-item" style="flex:0 0 auto">
+            <span class="dash-dist-dot" style="background:${s.c};border-radius:50%;width:7px;height:7px"></span>
+            <span class="dash-dist-lbl">${s.name}</span>
+          </div>
+        `).join('')}
+      </div>
+      ` : `<div style="padding:32px 0;text-align:center;color:var(--text-3);font-size:13px">Sem receitas registradas no ano</div>`}
+    </div>`;
+  })()}
 </div>
 
-<!-- ═══ SEÇÃO 2: VISÃO ANUAL ══════════════════════════════════════ -->
-<div class="dash-section-divider">
-  <span>Visão Anual — ${year}</span>
-</div>
-
-<div class="kpi-grid mb-6" style="grid-template-columns:repeat(3,1fr)">
-  <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body">
-      <div class="kpi-label">Receita Total ${year}</div>
-      <div class="kpi-value green">${Utils.currency(totalRec)}</div>
-      <div class="kpi-sub">Média: ${Utils.currency(mediaRec)}/mês</div>
+<!-- ═══ VISÃO ANUAL ═══════════════════════════════════════════════ -->
+<div class="dash-section-tag mb-2">VISÃO ANUAL — ${year}</div>
+<div class="dash-annual-grid mb-6">
+  <div class="annual-card">
+    <span class="annual-card-label">Receita Total ${year}</span>
+    <div class="annual-card-value" style="color:var(--green)">${Utils.currency(totalRec)}</div>
+    <div class="annual-card-progress">
+      <div class="annual-card-progress-bar"><div style="width:${Math.min((mediaRec*month)/(totalRec||1)*100,100)}%;background:var(--green)"></div></div>
+      <div class="annual-card-progress-cap">Média: ${Utils.currency(mediaRec)}/mês · ${month} de 12 meses</div>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body">
-      <div class="kpi-label">Despesa Total ${year}</div>
-      <div class="kpi-value red">${Utils.currency(totalDesp)}</div>
-      <div class="kpi-sub">Média: ${Utils.currency(mediaDesp)}/mês</div>
+  <div class="annual-card">
+    <span class="annual-card-label">Despesa Total ${year}</span>
+    <div class="annual-card-value" style="color:var(--red)">${Utils.currency(totalDesp)}</div>
+    <div class="annual-card-progress">
+      <div class="annual-card-progress-bar"><div style="width:${Math.min((mediaDesp*month)/(totalDesp||1)*100,100)}%;background:var(--red)"></div></div>
+      <div class="annual-card-progress-cap">Média: ${Utils.currency(mediaDesp)}/mês · ${month} de 12 meses</div>
     </div>
   </div>
-  <div class="kpi-card" style="--kpi-color:${totalSaldo>=0?'var(--accent)':'var(--red)'};--kpi-bg:${totalSaldo>=0?'var(--accent-dim)':'var(--red-dim)'}">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body">
-      <div class="kpi-label">Saldo do Ano</div>
-      <div class="kpi-value ${totalSaldo>=0?'accent':'red'}">${Utils.currency(Math.abs(totalSaldo))}</div>
-      <div class="kpi-sub">${totalSaldo>=0?'Sobrou no ano':'Déficit no ano'}</div>
-    </div>
-  </div>
-</div>
-
-<div class="chart-grid mb-6">
-  <div class="card">
-    <div class="card-header"><span class="card-title">Receitas vs Despesas ${year}</span><span class="badge badge-accent">Anual</span></div>
-    <div class="chart-wrap"><canvas id="chartAnual" class="chart-canvas"></canvas></div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Saldo Acumulado ${year}</span></div>
-    <div class="chart-wrap"><canvas id="chartSaldo" class="chart-canvas"></canvas></div>
+  <div class="annual-card">
+    <span class="annual-card-label">Saldo do Ano</span>
+    <div class="annual-card-value" style="color:${totalSaldo>=0?'var(--accent-2)':'var(--red)'}">${totalSaldo<0?'-':''}${Utils.currency(Math.abs(totalSaldo))}</div>
+    <div class="annual-card-progress-cap" style="margin-top:6px">${totalSaldo>=0?'Sobrou no ano':'Déficit acumulado'}</div>
   </div>
 </div>
 
@@ -1044,79 +1114,26 @@ ${renderPrevisaoCaixa(saldo)}
 </div>
     `;
 
-    // Render charts after DOM is ready
+    // Event handlers (charts já renderizados inline via SvgCharts)
     requestAnimationFrame(() => {
-      // Donut despesas por categoria
-      const donutData = topCats.map(([cat, val], i) => ({
-        label: Store.CATEGORIES[cat]?.label || cat,
-        value: val,
-        color: Store.CATEGORIES[cat]?.color || Charts.PALETTE[i],
-      }));
-      Charts.Donut(document.getElementById('chartDonut'), donutData, {
-        size: 170, centerLabel: Charts.fmt(despesa, true), centerSub: 'total',
-      });
-      const totalD = donutData.reduce((a,d) => a+d.value, 0) || 1;
-      document.getElementById('donutLegend').innerHTML = donutData.map(d => `
-        <div class="donut-legend-item">
-          <div class="donut-legend-dot" style="background:${d.color}"></div>
-          <span class="donut-legend-label">${d.label}</span>
-          <span class="donut-legend-pct">${((d.value/totalD)*100).toFixed(0)}%</span>
-          <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
-        </div>`).join('');
-
-      // Donut receitas por pessoa
-      const recDonutData = Object.entries(recsByPerson).map(([p, v], i) => ({
-        label: p, value: v, color: Utils.personColor(p),
-      }));
-      const totalR = recDonutData.reduce((a,d) => a+d.value, 0) || 1;
-      if (recDonutData.length) {
-        Charts.Donut(document.getElementById('chartDonutRec'), recDonutData, {
-          size: 170, centerLabel: Charts.fmt(totalR, true), centerSub: 'total',
-        });
-        document.getElementById('donutLegendRec').innerHTML = recDonutData.map(d => `
-          <div class="donut-legend-item">
-            <div class="donut-legend-dot" style="background:${d.color}"></div>
-            <span class="donut-legend-label">${d.label}</span>
-            <span class="donut-legend-pct">${((d.value/totalR)*100).toFixed(0)}%</span>
-            <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
-          </div>`).join('');
-      }
-
-      // Bar anual
-      Charts.Bar(document.getElementById('chartAnual'), {
-        labels: Utils.months,
-        datasets: [
-          { label: 'Receitas', values: yrReceitas, color: '#22C55E' },
-          { label: 'Despesas', values: yrDespesas, color: '#EF4444' },
-        ]
-      }, { height: 165 });
-
-      // Saldo acumulado line
-      Charts.Line(document.getElementById('chartSaldo'), {
-        labels: Utils.months,
-        datasets: [{ label: 'Saldo', values: saldoAcc, color: '#7C6EF8' }],
-      }, { height: 150 });
-
       // Coach inline — abre painel ao clicar em "Ver análise"
       document.getElementById('btnCoachInlineVer')?.addEventListener('click', () => {
         document.getElementById('coachToggleBtn')?.click();
       });
 
-      // Continuar / Começar onboarding — reabre o wizard atual (Fase 1)
-      // Quando Fase 2 entregar a janela do Coach full-screen, este handler
-      // chamará showCoachOnboarding() em vez de showOnboarding().
+      // Continuar / Começar onboarding
       document.getElementById('btnContinuarOnboarding')?.addEventListener('click', () => {
         if (typeof showOnboarding === 'function') showOnboarding();
       });
 
-      // Previsão de caixa 30 dias
+      // Previsão de caixa 30 dias (mantém Canvas existente)
       const pcCanvas = document.getElementById('chartPrevisaoCaixa');
       if (pcCanvas) {
         const { days } = buildPrevisaoCaixa(saldo);
         const pcLabels = days.map((d, i) => i % 7 === 0 ? `${d.date.getDate()}/${d.date.getMonth()+1}` : '');
         const pcValues = days.map(d => d.balance);
         const minVal = Math.min(...pcValues);
-        const lineColor = minVal < 0 ? '#EF4444' : '#22C55E';
+        const lineColor = minVal < 0 ? 'var(--red)' : 'var(--green)';
         Charts.Line(pcCanvas, {
           labels: pcLabels,
           datasets: [{ label: 'Saldo Projetado', values: pcValues, color: lineColor }],
