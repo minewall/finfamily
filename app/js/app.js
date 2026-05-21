@@ -5592,6 +5592,80 @@ ${topCats.length ? `
     renderContas(container, 'cartoes');
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // SIMULADOR — wrapper que unifica Investimentos + Simulações
+  // sub-nav: INVESTIR (renderInvestimentos) · OBJETIVOS · DÍVIDAS
+  // (redesign 2026-05 — backlog project_backlog_unify_simulador.md)
+  // ══════════════════════════════════════════════════════════════
+  function renderSimulador(container) {
+    const BUCKET_KEY = 'ff_sim_bucket';
+    const bucket = localStorage.getItem(BUCKET_KEY) || 'investir';
+
+    // Buckets que controlam quais sub-abas de Simulações aparecem
+    const BUCKETS = {
+      investir: { label: 'Investir', desc: 'portfólio, evolução patrimonial e comparativo de produtos' },
+      objetivos: { label: 'Objetivos', desc: 'viagem, reserva, metas, FIRE — calculadoras orientadas a objetivos' },
+      dividas: { label: 'Dívidas', desc: 'amortização de empréstimos e financiamentos' },
+    };
+    const cur = BUCKETS[bucket] || BUCKETS.investir;
+
+    container.innerHTML = `
+<div class="page-head mb-4">
+  <div>
+    <h1 class="page-head-title">Simulador <span class="page-head-year">— ${cur.label}</span></h1>
+    <p class="page-head-meta">
+      <span style="color:var(--text-3)">${cur.desc}</span>
+    </p>
+  </div>
+</div>
+
+<div class="view-tabs mb-4">
+  <button class="view-tab view-tab--green ${bucket==='investir'?'active':''}" data-bucket="investir">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    Investir
+  </button>
+  <button class="view-tab view-tab--violet ${bucket==='objetivos'?'active':''}" data-bucket="objetivos">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    Objetivos
+  </button>
+  <button class="view-tab view-tab--red ${bucket==='dividas'?'active':''}" data-bucket="dividas">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+    Dívidas
+  </button>
+</div>
+
+<div id="simBucketContent"></div>`;
+
+    // Bind tabs
+    container.querySelectorAll('[data-bucket]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        localStorage.setItem(BUCKET_KEY, btn.dataset.bucket);
+        renderSimulador(container);
+      });
+    });
+
+    // Renderiza conteúdo do bucket no modo embed (sem page-head próprio)
+    const child = container.querySelector('#simBucketContent');
+    window._simEmbedded = true;
+    try {
+      if (bucket === 'investir') {
+        renderInvestimentos(child);
+      } else if (bucket === 'objetivos') {
+        window._simBucketFilter = ['viagem', 'reserva', 'compra', 'juros', 'fire', 'meta'];
+        renderSimulacoes(child);
+      } else if (bucket === 'dividas') {
+        window._simBucketFilter = ['amortizacao'];
+        renderSimulacoes(child);
+      }
+    } finally {
+      // Limpa flags (mas pode ter side-effect async pendente — aceitável)
+      setTimeout(() => {
+        window._simEmbedded = false;
+        window._simBucketFilter = null;
+      }, 100);
+    }
+  }
+
   // ── INVESTIMENTOS (aba dedicada — comparador + curva patrimonial) ─
   async function renderInvestimentos(container) {
     const data    = Store.get();
@@ -5637,8 +5711,9 @@ ${topCats.length ? `
     }
     const saldoMedio = mesesUsados ? Math.max(0, Math.round(saldoSomado / mesesUsados)) : 500;
 
+    const _embed = window._simEmbedded;
     container.innerHTML = `
-<div class="page-head mb-4">
+${_embed ? '' : `<div class="page-head mb-4">
   <div>
     <h1 class="page-head-title">Investimentos</h1>
     <p class="page-head-meta">
@@ -5650,7 +5725,7 @@ ${topCats.length ? `
     </p>
   </div>
   <button class="btn-secondary" onclick="Router.navigate('patrimonio')" style="white-space:nowrap">${icon('bar-chart-2',{size:14})} Reserva & Patrimônio</button>
-</div>
+</div>`}
 
 <!-- 4 KPIs — Figma spec -->
 <div class="kpi-grid mb-6" style="grid-template-columns:repeat(4,1fr)">
@@ -6707,8 +6782,22 @@ ${fins.length === 0
     const saldo  = Store.sumReceitas(getMonth(), getYear()) - Store.sumDespesas(getMonth(), getYear());
     const patrimonio = Store.totalAtivos();
 
+    const _embed = window._simEmbedded;
+    const _filter = window._simBucketFilter || null;
+    const _allTabs = [
+      { k: 'viagem',      label: 'Viagem' },
+      { k: 'reserva',     label: 'Reserva Emergência' },
+      { k: 'compra',      label: 'Compra: à vista vs parcelado' },
+      { k: 'juros',       label: 'Juros Compostos' },
+      { k: 'amortizacao', label: 'Amortização SAC' },
+      { k: 'fire',        label: 'FIRE / Independência' },
+      { k: 'meta',        label: 'Simulador de Meta' },
+    ];
+    const _tabs = _filter ? _allTabs.filter(t => _filter.includes(t.k)) : _allTabs;
+    const _firstTab = _tabs[0]?.k || 'viagem';
+
     container.innerHTML = `
-<div class="page-head mb-4">
+${_embed ? '' : `<div class="page-head mb-4">
   <div>
     <h1 class="page-head-title">Simulações</h1>
     <p class="page-head-meta">
@@ -6717,22 +6806,16 @@ ${fins.length === 0
       <span style="color:var(--text-3)">baseado nos seus dados reais</span>
     </p>
   </div>
-</div>
+</div>`}
 
 <!-- HEADER DE TAXAS (BCB) -->
 <div class="rates-strip card mb-6" id="ratesStrip">
   <div class="rates-loading" style="padding:14px;font-size:12px;color:var(--text-3)">Carregando taxas de referência…</div>
 </div>
 
-<!-- TABS -->
+<!-- TABS (filtradas se embeddado em renderSimulador) -->
 <div class="tabs mb-6" id="simTabs">
-  <button class="tab active" data-sim="viagem">Viagem</button>
-  <button class="tab" data-sim="reserva">Reserva Emergência</button>
-  <button class="tab" data-sim="compra">Compra: à vista vs parcelado</button>
-  <button class="tab" data-sim="juros">Juros Compostos</button>
-  <button class="tab" data-sim="amortizacao">Amortização SAC</button>
-  <button class="tab" data-sim="fire">FIRE / Independência</button>
-  <button class="tab" data-sim="meta">Simulador de Meta</button>
+  ${_tabs.map((t, i) => `<button class="tab${i === 0 ? ' active' : ''}" data-sim="${t.k}">${t.label}</button>`).join('')}
 </div>
 
 <div id="simContent"></div>`;
@@ -7651,7 +7734,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     }
 
     const renders = { viagem: renderViagem, reserva: renderReserva2, compra: renderCompra, juros: renderJuros, amortizacao: renderAmortizacao, fire: renderFIRE, meta: renderMetaSim };
-    renderViagem();
+    renders[_firstTab]?.();
 
     container.querySelector('#simTabs').addEventListener('click', e => {
       const btn = e.target.closest('[data-sim]');
@@ -9733,6 +9816,7 @@ ${isConnected && isAdmin ? `
     Router.register('investimentos', renderInvestimentos);
     Router.register('financiamentos', renderFinanciamentos);
     Router.register('simulacoes',    renderSimulacoes);
+    Router.register('simulador',     renderSimulador); // wrapper redesign 2026-05
     Router.register('patrimonio',    renderPatrimonio);
     Router.register('comparativo',   renderComparativo);
     Router.register('recados',       renderRecados);
