@@ -53,38 +53,53 @@
     a { text-decoration: none; font: inherit; }
     button { font: inherit; cursor: pointer; border: 0; }
 
-    /* ── nav ─────────────────────────────────────────────────────── */
+        /* ── nav unificado ───────────────────────────────────────────── */
     .site-nav {
       position: fixed; inset: 0 0 auto 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between; gap: 24px;
-      padding: 20px clamp(24px, 6vw, 96px);
-      background: rgba(15,16,32,0.92);
-      backdrop-filter: blur(22px);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+      padding: 18px clamp(20px, 5vw, 80px);
+      transition: background 0.35s, box-shadow 0.35s;
     }
-    .logo { height: 26px; }
-    .nav-back { color: rgba(255,255,255,0.55); font-size: 14px; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
-    .nav-back:hover { color: var(--white); }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
-    .btn-dark-nav {
-      border: 0; border-radius: 999px; cursor: pointer;
-      padding: 12px 20px; font-weight: 700; font-size: 14px;
-      background: var(--white); color: var(--ink);
-      text-decoration: none; display: inline-flex;
-      transition: transform 0.2s;
-      white-space: nowrap;
+    .site-nav .logo-w { display: block; height: 26px; }
+    .site-nav .logo-d { display: none;  height: 26px; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a {
+      color: rgba(255,255,255,0.72); font-size: 14px; font-weight: 500;
+      text-decoration: none; transition: color 0.2s;
     }
-    .btn-dark-nav:hover { transform: translateY(-2px); }
-    .btn-ghost-nav {
-      border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; cursor: pointer;
-      padding: 12px 20px; font-weight: 700; font-size: 14px;
-      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.88);
-      text-decoration: none; display: inline-flex;
+    .nav-links a:hover { color: #fff; }
+    .nav-links a.active { color: #fff; font-weight: 700; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost {
+      padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      text-decoration: none; display: inline-flex; white-space: nowrap; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.9);
       transition: background 0.2s, border-color 0.2s;
-      white-space: nowrap;
     }
-    .btn-ghost-nav:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.34); }
-
+    .btn-nav-ghost:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.36); }
+    .btn-nav-solid {
+      padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      text-decoration: none; display: inline-flex; white-space: nowrap; cursor: pointer;
+      border: 0; background: #fff; color: #0f1020;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-nav-solid:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.14); }
+    /* light state — aparece ao rolar */
+    .site-nav.light {
+      background: rgba(250,249,246,0.96);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 rgba(15,16,32,0.08);
+    }
+    .site-nav.light .logo-w { display: none; }
+    .site-nav.light .logo-d { display: block; }
+    .site-nav.light .nav-links a { color: rgba(15,16,32,0.60); }
+    .site-nav.light .nav-links a:hover { color: #0f1020; }
+    .site-nav.light .nav-links a.active { color: var(--violet); font-weight: 700; }
+    .site-nav.light .btn-nav-ghost { border-color: #dddaf2; background: transparent; color: #0f1020; }
+    .site-nav.light .btn-nav-ghost:hover { background: #f0effe; border-color: #c5c0e8; }
+    .site-nav.light .btn-nav-solid { background: #0f1020; color: #fff; box-shadow: 0 4px 16px rgba(15,16,32,0.18); }
+    @media (max-width: 640px) { .nav-links { display: none; } }
     /* ── page layout ─────────────────────────────────────────────── */
     .contact-page {
       min-height: 100vh;
@@ -301,17 +316,20 @@
 <body>
 
   <!-- nav -->
-  <header class="site-nav" id="site-nav">
-    <img class="logo" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
-    <nav style="display:flex;gap:32px">
-      <a href="index.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Produto</a>
-      <a href="como-funciona.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Como funciona</a>
-      <a href="precos.html" style="color:rgba(255,255,255,0.62);font-size:14px;text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.62)'">Planos</a>
-      <a href="contato.html" style="color:#fff;font-size:14px;text-decoration:none">Contato</a>
+    <header class="site-nav" id="site-nav">
+    <a href="index.html" style="display:inline-flex" aria-label="Haile">
+      <img class="logo-w" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+      <img class="logo-d" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
+    </a>
+    <nav class="nav-links">
+      <a href="index.html">Produto</a>
+      <a href="como-funciona.html">Como funciona</a>
+      <a href="precos.html">Planos</a>
+      <a href="contato.html" class="active">Contato</a>
     </nav>
     <div class="nav-right">
-      <a href="login.html" class="btn-ghost-nav">Entrar</a>
-      <a href="contato.html" class="btn-dark-nav">Começar grátis</a>
+      <a href="login.html" class="btn-nav-ghost">Entrar</a>
+      <a href="contato.html" class="btn-nav-solid">Começar grátis</a>
     </div>
   </header>
 
@@ -477,5 +495,13 @@
     });
   </script>
 
+  <script>
+    (function () {
+      var nav = document.getElementById('site-nav');
+      function tick() { nav.classList.toggle('light', window.scrollY > 60); }
+      window.addEventListener('scroll', tick, { passive: true });
+      tick();
+    }());
+  </script>
 </body>
 </html>

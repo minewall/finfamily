@@ -47,69 +47,51 @@
     button, a { font: inherit; color: inherit; }
     img { display: block; max-width: 100%; }
 
-    /* ─── nav (transparent on dark hero, light after) ─────────── */
-    .nav {
-      position: sticky; top: 0; z-index: 80;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 24px;
-      padding: 18px clamp(20px, 4vw, 56px);
-      background: transparent;
-      transition: background 0.3s, border-color 0.3s;
+        /* ── nav unificado ───────────────────────────────────────────── */
+    .site-nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      padding: 18px clamp(20px, 5vw, 80px);
+      transition: background 0.35s, box-shadow 0.35s;
     }
-    .nav .nav-logo.light { display: none; }
-    .nav .nav-logo.dark  { display: block; }
-    .nav .nav-menu a { color: rgba(255,255,255,0.78); }
-    .nav .nav-menu a:hover, .nav .nav-menu a.active { color: #fff; }
-    .nav .nav-menu a.active { font-weight: 700; }
-    .nav .btn.primary { background: #fff; color: var(--ink); }
-    .nav .btn.ghost { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.18); }
-    .nav .btn.ghost:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); }
-    .nav.scrolled {
-      background: rgba(15,16,32,0.78);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+    .site-nav .logo-w { display: block; height: 26px; }
+    .site-nav .logo-d { display: none;  height: 26px; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a {
+      color: rgba(255,255,255,0.72); font-size: 14px; font-weight: 500;
+      text-decoration: none; transition: color 0.2s;
     }
-    .nav.light {
-      background: rgba(250,249,246,0.92);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border-bottom: 1px solid var(--line);
+    .nav-links a:hover { color: #fff; }
+    .nav-links a.active { color: #fff; font-weight: 700; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav-ghost {
+      padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      text-decoration: none; display: inline-flex; white-space: nowrap; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.9); transition: background 0.2s, border-color 0.2s;
     }
-    .nav.light .nav-logo.light { display: block; }
-    .nav.light .nav-logo.dark  { display: none; }
-    .nav.light .nav-menu a { color: var(--ink); opacity: 0.78; }
-    .nav.light .nav-menu a:hover { opacity: 1; color: var(--violet-2); }
-    .nav.light .nav-menu a.active { color: var(--violet-2); opacity: 1; }
-    .nav.light .btn.primary { background: var(--ink); color: #fff; }
-    .nav.light .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-    .nav.light .btn.ghost:hover { background: #fff; border-color: #cdc9eb; }
-
-    .nav-left { display: flex; align-items: center; gap: 36px; }
-    .nav-logo { height: 26px; }
-    .nav-menu { display: flex; gap: 28px; font-size: 14px; font-weight: 500; }
-    .nav-menu a { text-decoration: none; transition: color 0.2s, opacity 0.2s; }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
-
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      border: 0; border-radius: 999px; cursor: pointer;
-      padding: 13px 22px;
-      font-size: 14px; font-weight: 700;
-      text-decoration: none;
-      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
-      white-space: nowrap;
+    .btn-nav-ghost:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.36); }
+    .btn-nav-solid {
+      padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      text-decoration: none; display: inline-flex; white-space: nowrap; cursor: pointer;
+      border: 0; background: #fff; color: #0f1020;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn:hover { transform: translateY(-1px); }
-    .btn.primary { box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
-    .btn.violet { background: var(--violet); color: #fff; box-shadow: 0 8px 24px rgba(115,103,240,0.32); }
-    .btn.violet:hover { background: var(--violet-2); }
-    .btn.outline {
-      background: transparent;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.24);
+    .btn-nav-solid:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.14); }
+    .site-nav.light {
+      background: rgba(250,249,246,0.96);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 rgba(15,16,32,0.08);
     }
-    .btn.outline:hover { background: rgba(255,255,255,0.06); }
-    .btn.lg { padding: 15px 26px; font-size: 15px; }
+    .site-nav.light .logo-w { display: none; }
+    .site-nav.light .logo-d { display: block; }
+    .site-nav.light .nav-links a { color: rgba(15,16,32,0.60); }
+    .site-nav.light .nav-links a:hover { color: #0f1020; }
+    .site-nav.light .nav-links a.active { color: var(--violet); font-weight: 700; }
+    .site-nav.light .btn-nav-ghost { border-color: #dddaf2; background: transparent; color: #0f1020; }
+    .site-nav.light .btn-nav-ghost:hover { background: #f0effe; border-color: #c5c0e8; }
+    .site-nav.light .btn-nav-solid { background: #0f1020; color: #fff; box-shadow: 0 4px 16px rgba(15,16,32,0.18); }
+    @media (max-width: 640px) { .nav-links { display: none; } }
 
     .wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px); }
 
@@ -125,7 +107,6 @@
       background: var(--ink);
       color: #fff;
       padding: clamp(40px, 8vw, 100px) 0 clamp(80px, 10vw, 140px);
-      margin-top: -68px;
       padding-top: 100px;
       position: relative;
       overflow: hidden;
@@ -785,22 +766,20 @@
 <body>
 
   <!-- ───────── NAV ───────── -->
-  <header class="nav" id="nav">
-    <div class="nav-left">
-      <a href="index.html">
-        <img class="nav-logo dark" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
-        <img class="nav-logo light" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
-      </a>
-      <nav class="nav-menu">
-        <a href="index.html">Produto</a>
-        <a href="como-funciona.html" class="active">Como funciona</a>
-        <a href="precos.html">Planos</a>
-        <a href="contato.html">Contato</a>
-      </nav>
-    </div>
+    <header class="site-nav" id="site-nav">
+    <a href="index.html" style="display:inline-flex" aria-label="Haile">
+      <img class="logo-w" src="assets/svg/haile-wordmark-white.svg" alt="Haile" />
+      <img class="logo-d" src="assets/svg/haile-wordmark-indigo-deep.svg" alt="Haile" />
+    </a>
+    <nav class="nav-links">
+      <a href="index.html">Produto</a>
+      <a href="como-funciona.html" class="active">Como funciona</a>
+      <a href="precos.html">Planos</a>
+      <a href="contato.html">Contato</a>
+    </nav>
     <div class="nav-right">
-      <a href="login.html" class="btn ghost">Entrar</a>
-      <a href="contato.html" class="btn primary">Começar grátis</a>
+      <a href="login.html" class="btn-nav-ghost">Entrar</a>
+      <a href="contato.html" class="btn-nav-solid">Começar grátis</a>
     </div>
   </header>
 
@@ -1204,21 +1183,6 @@
   </footer>
 
   <script>
-    // nav: transparent on dark hero, light after
-    const nav = document.getElementById('nav');
-    const hero = document.getElementById('hero');
-
-    function updateNav() {
-      const heroBottom = hero.getBoundingClientRect().bottom;
-      const pastHero = heroBottom <= 60;
-      const scrolled = window.scrollY > 24;
-      nav.classList.toggle('light', pastHero);
-      nav.classList.toggle('scrolled', scrolled && !pastHero);
-    }
-    window.addEventListener('scroll', updateNav, { passive: true });
-    window.addEventListener('resize', updateNav, { passive: true });
-    updateNav();
-
     // reveal
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => {
@@ -1228,5 +1192,13 @@
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   </script>
 
+  <script>
+    (function () {
+      var nav = document.getElementById('site-nav');
+      function tick() { nav.classList.toggle('light', window.scrollY > 60); }
+      window.addEventListener('scroll', tick, { passive: true });
+      tick();
+    }());
+  </script>
 </body>
 </html>
