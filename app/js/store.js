@@ -1962,6 +1962,44 @@ const Store = (function () {
     return _data;
   }
 
+  /**
+   * Limpa TODOS os dados do usuário (zera todas as listas), mantendo
+   * apenas settings, pessoas, perfil e estrutura básica.
+   * Diferente de resetData() que recarrega o seed de exemplo.
+   */
+  function clearAll() {
+    const keep = {
+      profile:       _data.profile,
+      settings:      _data.settings,
+      pessoas:       _data.pessoas,
+      onboarding:    _data.onboarding,
+      // Estrutura de categorias customizadas pelo usuário
+      categories:    _data.categories,
+      subcategorias: _data.subcategorias,
+      tipos:         _data.tipos,
+      cat_tipo:      _data.cat_tipo,
+      sub_tipo:      _data.sub_tipo,
+    };
+    _data = {
+      ...keep,
+      // Limpa tudo o que é dado transacional
+      receitas:           [],
+      despesas:           [],
+      contas:             [],
+      cartoes:            [],
+      contratos:          [],
+      metas:              [],
+      ativos:             [],
+      reservas:           [],
+      tributos:           [],
+      recebimentosFuturos:[],
+      recados:            [],
+      lancamentos:        [],
+    };
+    persist();
+    return _data;
+  }
+
   function getProximasParcelas(daysAhead = 30) {
     _ensureContratos();
     const today = new Date(); today.setHours(0,0,0,0);
@@ -2301,7 +2339,7 @@ const Store = (function () {
     getTipos, getTipoById, addTipo, updateTipo, deleteTipo,
     getCatTipo, setCatTipo, getDespesaTipo, calcPoderDeEscolha,
     getMetaPerformance, snapshotReserva, getActiveMetaReceitaMensal, getActiveLimiteDespMensal,
-    exportData, importData, resetData,
+    exportData, importData, resetData, clearAll,
     getProximasParcelas,
     getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,

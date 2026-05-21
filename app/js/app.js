@@ -10507,11 +10507,17 @@ ${isConnected && isAdmin ? `
   ${Object.entries(counts).map(([k,v]) => `<div class="stat-row"><span class="stat-row-label">${k}</span><span class="stat-row-value">${v}</span></div>`).join('')}
 </div>
 <div class="card">
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn-primary"   id="btnDoExport">⬇ Exportar JSON</button>
-    <button class="btn-secondary" id="btnDoImport">⬆ Importar JSON</button>
-    <button class="btn-secondary" id="btnDoReset" style="margin-left:auto;color:var(--red)">↺ Reset (seed)</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+    <button class="btn-primary"   id="btnDoExport">${icon('download', {size:13})} Exportar JSON</button>
+    <button class="btn-secondary" id="btnDoImport">${icon('upload', {size:13})} Importar JSON</button>
+    <div style="flex:1"></div>
+    <button class="btn-secondary" id="btnDoSeed">${icon('rotate-ccw', {size:13})} Restaurar exemplo</button>
+    <button class="btn-secondary" id="btnDoClear" style="color:var(--red);border-color:rgba(255,74,104,0.3)">${icon('trash-2', {size:13})} Limpar tudo</button>
     <input type="file" id="fileDoImport" accept="application/json" style="display:none"/>
+  </div>
+  <div style="margin-top:10px;font-size:11px;color:var(--text-3);line-height:1.5">
+    <strong style="color:var(--text-2)">Restaurar exemplo:</strong> apaga seus dados e carrega o conjunto de demonstração pré-cadastrado.<br>
+    <strong style="color:var(--red)">Limpar tudo:</strong> apaga seus dados completamente — sem dados de exemplo. Útil para começar do zero.
   </div>
 </div>`;
     document.getElementById('btnDoExport').addEventListener('click', _doExportBackup);
@@ -10520,10 +10526,17 @@ ${isConnected && isAdmin ? `
       _doImportBackup(e.target.files?.[0]);
       e.target.value = '';
     });
-    document.getElementById('btnDoReset').addEventListener('click', () => {
-      if (!confirm('Apagar TODOS os dados e voltar ao seed inicial?')) return;
+    document.getElementById('btnDoSeed').addEventListener('click', () => {
+      if (!confirm('Apagar seus dados e carregar o conjunto de demonstração pré-cadastrado?')) return;
       Store.resetData();
-      toast('Dados resetados — recarregando…', 'success');
+      toast('Dados de exemplo restaurados — recarregando…', 'success');
+      setTimeout(() => location.reload(), 600);
+    });
+    document.getElementById('btnDoClear').addEventListener('click', () => {
+      if (!confirm('⚠ Apagar TODOS os dados? Esta ação não pode ser desfeita.')) return;
+      if (!confirm('Tem certeza? Você vai começar do zero, sem dados de exemplo.')) return;
+      Store.clearAll();
+      toast('Todos os dados foram apagados — recarregando…', 'success');
       setTimeout(() => location.reload(), 600);
     });
   }
