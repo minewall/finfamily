@@ -3461,7 +3461,7 @@ ${contratos.length === 0 ? `
               : p.date < today && p.paid === false ? 'var(--red)'
               : p.date <= today ? 'var(--amber)'
               : 'var(--border)';
-            return `<span title="${new Date(p.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(p.amount)}" style="flex:1;min-width:5px;height:7px;border-radius:2px;background:${color}"></span>`;
+            return `<span title="${new Date(p.date+'T12:00:00').toLocaleDateString('pt-BR')} · ${Utils.currency(p.amount)}" style="flex:1 0 2px;min-width:2px;max-width:10px;height:7px;border-radius:1px;background:${color}"></span>`;
           }).join('');
           const iniStr = new Date(c.dataInicio+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
           const fimStr = c.dataFim ? new Date(c.dataFim+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) : '—';
@@ -3535,7 +3535,7 @@ ${contratos.length === 0 ? `
             <td class="num" style="font-family:var(--mono);color:var(--text-3)">${Utils.currency(perf.valorTotal)}</td>
             <td>
               <div style="font-size:11px;color:var(--text-3);margin-bottom:3px">${perf.cumpridas}/${perf.totalParcelas} · ${pctW}%</div>
-              <div style="display:flex;gap:2px;height:7px">${cells}</div>
+              <div style="display:flex;gap:1px;height:7px;overflow:hidden;max-width:180px;border-radius:2px">${cells}</div>
             </td>
             <td><span class="badge" style="background:${STATUS_COLOR[status]}20;color:${STATUS_COLOR[status]}">${STATUS_LABEL[status]}</span></td>
             <td style="white-space:nowrap">
@@ -3548,13 +3548,13 @@ ${contratos.length === 0 ? `
       </tbody>
     </table>
   </div>
-  <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-4);flex-wrap:wrap">
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--green);display:inline-block"></span>Pago</span>
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--amber);display:inline-block"></span>Vencido (auto)</span>
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--red);display:inline-block"></span>Atrasado</span>
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--border);display:inline-block"></span>Futuro</span>
-    <span style="margin-left:auto">✓ = marcar todas as parcelas passadas como pagas</span>
-  </div>
+</div>
+<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--text-4);flex-wrap:wrap;padding:0 2px">
+  <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--green);display:inline-block"></span>Pago</span>
+  <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--amber);display:inline-block"></span>Vencido (auto)</span>
+  <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--red);display:inline-block"></span>Atrasado</span>
+  <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:7px;border-radius:2px;background:var(--border);display:inline-block"></span>Futuro</span>
+  <span style="margin-left:auto;display:flex;align-items:center;gap:6px">${icon('check-check',{size:12})} marcar todas as parcelas passadas como pagas</span>
 </div>`}`;
 
     if (!container.dataset.contratosBound) {
