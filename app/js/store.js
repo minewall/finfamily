@@ -406,6 +406,15 @@ const Store = (function () {
   // "Corretora" cobre brokers (XP, BTG, Avenue) — distinto de banco regular.
   const ACCOUNT_TYPES = ['Corrente','Poupança','Salário','Corretora'];
 
+  // Tipos de cartão — usado pra saber se gera fatura (Crédito/Múltiplo em
+  // modo crédito) ou é pagamento imediato (Débito/Pré-pago).
+  const CARD_TYPES = [
+    { id: 'credito',  label: 'Crédito',   geraFatura: true,  desc: 'Gera fatura mensal — paga no vencimento' },
+    { id: 'debito',   label: 'Débito',    geraFatura: false, desc: 'Desconta direto da conta' },
+    { id: 'prepago',  label: 'Pré-pago',  geraFatura: false, desc: 'Carrega antes de usar' },
+    { id: 'multiplo', label: 'Múltiplo',  geraFatura: true,  desc: 'Funciona como crédito ou débito' },
+  ];
+
   // ── EMPTY STATE (para novos usuários — usado em init()) ────────
   // Estrutura mínima zerada, com TODAS as flags de migração de dados
   // pessoais já marcadas como aplicadas — assim nenhuma migration que
@@ -444,6 +453,7 @@ const Store = (function () {
       __migrated_receita_subs_v2: true,
       __migrated_pay_methods: true,
       __migrated_account_types: true,
+      __migrated_card_types: true,
     };
   }
 
@@ -1029,6 +1039,20 @@ const Store = (function () {
     _data.__migrated_account_types = true;
   }
 
+  // Cartões existentes ganham tipoCartao='credito' por default —
+  // interpretação mais segura do legado (a maioria dos cartões cadastrados
+  // são de crédito). Usuário pode editar caso a caso.
+  function _migrateCardTypes() {
+    if (_data.__migrated_card_types) return;
+    if (Array.isArray(_data.cartoes)) {
+      _data.cartoes = _data.cartoes.map(c => {
+        if (c.tipoCartao) return c;
+        return { ...c, tipoCartao: 'credito' };
+      });
+    }
+    _data.__migrated_card_types = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -1123,6 +1147,7 @@ const Store = (function () {
     _migrateReceitaSubs();
     _migratePayMethods();
     _migrateAccountTypes();
+    _migrateCardTypes();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
@@ -2861,7 +2886,7 @@ const Store = (function () {
 
   return {
     init, get, persist,
-    CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
+    CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES, CARD_TYPES,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
