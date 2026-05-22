@@ -11508,7 +11508,20 @@ ${(() => {
   ${cats.map(c => {
     const pct = c.total > 0 ? Math.round((c.answered / c.total) * 100) : 0;
     const isEmpty = c.answered === 0;
-    return `<div class="icp-cat-card${isEmpty ? ' is-empty' : ''}" style="--cat-color:${c.color}">
+    const hasBank = !!ICP_QUESTIONS[c.id];
+    const ctaLabel = hasBank
+      ? (c.answered > 0 ? 'Continuar' : 'Responder')
+      : 'Em breve';
+    const cardCls = [
+      'icp-cat-card',
+      isEmpty ? 'is-empty' : '',
+      hasBank ? 'is-active' : 'is-disabled',
+    ].filter(Boolean).join(' ');
+    const dataAttr = hasBank ? `data-icp-open="${c.id}"` : '';
+    return `<div class="${cardCls}" ${dataAttr} style="--cat-color:${c.color}"
+                 role="${hasBank ? 'button' : 'group'}"
+                 tabindex="${hasBank ? '0' : '-1'}"
+                 aria-disabled="${hasBank ? 'false' : 'true'}">
       <div class="icp-cat-head">
         <div class="icp-cat-icon">${icon(c.icon, { size: 16 })}</div>
         <div class="icp-cat-pct">${c.answered}/${c.total}</div>
@@ -11517,9 +11530,10 @@ ${(() => {
       <div class="icp-cat-desc">${c.desc}</div>
       <div class="icp-cat-bar"><div style="width:${pct}%"></div></div>
       ${c.last ? `<div class="icp-cat-last">${c.last.length > 60 ? c.last.slice(0, 60) + '…' : c.last}</div>` : `<div class="icp-cat-empty">Nenhuma resposta ainda</div>`}
-      ${ICP_QUESTIONS[c.id]
-        ? `<button class="icp-cat-cta" data-icp-open="${c.id}">${c.answered > 0 ? 'Continuar' : 'Responder'}</button>`
-        : `<button class="icp-cat-cta" disabled title="Disponível em breve">Em breve</button>`}
+      <div class="icp-cat-footer">
+        <span class="icp-cat-cta-label">${ctaLabel}</span>
+        ${hasBank ? `<svg class="icp-cat-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>` : ''}
+      </div>
     </div>`;
   }).join('')}
 </div>
@@ -11575,9 +11589,15 @@ ${(() => {
       toast('Perfil salvo · ICP atualizado', 'success');
     });
 
-    // ICP — botões "Responder / Continuar" nas categorias com perguntas
-    document.querySelectorAll('[data-icp-open]').forEach(btn => {
-      btn.addEventListener('click', () => openICPModal(btn.dataset.icpOpen));
+    // ICP — clique direto no card inteiro (padrão clique direto)
+    document.querySelectorAll('[data-icp-open]').forEach(card => {
+      card.addEventListener('click', () => openICPModal(card.dataset.icpOpen));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openICPModal(card.dataset.icpOpen);
+        }
+      });
     });
 
     document.getElementById('btnRefazerOnboarding').addEventListener('click', () => {

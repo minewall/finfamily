@@ -4239,9 +4239,29 @@ tr.row-clickable:hover { background: var(--bg-hover) !important; }
   flex-direction: column;
   gap: 8px;
   position: relative;
+  transition: border-color .18s, transform .18s, box-shadow .18s;
+  outline: none;
+}
+/* Card ativo (com banco de perguntas) — clicável */
+.icp-cat-card.is-active {
+  cursor: pointer;
+}
+.icp-cat-card.is-active:hover,
+.icp-cat-card.is-active:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+}
+/* Card desabilitado ("Em breve") — sem hover, opacidade reduzida */
+.icp-cat-card.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 .icp-cat-card.is-empty {
-  opacity: 0.7;
+  opacity: 0.85;
+}
+.icp-cat-card.is-active.is-empty {
+  opacity: 1;
 }
 .icp-cat-head {
   display: flex;
@@ -4300,21 +4320,34 @@ tr.row-clickable:hover { background: var(--bg-hover) !important; }
   font-style: italic;
   min-height: 18px;
 }
-.icp-cat-cta {
+/* Footer do card: label + seta — sem botão separado (padrão clique direto) */
+.icp-cat-footer {
   margin-top: 4px;
-  background: var(--cat-color, var(--accent));
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 7px 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.icp-cat-cta-label {
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  opacity: 0.85;
-  transition: opacity .15s;
+  color: var(--accent);
+  letter-spacing: 0.01em;
 }
-.icp-cat-cta:hover:not(:disabled) { opacity: 1; }
-.icp-cat-cta:disabled { background: var(--bg-elevated); color: var(--text-4); cursor: not-allowed; opacity: 0.6; }
+.icp-cat-card.is-disabled .icp-cat-cta-label {
+  color: var(--text-4);
+}
+.icp-cat-arrow {
+  color: var(--accent);
+  flex-shrink: 0;
+  transition: transform .18s;
+}
+.icp-cat-card.is-active:hover .icp-cat-arrow,
+.icp-cat-card.is-active:focus-visible .icp-cat-arrow {
+  transform: translateX(3px);
+}
 
 /* ─── ICP Modal ───────────────────────────────────────────────────── */
 /* ─── ICP Modal — Redesign Mai/2026 ───────────────────────────── */
