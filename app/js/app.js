@@ -12032,8 +12032,15 @@ ${coachInlineHTML({
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
       if (!confirm('Sair da conta?')) return;
       if (typeof SupabaseSync !== 'undefined') await SupabaseSync.signOut();
+      // Limpa TUDO da sessão pra evitar que o próximo usuário no mesmo
+      // navegador herde dados do anterior (bug Mai/2026).
       sessionStorage.removeItem('ff_auth');
       sessionStorage.removeItem('ff_user_email');
+      localStorage.removeItem('finfamily_v1');
+      // Limpa também o auth-token do Supabase pra forçar nova sessão limpa
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
       window.location.replace('../login.html');
     });
 

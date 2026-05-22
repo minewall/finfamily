@@ -416,7 +416,21 @@ const Store = (function () {
     try {
       const email = (typeof sessionStorage !== 'undefined')
         ? sessionStorage.getItem('ff_user_email') : null;
-      if (email) data.userEmail = email;
+      if (email) {
+        // SAFETY: dados já marcados com OUTRO usuário = tentativa de
+        // sobrescrever. Aborta save + push pra evitar vazamento cruzado
+        // (cenário do bug Mai/2026 onde dados do A foram pushados pro
+        // row do B porque localStorage não foi limpo na troca de sessão).
+        if (data.userEmail && data.userEmail !== email) {
+          console.error(
+            'Store.save: ABORT — data pertence a', data.userEmail,
+            'mas sessão atual é', email,
+            '— evitando vazamento entre usuários.'
+          );
+          return;
+        }
+        data.userEmail = email;
+      }
     } catch (e) { /* ignore */ }
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { console.warn('Store: cannot save', e); }

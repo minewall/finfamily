@@ -90,6 +90,17 @@ const SupabaseSync = (function () {
 
   async function _pushToCloud(data) {
     if (!_client || !_user) { _emitStatus('offline'); return; }
+    // SAFETY: dados carimbados com OUTRO usuário não podem ser pushados —
+    // evita vazamento cruzado (bug Mai/2026: dados do A acabavam no row do B
+    // quando localStorage não era limpo entre logins).
+    if (data && data.userEmail && _user.email && data.userEmail !== _user.email) {
+      console.error(
+        'SupabaseSync push ABORT — data pertence a', data.userEmail,
+        'mas logado como', _user.email
+      );
+      _emitStatus('error');
+      return;
+    }
     // Push to the data owner's record (own row if admin/editor writing to family)
     const targetUserId = (_family && _family.dataOwnerUserId) ? _family.dataOwnerUserId : _user.id;
     // Members (role=member) cannot push — read-only
