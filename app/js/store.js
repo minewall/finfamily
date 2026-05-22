@@ -22,7 +22,7 @@ const Store = (function () {
     assinaturas: 'opcional',
     lazer:       'opcional',
     pessoal:     'opcional',
-    mesada:      'opcional',
+    apoio_financeiro: 'opcional',
   };
 
   const CATEGORIES = {
@@ -37,7 +37,7 @@ const Store = (function () {
     assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
     lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
     pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: 'user-round' },
-    mesada:      { label: 'Mesada',              color: '#A78BFA', icon: 'hand-coins' },
+    apoio_financeiro: { label: 'Apoio Financeiro', color: '#A78BFA', icon: 'hand-coins' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: 'banknote' },
   };
 
@@ -53,7 +53,7 @@ const Store = (function () {
     assinaturas: ['Streaming de Vídeo','Streaming de Música','IA / Produtividade','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Bar / Balada','Entretenimento','Eventos com Amigos','Hobbies','Jogos / Apostas','Viagens'],
     pessoal:     ['Salão de Beleza','Vestuário','Higiene Pessoal','Celular','Presentes','Outros'],
-    mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
+    apoio_financeiro: ['Mesada','Familiares','Instituições','Amigos','Outros'],
     receita:     [
       // Recorrente
       'Salário CLT','Pró-labore','Aposentadoria','Pensão (alimentícia)','Pensão (previdência)',
@@ -625,6 +625,7 @@ const Store = (function () {
       __migrated_default_cat_tipo: true,
       __migrated_categorias_v2: true,
       __migrated_categorias_v3: true,
+      __migrated_categorias_v3b: true,
       __migrated_receita_subs_v2: true,
       __migrated_pay_methods: true,
       __migrated_account_types: true,
@@ -1263,6 +1264,75 @@ const Store = (function () {
     _data.__migrated_default_settings = true;
   }
 
+  // Revisão V3b — mudanças posteriores ao primeiro V3:
+  // - Mesada → Apoio Financeiro (rename + reorganiza subs)
+  // - Lazer: Diversão Local → Entretenimento, Famílias e Amigos → Eventos com Amigos
+  // - Assinaturas: vendors específicos → funções genéricas
+  function _migrateCategoriasV3b() {
+    if (_data.__migrated_categorias_v3b) return;
+
+    const APOIO_SUB_REMAP = {
+      'Filhos':            'Mesada',
+      'Cônjuge':           'Mesada',
+      'Pais':              'Familiares',
+      'Outros familiares': 'Familiares',
+    };
+    const LAZER_REMAP = {
+      'Diversão Local':    'Entretenimento',
+      'Famílias e Amigos': 'Eventos com Amigos',
+    };
+    const VIDEO = ['Netflix','HBO','Disney+','Amazon Prime'];
+    const AUDIO = ['Spotify','YouTube Premium','Apple Music'];
+
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        let category = d.category;
+        let sub = d.sub;
+
+        // Apoio Financeiro
+        if (category === 'mesada') {
+          category = 'apoio_financeiro';
+          if (APOIO_SUB_REMAP[sub]) sub = APOIO_SUB_REMAP[sub];
+        }
+        // Lazer renames
+        if (category === 'lazer' && LAZER_REMAP[sub]) sub = LAZER_REMAP[sub];
+        // Assinaturas vendor → função
+        if (category === 'assinaturas') {
+          if (VIDEO.includes(sub))               sub = 'Streaming de Vídeo';
+          else if (AUDIO.includes(sub))          sub = 'Streaming de Música';
+          else if (sub === 'Apple')              sub = 'Streaming de Música';
+          else if (sub === 'ChatGPT / IA')       sub = 'IA / Produtividade';
+        }
+
+        return { ...d, category, sub };
+      });
+    }
+
+    // _data.categorias rename
+    if (_data.categorias) {
+      if (_data.categorias.mesada && !_data.categorias.apoio_financeiro) {
+        _data.categorias.apoio_financeiro = { ...CATEGORIES.apoio_financeiro };
+      }
+      delete _data.categorias.mesada;
+    }
+    // _data.subcategorias atualiza estruturas
+    if (_data.subcategorias) {
+      delete _data.subcategorias.mesada;
+      _data.subcategorias.apoio_financeiro = [...SUBCATEGORIES.apoio_financeiro];
+      _data.subcategorias.lazer            = [...SUBCATEGORIES.lazer];
+      _data.subcategorias.assinaturas      = [...SUBCATEGORIES.assinaturas];
+    }
+    // settings.catTipo rename
+    if (_data.settings?.catTipo) {
+      if (_data.settings.catTipo.mesada !== undefined) {
+        _data.settings.catTipo.apoio_financeiro = _data.settings.catTipo.mesada;
+        delete _data.settings.catTipo.mesada;
+      }
+    }
+
+    _data.__migrated_categorias_v3b = true;
+  }
+
   // Revisão V3 — reverte rename individual→pessoal e reorganiza Saúde/Pessoal:
   // - 'Academia / Esportes' (Pessoal) → 'Academia / Atividade Física' (Saúde)
   // - 'Terapia' (Pessoal) → 'Terapia' (Saúde)
@@ -1539,6 +1609,7 @@ const Store = (function () {
     _migrateDefaultCatTipo();
     _migrateCategoriasV2();
     _migrateCategoriasV3();
+    _migrateCategoriasV3b();
     _migrateReceitaSubs();
     _migratePayMethods();
     _migrateAccountTypes();
