@@ -11927,6 +11927,11 @@ ${coachInlineHTML({
 
       // Resolve family context, accept pending invites, then pull data
       (async () => {
+        // Aguarda auth estar pronto pra evitar pull/push antes de _user setar
+        // (race condition que fazia o branch "nuvem vazia" disparar à toa)
+        if (typeof SupabaseSync.whenAuthReady === 'function') {
+          await SupabaseSync.whenAuthReady();
+        }
         const inviteResult = await SupabaseSync.acceptPendingInvite();
         // Convite expirado: avisa o usuário (admin precisa reenviar)
         if (inviteResult?.expired) {
@@ -12081,16 +12086,16 @@ ${coachInlineHTML({
       if (ySel && ySel.querySelector(`option[value="${y}"]`)) ySel.value = y;
     })();
 
-    // Reveal admin link if user has admin role
+    // Reveal admin link if user has admin role.
+    // Lê profiles.role direto (RLS permite) em vez de chamar a edge function
+    // admin que retornaria 403 e poluiria o console pra não-admins.
     setTimeout(async () => {
       if (typeof SupabaseSync === 'undefined') return;
-      try {
-        const token = await SupabaseSync.getAccessToken();
-        if (!token) return;
-        await SupabaseSync.adminCall('stats');
+      const role = await SupabaseSync.getUserRole?.();
+      if (role === 'admin') {
         const el = document.getElementById('navAdmin');
         if (el) el.style.display = '';
-      } catch { /* not admin */ }
+      }
     }, 1500);
 
     // Auto: se mês atual não tem dados, usa mês anterior

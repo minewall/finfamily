@@ -19,6 +19,12 @@ const SupabaseSync = (function () {
   let _family = null;
   const PUSH_TIMEOUT_MS = 15000;
 
+  // Promise que resolve quando getSession() retorna — permite que outros
+  // pontos do app aguardem o _user estar setado antes de tentar pull/push.
+  let _authReadyResolve;
+  const _authReady = new Promise(r => { _authReadyResolve = r; });
+  function whenAuthReady() { return _authReady; }
+
   function _emitStatus(status) {
     if (_onStatusChange) _onStatusChange(status);
   }
@@ -44,6 +50,7 @@ const SupabaseSync = (function () {
     _client.auth.getSession().then(({ data }) => {
       _user = data?.session?.user || null;
       _accessToken = data?.session?.access_token || null;
+      _authReadyResolve(); // sinaliza pra quem está aguardando
     });
 
     // Flush antes do navegador fechar: push síncrono se houver pendência.
@@ -426,11 +433,29 @@ const SupabaseSync = (function () {
   }
 
   async function pullFromCloud() { return _pullFromCloud(); }
+
+  // Lê o role do usuário a partir da tabela profiles (sem chamar edge
+  // function admin que retornaria 403 pra não-admins, poluindo o console).
+  async function getUserRole() {
+    if (!_client || !_user) return null;
+    try {
+      const { data, error } = await _client
+        .from('profiles')
+        .select('role')
+        .eq('id', _user.id)
+        .single();
+      if (error) return null;
+      return data?.role || null;
+    } catch (e) {
+      return null;
+    }
+  }
   async function pushToCloud(data) { return _pushToCloud(data); }
 
   return {
-    init, schedulePush, pullFromCloud, pushToCloud, signUp, signIn, signOut,
-    getUser, isConnected, hasPendingSync, onStatusChange,
+    init, whenAuthReady, schedulePush, pullFromCloud, pushToCloud,
+    signUp, signIn, signOut,
+    getUser, getUserRole, isConnected, hasPendingSync, onStatusChange,
     getAccessToken, adminCall,
     createOrGetFamilyGroup, getFamilyGroup, getFamilyMembers, inviteStatus,
     inviteMember, removeMember, resendInvite, acceptPendingInvite,
