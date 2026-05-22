@@ -46,7 +46,7 @@ const Store = (function () {
     alimentacao: ['Supermercado','Hortifruti','Padaria','Açougue','Água','Delivery'],
     transporte:  ['Combustível','Manutenção','Estacionamento','Pedágio','App de Mobilidade','Transporte Público','Aluguel / Carsharing'],
     saude:       ['Plano de Saúde','Consultas','Exames','Medicamentos','Terapia','Academia / Atividade Física','Dentista','Emergências','Outros'],
-    educacao:    ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
+    educacao:    ['Mensalidade Escolar','Mensalidade Faculdade','Pós-graduação / MBA','Cursos Livres','Idiomas','Material Escolar/Universitário','Uniforme','Livros e Apostilas','Feiras e Eventos Educacionais','Outros'],
     pets:        ['Ração','Banho e Tosa','Veterinário','Acessórios / Brinquedos'],
     assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPTU','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
@@ -1292,6 +1292,17 @@ const Store = (function () {
         if (category === 'saude' && sub === 'Convênio Médico') {
           sub = 'Plano de Saúde';
         }
+        // Educação — consolidações e renames
+        if (category === 'educacao') {
+          if (sub === 'Material Escolar')       sub = 'Material Escolar/Universitário';
+          if (sub === 'Material Universitário') sub = 'Material Escolar/Universitário';
+          if (sub === 'Material')               sub = 'Material Escolar/Universitário';
+          if (sub === 'Livros')                 sub = 'Livros e Apostilas';
+          if (sub === 'Cursos')                 sub = 'Cursos Livres';
+          if (sub === 'Cursos e Especializações') sub = 'Pós-graduação / MBA';
+          if (sub === 'Faculdade')              sub = 'Mensalidade Faculdade';
+          if (sub === 'Passeios Escolares')     sub = 'Feiras e Eventos Educacionais';
+        }
         return { ...d, category, sub };
       });
     }
@@ -1306,8 +1317,9 @@ const Store = (function () {
     // _data.subcategorias rename + atualiza estruturas
     if (_data.subcategorias) {
       delete _data.subcategorias.individual;
-      _data.subcategorias.pessoal = [...SUBCATEGORIES.pessoal];
-      _data.subcategorias.saude   = [...SUBCATEGORIES.saude];
+      _data.subcategorias.pessoal  = [...SUBCATEGORIES.pessoal];
+      _data.subcategorias.saude    = [...SUBCATEGORIES.saude];
+      _data.subcategorias.educacao = [...SUBCATEGORIES.educacao];
     }
     // settings.catTipo rename
     if (_data.settings?.catTipo) {
