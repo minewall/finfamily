@@ -1575,7 +1575,7 @@ ${filtered.map(r => {
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${r.desc}</td>
   <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
-  <td class="muted">${({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
+  <td class="muted">${r.sub || ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap;width:42px">
@@ -2146,10 +2146,8 @@ ${coachInlineHTML({
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fRfAmt" type="number" step="0.01"/></div>
       <div class="form-group"><label class="form-label">Data prevista</label><input class="form-input" id="fRfDate" type="date" value="${today}"/></div>
       <div class="form-group"><label class="form-label">Responsável</label><select class="form-select" id="fRfPerson">${Store.PESSOAS.map(p=>`<option>${p}</option>`).join('')}</select></div>
-      <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="fRfType">
-        <option value="salario">Salário</option><option value="contrato">Contrato</option>
-        <option value="pensao">Pensão</option><option value="emprestimo">Empréstimo</option>
-        <option value="outros" selected>Outros</option>
+      <div class="form-group"><label class="form-label">Subcategoria</label><select class="form-select" id="fRfSub">
+        ${Store.SUBCATEGORIES.receita.map(s => `<option value="${s}"${s==='Outros'?' selected':''}>${s}</option>`).join('')}
       </select></div>
     </div>`;
     Modal.open('Novo Recebimento Futuro', html, () => {
@@ -2157,11 +2155,12 @@ ${coachInlineHTML({
       const valor = parseFloat(document.getElementById('fRfAmt').value);
       const data = document.getElementById('fRfDate').value;
       const responsavel = document.getElementById('fRfPerson').value;
-      const type = document.getElementById('fRfType').value;
+      const sub = document.getElementById('fRfSub').value;
+      const natureza = Store.DEFAULT_RECEITA_NATUREZA[sub] || 'eventual';
       if (!desc || !valor || !data) return toast('Preencha descrição, valor e data', 'error');
       const d = new Date(data + 'T12:00:00');
       Store.addRecebimentoFuturo({
-        descricao: desc, valor, data, responsavel, type,
+        descricao: desc, valor, data, responsavel, sub, natureza,
         mes: d.getMonth() + 1, ano: d.getFullYear(), status: 'pendente',
       });
       Modal.close();
@@ -2184,10 +2183,8 @@ ${coachInlineHTML({
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fRecAmt" type="number" step="0.01" placeholder="0,00"/></div>
       <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="fRecDate" type="date" value="${new Date().toISOString().slice(0,10)}"/></div>
       <div class="form-group"><label class="form-label">Pessoa</label><select class="form-select" id="fRecPerson">${Store.PESSOAS.map(p=>`<option>${p}</option>`).join('')}</select></div>
-      <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="fRecType">
-        <option value="salario">Salário</option><option value="contrato">Contrato</option>
-        <option value="pensao">Pensão</option><option value="emprestimo">Empréstimo</option>
-        <option value="outros">Outros</option>
+      <div class="form-group"><label class="form-label">Subcategoria</label><select class="form-select" id="fRecSub">
+        ${Store.SUBCATEGORIES.receita.map(s => `<option value="${s}">${s}</option>`).join('')}
       </select></div>
     </div>`;
     Modal.open('Nova Receita', html, () => {
@@ -2195,10 +2192,11 @@ ${coachInlineHTML({
       const amount = parseFloat(document.getElementById('fRecAmt').value);
       const date   = document.getElementById('fRecDate').value;
       const person = document.getElementById('fRecPerson').value;
-      const type   = document.getElementById('fRecType').value;
+      const sub    = document.getElementById('fRecSub').value;
+      const natureza = Store.DEFAULT_RECEITA_NATUREZA[sub] || 'eventual';
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
       const d = new Date(date);
-      Store.addReceita({ desc, amount, date, person, type, category: 'receita', month: d.getMonth()+1, year: d.getFullYear() });
+      Store.addReceita({ desc, amount, date, person, sub, natureza, category: 'receita', month: d.getMonth()+1, year: d.getFullYear() });
       Modal.close();
       renderReceitas(refreshContainer);
       toast('Receita adicionada!', 'success');
@@ -2208,9 +2206,9 @@ ${coachInlineHTML({
         const match = suggestMap[val];
         if (match) {
           const pSel = document.getElementById('fRecPerson');
-          const tSel = document.getElementById('fRecType');
+          const sSel = document.getElementById('fRecSub');
           if (pSel && match.person) pSel.value = match.person;
-          if (tSel && match.type)   tSel.value = match.type;
+          if (sSel && match.sub)    sSel.value = match.sub;
         }
       });
     }, 50);

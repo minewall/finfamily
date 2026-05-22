@@ -54,7 +54,32 @@ const Store = (function () {
     lazer:       ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
     individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
     mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
+    receita:     ['Salário CLT','Pró-labore','Aposentadoria','Pensão','Freelance / Contrato','Bônus / Comissão','Aluguel recebido','Dividendos / Juros','13º / Férias / PLR','Restituição IR','Outros'],
   };
+
+  // Natureza padrão de cada subcategoria de receita — usado pelo Coach
+  // pra interpretar a previsibilidade da renda. Usuário pode sobrescrever
+  // por lançamento (ex: alguém pode marcar Freelance como Eventual).
+  const DEFAULT_RECEITA_NATUREZA = {
+    'Salário CLT':            'recorrente',
+    'Pró-labore':             'recorrente',
+    'Aposentadoria':          'recorrente',
+    'Pensão':                 'recorrente',
+    'Freelance / Contrato':   'variavel',
+    'Bônus / Comissão':       'variavel',
+    'Aluguel recebido':       'variavel',
+    'Dividendos / Juros':     'variavel',
+    '13º / Férias / PLR':     'eventual',
+    'Restituição IR':         'eventual',
+    'Outros':                 'eventual',
+  };
+
+  // Labels das naturezas (pra UI)
+  const RECEITA_NATUREZAS = [
+    { id: 'recorrente', label: 'Recorrente',  desc: 'Vem todo mês, valor estável',  color: '#22C55E' },
+    { id: 'variavel',   label: 'Variável',    desc: 'Vem todo mês, valor oscila',   color: '#F59E0B' },
+    { id: 'eventual',   label: 'Eventual',    desc: 'Vem de vez em quando',          color: '#0EA5E9' },
+  ];
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
 
@@ -357,6 +382,7 @@ const Store = (function () {
       __migrated_assinaturas: true,
       __migrated_default_cat_tipo: true,
       __migrated_categorias_v2: true,
+      __migrated_receita_subs: true,
     };
   }
 
@@ -873,6 +899,30 @@ const Store = (function () {
     _data.__migrated_categorias_v2 = true;
   }
 
+  // Mapeia receita.type (legacy) → receita.sub + receita.natureza
+  function _migrateReceitaSubs() {
+    if (_data.__migrated_receita_subs) return;
+    const TYPE_TO_SUB = {
+      salario:    'Salário CLT',
+      contrato:   'Freelance / Contrato',
+      pensao:     'Pensão',
+      emprestimo: 'Outros',
+      outros:     'Outros',
+    };
+    if (Array.isArray(_data.receitas)) {
+      _data.receitas = _data.receitas.map(r => {
+        const sub = r.sub || TYPE_TO_SUB[r.type] || 'Outros';
+        const natureza = r.natureza || DEFAULT_RECEITA_NATUREZA[sub] || 'eventual';
+        return { ...r, sub, natureza };
+      });
+    }
+    // Garante que _data.subcategorias.receita exista com defaults
+    if (_data.subcategorias && !_data.subcategorias.receita) {
+      _data.subcategorias.receita = [...SUBCATEGORIES.receita];
+    }
+    _data.__migrated_receita_subs = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -964,6 +1014,7 @@ const Store = (function () {
     _migrateAssinaturas();
     _migrateDefaultCatTipo();
     _migrateCategoriasV2();
+    _migrateReceitaSubs();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
@@ -1234,7 +1285,14 @@ const Store = (function () {
   function receitaSuggestions() {
     const seen = new Map();
     [..._data.receitas].reverse().forEach(r => {
-      if (!seen.has(r.desc)) seen.set(r.desc, { desc: r.desc, person: r.person, type: r.type || '' });
+      if (!seen.has(r.desc)) {
+        seen.set(r.desc, {
+          desc: r.desc,
+          person: r.person,
+          sub: r.sub || '',
+          type: r.type || '', // backward compat
+        });
+      }
     });
     return Array.from(seen.values());
   }
@@ -2692,6 +2750,7 @@ const Store = (function () {
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
+    RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
     addConta, deleteConta, updateConta, getContasByCategoria,
