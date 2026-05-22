@@ -7846,7 +7846,7 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
           <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
             <div class="form-group"><label class="form-label">Data alvo</label><input class="form-input" id="cnvData" type="date" value="${dataAlvo}"></div>
             <div class="form-group"><label class="form-label">Categoria do aporte</label>
-              <select class="form-input" id="cnvCat"><option value="financeiro">Desp. Financeiras</option><option value="pessoal">Pessoal</option><option value="lazer">Lazer</option></select>
+              <select class="form-input" id="cnvCat"><option value="financeiro">Impostos, Taxas e Seguros</option><option value="pessoal">Pessoal</option><option value="lazer">Lazer</option></select>
             </div>
           </div>
         </div>

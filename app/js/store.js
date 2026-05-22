@@ -33,7 +33,7 @@ const Store = (function () {
     educacao:    { label: 'Educação',            color: '#06B6D4', icon: 'book-open' },
     pets:        { label: 'Pets',                color: '#F97316', icon: 'dog' },
     servicos_profissionais: { label: 'Serviços Profissionais', color: '#F59E0B', icon: 'scale' },
-    financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
+    financeiro:  { label: 'Impostos, Taxas e Seguros', color: '#6366F1', icon: 'landmark' },
     assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
     lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
     pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: 'user-round' },
