@@ -14,8 +14,10 @@ const SupabaseSync = (function () {
   let _syncTimer = null;
   let _pendingSync = false;
   let _onStatusChange = null;
+  let _initialized = false; // evita múltiplos clientes (cada init() criava um novo)
   // family context: {groupId, ownerId, role, dataOwnerUserId}
   let _family = null;
+  const PUSH_TIMEOUT_MS = 15000;
 
   function _emitStatus(status) {
     if (_onStatusChange) _onStatusChange(status);
@@ -31,10 +33,15 @@ const SupabaseSync = (function () {
   }
 
   function init() {
+    // Idempotente — múltiplos clientes no mesmo browser context causam
+    // "Multiple GoTrueClient instances detected" e undefined behavior
+    // (push pendura). init() pode ser chamado de Store.init() e app.js.
+    if (_initialized) return;
     if (typeof window.supabase === 'undefined') {
       console.warn('SupabaseSync: SDK not loaded');
       return;
     }
+    _initialized = true;
     _client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     _client.auth.onAuthStateChange(async (event, session) => {
       _user = session?.user || null;
@@ -103,11 +110,17 @@ const SupabaseSync = (function () {
     try {
       const row = { user_id: targetUserId, data };
       if (_family) row.family_id = _family.groupId;
-      const { error } = await _client.from('user_data').upsert(row, { onConflict: 'user_id' });
+      // Timeout pra não pendurar indefinidamente — se o cliente SDK trava,
+      // pelo menos liberamos o status e o usuário sabe que falhou.
+      const pushPromise = _client.from('user_data').upsert(row, { onConflict: 'user_id' });
+      const timeoutPromise = new Promise((_, rej) =>
+        setTimeout(() => rej(new Error('push timeout ' + PUSH_TIMEOUT_MS + 'ms')), PUSH_TIMEOUT_MS)
+      );
+      const { error } = await Promise.race([pushPromise, timeoutPromise]);
       if (error) { console.warn('SupabaseSync push error:', error.message); _emitStatus('error'); }
       else { _pendingSync = false; _emitStatus('synced'); }
     } catch (e) {
-      console.warn('SupabaseSync push failed:', e);
+      console.warn('SupabaseSync push failed:', e.message || e);
       _emitStatus('error');
     }
   }
