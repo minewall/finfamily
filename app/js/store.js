@@ -420,6 +420,39 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Metas templates universais — criadas em buildEmpty() pra todo usuário
+  // novo. Já aparecem no app desde o dia 1 (zeradas até o usuário definir
+  // target). Coach pode sugerir os valores corretos com base no perfil.
+  const METAS_DEFAULT = [
+    {
+      id: 'tpl_reserva',
+      label: 'Reserva de Emergência',
+      type: 'reserva',
+      target: 0,          // usuário define (sugerido: 6× despesa essencial)
+      current: 0,
+      active: true,
+      template: true,     // criada por default — usuário pode desativar
+    },
+    {
+      id: 'tpl_limite',
+      label: 'Limite de Gastos',
+      type: 'gasto_max_pct',
+      target: 0.70,       // regra dos 70% — pré-configurado, usuário ajusta
+      period: 'mensal',
+      active: true,
+      template: true,
+    },
+    {
+      id: 'tpl_reducao_opcional',
+      label: 'Reduzir Gastos Não Essenciais',
+      type: 'reducao_opcional',
+      target: 0,          // valor R$ máximo/mês em despesas tipo=opcional
+      period: 'mensal',
+      active: true,
+      template: true,
+    },
+  ];
+
   // Moedas suportadas no app. BRL é base (cotação sempre 1).
   // - tipo: 'fiat' (moeda nacional) ou 'cripto'
   // - simbolo: prefixo nas exibições (R$, U$, €, ₿, Ξ, ₮)
@@ -517,7 +550,7 @@ const Store = (function () {
       contas: [],
       cartoes: [],
       contratos: [],
-      metas: [],
+      metas: METAS_DEFAULT.map(m => ({ ...m })),
       ativos: [],
       reservas: [],
       tributos: [],
@@ -545,6 +578,7 @@ const Store = (function () {
       __migrated_pay_methods: true,
       __migrated_account_types: true,
       __migrated_card_types: true,
+      __migrated_metas_templates: true,
     };
   }
 
@@ -1144,6 +1178,24 @@ const Store = (function () {
     _data.__migrated_card_types = true;
   }
 
+  // Adiciona metas templates universais pra usuários que ainda não as têm.
+  // NÃO sobrescreve metas existentes — só preenche o que falta. Se o
+  // usuário deletou alguma template anteriormente (template: true), aceita
+  // o gesto e não recria (usa flag separada por id).
+  function _migrateMetasTemplates() {
+    if (_data.__migrated_metas_templates) return;
+    if (!Array.isArray(_data.metas)) _data.metas = [];
+    METAS_DEFAULT.forEach(tpl => {
+      const jaExiste = _data.metas.some(m =>
+        m.id === tpl.id || (m.type === tpl.type && m.template)
+      );
+      if (!jaExiste) {
+        _data.metas.push({ ...tpl });
+      }
+    });
+    _data.__migrated_metas_templates = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -1239,6 +1291,7 @@ const Store = (function () {
     _migratePayMethods();
     _migrateAccountTypes();
     _migrateCardTypes();
+    _migrateMetasTemplates();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
