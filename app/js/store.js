@@ -411,6 +411,13 @@ const Store = (function () {
 
   function save(data) {
     data._syncedAt = Date.now(); // timestamp para resolução de conflito
+    // Carimba o e-mail do usuário logado pra permitir isolamento
+    // entre contas no mesmo navegador (multi-user safety).
+    try {
+      const email = (typeof sessionStorage !== 'undefined')
+        ? sessionStorage.getItem('ff_user_email') : null;
+      if (email) data.userEmail = email;
+    } catch (e) { /* ignore */ }
     try { localStorage.setItem(KEY, JSON.stringify(data)); }
     catch (e) { console.warn('Store: cannot save', e); }
     // Hybrid sync: push to Supabase in background
@@ -710,6 +717,18 @@ const Store = (function () {
 
   function init() {
     _data = load();
+
+    // Multi-user safety: se o e-mail em cache não bate com o da sessão
+    // atual, descarta os dados (eram de outro usuário no mesmo navegador).
+    try {
+      const sessionEmail = (typeof sessionStorage !== 'undefined')
+        ? sessionStorage.getItem('ff_user_email') : null;
+      if (_data && sessionEmail && _data.userEmail && _data.userEmail !== sessionEmail) {
+        console.warn('Store.init: user mismatch — resetting localStorage');
+        _data = null;
+      }
+    } catch (e) { /* ignore */ }
+
     if (!_data) {
       _data = buildSeed();
       save(_data);
