@@ -746,6 +746,11 @@
 
 <script>
   (function () {
+    // Inicializa o Store (carrega _data do localStorage). Sem isso,
+    // Store.completeOnboarding() lança TypeError porque _data === null
+    // e a tela "trava" no botão Concluir.
+    try { Store.init(); } catch (e) { console.error('Store.init falhou:', e); }
+
     const TOTAL = 6;
     const DARK_STEPS = new Set([0, 5]);
 
