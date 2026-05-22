@@ -427,13 +427,19 @@ const Store = (function () {
   }
 
   // Pull cloud data and merge into local store (called after login)
+  // Aplica cloud sobre local SEM disparar push de volta — evita ping-pong.
   async function syncFromCloud() {
     if (typeof SupabaseSync === 'undefined') return false;
     const cloudData = await SupabaseSync.pullFromCloud();
     if (!cloudData) return false;
-    // Cloud wins — replace local with cloud data
+    // Só aplica se cloud é mais recente que local (ou local não existe)
+    const cloudTs = cloudData._syncedAt || 0;
+    const localTs = (_data && _data._syncedAt) || 0;
+    if (cloudTs <= localTs) return false;
     _data = cloudData;
-    save(_data);
+    // Save silencioso — só localStorage, sem schedulePush
+    try { localStorage.setItem(KEY, JSON.stringify(_data)); }
+    catch (e) { console.warn('Store.syncFromCloud: cannot save', e); }
     _syncEditableConfig();
     return true;
   }

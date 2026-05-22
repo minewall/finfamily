@@ -402,26 +402,47 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Isolamento multi-usuário enquanto não temos migração Supabase completa:
-  // se o e-mail logado for diferente do dono do localStorage atual,
-  // limpa os dados antes de entrar no app — caso contrário, usuário novo
-  // veria os dados do usuário anterior no mesmo navegador.
-  function _ensureUserIsolation(email) {
-    if (!email) return;
+  // Puxa dados do user_data do Supabase pro localStorage antes de entrar no app.
+  // Fonte da verdade é o cloud — se o usuário tem dados lá, sobrescreve local.
+  // Se não tem (usuário novo), limpa local pra disparar fluxo de onboarding.
+  async function _hydrateFromCloud(session) {
+    if (!session?.access_token || !session?.user?.id) return;
+    const email = session.user.email || '';
     try {
-      const raw = JSON.parse(localStorage.getItem('finfamily_v1') || '{}');
-      if (raw.userEmail && raw.userEmail !== email) {
-        localStorage.removeItem('finfamily_v1');
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/user_data?select=data&user_id=eq.${session.user.id}`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const rows = await res.json();
+      const cloudData = rows?.[0]?.data;
+      if (cloudData && typeof cloudData === 'object' && Object.keys(cloudData).length > 0) {
+        // Cloud tem dados — sobrescreve local
+        cloudData.userEmail = email; // garante carimbo
+        localStorage.setItem('finfamily_v1', JSON.stringify(cloudData));
+      } else {
+        // Cloud vazio — limpa local se for outro usuário pra disparar onboarding
+        try {
+          const local = JSON.parse(localStorage.getItem('finfamily_v1') || '{}');
+          if (local.userEmail && local.userEmail !== email) {
+            localStorage.removeItem('finfamily_v1');
+          }
+        } catch (e) {}
       }
-    } catch (e) { /* parse error — não bloqueia login */ }
+    } catch (e) {
+      console.warn('[login] hydrateFromCloud falhou:', e);
+      // Em caso de erro, deixa o app se virar com o que tem em local
+    }
   }
 
   // Detecta sessão já ativa OU retorno do link de confirmação de e-mail
   // (Supabase JS processa o hash #access_token=... automaticamente).
-  sb.auth.getSession().then(({ data }) => {
+  sb.auth.getSession().then(async ({ data }) => {
     if (data?.session) {
       const email = data.session.user?.email || '';
-      _ensureUserIsolation(email);
+      await _hydrateFromCloud(data.session);
       sessionStorage.setItem('ff_auth', '1');
       if (email) sessionStorage.setItem('ff_user_email', email);
       window.location.replace('app/app.html');
@@ -506,9 +527,10 @@
       document.getElementById('confirmScreen').style.display = 'block';
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) { setLoading(false); return showError('E-mail ou senha incorretos.'); }
+      // Puxa cloud antes do redirect — garante multi-device sem perder dados
+      await _hydrateFromCloud(data.session);
       setLoading(false);
-      if (error) return showError('E-mail ou senha incorretos.');
-      _ensureUserIsolation(email);
       sessionStorage.setItem('ff_auth', '1');
       sessionStorage.setItem('ff_user_email', email);
       window.location.replace('app/app.html');

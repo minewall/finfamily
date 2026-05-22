@@ -10,6 +10,7 @@ const SupabaseSync = (function () {
 
   let _client = null;
   let _user   = null;
+  let _accessToken = null; // cache do JWT pra usar em beforeunload (síncrono)
   let _syncTimer = null;
   let _pendingSync = false;
   let _onStatusChange = null;
@@ -20,19 +21,69 @@ const SupabaseSync = (function () {
     if (_onStatusChange) _onStatusChange(status);
   }
 
+  // Aplica dados do cloud no Store local — chamado após pull bem-sucedido.
+  // Usa Store.syncFromCloud se disponível; senão escreve direto no localStorage.
+  async function _applyCloudToStore() {
+    if (typeof Store !== 'undefined' && typeof Store.syncFromCloud === 'function') {
+      return await Store.syncFromCloud();
+    }
+    return false;
+  }
+
   function init() {
     if (typeof window.supabase === 'undefined') {
       console.warn('SupabaseSync: SDK not loaded');
       return;
     }
     _client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    _client.auth.onAuthStateChange((event, session) => {
+    _client.auth.onAuthStateChange(async (event, session) => {
       _user = session?.user || null;
-      if (event === 'SIGNED_IN') _pullFromCloud();
+      _accessToken = session?.access_token || null;
+      // SIGNED_IN: puxa cloud e escreve no Store (antes era descartado)
+      if (event === 'SIGNED_IN') {
+        await _applyCloudToStore();
+      }
     });
-    _client.auth.getSession().then(({ data }) => {
+    _client.auth.getSession().then(async ({ data }) => {
       _user = data?.session?.user || null;
+      _accessToken = data?.session?.access_token || null;
+      // Sessão persistida (refresh) também precisa puxar cloud — onAuthStateChange
+      // só dispara em novo SIGNED_IN, não em sessão existente.
+      if (_user) await _applyCloudToStore();
     });
+
+    // Flush antes do navegador fechar: push síncrono se houver pendência.
+    // Usa fetch com keepalive — único método que sobrevive ao unload.
+    window.addEventListener('beforeunload', _flushOnUnload);
+  }
+
+  function _flushOnUnload() {
+    if (!_pendingSync || !_user || !_accessToken) return;
+    clearTimeout(_syncTimer);
+    try {
+      const raw = localStorage.getItem('finfamily_v1');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      const targetUserId = (_family && _family.dataOwnerUserId) ? _family.dataOwnerUserId : _user.id;
+      if (_family && _family.role === 'member') return; // membro não escreve
+      const row = { user_id: targetUserId, data };
+      if (_family) row.family_id = _family.groupId;
+      // POST direto na REST API do Supabase com keepalive — sobrevive ao unload
+      fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${_accessToken}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(row),
+        keepalive: true,
+      });
+    } catch (e) {
+      // beforeunload não pode bloquear — apenas registra
+      console.warn('flushOnUnload falhou:', e);
+    }
   }
 
   // ── PUSH: localStorage → Supabase (debounced 2s) ─────────────────
