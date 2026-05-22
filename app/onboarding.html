@@ -487,12 +487,16 @@
       return;
     }
     // Se já completou o onboarding, vai direto para o app
-    try {
-      const _raw = JSON.parse(localStorage.getItem('ff_data') || '{}');
-      if (_raw.onboarding?.completed) {
-        window.location.replace('app.html');
-      }
-    } catch (e) {}
+    // ?force=1 bypassa o redirect (modo de validação — remover antes do lançamento)
+    var _force = new URLSearchParams(window.location.search).get('force') === '1';
+    if (!_force) {
+      try {
+        const _raw = JSON.parse(localStorage.getItem('ff_data') || '{}');
+        if (_raw.onboarding?.completed) {
+          window.location.replace('app.html');
+        }
+      } catch (e) {}
+    }
   })();
 </script>
 
