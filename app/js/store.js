@@ -43,7 +43,7 @@ const Store = (function () {
 
   const SUBCATEGORIES = {
     moradia:     ['Aluguel','Condomínio','IPTU','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Seguro Residencial','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
-    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade','Delivery','iFood'],
+    alimentacao: ['Supermercado','Hortifruti','Padaria','Açougue','Água','Delivery'],
     transporte:  ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
     saude:       ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     educacao:    ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
@@ -51,7 +51,7 @@ const Store = (function () {
     assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
-    lazer:       ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
+    lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
     individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
     mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
     receita:     [
@@ -1262,18 +1262,42 @@ const Store = (function () {
     _data.__migrated_default_settings = true;
   }
 
-  // Revisão de subcategorias V2 — rodada de refino por categoria.
-  // Por enquanto: Moradia.
+  // Revisão de subcategorias V2 — refino por categoria.
+  // Pode haver SUB_RENAME no contexto da categoria atual OU mover entre
+  // categorias (REASSIGN: { fromCat, fromSub, toCat, toSub }).
   function _migrateSubcatsV2() {
     if (_data.__migrated_subcats_v2) return;
+    // Rename dentro da mesma categoria
     const SUB_RENAME = {
       moradia: {
         'TV / Internet / Telefone': 'Internet', // assume Internet como mais usado
-        'Móveis e itens casa':       'Móveis e Decoração',
+        'Móveis e itens casa':      'Móveis e Decoração',
+      },
+      alimentacao: {
+        'Feira / Sacolão':   'Hortifruti',
+        'iFood':             'Delivery',
       },
     };
+    // Move despesa de uma categoria/sub pra outra
+    const SUB_REASSIGN = [
+      // Alimentação → Lazer (conceito Minewall: comer fora é opcional)
+      { fromCat: 'alimentacao', fromSub: 'Nespresso',          toCat: 'lazer', toSub: 'Doceria / Lanchonete' },
+      { fromCat: 'alimentacao', fromSub: 'Sorveteria',         toCat: 'lazer', toSub: 'Doceria / Lanchonete' },
+      { fromCat: 'alimentacao', fromSub: 'Lanche na Faculdade',toCat: 'lazer', toSub: 'Doceria / Lanchonete' },
+      // Lazer rename da sub combinada antiga
+    ];
+    const LAZER_OLD_TO_NEW = { 'Restaurantes e Passeios': 'Restaurante' };
+
     if (Array.isArray(_data.despesas)) {
       _data.despesas = _data.despesas.map(d => {
+        // 1. Reassign cruza-categoria
+        const reassign = SUB_REASSIGN.find(r => r.fromCat === d.category && r.fromSub === d.sub);
+        if (reassign) return { ...d, category: reassign.toCat, sub: reassign.toSub };
+        // 2. Rename dentro de Lazer
+        if (d.category === 'lazer' && LAZER_OLD_TO_NEW[d.sub]) {
+          return { ...d, sub: LAZER_OLD_TO_NEW[d.sub] };
+        }
+        // 3. Rename normal dentro da mesma categoria
         const renameMap = SUB_RENAME[d.category];
         if (renameMap && renameMap[d.sub]) {
           return { ...d, sub: renameMap[d.sub] };
@@ -1281,9 +1305,11 @@ const Store = (function () {
         return d;
       });
     }
-    // Atualiza _data.subcategorias da Moradia pra estrutura nova
-    if (_data.subcategorias?.moradia) {
-      _data.subcategorias.moradia = [...SUBCATEGORIES.moradia];
+    // Atualiza _data.subcategorias para estruturas novas
+    if (_data.subcategorias) {
+      ['moradia','alimentacao','lazer'].forEach(cat => {
+        if (_data.subcategorias[cat]) _data.subcategorias[cat] = [...SUBCATEGORIES[cat]];
+      });
     }
     _data.__migrated_subcats_v2 = true;
   }
