@@ -42,14 +42,14 @@ const Store = (function () {
   };
 
   const SUBCATEGORIES = {
-    moradia:     ['Aluguel','Condomínio','IPTU','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
+    moradia:     ['Aluguel','Condomínio','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
     alimentacao: ['Supermercado','Hortifruti','Padaria','Açougue','Água','Delivery'],
     transporte:  ['Combustível','Manutenção','Estacionamento','Pedágio','App de Mobilidade','Transporte Público','Aluguel / Carsharing'],
     saude:       ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     educacao:    ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
     pets:        ['Ração','Banho e Tosa','Veterinário','Acessórios / Brinquedos'],
     assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
-    financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
+    financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPTU','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
     individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
@@ -1296,8 +1296,9 @@ const Store = (function () {
       { fromCat: 'transporte',  fromSub: 'Documentos',         toCat: 'financeiro', toSub: 'IPVA / Licenciamento' },
       { fromCat: 'transporte',  fromSub: 'Seguro',             toCat: 'financeiro', toSub: 'Seguro Veicular' },
       { fromCat: 'transporte',  fromSub: 'Multas',             toCat: 'financeiro', toSub: 'Multas' },
-      // Moradia → Financeiras (seguro residencial — caso já existisse)
+      // Moradia → Financeiras (seguros e impostos)
       { fromCat: 'moradia',     fromSub: 'Seguro Residencial', toCat: 'financeiro', toSub: 'Seguro Residencial' },
+      { fromCat: 'moradia',     fromSub: 'IPTU',               toCat: 'financeiro', toSub: 'IPTU' },
     ];
     const LAZER_OLD_TO_NEW = { 'Restaurantes e Passeios': 'Restaurante' };
 
