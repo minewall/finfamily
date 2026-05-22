@@ -117,7 +117,8 @@ const Store = (function () {
     { id: 'eventual',   label: 'Eventual',    desc: 'Vem de vez em quando',          color: '#0EA5E9' },
   ];
 
-  const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
+  // Ordem proposital: do mais comum/menor atrito (Pix/Dinheiro) ao menos.
+  const PAYMENT_METHODS = ['Dinheiro','Pix','Débito','Crédito','Boleto','Transferência'];
 
   // ── CANÔNICO: DESPESAS 2026 Jan-Abr ──────────────────────────────
   // Fonte: planilha oficial. Aluguel de Moradia NÃO está aqui — vem do Contrato.
@@ -419,6 +420,7 @@ const Store = (function () {
       __migrated_default_cat_tipo: true,
       __migrated_categorias_v2: true,
       __migrated_receita_subs_v2: true,
+      __migrated_pay_methods: true,
     };
   }
 
@@ -970,6 +972,25 @@ const Store = (function () {
     _data.__migrated_receita_subs_v2 = true;
   }
 
+  // Atualiza pay='Cartão' (ambíguo) → 'Crédito' (mais explícito).
+  // Despesas com pay='Débito' permanecem (já era explícito).
+  function _migratePayMethods() {
+    if (_data.__migrated_pay_methods) return;
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        if (d.pay === 'Cartão') return { ...d, pay: 'Crédito' };
+        return d;
+      });
+    }
+    if (Array.isArray(_data.receitas)) {
+      _data.receitas = _data.receitas.map(r => {
+        if (r.pay === 'Cartão') return { ...r, pay: 'Crédito' };
+        return r;
+      });
+    }
+    _data.__migrated_pay_methods = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -1062,6 +1083,7 @@ const Store = (function () {
     _migrateDefaultCatTipo();
     _migrateCategoriasV2();
     _migrateReceitaSubs();
+    _migratePayMethods();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
