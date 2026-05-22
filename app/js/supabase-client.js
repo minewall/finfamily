@@ -136,11 +136,13 @@ const SupabaseSync = (function () {
     // If member of a family, pull the owner's data
     const targetUserId = (_family && _family.dataOwnerUserId) ? _family.dataOwnerUserId : _user.id;
     try {
+      // maybeSingle() retorna null em vez de 406 quando não há row —
+      // evita erro visível no console pra usuários novos.
       const { data, error } = await _client
         .from('user_data')
         .select('data, updated_at')
         .eq('user_id', targetUserId)
-        .single();
+        .maybeSingle();
       if (error || !data) return null;
       return data.data;
     } catch (e) {
