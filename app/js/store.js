@@ -8,6 +8,24 @@ const Store = (function () {
   const KEY = 'finfamily_v1';
 
   // ── CATEGORIES ─────────────────────────────────────────────────
+  // Mapeamento padrão categoria → tipo (filosofia Minewall).
+  // Usuário pode sobrescrever em Configurações > Tipos.
+  const DEFAULT_CAT_TIPO = {
+    moradia:     'essencial',
+    alimentacao: 'essencial',
+    transporte:  'essencial',
+    saude:       'essencial',
+    manuela:     'essencial',
+    educacao:    'comprometido',
+    dogs:        'comprometido',
+    assessorias: 'comprometido',
+    financeiro:  'obrigatorio',
+    beneficios:  'obrigatorio',
+    assinaturas: 'opcional',
+    lazer:       'opcional',
+    pessoal:     'opcional',
+  };
+
   const CATEGORIES = {
     moradia:     { label: 'Moradia',             color: '#7C6EF8', icon: 'home' },
     alimentacao: { label: 'Alimentação',          color: '#22C55E', icon: 'shopping-cart' },
@@ -331,7 +349,8 @@ const Store = (function () {
       financiamentos: [],
       pessoas: ['Você'],
       profile: {},
-      settings: {},
+      // Já aplica os tipos default (filosofia Minewall) na criação do estado
+      settings: { catTipo: { ...DEFAULT_CAT_TIPO } },
       // Bloqueia migrations que injetam dados pessoais
       __cleanup_v101: true,
       __cleanup_despesas2026q1: true,
@@ -339,6 +358,7 @@ const Store = (function () {
       __migrated_roberto_mariana: true,
       __fix_passeios_escolares: true,
       __migrated_assinaturas: true,
+      __migrated_default_cat_tipo: true,
     };
   }
 
@@ -771,6 +791,28 @@ const Store = (function () {
     _data.__migrated_assinaturas = true;
   }
 
+  // Aplica os tipos default (filosofia Minewall) em categorias que ainda
+  // não têm tipo definido. Não sobrescreve overrides do usuário —
+  // só preenche o que está faltando.
+  function _migrateDefaultCatTipo() {
+    if (_data.__migrated_default_cat_tipo) return;
+    if (!_data.settings) _data.settings = {};
+    if (!_data.settings.catTipo) _data.settings.catTipo = {};
+    Object.entries(DEFAULT_CAT_TIPO).forEach(([cat, tipoId]) => {
+      // Só atribui se não houver override do usuário
+      if (!_data.settings.catTipo[cat]) {
+        _data.settings.catTipo[cat] = tipoId;
+      }
+    });
+    // Adiciona "Delivery" como sub de Alimentação (alternativa à
+    // identificação por vendor — usuário pode preferir agrupar
+    // todo delivery e identificar o fornecedor na descrição).
+    if (_data.subcategorias?.alimentacao && !_data.subcategorias.alimentacao.includes('Delivery')) {
+      _data.subcategorias.alimentacao.push('Delivery');
+    }
+    _data.__migrated_default_cat_tipo = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -860,6 +902,7 @@ const Store = (function () {
     _migrateRobertoMarianaCat();
     _fixPasseiosEscolares();
     _migrateAssinaturas();
+    _migrateDefaultCatTipo();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
