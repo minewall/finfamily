@@ -49,7 +49,7 @@ const Store = (function () {
     educacao:    ['Mensalidade Escolar','Mensalidade Faculdade','Pós-graduação / MBA','Cursos Livres','Idiomas','Material Escolar/Universitário','Uniforme','Livros e Apostilas','Feiras e Eventos Educacionais','Outros'],
     pets:        ['Ração','Petiscos / Snacks','Banho e Tosa','Veterinário','Medicamentos / Vermífugos','Plano de Saúde Pet','Acessórios / Brinquedos','Hotel / Daycare'],
     servicos_profissionais: ['Advogado','Contador','Consultoria','Coach / Mentor','Planejador Financeiro','Outros'],
-    financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPTU','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
+    financeiro:  ['Taxas Bancárias','Saques','Anuidade de Cartão','Tarifas de Investimento','Seguro de Vida','Seguro Veicular','Seguro Residencial','Outros Seguros','IPTU','IPVA / Licenciamento','Imposto de Renda','Taxas PJ','Multas','Cartório / Documentos'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
     pessoal:     ['Salão de Beleza','Vestuário','Higiene Pessoal','Celular','Presentes','Outros'],
@@ -1292,6 +1292,21 @@ const Store = (function () {
         if (category === 'saude' && sub === 'Convênio Médico') {
           sub = 'Plano de Saúde';
         }
+        // Financeiras — reorganização interna + reassign de subs que saíram
+        if (category === 'financeiro') {
+          if (sub === 'Cartório')           sub = 'Cartório / Documentos';
+          if (sub === 'Impostos Empresa')   sub = 'Taxas PJ';
+          // Subs que SAÍRAM de Financeiras
+          if (sub === 'Loteria') {
+            category = 'lazer'; sub = 'Diversão Local';
+          }
+          if (sub === 'Correios') {
+            category = 'pessoal'; sub = 'Outros';
+          }
+          if (sub === 'Contador') {
+            category = 'servicos_profissionais'; sub = 'Contador';
+          }
+        }
         // Rename category assessorias → servicos_profissionais
         if (category === 'assessorias') {
           category = 'servicos_profissionais';
@@ -1336,6 +1351,7 @@ const Store = (function () {
       _data.subcategorias.educacao               = [...SUBCATEGORIES.educacao];
       _data.subcategorias.pets                   = [...SUBCATEGORIES.pets];
       _data.subcategorias.servicos_profissionais = [...SUBCATEGORIES.servicos_profissionais];
+      _data.subcategorias.financeiro             = [...SUBCATEGORIES.financeiro];
     }
     // settings.catTipo rename
     if (_data.settings?.catTipo) {
