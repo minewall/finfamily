@@ -899,6 +899,15 @@
       }
     });
 
+    // Auto-advance helper: 350ms de delay pra dar feedback visual (selecionado),
+    // depois pula pro próximo step. Não avança se for o último step.
+    function autoAdvance() {
+      if (state.idx >= TOTAL - 1) return; // último step → mantém botão Concluir
+      setTimeout(function () {
+        if (canAdvance()) showStep(state.idx + 1);
+      }, 350);
+    }
+
     // option cards
     document.querySelectorAll('.options').forEach(function (group) {
       const key = group.getAttribute('data-group');
@@ -908,6 +917,7 @@
           opt.classList.add('selected');
           state[key] = opt.getAttribute('data-value');
           updateCurrentCTA();
+          autoAdvance();
         });
       });
     });
@@ -921,6 +931,7 @@
           p.classList.add('selected');
           state[key] = p.getAttribute('data-value');
           updateCurrentCTA();
+          autoAdvance();
         });
       });
     });
