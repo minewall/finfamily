@@ -21,7 +21,7 @@ const Store = (function () {
     financeiro:  'obrigatorio',
     assinaturas: 'opcional',
     lazer:       'opcional',
-    individual:  'opcional',
+    pessoal:     'opcional',
     mesada:      'opcional',
   };
 
@@ -36,7 +36,7 @@ const Store = (function () {
     financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
     assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
     lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
-    individual:  { label: 'Individual',          color: '#F59E0B', icon: 'user-round' },
+    pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: 'user-round' },
     mesada:      { label: 'Mesada',              color: '#A78BFA', icon: 'hand-coins' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: 'banknote' },
   };
@@ -45,14 +45,14 @@ const Store = (function () {
     moradia:     ['Aluguel','Condomínio','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
     alimentacao: ['Supermercado','Hortifruti','Padaria','Açougue','Água','Delivery'],
     transporte:  ['Combustível','Manutenção','Estacionamento','Pedágio','App de Mobilidade','Transporte Público','Aluguel / Carsharing'],
-    saude:       ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
+    saude:       ['Plano de Saúde','Consultas','Exames','Medicamentos','Terapia','Academia / Atividade Física','Dentista','Emergências','Outros'],
     educacao:    ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
     pets:        ['Ração','Banho e Tosa','Veterinário','Acessórios / Brinquedos'],
     assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPTU','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
-    individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
+    pessoal:     ['Salão de Beleza','Vestuário','Higiene Pessoal','Celular','Presentes','Outros'],
     mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
     receita:     [
       // Recorrente
@@ -585,7 +585,7 @@ const Store = (function () {
     { id: 'cultura',    label: 'Cultura',     catsPermitidas: ['lazer','assinaturas'],    subsPermitidas: [] },
     { id: 'saude',      label: 'Saúde',       catsPermitidas: ['saude'],                  subsPermitidas: [] },
     { id: 'mobilidade', label: 'Mobilidade',  catsPermitidas: ['transporte'],             subsPermitidas: ['Uber'] },
-    { id: 'gympass',    label: 'Wellness',    catsPermitidas: ['individual','saude'],     subsPermitidas: ['Academia / Esportes','Terapia'] },
+    { id: 'gympass',    label: 'Wellness',    catsPermitidas: ['saude','pessoal'],         subsPermitidas: ['Academia / Atividade Física','Terapia'] },
     { id: 'multi',      label: 'Multi',       catsPermitidas: [],                          subsPermitidas: [] }, // sem restrição (Caju/Flash multi-uso)
   ];
 
@@ -624,6 +624,7 @@ const Store = (function () {
       __migrated_assinaturas: true,
       __migrated_default_cat_tipo: true,
       __migrated_categorias_v2: true,
+      __migrated_categorias_v3: true,
       __migrated_receita_subs_v2: true,
       __migrated_pay_methods: true,
       __migrated_account_types: true,
@@ -1262,6 +1263,62 @@ const Store = (function () {
     _data.__migrated_default_settings = true;
   }
 
+  // Revisão V3 — reverte rename individual→pessoal e reorganiza Saúde/Pessoal:
+  // - 'Academia / Esportes' (Pessoal) → 'Academia / Atividade Física' (Saúde)
+  // - 'Terapia' (Pessoal) → 'Terapia' (Saúde)
+  // - 'Higiene Pessoal' (Saúde) → 'Higiene Pessoal' (Pessoal)
+  // - 'Convênio Médico' (Saúde) → 'Plano de Saúde' (Saúde)
+  function _migrateCategoriasV3() {
+    if (_data.__migrated_categorias_v3) return;
+
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        let category = d.category;
+        let sub = d.sub;
+        // Rename category individual → pessoal
+        if (category === 'individual') category = 'pessoal';
+        // Reshuffle Pessoal → Saúde
+        if (category === 'pessoal' && sub === 'Academia / Esportes') {
+          category = 'saude'; sub = 'Academia / Atividade Física';
+        }
+        if (category === 'pessoal' && sub === 'Terapia') {
+          category = 'saude';
+        }
+        // Reshuffle Saúde → Pessoal
+        if (category === 'saude' && sub === 'Higiene Pessoal') {
+          category = 'pessoal';
+        }
+        // Rename sub em Saúde
+        if (category === 'saude' && sub === 'Convênio Médico') {
+          sub = 'Plano de Saúde';
+        }
+        return { ...d, category, sub };
+      });
+    }
+
+    // _data.categorias rename
+    if (_data.categorias) {
+      if (_data.categorias.individual && !_data.categorias.pessoal) {
+        _data.categorias.pessoal = { ...CATEGORIES.pessoal };
+      }
+      delete _data.categorias.individual;
+    }
+    // _data.subcategorias rename + atualiza estruturas
+    if (_data.subcategorias) {
+      delete _data.subcategorias.individual;
+      _data.subcategorias.pessoal = [...SUBCATEGORIES.pessoal];
+      _data.subcategorias.saude   = [...SUBCATEGORIES.saude];
+    }
+    // settings.catTipo rename
+    if (_data.settings?.catTipo) {
+      if (_data.settings.catTipo.individual !== undefined) {
+        _data.settings.catTipo.pessoal = _data.settings.catTipo.individual;
+        delete _data.settings.catTipo.individual;
+      }
+    }
+    _data.__migrated_categorias_v3 = true;
+  }
+
   // Revisão de subcategorias V2 — refino por categoria.
   // Pode haver SUB_RENAME no contexto da categoria atual OU mover entre
   // categorias (REASSIGN: { fromCat, fromSub, toCat, toSub }).
@@ -1419,6 +1476,7 @@ const Store = (function () {
     _migrateAssinaturas();
     _migrateDefaultCatTipo();
     _migrateCategoriasV2();
+    _migrateCategoriasV3();
     _migrateReceitaSubs();
     _migratePayMethods();
     _migrateAccountTypes();
