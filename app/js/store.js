@@ -420,6 +420,20 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Moedas suportadas no app. BRL é base (cotação sempre 1).
+  // - tipo: 'fiat' (moeda nacional) ou 'cripto'
+  // - simbolo: prefixo nas exibições (R$, U$, €, ₿, Ξ, ₮)
+  // - alertaDias: cotação além desse intervalo é considerada desatualizada
+  //   (cripto volátil = alerta mais cedo)
+  const MOEDAS = [
+    { id: 'BRL',  label: 'Real',     simbolo: 'R$',  tipo: 'fiat',   alertaDias: 30, base: true },
+    { id: 'USD',  label: 'Dólar',    simbolo: 'US$', tipo: 'fiat',   alertaDias: 7  },
+    { id: 'EUR',  label: 'Euro',     simbolo: '€',   tipo: 'fiat',   alertaDias: 7  },
+    { id: 'BTC',  label: 'Bitcoin',  simbolo: '₿',   tipo: 'cripto', alertaDias: 2  },
+    { id: 'ETH',  label: 'Ethereum', simbolo: 'Ξ',   tipo: 'cripto', alertaDias: 2  },
+    { id: 'USDT', label: 'Tether',   simbolo: '₮',   tipo: 'cripto', alertaDias: 7  },
+  ];
+
   // Categorias de ativos (módulo Investimentos/Patrimônio).
   // Reservas/Imóveis/Veículos têm módulos próprios — não estão aqui.
   // - risco: 0=segurança total, 1=baixo, 2=médio, 3=alto, 4=especulativo
@@ -2966,7 +2980,7 @@ const Store = (function () {
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
     FINANCIAMENTO_TIPOS, COMPROMISSO_TIPOS,
-    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS,
+    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS, MOEDAS,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
