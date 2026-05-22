@@ -51,7 +51,7 @@ const Store = (function () {
     servicos_profissionais: ['Advogado','Contador','Consultoria','Coach / Mentor','Planejador Financeiro','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Anuidade de Cartão','Tarifas de Investimento','Seguro de Vida','Seguro Veicular','Seguro Residencial','Outros Seguros','IPTU','IPVA / Licenciamento','Imposto de Renda','Taxas PJ','Multas','Cartório / Documentos'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
-    lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
+    lazer:       ['Restaurante','Doceria / Lanchonete','Bar / Balada','Entretenimento','Eventos com Amigos','Hobbies','Jogos / Apostas','Viagens'],
     pessoal:     ['Salão de Beleza','Vestuário','Higiene Pessoal','Celular','Presentes','Outros'],
     mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
     receita:     [
@@ -1298,7 +1298,7 @@ const Store = (function () {
           if (sub === 'Impostos Empresa')   sub = 'Taxas PJ';
           // Subs que SAÍRAM de Financeiras
           if (sub === 'Loteria') {
-            category = 'lazer'; sub = 'Diversão Local';
+            category = 'lazer'; sub = 'Jogos / Apostas';
           }
           if (sub === 'Correios') {
             category = 'pessoal'; sub = 'Outros';
@@ -1405,7 +1405,11 @@ const Store = (function () {
       { fromCat: 'moradia',     fromSub: 'Seguro Residencial', toCat: 'financeiro', toSub: 'Seguro Residencial' },
       { fromCat: 'moradia',     fromSub: 'IPTU',               toCat: 'financeiro', toSub: 'IPTU' },
     ];
-    const LAZER_OLD_TO_NEW = { 'Restaurantes e Passeios': 'Restaurante' };
+    const LAZER_OLD_TO_NEW = {
+      'Restaurantes e Passeios': 'Restaurante',
+      'Diversão Local':          'Entretenimento',
+      'Famílias e Amigos':       'Eventos com Amigos',
+    };
 
     if (Array.isArray(_data.despesas)) {
       _data.despesas = _data.despesas.map(d => {
