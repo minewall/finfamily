@@ -420,6 +420,20 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Tipos de compromisso (Contratos/Recorrentes). Cada um carrega
+  // expectativas de peso e flexibilidade pro Coach.
+  // - fixoMensal: o pagamento vem todo mês com valor previsível
+  // - flexivel: facilidade de cortar/renegociar
+  const COMPROMISSO_TIPOS = [
+    { id: 'assinatura',         label: 'Assinatura',           fixoMensal: true,  flexivel: true,  desc: 'Serviço digital recorrente (Netflix, Spotify, ChatGPT)' },
+    { id: 'aluguel',            label: 'Aluguel',              fixoMensal: true,  flexivel: false, desc: 'Imóvel residencial ou comercial' },
+    { id: 'servico_pessoal',    label: 'Serviço Pessoal',      fixoMensal: true,  flexivel: true,  desc: 'Pessoa física informal (faxina, jardineiro, babá, personal)' },
+    { id: 'servico_terceiros',  label: 'Serviços de Terceiros',fixoMensal: true,  flexivel: false, desc: 'Empresa/PJ profissional (advogado, contador, consultoria, agência)' },
+    { id: 'educacao',           label: 'Educação',             fixoMensal: true,  flexivel: false, desc: 'Mensalidade escolar, faculdade, idioma' },
+    { id: 'plano',              label: 'Plano',                fixoMensal: true,  flexivel: false, desc: 'Saúde, seguro, academia (Gympass, convênio)' },
+    { id: 'outros',             label: 'Outros',               fixoMensal: false, flexivel: true,  desc: 'Compromisso recorrente que não cabe nos outros tipos' },
+  ];
+
   // Tipos de financiamento/dívida com perfil esperado de taxa.
   // - taxaMin/taxaMax: ranges típicos a.a. (pro Coach validar se está fora do mercado)
   // - saudavel: dívidas geralmente "saudáveis" (taxa baixa + ativo se valoriza)
@@ -2928,7 +2942,8 @@ const Store = (function () {
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
-    CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS, FINANCIAMENTO_TIPOS,
+    CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
+    FINANCIAMENTO_TIPOS, COMPROMISSO_TIPOS,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
