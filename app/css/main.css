@@ -4046,6 +4046,18 @@ tr.row-clickable:hover { background: var(--bg-hover) !important; }
 .card-clickable { cursor: pointer; transition: border-color .15s, transform .12s; }
 .card-clickable:hover { border-color: var(--accent); transform: translateY(-1px); }
 
+/* Clique direto — cards e rows com data-edit-* */
+[data-edit-meta], [data-edit-conta], [data-edit-cartao],
+[data-edit-inv], [data-edit-ativo], [data-edit-imovel], [data-edit-veiculo] {
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+[data-edit-meta]:hover, [data-edit-conta]:hover, [data-edit-cartao]:hover,
+[data-edit-inv]:hover, [data-edit-ativo]:hover,
+[data-edit-imovel]:hover, [data-edit-veiculo]:hover {
+  box-shadow: 0 0 0 2px var(--accent) !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    REDESIGN 2026-05 — Perfil & Contexto Pessoal (ICP — Sprint 1)
 ═══════════════════════════════════════════════════════════════════ */

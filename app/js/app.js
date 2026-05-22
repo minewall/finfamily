@@ -2966,7 +2966,7 @@ ${indicadores.length === 0 ? '' : `
     const color = STATUS_CLASS[perf.status] || 'accent';
     const isAnual = m.period === 'anual';
     return `
-    <div class="card" data-meta-id="${m.id}" style="border-top:3px solid var(--${color})">
+    <div class="card" data-edit-meta="${m.id}" style="border-top:3px solid var(--${color})">
       <div class="card-header">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:18px">${t.icon}</span>
@@ -2977,8 +2977,6 @@ ${indicadores.length === 0 ? '' : `
         </div>
         <div style="display:flex;gap:6px">
           ${m.type==='reserva'?`<button class="btn-icon-sm" data-action="snap-meta" data-id="${m.id}" title="Marcar snapshot">${icon('camera', {size:14})}</button>`:''}
-          <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon('pencil', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>
 
@@ -3055,15 +3053,11 @@ ${objetivos.length === 0 ? '' : `
     const statusColor = pct >= 1 ? 'var(--green)' : 'var(--text-2)';
     const deadlineStr = m.deadline ? new Date(m.deadline + 'T12:00:00').toLocaleDateString('pt-BR') : null;
     return `
-    <div class="meta-card-redesign" data-meta-id="${m.id}">
+    <div class="meta-card-redesign" data-edit-meta="${m.id}">
       <div class="meta-card-head">
         <div class="meta-card-tag">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           Objetivo
-        </div>
-        <div style="display:flex;gap:4px">
-          <button class="btn-icon-sm" data-action="edit-meta" data-id="${m.id}" title="Editar">${icon('pencil', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-action="del-meta" data-id="${m.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>
       <div class="meta-card-name">${m.label}</div>
@@ -3128,18 +3122,11 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     document.getElementById('btnAddMeta')?.addEventListener('click', () => openMetaModal(null, container));
     document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => document.getElementById('coachToggleBtn')?.click());
 
-    container.querySelectorAll('[data-action="edit-meta"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const m = Store.get().metas.find(m => m.id === btn.dataset.id);
+    container.querySelectorAll('[data-edit-meta]').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const m = Store.get().metas.find(m => m.id === card.dataset.editMeta);
         if (m) openMetaModal(m, container);
-      });
-    });
-    container.querySelectorAll('[data-action="del-meta"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (!confirm('Excluir esta meta?')) return;
-        Store.deleteMeta(btn.dataset.id);
-        renderMetas(container);
-        toast('Meta excluída', 'success');
       });
     });
     container.querySelectorAll('[data-action="atingida"]').forEach(btn => {
@@ -3210,7 +3197,12 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
       }
       Modal.close();
       renderMetas(container);
-    });
+    }, isEdit ? () => {
+      Store.deleteMeta(meta.id);
+      Modal.close();
+      renderMetas(container);
+      toast('Meta excluída', 'success');
+    } : null);
 
     setTimeout(() => {
       const typeSel = document.getElementById('fMType');
@@ -3726,6 +3718,106 @@ ${contratos.length === 0 ? `
   // ══════════════════════════════════════════════════════════════
   // PAGE: CONTAS & CARTÕES
   // ══════════════════════════════════════════════════════════════
+  function openContaModal(conta, container) {
+    const isEdit = !!conta;
+    const ct = conta || {};
+    const COLORS = ['#7C6EF8','#22C55E','#3B82F6','#F59E0B','#EC4899','#14B8A6','#EF4444','#F97316'];
+    let selectedColor = ct.cor || COLORS[0];
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome da conta</label><input class="form-input" id="fCtNomeE" value="${ct.nome||''}" placeholder="Ex: Conta Principal"/></div>
+      <div class="form-group"><label class="form-label">Categoria</label>
+        <select class="form-select" id="fCtCategoriaE">
+          <option value="bancaria" ${(ct.categoria||'bancaria')==='bancaria'?'selected':''}>Bancária</option>
+          <option value="digital"  ${ct.categoria==='digital'?'selected':''}>Digital</option>
+          <option value="cripto"   ${ct.categoria==='cripto'?'selected':''}>Cripto</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Banco / Wallet</label>
+        <input class="form-input" id="fCtBancoE" list="bankListCE" value="${ct.banco||''}" placeholder="Itaú, Nubank…"/>
+        <datalist id="bankListCE">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="fCtTipoE">${Store.ACCOUNT_TYPES.map(t=>`<option ${ct.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="form-group form-full"><label class="form-label">Saldo (R$)</label><input class="form-input" id="fCtSaldoE" type="number" step="0.01" value="${ct.saldo!=null?ct.saldo:0}"/></div>
+      <div class="form-group form-full"><label class="form-label">Cor</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="colorPickerE">
+          ${COLORS.map(c=>`<div data-c="${c}" style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===selectedColor?'var(--text-1)':'transparent'};transition:border .15s"></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+    Modal.open(isEdit ? 'Editar Conta' : 'Nova Conta', html, () => {
+      const nome  = document.getElementById('fCtNomeE').value.trim();
+      const banco = document.getElementById('fCtBancoE').value.trim();
+      const tipo  = document.getElementById('fCtTipoE').value;
+      const categoria = document.getElementById('fCtCategoriaE').value;
+      const saldo = parseFloat(document.getElementById('fCtSaldoE').value) || 0;
+      if (!nome || !banco) return toast('Preencha nome e banco', 'error');
+      if (isEdit) {
+        Object.assign(conta, { nome, banco, tipo, categoria, saldo, cor: selectedColor });
+        Store.persist();
+        toast('Conta atualizada!', 'success');
+      } else {
+        Store.addConta({ nome, banco, tipo, categoria, saldo, cor: selectedColor });
+        toast('Conta adicionada!', 'success');
+      }
+      Modal.close();
+      renderContas(container);
+    }, isEdit ? () => {
+      Store.deleteConta(conta.id);
+      Modal.close();
+      renderContas(container);
+      toast('Conta removida', 'success');
+    } : null);
+    setTimeout(() => {
+      document.getElementById('colorPickerE')?.querySelectorAll('[data-c]').forEach(dot => {
+        dot.addEventListener('click', () => {
+          selectedColor = dot.dataset.c;
+          document.getElementById('colorPickerE').querySelectorAll('[data-c]').forEach(d => d.style.border = '3px solid transparent');
+          dot.style.border = '3px solid var(--text-1)';
+        });
+      });
+    }, 50);
+  }
+
+  function openCartaoModal(cc, container) {
+    const isEdit = !!cc;
+    const c = cc || {};
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome do cartão</label><input class="form-input" id="fCcNomeE" value="${c.name||''}" placeholder="Ex: Itaú Click"/></div>
+      <div class="form-group"><label class="form-label">Banco</label>
+        <input class="form-input" id="fCcBancoE" list="bankListCCE" value="${c.banco||''}" placeholder="Itaú, Nubank…"/>
+        <datalist id="bankListCCE">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
+      </div>
+      <div class="form-group"><label class="form-label">Limite (R$)</label><input class="form-input" id="fCcLimitE" type="number" step="100" value="${c.limit||''}"/></div>
+      <div class="form-group"><label class="form-label">Fecha dia</label><input class="form-input" id="fCcCloseE" type="number" min="1" max="28" value="${c.closingDay||25}"/></div>
+      <div class="form-group"><label class="form-label">Vence dia</label><input class="form-input" id="fCcDueE" type="number" min="1" max="28" value="${c.dueDay||3}"/></div>
+    </div>`;
+    Modal.open(isEdit ? 'Editar Cartão' : 'Novo Cartão', html, () => {
+      const name  = document.getElementById('fCcNomeE').value.trim();
+      const banco = document.getElementById('fCcBancoE').value.trim();
+      const limit = parseFloat(document.getElementById('fCcLimitE').value);
+      const closingDay = parseInt(document.getElementById('fCcCloseE').value);
+      const dueDay     = parseInt(document.getElementById('fCcDueE').value);
+      if (!name || !banco || !limit) return toast('Preencha nome, banco e limite', 'error');
+      if (isEdit) {
+        Object.assign(cc, { name, banco, limit, closingDay, dueDay });
+        Store.persist();
+        toast('Cartão atualizado!', 'success');
+      } else {
+        Store.addCartao({ name, banco, limit, closingDay, dueDay, color: 'default', parcelas: [] });
+        toast('Cartão adicionado!', 'success');
+      }
+      Modal.close();
+      renderContas(container);
+    }, isEdit ? () => {
+      Store.deleteCartao(cc.id);
+      Modal.close();
+      renderContas(container);
+      toast('Cartão removido', 'success');
+    } : null);
+  }
+
   function renderContas(container, mode = 'all') {
     const cartoes = Store.get().cartoes;
     const allContas = Store.get().contas || [];
@@ -3819,8 +3911,7 @@ ${(() => {
 
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
   ${contas.length ? contas.map(ct => `
-  <div class="card" style="border-top:3px solid ${ct.cor};position:relative">
-    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-conta="${ct.id}" title="Remover">${icon('trash-2', {size:14})}</button>
+  <div class="card" data-edit-conta="${ct.id}" style="border-top:3px solid ${ct.cor}">
     <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${ct.banco}</div>
     <div style="font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:2px">${ct.nome}</div>
     <div style="font-size:11px;color:var(--text-4);margin-bottom:12px">${ct.tipo}</div>
@@ -3931,8 +4022,7 @@ ${(() => {
     const usageClass = pct > 80 ? 'over' : pct > 60 ? 'warn' : '';
     const cardClass = cc.color === 'gold' ? 'card-gold' : cc.color === 'black' ? 'card-black' : cc.color === 'platinum' ? 'card-platinum' : '';
     return `
-    <div class="cc-card ${cardClass}">
-      <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-cartao="${cc.id}" title="Remover">${icon('trash-2', {size:14})}</button>
+    <div class="cc-card ${cardClass}" data-edit-cartao="${cc.id}">
       <div class="cc-top">
         <div class="cc-bank-block">
           <div class="cc-bank">${cc.banco}</div>
@@ -4020,20 +4110,19 @@ ${(() => {
 ` : ''}`;
 
     // Event handlers
-    container.querySelectorAll('[data-del-conta]').forEach(btn =>
-      btn.addEventListener('click', () => {
-        Store.deleteConta(btn.dataset.delConta);
-        renderContas(container);
-        toast('Conta removida', 'success');
-      })
-    );
-    container.querySelectorAll('[data-del-cartao]').forEach(btn =>
-      btn.addEventListener('click', () => {
-        Store.deleteCartao(btn.dataset.delCartao);
-        renderContas(container);
-        toast('Cartão removido', 'success');
-      })
-    );
+    container.querySelectorAll('[data-edit-conta]').forEach(card => {
+      card.addEventListener('click', () => {
+        const ct = Store.get().contas.find(c => c.id === card.dataset.editConta);
+        if (ct) openContaModal(ct, container);
+      });
+    });
+    container.querySelectorAll('[data-edit-cartao]').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const cc = Store.get().cartoes.find(c => c.id === card.dataset.editCartao);
+        if (cc) openCartaoModal(cc, container);
+      });
+    });
 
     // ── Parcelamentos actions ────────────────────────────────────
     container.querySelectorAll('[data-action="del-parcela"]').forEach(btn => {
@@ -4326,15 +4415,11 @@ ${investimentos.length === 0
     const valAtual = r.valorAtual || r.valorInvestido || 0;
     const ganho = valAtual - (r.valorInvestido || 0);
     return `
-  <div class="card" style="border-top:3px solid ${tagColor}">
+  <div class="card" data-edit-inv="${r.id}" style="border-top:3px solid ${tagColor}">
     <div class="card-header">
       <div>
         <div style="font-weight:700;font-size:14px;color:var(--text-1)">${r.nome}</div>
         <div style="font-size:11px;color:var(--text-4);margin-top:2px">${r.tipo||''}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-icon-sm" data-action="edit-inv" data-id="${r.id}" title="Editar">${icon('pencil', {size:14})}</button>
-        <button class="btn-icon-sm danger" data-action="del-inv" data-id="${r.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
       </div>
     </div>
     <div style="margin:12px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
@@ -4362,7 +4447,7 @@ ${ativos.length > 0 ? `
       const pct = ((brl/total)*100).toFixed(1);
       const col = TYPE_COLORS[a.type] || '#7C6EF8';
       return `
-      <div class="asset-row">
+      <div class="asset-row" data-edit-ativo="${a.id}" style="cursor:pointer">
         <div class="asset-logo" style="border-color:${col}20;color:${col}">${a.platform.slice(0,3).toUpperCase()}</div>
         <div>
           <div class="asset-name">${a.platform}</div>
@@ -4375,10 +4460,6 @@ ${ativos.length > 0 ? `
         <div>
           <div class="asset-value">${Utils.currency(brl)}</div>
           <div style="font-size:11px;color:var(--text-3);text-align:right">${(a.qty * a.unitPrice).toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2})} ${a.currency}</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
-          <button class="btn-icon-sm" data-action="edit-ativo" data-id="${a.id}" title="Editar">${icon('pencil', {size:14})}</button>
-          <button class="btn-icon-sm danger" data-action="del-ativo" data-id="${a.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
         </div>
       </div>`;
     }).join('')}
@@ -4412,9 +4493,7 @@ ${imoveis.length === 0
     const fluxoMensal = (im.aluguelMensal || 0) - (im.condominioMensal || 0) - (im.manutencaoMensal || 0) - (im.parcelaFinanciamento || 0) - ((im.iptuAnual || 0) / 12);
     const tipoLabel = { casa: 'Casa', apartamento: 'Apartamento', sala: 'Sala comercial', terreno: 'Terreno', outro: 'Outro' };
     return `
-  <div class="card" style="border-top:3px solid var(--teal);position:relative">
-    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-imovel="${im.id}" title="Remover">${icon('trash-2', {size:14})}</button>
-    <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-imovel="${im.id}" title="Editar">${icon('pencil', {size:14})}</button>
+  <div class="card" data-edit-imovel="${im.id}" style="border-top:3px solid var(--teal)">
     <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${tipoLabel[im.tipo] || 'Imóvel'}${im.alugado ? ' · Alugado' : ''}${im.financiado ? ' · Financiado' : ''}</div>
     <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${im.apelido || im.endereco || 'Imóvel'}</div>
     ${im.endereco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${im.endereco}</div>` : '<div style="margin-bottom:10px"></div>'}
@@ -4484,9 +4563,7 @@ ${veiculos.length === 0
     const custoAnual = Store.veiculoCustoAnual(v);
     const idade = v.dataCompra ? ((Date.now() - new Date(v.dataCompra).getTime()) / (1000*60*60*24*365.25)).toFixed(1) : '—';
     return `
-  <div class="card" style="border-top:3px solid var(--accent);position:relative">
-    <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-veiculo="${v.id}" title="Remover">${icon('trash-2', {size:14})}</button>
-    <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-veiculo="${v.id}" title="Editar">${icon('pencil', {size:14})}</button>
+  <div class="card" data-edit-veiculo="${v.id}" style="border-top:3px solid var(--accent)">
     <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${v.marca||'—'} ${v.modelo||''}</div>
     <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:8px">${v.apelido || v.modelo || 'Veículo'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:12px">
@@ -4597,7 +4674,6 @@ ${passivos.length === 0
           <td style="white-space:nowrap">
             ${st !== 'quitado' && st !== 'acordado' ? `<button class="btn-icon-sm" data-action="passivo-contrato" data-id="${p.id}" title="Gerar contrato">${icon('file-text', {size:14})}</button>` : ''}
             ${st !== 'quitado' ? `<button class="btn-icon-sm warning" data-action="passivo-despesa" data-id="${p.id}" title="Lançar em despesas">${icon('receipt', {size:14})}</button>` : ''}
-            <button class="btn-icon-sm danger" data-action="del-passivo" data-id="${p.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
           </td>
         </tr>`;
       }).join('')}
@@ -4669,21 +4745,26 @@ ${passivos.length === 0
     document.getElementById('btnAddVeiculo')?.addEventListener('click', () => openVeiculoModal(null, re));
     document.getElementById('btnAddImovel')?.addEventListener('click', () => openImovelModal(null, re));
 
-    // Veículos + Imóveis: delegação para editar/remover/programar
+    // Veículos + Imóveis: clique direto + programação de custos
+    container.querySelectorAll('[data-edit-veiculo]').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const v = Store.getVeiculos().find(x => x.id === card.dataset.editVeiculo);
+        if (v) openVeiculoModal(v, re);
+      });
+    });
+    container.querySelectorAll('[data-edit-imovel]').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const im = Store.getImoveis().find(x => x.id === card.dataset.editImovel);
+        if (im) openImovelModal(im, re);
+      });
+    });
     container.addEventListener('click', e => {
-      const editV = e.target.closest('[data-edit-veiculo]');
-      if (editV) { const v = Store.getVeiculos().find(x => x.id === editV.dataset.editVeiculo); if (v) openVeiculoModal(v, re); return; }
-      const delV = e.target.closest('[data-del-veiculo]');
-      if (delV) { if (!confirm('Remover este veículo?')) return; Store.deleteVeiculo(delV.dataset.delVeiculo); re(); toast('Veículo removido', 'success'); return; }
       const ipva = e.target.closest('[data-prog-ipva]');
       if (ipva) { const v = Store.getVeiculos().find(x => x.id === ipva.dataset.progIpva); if (v) _programarCustoVeiculo(v, 'ipva', re); return; }
       const seg = e.target.closest('[data-prog-seguro]');
       if (seg) { const v = Store.getVeiculos().find(x => x.id === seg.dataset.progSeguro); if (v) _programarCustoVeiculo(v, 'seguro', re); return; }
-
-      const editI = e.target.closest('[data-edit-imovel]');
-      if (editI) { const im = Store.getImoveis().find(x => x.id === editI.dataset.editImovel); if (im) openImovelModal(im, re); return; }
-      const delI = e.target.closest('[data-del-imovel]');
-      if (delI) { if (!confirm('Remover este imóvel?')) return; Store.deleteImovel(delI.dataset.delImovel); re(); toast('Imóvel removido', 'success'); return; }
       const iptu = e.target.closest('[data-prog-iptu]');
       if (iptu) { const im = Store.getImoveis().find(x => x.id === iptu.dataset.progIptu); if (im) _programarCustoImovel(im, 'iptu', re); return; }
       const cond = e.target.closest('[data-prog-cond]');
@@ -4704,27 +4785,27 @@ ${passivos.length === 0
       });
     });
 
+    // Investimentos + Ativos: clique direto
+    container.querySelectorAll('[data-edit-inv]').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const r = investimentos.find(r => r.id === card.dataset.editInv);
+        if (r) openInvModal(r, re);
+      });
+    });
+    container.querySelectorAll('[data-edit-ativo]').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const a = Store.get().ativos.find(a => a.id === row.dataset.editAtivo);
+        if (a) openAtivoModal(a, re);
+      });
+    });
+
     container.addEventListener('click', e => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
       const { action, id } = btn.dataset;
 
-      if (action === 'del-inv') {
-        if (!confirm('Excluir este investimento?')) return;
-        Store.deleteReserva(id); re(); toast('Removido!', 'success');
-      }
-      if (action === 'edit-inv') {
-        const r = investimentos.find(r => r.id === id);
-        if (r) openInvModal(r, re);
-      }
-      if (action === 'del-ativo') {
-        if (!confirm('Excluir este ativo?')) return;
-        Store.deleteAtivo(id); re(); toast('Ativo excluído!', 'success');
-      }
-      if (action === 'edit-ativo') {
-        const a = Store.get().ativos.find(a => a.id === id);
-        if (a) openAtivoModal(a, re);
-      }
       if (action === 'del-futuro') {
         if (!confirm('Excluir?')) return;
         Store.deleteRecebimentoFuturo(id); re();
@@ -4736,10 +4817,6 @@ ${passivos.length === 0
       if (action === 'edit-passivo') {
         const p = Store.getPassivos().find(p => p.id === id);
         if (p) openPassivoModal(p, re);
-      }
-      if (action === 'del-passivo') {
-        if (!confirm('Excluir este passivo?')) return;
-        Store.deletePassivo(id); re(); toast('Passivo removido', 'success');
       }
       if (action === 'passivo-contrato') {
         const p = Store.getPassivos().find(p => p.id === id);
@@ -4816,7 +4893,12 @@ ${passivos.length === 0
       Modal.close();
       onSaved();
       toast(isEdit ? 'Passivo atualizado' : 'Passivo cadastrado', 'success');
-    });
+    }, isEdit ? () => {
+      Store.deletePassivo(passivo.id);
+      Modal.close();
+      onSaved();
+      toast('Passivo removido', 'success');
+    } : null);
   }
 
   function openPassivoToContratoModal(passivo, onSaved) {
@@ -4958,7 +5040,12 @@ ${passivos.length === 0
         toast('Investimento adicionado!', 'success');
       }
       Modal.close(); if (onSaved) onSaved();
-    });
+    }, isEdit ? () => {
+      Store.deleteReserva(res.id);
+      Modal.close();
+      if (onSaved) onSaved();
+      toast('Investimento removido', 'success');
+    } : null);
   }
 
   // ── Modal: Ativo (crypto/FIAT) ────────────────────────────────
@@ -5006,7 +5093,12 @@ ${passivos.length === 0
       else        { Store.addVeiculo(data);                 toast('Veículo cadastrado', 'success'); }
       Modal.close();
       if (onSaved) onSaved();
-    });
+    }, isEdit ? () => {
+      Store.deleteVeiculo(veiculo.id);
+      Modal.close();
+      if (onSaved) onSaved();
+      toast('Veículo removido', 'success');
+    } : null);
   }
 
   // Cria contrato recorrente anual com o IPVA ou Seguro do veículo
@@ -5114,7 +5206,12 @@ ${passivos.length === 0
       else        { Store.addImovel(data);               toast('Imóvel cadastrado', 'success'); }
       Modal.close();
       if (onSaved) onSaved();
-    });
+    }, isEdit ? () => {
+      Store.deleteImovel(imovel.id);
+      Modal.close();
+      if (onSaved) onSaved();
+      toast('Imóvel removido', 'success');
+    } : null);
   }
 
   function _programarCustoImovel(im, tipo, onDone) {
@@ -5210,7 +5307,12 @@ ${passivos.length === 0
         Store.get().ativos.push(newAtivo); Store.persist(); toast('Ativo adicionado!', 'success');
       }
       Modal.close(); if (onSaved) onSaved();
-    });
+    }, isEdit ? () => {
+      Store.deleteAtivo(ativo.id);
+      Modal.close();
+      if (onSaved) onSaved();
+      toast('Ativo excluído', 'success');
+    } : null);
   }
 
   // ── Modal: Recebimento Futuro (renamed to avoid conflict) ─────
