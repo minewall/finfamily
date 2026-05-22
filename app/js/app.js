@@ -11016,6 +11016,475 @@ ${isConnected && isAdmin ? `
         ],
       },
     ],
+
+    // ── money — Relação com dinheiro (10 perguntas) ──────────────────
+    // Foco: crenças, traumas, mindset, padrões herdados, como o usuário
+    // enxerga o dinheiro
+    money: [
+      {
+        id: 'money_1', version: 1,
+        pergunta: 'Quando você era criança, como dinheiro era tratado na sua casa?',
+        opcoes: [
+          { id: 'a', label: 'Era assunto tenso, tinha pouco',          sub: 'Faltava com frequência' },
+          { id: 'b', label: 'Não se falava sobre',                     sub: 'Tabu na família' },
+          { id: 'c', label: 'Tinha o suficiente, sem grandes apertos', sub: 'Equilibrado, mas controlado' },
+          { id: 'd', label: 'Era tratado com naturalidade',            sub: 'Sobrava espaço pra escolhas' },
+        ],
+      },
+      {
+        id: 'money_2', version: 1,
+        pergunta: 'Qual a primeira sensação que dinheiro desperta em você?',
+        opcoes: [
+          { id: 'a', label: 'Ansiedade, sinto que nunca é suficiente', sub: 'Falta segurança' },
+          { id: 'b', label: 'Responsabilidade, peso de cuidar',        sub: 'Sinto o dever' },
+          { id: 'c', label: 'Liberdade, me dá escolhas',               sub: 'Abre possibilidades' },
+          { id: 'd', label: 'Tranquilidade, não penso muito',          sub: 'Lido bem com isso' },
+        ],
+      },
+      {
+        id: 'money_3', version: 1,
+        pergunta: 'Qual dessas frases mais se aproxima do que você sente, mesmo que não goste de admitir?',
+        opcoes: [
+          { id: 'a', label: '"Dinheiro não traz felicidade"',           sub: 'O importante é outra coisa' },
+          { id: 'b', label: '"Pra ter muito, alguém tem que perder"',   sub: 'Há um custo escondido' },
+          { id: 'c', label: '"Não nasci pra ser rico"',                 sub: 'Não é pra mim' },
+          { id: 'd', label: 'Nenhuma dessas, me sinto à vontade',       sub: 'Sem bloqueios óbvios' },
+        ],
+      },
+      {
+        id: 'money_4', version: 1,
+        pergunta: 'No dia a dia, o que pesa mais pra você?',
+        opcoes: [
+          { id: 'a', label: 'Aproveitar agora, a vida é curta',         sub: 'Gastar faz parte' },
+          { id: 'b', label: 'Equilibrar um pouco hoje e um pouco amanhã', sub: 'Dosagem' },
+          { id: 'c', label: 'Guardar primeiro, gastar o que sobra',     sub: 'Disciplina vem antes' },
+          { id: 'd', label: 'Guardar quase tudo, mesmo apertando',      sub: 'Segurança em primeiro lugar' },
+        ],
+      },
+      {
+        id: 'money_5', version: 1,
+        pergunta: 'Quando você compra algo só pra você, algo que quer mesmo, como se sente?',
+        opcoes: [
+          { id: 'a', label: 'Culpado, fico pensando se devia',          sub: 'Difícil curtir sem peso' },
+          { id: 'b', label: 'Um pouco em dúvida, mas relaxo depois',    sub: 'Passa rápido' },
+          { id: 'c', label: 'Bem, me sinto merecedor',                  sub: 'É consequência do meu trabalho' },
+          { id: 'd', label: 'Raramente faço isso',                      sub: 'Quase nunca priorizo' },
+        ],
+      },
+      {
+        id: 'money_6', version: 1,
+        pergunta: 'Falar de dinheiro com quem é próximo de você é…',
+        opcoes: [
+          { id: 'a', label: 'Difícil, evito o assunto',                 sub: 'Gera tensão' },
+          { id: 'b', label: 'Possível, mas só quando precisa',          sub: 'Tópico funcional' },
+          { id: 'c', label: 'Tranquilo, falamos com naturalidade',      sub: 'Faz parte da relação' },
+          { id: 'd', label: 'Não tenho com quem falar sobre isso',      sub: 'Decido tudo sozinho' },
+        ],
+      },
+      {
+        id: 'money_7', version: 1,
+        pergunta: 'Como você se sente quando precisa pedir dinheiro emprestado?',
+        opcoes: [
+          { id: 'a', label: 'Muito mal, evito a todo custo',            sub: 'Prefiro qualquer outra saída' },
+          { id: 'b', label: 'Desconfortável, mas faço se for preciso',  sub: 'Só em casos sérios' },
+          { id: 'c', label: 'Tranquilo, se o plano de pagar é claro',   sub: 'É só uma ferramenta' },
+          { id: 'd', label: 'Nunca precisei',                           sub: 'Não passei por isso' },
+        ],
+      },
+      {
+        id: 'money_8', version: 1,
+        pergunta: 'Quando cai um dinheiro extra (bônus, 13º, presente, herança), qual sua primeira reação?',
+        opcoes: [
+          { id: 'a', label: 'Já tem um destino, quitar dívida ou conta', sub: 'Já está comprometido' },
+          { id: 'b', label: 'Gasto com algo que queria há tempos',      sub: 'Meu prêmio' },
+          { id: 'c', label: 'Divido uma parte pra mim e outra pra guardar', sub: 'Equilíbrio' },
+          { id: 'd', label: 'Invisto ou guardo tudo',                   sub: 'Aproveito a oportunidade' },
+        ],
+      },
+      {
+        id: 'money_9', version: 1,
+        pergunta: 'Quanto você sabe sobre quanto realmente entra e sai da sua vida por mês?',
+        opcoes: [
+          { id: 'a', label: 'Tenho uma noção bem vaga',                 sub: 'Vou pelo sentimento' },
+          { id: 'b', label: 'Sei das grandes linhas, não dos detalhes', sub: 'Macro sim, micro não' },
+          { id: 'c', label: 'Acompanho com regularidade',               sub: 'Sei onde tô' },
+          { id: 'd', label: 'Controlo categoria por categoria',         sub: 'Tudo mapeado' },
+        ],
+      },
+      {
+        id: 'money_10', version: 1,
+        pergunta: 'No fundo, o que você mais quer que o dinheiro te dê?',
+        opcoes: [
+          { id: 'a', label: 'Segurança pra não passar aperto',          sub: 'Dormir tranquilo' },
+          { id: 'b', label: 'Liberdade pra escolher como vivo',         sub: 'Não depender de ninguém' },
+          { id: 'c', label: 'Cuidar de quem amo',                       sub: 'Família protegida' },
+          { id: 'd', label: 'Realizar o que sonho',                     sub: 'Concretizar planos' },
+        ],
+      },
+    ],
+
+    // ── dreams — Objetivos de vida (10 perguntas) ────────────────────
+    // Foco: sonhos, propósito, o que daria sentido se dinheiro não fosse
+    // limitador
+    dreams: [
+      {
+        id: 'dreams_1', version: 1,
+        pergunta: 'Se dinheiro não fosse problema, o que faria nos próximos 12 meses?',
+        opcoes: [
+          { id: 'a', label: 'Viajaria muito, conheceria lugares novos', sub: 'Sair, ver o mundo' },
+          { id: 'b', label: 'Tiraria um tempo pra estudar ou criar',    sub: 'Voltar a aprender' },
+          { id: 'c', label: 'Tiraria uma ideia minha do papel',         sub: 'Empreender, criar algo' },
+          { id: 'd', label: 'Reformaria ou compraria a casa dos sonhos', sub: 'Investiria no lar' },
+        ],
+      },
+      {
+        id: 'dreams_2', version: 1,
+        pergunta: 'Quando você se imagina daqui a 5 anos vivendo bem, o que aparece primeiro?',
+        opcoes: [
+          { id: 'a', label: 'Uma casa mais confortável, em local melhor', sub: 'Lar de verdade' },
+          { id: 'b', label: 'Mais tempo livre, menos correria',         sub: 'Espaço pra respirar' },
+          { id: 'c', label: 'Um trabalho que realmente me preenche',    sub: 'Sentido no dia a dia' },
+          { id: 'd', label: 'Tranquilidade, sem aperto e sem dívida',   sub: 'Paz financeira' },
+        ],
+      },
+      {
+        id: 'dreams_3', version: 1,
+        pergunta: 'Com que idade você se imagina podendo parar de trabalhar, se quisesse?',
+        opcoes: [
+          { id: 'a', label: 'Antes dos 50',                             sub: 'O quanto antes' },
+          { id: 'b', label: 'Entre 50 e 60',                            sub: 'Aposentadoria tradicional' },
+          { id: 'c', label: 'Entre 60 e 70',                            sub: 'Mais perto do tempo legal' },
+          { id: 'd', label: 'Nunca quero parar de trabalhar',           sub: 'Trabalho me faz bem' },
+        ],
+      },
+      {
+        id: 'dreams_4', version: 1,
+        pergunta: 'Quando se imagina mais velho e sem precisar trabalhar, qual cena vem à cabeça?',
+        opcoes: [
+          { id: 'a', label: 'Em casa, com a família, sem pressa',       sub: 'Vida mais lenta' },
+          { id: 'b', label: 'Viajando, conhecendo lugares',             sub: 'Mochila nas costas' },
+          { id: 'c', label: 'Em projetos pessoais como escrever ou ensinar', sub: 'Trabalho de paixão' },
+          { id: 'd', label: 'Nunca pensei nisso a fundo',               sub: 'Tá distante demais' },
+        ],
+      },
+      {
+        id: 'dreams_5', version: 1,
+        pergunta: 'O que "liberdade financeira" significa pra você, no concreto?',
+        opcoes: [
+          { id: 'a', label: 'Não precisar trabalhar pra pagar contas',  sub: 'Ter a base coberta' },
+          { id: 'b', label: 'Poder escolher o que faço com o tempo',    sub: 'Tempo é meu' },
+          { id: 'c', label: 'Ajudar quem amo sem fazer falta pra mim',  sub: 'Cuidar dos outros' },
+          { id: 'd', label: 'Comprar o que quero sem pensar',           sub: 'Sem freios' },
+        ],
+      },
+      {
+        id: 'dreams_6', version: 1,
+        pergunta: 'Daqui a 20 anos, o que você gostaria de ter deixado de marca?',
+        opcoes: [
+          { id: 'a', label: 'Filhos ou pessoas próximas bem cuidadas',  sub: 'Legado afetivo' },
+          { id: 'b', label: 'Uma obra, empresa ou projeto',             sub: 'Algo que continue' },
+          { id: 'c', label: 'Lembranças e experiências marcantes',      sub: 'Vivências' },
+          { id: 'd', label: 'Não me preocupo com isso',                 sub: 'Vivo o presente' },
+        ],
+      },
+      {
+        id: 'dreams_7', version: 1,
+        pergunta: 'Você tem hoje um sonho concreto que ainda não realizou, algo que sabe exatamente o que é?',
+        opcoes: [
+          { id: 'a', label: 'Sim, e tenho até valor estimado em mente', sub: 'Sei quanto custa' },
+          { id: 'b', label: 'Sim, mas é só uma ideia ainda',            sub: 'Falta concretizar' },
+          { id: 'c', label: 'Tenho vários, sem prioridade clara',       sub: 'Muita coisa boa' },
+          { id: 'd', label: 'Não tenho, vivo mais o dia',               sub: 'Sem grandes alvos' },
+        ],
+      },
+      {
+        id: 'dreams_8', version: 1,
+        pergunta: 'Quando você pensa em "ter sucesso financeiro", como mede?',
+        opcoes: [
+          { id: 'a', label: 'Pelo patrimônio acumulado',                sub: 'Quanto tenho guardado' },
+          { id: 'b', label: 'Pela renda mensal que entra',              sub: 'Quanto faço por mês' },
+          { id: 'c', label: 'Pela vida que consigo viver',              sub: 'Qualidade do dia a dia' },
+          { id: 'd', label: 'Por não depender de ninguém',              sub: 'Autonomia total' },
+        ],
+      },
+      {
+        id: 'dreams_9', version: 1,
+        pergunta: 'Tem algum sonho que você adiou tantas vezes que quase desistiu?',
+        opcoes: [
+          { id: 'a', label: 'Sim, uma viagem ou experiência',           sub: 'Sempre fica pra depois' },
+          { id: 'b', label: 'Sim, uma mudança grande de vida',          sub: 'Casa, cidade, carreira' },
+          { id: 'c', label: 'Sim, algo criativo ou pessoal',            sub: 'Projeto adormecido' },
+          { id: 'd', label: 'Não, geralmente realizo o que planejo',    sub: 'Tiro do papel' },
+        ],
+      },
+      {
+        id: 'dreams_10', version: 1,
+        pergunta: 'O que você precisa primeiro pra começar a se mexer em direção aos seus sonhos?',
+        opcoes: [
+          { id: 'a', label: 'Saber por onde começar, ter clareza',      sub: 'Falta direção' },
+          { id: 'b', label: 'Mais dinheiro guardado',                   sub: 'Falta recurso' },
+          { id: 'c', label: 'Mais coragem pra dar o passo',             sub: 'Falta empurrão' },
+          { id: 'd', label: 'Estou em movimento já',                    sub: 'Tô caminhando' },
+        ],
+      },
+    ],
+
+    // ── family — Família & responsabilidades (8 perguntas) ───────────
+    // Foco: projetos compartilhados, dependentes, herança, dinâmica de
+    // decisão na casa
+    family: [
+      {
+        id: 'family_1', version: 1,
+        pergunta: 'Quem decide o que entra e sai do dinheiro na sua casa?',
+        opcoes: [
+          { id: 'a', label: 'Eu decido sozinho',                        sub: 'Não divido essa parte' },
+          { id: 'b', label: 'Eu e meu parceiro(a), juntos',             sub: 'Decisão compartilhada' },
+          { id: 'c', label: 'Cada um cuida da sua parte',               sub: 'Finanças separadas' },
+          { id: 'd', label: 'É um assunto meio bagunçado por aqui',     sub: 'Sem combinado claro' },
+        ],
+      },
+      {
+        id: 'family_2', version: 1,
+        pergunta: 'Hoje, quem depende financeiramente de você de alguma forma?',
+        opcoes: [
+          { id: 'a', label: 'Filhos pequenos ou em formação',           sub: 'Crianças e adolescentes' },
+          { id: 'b', label: 'Pais, sogros ou parentes mais velhos',     sub: 'Geração anterior' },
+          { id: 'c', label: 'Parceiro(a) ou família imediata',          sub: 'Núcleo do dia a dia' },
+          { id: 'd', label: 'Hoje só sou responsável por mim',          sub: 'Vida individual' },
+        ],
+      },
+      {
+        id: 'family_3', version: 1,
+        pergunta: 'Pensando nos seus pais ou sogros, qual cenário é mais real pra você?',
+        opcoes: [
+          { id: 'a', label: 'Já ajudo eles financeiramente hoje',       sub: 'Suporte já em curso' },
+          { id: 'b', label: 'Estão bem, mas posso precisar entrar',     sub: 'Pode virar realidade' },
+          { id: 'c', label: 'Estão estáveis, não vejo necessidade',     sub: 'Independentes' },
+          { id: 'd', label: 'Preferia não pensar nisso ainda',          sub: 'Assunto adiado' },
+        ],
+      },
+      {
+        id: 'family_4', version: 1,
+        pergunta: 'Sobre deixar herança ou patrimônio pra alguém, qual frase soa mais como você?',
+        opcoes: [
+          { id: 'a', label: 'Quero deixar uma base sólida pros meus',   sub: 'Cuidar de quem fica' },
+          { id: 'b', label: 'Quero deixar algo, mas sem pressão',       sub: 'Se sobrar, ótimo' },
+          { id: 'c', label: 'Prefiro ajudá-los em vida',                sub: 'Apoio enquanto posso' },
+          { id: 'd', label: 'Quero usar tudo enquanto vivo',            sub: 'Não vou levar comigo' },
+        ],
+      },
+      {
+        id: 'family_5', version: 1,
+        pergunta: 'Quando vocês discutem sobre dinheiro em casa, o atrito costuma vir de onde?',
+        opcoes: [
+          { id: 'a', label: 'Um gasta mais do que o outro acha certo',  sub: 'Ritmo diferente' },
+          { id: 'b', label: 'Prioridades diferentes sobre o que importa', sub: 'Visões distintas' },
+          { id: 'c', label: 'Não temos esse atrito',                    sub: 'Estamos alinhados' },
+          { id: 'd', label: 'Não falamos sobre dinheiro',               sub: 'Evitamos o assunto' },
+        ],
+      },
+      {
+        id: 'family_6', version: 1,
+        pergunta: 'Qual destes projetos a família tem na cabeça pros próximos 3 a 5 anos?',
+        opcoes: [
+          { id: 'a', label: 'Casa própria, mudança ou reforma',         sub: 'Endereço novo' },
+          { id: 'b', label: 'Viagem grande, fora do país ou longa',     sub: 'Experiência marcante' },
+          { id: 'c', label: 'Estudos pra alguém da família',            sub: 'Faculdade, intercâmbio' },
+          { id: 'd', label: 'Não temos projeto definido',               sub: 'Sem alvo claro' },
+        ],
+      },
+      {
+        id: 'family_7', version: 1,
+        pergunta: 'Quanto você se sente responsável pelo futuro financeiro de outras pessoas além de você?',
+        opcoes: [
+          { id: 'a', label: 'Muito, sinto que dependem de mim',         sub: 'Peso grande' },
+          { id: 'b', label: 'Considerável, mas dividido',               sub: 'Não estou sozinho' },
+          { id: 'c', label: 'Pouco, cada um cuida do seu',              sub: 'Responsabilidade leve' },
+          { id: 'd', label: 'Só sou responsável por mim',               sub: 'Sem dependentes' },
+        ],
+      },
+      {
+        id: 'family_8', version: 1,
+        pergunta: 'Quando o assunto é educação dos filhos (atual ou futura), o que mais combina com você?',
+        opcoes: [
+          { id: 'a', label: 'Quero garantir escola particular boa',     sub: 'Educação como prioridade' },
+          { id: 'b', label: 'Educação importa, mas dentro do possível', sub: 'Equilíbrio realista' },
+          { id: 'c', label: 'Acredito mais em educação pública',        sub: 'Não é questão de gasto' },
+          { id: 'd', label: 'Não se aplica a mim',                      sub: 'Sem filhos no planejamento' },
+        ],
+      },
+    ],
+
+    // ── career — Carreira & renda (10 perguntas) ─────────────────────
+    // Foco: estabilidade da renda, ambição profissional, planos de
+    // transição, trabalho vs propósito
+    career: [
+      {
+        id: 'career_1', version: 1,
+        pergunta: 'Como você se sente na sua carreira atual hoje?',
+        opcoes: [
+          { id: 'a', label: 'Realizado, no caminho que escolhi',        sub: 'Faço o que gosto' },
+          { id: 'b', label: 'Confortável, mas sem grande paixão',       sub: 'Funciona, sem brilho' },
+          { id: 'c', label: 'Inquieto, considerando mudança',           sub: 'Algo precisa mudar' },
+          { id: 'd', label: 'Insatisfeito, quero outra coisa',          sub: 'Pensando em transição' },
+        ],
+      },
+      {
+        id: 'career_2', version: 1,
+        pergunta: 'O quanto sua renda é previsível de um mês pra outro?',
+        opcoes: [
+          { id: 'a', label: 'Muito previsível, entra o mesmo valor',    sub: 'Salário fixo' },
+          { id: 'b', label: 'Previsível com algumas variações',         sub: 'Fixo mais extras' },
+          { id: 'c', label: 'Bem variável, depende do mês',             sub: 'Oscila bastante' },
+          { id: 'd', label: 'Imprevisível, pode ir de tudo a nada',     sub: 'Sem garantia' },
+        ],
+      },
+      {
+        id: 'career_3', version: 1,
+        pergunta: 'Quando pensa em "crescer na carreira", o que vem primeiro?',
+        opcoes: [
+          { id: 'a', label: 'Ganhar mais',                              sub: 'Renda é o foco' },
+          { id: 'b', label: 'Ter mais autonomia e flexibilidade',       sub: 'Tempo e liberdade' },
+          { id: 'c', label: 'Fazer algo com mais sentido',              sub: 'Propósito acima' },
+          { id: 'd', label: 'Não penso muito em crescer',               sub: 'Tô bem onde tô' },
+        ],
+      },
+      {
+        id: 'career_4', version: 1,
+        pergunta: 'Empreender ou trabalhar pra alguém, onde você se vê melhor?',
+        opcoes: [
+          { id: 'a', label: 'Já empreendo ou quero empreender em breve', sub: 'Construir o meu' },
+          { id: 'b', label: 'Sou empregado, mas tenho um projeto extra', sub: 'Pé nos dois lados' },
+          { id: 'c', label: 'Prefiro a segurança de ser empregado',     sub: 'Risco controlado' },
+          { id: 'd', label: 'Já tentei empreender e voltei pra CLT',    sub: 'Aprendi, prefiro estável' },
+        ],
+      },
+      {
+        id: 'career_5', version: 1,
+        pergunta: 'Você tem hoje algum tipo de renda extra além da principal?',
+        opcoes: [
+          { id: 'a', label: 'Sim, e ela conta bastante no orçamento',   sub: 'Faz diferença real' },
+          { id: 'b', label: 'Sim, mas é pontual',                       sub: 'Vem e vai' },
+          { id: 'c', label: 'Não, mas estou tentando construir uma',    sub: 'Trabalhando nisso' },
+          { id: 'd', label: 'Não, e nem busco',                         sub: 'Foco numa fonte só' },
+        ],
+      },
+      {
+        id: 'career_6', version: 1,
+        pergunta: 'A ideia de poder parar de trabalhar bem cedo, aos 40 ou 50, o que sente?',
+        opcoes: [
+          { id: 'a', label: 'É exatamente o que persigo',               sub: 'Meu plano de fato' },
+          { id: 'b', label: 'Acho lindo, mas longe da minha realidade', sub: 'Sonho distante' },
+          { id: 'c', label: 'Não combina comigo, gosto de trabalhar',   sub: 'Trabalho me faz bem' },
+          { id: 'd', label: 'Nunca pensei a sério nisso',               sub: 'Não passou pela cabeça' },
+        ],
+      },
+      {
+        id: 'career_7', version: 1,
+        pergunta: 'Se tivesse que escolher entre 30% a mais de salário ou duas horas a mais por dia livre, o que pega?',
+        opcoes: [
+          { id: 'a', label: 'Salário, sem dúvida',                      sub: 'Renda é prioridade' },
+          { id: 'b', label: 'Salário, mas pesa a decisão',              sub: 'Inclino pra grana' },
+          { id: 'c', label: 'Tempo, mas pesa a decisão',                sub: 'Inclino pro tempo' },
+          { id: 'd', label: 'Tempo, sem dúvida',                        sub: 'Vida é agora' },
+        ],
+      },
+      {
+        id: 'career_8', version: 1,
+        pergunta: 'Se aparecesse uma oportunidade boa em outra cidade ou país, qual seria sua reação?',
+        opcoes: [
+          { id: 'a', label: 'Iria sem pensar muito',                    sub: 'Aberto a mudar' },
+          { id: 'b', label: 'Avaliaria com calma, mas é possível',      sub: 'Considero seriamente' },
+          { id: 'c', label: 'Difícil, minha vida tá enraizada aqui',    sub: 'Tenho compromissos' },
+          { id: 'd', label: 'Não, fora de cogitação',                   sub: 'Onde estou é meu lugar' },
+        ],
+      },
+      {
+        id: 'career_9', version: 1,
+        pergunta: 'O quanto você tem investido em desenvolvimento profissional ultimamente?',
+        opcoes: [
+          { id: 'a', label: 'Bastante, faço cursos, leio, busco mentor', sub: 'Estudo ativo' },
+          { id: 'b', label: 'Algum, quando aparece oportunidade',       sub: 'Casualmente' },
+          { id: 'c', label: 'Pouco, falta tempo ou dinheiro',           sub: 'Queria, não consigo' },
+          { id: 'd', label: 'Nada, não vejo necessidade hoje',          sub: 'Tô bem como tô' },
+        ],
+      },
+      {
+        id: 'career_10', version: 1,
+        pergunta: 'Se sua renda principal sumisse amanhã, por quanto tempo conseguiria se manter?',
+        opcoes: [
+          { id: 'a', label: 'Menos de um mês',                          sub: 'Sem margem' },
+          { id: 'b', label: 'Um a três meses',                          sub: 'Tempo apertado' },
+          { id: 'c', label: 'Três a doze meses',                        sub: 'Tenho fôlego' },
+          { id: 'd', label: 'Mais de um ano',                           sub: 'Tô bem protegido' },
+        ],
+      },
+    ],
+
+    // ── health — Saúde & bem-estar (6 perguntas) ─────────────────────
+    // Foco: como saúde impacta indiretamente o orçamento
+    health: [
+      {
+        id: 'health_1', version: 1,
+        pergunta: 'Você reserva algo no orçamento todo mês pra cuidar da sua saúde?',
+        opcoes: [
+          { id: 'a', label: 'Sim, valor mensal organizado',             sub: 'Plano, academia, terapia' },
+          { id: 'b', label: 'Sim, mas inconsistente',                   sub: 'Quando dá ou quando precisa' },
+          { id: 'c', label: 'Não, mas gostaria',                        sub: 'Falta organizar' },
+          { id: 'd', label: 'Não acho prioridade hoje',                 sub: 'Cuido sob demanda' },
+        ],
+      },
+      {
+        id: 'health_2', version: 1,
+        pergunta: 'Existe alguma condição de saúde na família que pode pesar no seu orçamento no futuro?',
+        opcoes: [
+          { id: 'a', label: 'Sim, e já estou me preparando',            sub: 'Já tenho reserva pensada' },
+          { id: 'b', label: 'Sim, mas ainda não me preparei',           sub: 'Sei do risco, não agi' },
+          { id: 'c', label: 'Possível, o histórico me preocupa',        sub: 'Não tenho certeza' },
+          { id: 'd', label: 'Não vejo isso como risco real',            sub: 'Saúde estável na família' },
+        ],
+      },
+      {
+        id: 'health_3', version: 1,
+        pergunta: 'Em mês apertado, o que acontece com gastos de bem-estar (academia, terapia, plano)?',
+        opcoes: [
+          { id: 'a', label: 'É a primeira coisa que corto',             sub: 'Vão primeiro' },
+          { id: 'b', label: 'Corto alguns, mantenho o essencial',       sub: 'Faço triagem' },
+          { id: 'c', label: 'Tento manter, pra mim é essencial',        sub: 'Não negocio' },
+          { id: 'd', label: 'Não tenho esses gastos pra cortar',        sub: 'Não se aplica' },
+        ],
+      },
+      {
+        id: 'health_4', version: 1,
+        pergunta: 'Como você enxerga plano de saúde particular?',
+        opcoes: [
+          { id: 'a', label: 'Inegociável, pago com prioridade',         sub: 'Cuidado essencial' },
+          { id: 'b', label: 'Importante, mas peso o custo',             sub: 'Mantenho com esforço' },
+          { id: 'c', label: 'Hoje uso o SUS e funciona pra mim',        sub: 'Pública dá conta' },
+          { id: 'd', label: 'Misto, público pra rotina e particular se precisar', sub: 'Vou montando' },
+        ],
+      },
+      {
+        id: 'health_5', version: 1,
+        pergunta: 'Saúde mental, terapia, pausa, autocuidado, entra no seu radar?',
+        opcoes: [
+          { id: 'a', label: 'Sim, faço terapia ou algo regular',        sub: 'Cuido ativamente' },
+          { id: 'b', label: 'Quero começar, ainda não comecei',         sub: 'Tô no plano' },
+          { id: 'c', label: 'Cuido por outras vias como esporte ou hobby', sub: 'Outras formas' },
+          { id: 'd', label: 'Não é uma preocupação minha',              sub: 'Não vejo necessidade' },
+        ],
+      },
+      {
+        id: 'health_6', version: 1,
+        pergunta: 'Quando você pensa em ficar mais velho, o que mais te preocupa financeiramente?',
+        opcoes: [
+          { id: 'a', label: 'Custo de remédios e tratamentos contínuos', sub: 'Manutenção contínua' },
+          { id: 'b', label: 'Plano de saúde ficando inviável',          sub: 'Mensalidade subindo' },
+          { id: 'c', label: 'Depender financeiramente de alguém',       sub: 'Perder autonomia' },
+          { id: 'd', label: 'Não me preocupo com isso ainda',           sub: 'Tá distante' },
+        ],
+      },
+    ],
   };
 
   // Estado do modal de perguntas ICP
