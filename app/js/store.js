@@ -17,7 +17,7 @@ const Store = (function () {
     saude:       'essencial',
     educacao:    'essencial',
     pets:        'comprometido',
-    assessorias: 'comprometido',
+    servicos_profissionais: 'comprometido',
     financeiro:  'obrigatorio',
     assinaturas: 'opcional',
     lazer:       'opcional',
@@ -32,7 +32,7 @@ const Store = (function () {
     saude:       { label: 'Saúde',               color: '#EC4899', icon: 'heart' },
     educacao:    { label: 'Educação',            color: '#06B6D4', icon: 'book-open' },
     pets:        { label: 'Pets',                color: '#F97316', icon: 'dog' },
-    assessorias: { label: 'Assessorias',         color: '#F59E0B', icon: 'scale' },
+    servicos_profissionais: { label: 'Serviços Profissionais', color: '#F59E0B', icon: 'scale' },
     financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
     assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
     lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
@@ -48,7 +48,7 @@ const Store = (function () {
     saude:       ['Plano de Saúde','Consultas','Exames','Medicamentos','Terapia','Academia / Atividade Física','Dentista','Emergências','Outros'],
     educacao:    ['Mensalidade Escolar','Mensalidade Faculdade','Pós-graduação / MBA','Cursos Livres','Idiomas','Material Escolar/Universitário','Uniforme','Livros e Apostilas','Feiras e Eventos Educacionais','Outros'],
     pets:        ['Ração','Petiscos / Snacks','Banho e Tosa','Veterinário','Medicamentos / Vermífugos','Plano de Saúde Pet','Acessórios / Brinquedos','Hotel / Daycare'],
-    assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
+    servicos_profissionais: ['Advogado','Contador','Consultoria','Coach / Mentor','Planejador Financeiro','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPTU','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
@@ -1292,6 +1292,15 @@ const Store = (function () {
         if (category === 'saude' && sub === 'Convênio Médico') {
           sub = 'Plano de Saúde';
         }
+        // Rename category assessorias → servicos_profissionais
+        if (category === 'assessorias') {
+          category = 'servicos_profissionais';
+          // Consolidações de sub
+          if (sub === 'Honorários Advocatícios') sub = 'Advogado';
+          if (sub === 'Contador Pessoal')        sub = 'Contador';
+          if (sub === 'Melissa Advogada')        sub = 'Advogado';
+          if (sub === 'OAB')                     sub = 'Outros';
+        }
         // Educação — consolidações e renames
         if (category === 'educacao') {
           if (sub === 'Material Escolar')       sub = 'Material Escolar/Universitário';
@@ -1313,20 +1322,30 @@ const Store = (function () {
         _data.categorias.pessoal = { ...CATEGORIES.pessoal };
       }
       delete _data.categorias.individual;
+      if (_data.categorias.assessorias && !_data.categorias.servicos_profissionais) {
+        _data.categorias.servicos_profissionais = { ...CATEGORIES.servicos_profissionais };
+      }
+      delete _data.categorias.assessorias;
     }
     // _data.subcategorias rename + atualiza estruturas
     if (_data.subcategorias) {
       delete _data.subcategorias.individual;
-      _data.subcategorias.pessoal  = [...SUBCATEGORIES.pessoal];
-      _data.subcategorias.saude    = [...SUBCATEGORIES.saude];
-      _data.subcategorias.educacao = [...SUBCATEGORIES.educacao];
-      _data.subcategorias.pets     = [...SUBCATEGORIES.pets];
+      delete _data.subcategorias.assessorias;
+      _data.subcategorias.pessoal                = [...SUBCATEGORIES.pessoal];
+      _data.subcategorias.saude                  = [...SUBCATEGORIES.saude];
+      _data.subcategorias.educacao               = [...SUBCATEGORIES.educacao];
+      _data.subcategorias.pets                   = [...SUBCATEGORIES.pets];
+      _data.subcategorias.servicos_profissionais = [...SUBCATEGORIES.servicos_profissionais];
     }
     // settings.catTipo rename
     if (_data.settings?.catTipo) {
       if (_data.settings.catTipo.individual !== undefined) {
         _data.settings.catTipo.pessoal = _data.settings.catTipo.individual;
         delete _data.settings.catTipo.individual;
+      }
+      if (_data.settings.catTipo.assessorias !== undefined) {
+        _data.settings.catTipo.servicos_profissionais = _data.settings.catTipo.assessorias;
+        delete _data.settings.catTipo.assessorias;
       }
     }
     _data.__migrated_categorias_v3 = true;
