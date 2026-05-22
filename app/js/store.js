@@ -307,6 +307,40 @@ const Store = (function () {
   const BANKS = ['Itaú','Bradesco','Santander','Nubank','Inter','C6 Bank','Caixa','Banco do Brasil','BTG Pactual','XP','Wise','PicPay','Mercado Pago'];
   const ACCOUNT_TYPES = ['Corrente','Poupança','Digital','Salário','Investimento'];
 
+  // ── EMPTY STATE (para novos usuários — usado em init()) ────────
+  // Estrutura mínima zerada, com TODAS as flags de migração de dados
+  // pessoais já marcadas como aplicadas — assim nenhuma migration que
+  // injeta dados pessoais do dev (despesas Q1/2026, etc) roda.
+  function buildEmpty() {
+    return {
+      receitas: [],
+      despesas: [],
+      contas: [],
+      cartoes: [],
+      contratos: [],
+      metas: [],
+      ativos: [],
+      reservas: [],
+      tributos: [],
+      recebimentosFuturos: [],
+      recados: [],
+      lancamentos: [],
+      passivos: [],
+      veiculos: [],
+      imoveis: [],
+      financiamentos: [],
+      pessoas: ['Você'],
+      profile: {},
+      settings: {},
+      // Bloqueia migrations que injetam dados pessoais
+      __cleanup_v101: true,
+      __cleanup_despesas2026q1: true,
+      __migrated_manuela_cat: true,
+      __migrated_roberto_mariana: true,
+      __fix_passeios_escolares: true,
+    };
+  }
+
   // ── SEED DATA (from spreadsheet) ───────────────────────────────
   function buildSeed() {
     const receitas = [
@@ -750,7 +784,11 @@ const Store = (function () {
     } catch (e) { /* ignore */ }
 
     if (!_data) {
-      _data = buildSeed();
+      // Usuário novo começa LIMPO. Demo data só via botão "Restaurar exemplo"
+      // (que chama resetData → buildSeed). Antes: init() usava buildSeed
+      // automaticamente, fazendo toda conta nova nascer com dados pessoais
+      // do dev (605 despesas, receitas hardcoded etc).
+      _data = buildEmpty();
       save(_data);
     }
     // Init Supabase connection (non-blocking)
