@@ -402,7 +402,9 @@ const Store = (function () {
   const PESSOAS = ['Roberto','Mariana','Manuela','Família'];
 
   const BANKS = ['Itaú','Bradesco','Santander','Nubank','Inter','C6 Bank','Caixa','Banco do Brasil','BTG Pactual','XP','Wise','PicPay','Mercado Pago'];
-  const ACCOUNT_TYPES = ['Corrente','Poupança','Digital','Salário','Investimento'];
+  // Conta Corrente cobre tanto bancos tradicionais quanto digitais (Nubank, Inter etc).
+  // "Corretora" cobre brokers (XP, BTG, Avenue) — distinto de banco regular.
+  const ACCOUNT_TYPES = ['Corrente','Poupança','Salário','Corretora'];
 
   // ── EMPTY STATE (para novos usuários — usado em init()) ────────
   // Estrutura mínima zerada, com TODAS as flags de migração de dados
@@ -441,6 +443,7 @@ const Store = (function () {
       __migrated_categorias_v2: true,
       __migrated_receita_subs_v2: true,
       __migrated_pay_methods: true,
+      __migrated_account_types: true,
     };
   }
 
@@ -1011,6 +1014,21 @@ const Store = (function () {
     _data.__migrated_pay_methods = true;
   }
 
+  // Tipos de conta unificados:
+  // 'Digital' (vago — sobrepunha Corrente) → 'Corrente'
+  // 'Investimento' (era confuso — não é conta de banco) → 'Corretora'
+  function _migrateAccountTypes() {
+    if (_data.__migrated_account_types) return;
+    const REMAP = { Digital: 'Corrente', Investimento: 'Corretora' };
+    if (Array.isArray(_data.contas)) {
+      _data.contas = _data.contas.map(c => {
+        if (REMAP[c.tipo]) return { ...c, tipo: REMAP[c.tipo] };
+        return c;
+      });
+    }
+    _data.__migrated_account_types = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -1104,6 +1122,7 @@ const Store = (function () {
     _migrateCategoriasV2();
     _migrateReceitaSubs();
     _migratePayMethods();
+    _migrateAccountTypes();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
