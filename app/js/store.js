@@ -118,7 +118,27 @@ const Store = (function () {
   ];
 
   // Ordem proposital: do mais comum/menor atrito (Pix/Dinheiro) ao menos.
+  // Ordem proposital: do mais comum/menor atrito (Pix/Dinheiro) ao menos.
   const PAYMENT_METHODS = ['Dinheiro','Pix','Débito','Crédito','Boleto','Transferência'];
+
+  // Periodicidade: usada em compromissos, financiamentos, lançamentos parcelados
+  // e receitas recorrentes. stepMeses indica o intervalo em meses entre ocorrências
+  // (0 = único; 0.25 = semanal/quinzenal — tratados especialmente quando necessário).
+  const PERIODICIDADES = [
+    { id: 'unico',      label: 'Único',       stepMeses: 0,    desc: 'Acontece uma vez só' },
+    { id: 'semanal',    label: 'Semanal',     stepMeses: 0.25, desc: 'A cada semana (~4x/mês)' },
+    { id: 'quinzenal',  label: 'Quinzenal',   stepMeses: 0.5,  desc: 'A cada duas semanas (~2x/mês)' },
+    { id: 'mensal',     label: 'Mensal',      stepMeses: 1,    desc: 'Todo mês' },
+    { id: 'bimestral',  label: 'Bimestral',   stepMeses: 2,    desc: 'A cada dois meses' },
+    { id: 'trimestral', label: 'Trimestral',  stepMeses: 3,    desc: 'A cada três meses' },
+    { id: 'semestral',  label: 'Semestral',   stepMeses: 6,    desc: 'A cada seis meses' },
+    { id: 'anual',      label: 'Anual',       stepMeses: 12,   desc: 'Uma vez por ano' },
+  ];
+
+  function periodicidadeStepMeses(id) {
+    const p = PERIODICIDADES.find(x => x.id === id);
+    return p ? p.stepMeses : 1; // default mensal pra retrocompatibilidade
+  }
 
   // ── CANÔNICO: DESPESAS 2026 Jan-Abr ──────────────────────────────
   // Fonte: planilha oficial. Aluguel de Moradia NÃO está aqui — vem do Contrato.
@@ -1758,7 +1778,11 @@ const Store = (function () {
     _removeLancamentosByContrato(c.id);
 
     const base = new Date(c.dataInicio + 'T12:00:00');
-    const stepMeses = c.periodicidade === 'anual' ? 12 : 1;
+    // Usa a tabela oficial — suporta semanal/quinzenal/bimestral/trimestral/semestral
+    // (semanal=0.25 e quinzenal=0.5 são tratados como ~mensal pra geração de parcelas;
+    // refinamento de dias específicos vem em iteração futura).
+    const _step = periodicidadeStepMeses(c.periodicidade);
+    const stepMeses = _step < 1 ? 1 : Math.round(_step);
     const entries = [];
     for (let i = 0; i < c.parcelas; i++) {
       const dt = new Date(base);
@@ -2820,6 +2844,7 @@ const Store = (function () {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
+    PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
     addConta, deleteConta, updateConta, getContasByCategoria,
