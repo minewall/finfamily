@@ -23,15 +23,6 @@ const SupabaseSync = (function () {
     if (_onStatusChange) _onStatusChange(status);
   }
 
-  // Aplica dados do cloud no Store local — chamado após pull bem-sucedido.
-  // Usa Store.syncFromCloud se disponível; senão escreve direto no localStorage.
-  async function _applyCloudToStore() {
-    if (typeof Store !== 'undefined' && typeof Store.syncFromCloud === 'function') {
-      return await Store.syncFromCloud();
-    }
-    return false;
-  }
-
   function init() {
     // Idempotente — múltiplos clientes no mesmo browser context causam
     // "Multiple GoTrueClient instances detected" e undefined behavior
@@ -43,20 +34,16 @@ const SupabaseSync = (function () {
     }
     _initialized = true;
     _client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    _client.auth.onAuthStateChange(async (event, session) => {
+    // Callbacks síncronos — sem await pra evitar reentrância no auth state.
+    // O pull do cloud no login agora é feito pela login.html via REST direto
+    // (bypassa o SDK que estava travando getSession() com múltiplos clientes).
+    _client.auth.onAuthStateChange((event, session) => {
       _user = session?.user || null;
       _accessToken = session?.access_token || null;
-      // SIGNED_IN: puxa cloud e escreve no Store (antes era descartado)
-      if (event === 'SIGNED_IN') {
-        await _applyCloudToStore();
-      }
     });
-    _client.auth.getSession().then(async ({ data }) => {
+    _client.auth.getSession().then(({ data }) => {
       _user = data?.session?.user || null;
       _accessToken = data?.session?.access_token || null;
-      // Sessão persistida (refresh) também precisa puxar cloud — onAuthStateChange
-      // só dispara em novo SIGNED_IN, não em sessão existente.
-      if (_user) await _applyCloudToStore();
     });
 
     // Flush antes do navegador fechar: push síncrono se houver pendência.
