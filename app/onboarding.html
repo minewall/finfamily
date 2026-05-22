@@ -488,7 +488,7 @@
     }
     // Se já completou o onboarding, vai direto para o app
     try {
-      const _raw = JSON.parse(localStorage.getItem('ff_data') || '{}');
+      const _raw = JSON.parse(localStorage.getItem('finfamily_v1') || '{}');
       if (_raw.onboarding?.completed) {
         window.location.replace('app.html');
       }

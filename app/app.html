@@ -25,7 +25,7 @@
     // Onboarding guard — novos usuários sem dados vão para o onboarding
     // Lê direto do localStorage sem carregar o Store completo
     try {
-      const _raw = JSON.parse(localStorage.getItem('ff_data') || '{}');
+      const _raw = JSON.parse(localStorage.getItem('finfamily_v1') || '{}');
       const _onb = _raw.onboarding;
       const _hasData = (_raw.receitas && _raw.receitas.length > 0)
         || (_raw.despesas && _raw.despesas.length > 0)
