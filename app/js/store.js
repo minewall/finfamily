@@ -42,14 +42,14 @@ const Store = (function () {
   };
 
   const SUBCATEGORIES = {
-    moradia:     ['Aluguel','Condomínio','IPTU','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Seguro Residencial','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
+    moradia:     ['Aluguel','Condomínio','IPTU','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
     alimentacao: ['Supermercado','Hortifruti','Padaria','Açougue','Água','Delivery'],
-    transporte:  ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
+    transporte:  ['Combustível','Manutenção','Estacionamento','Pedágio','App de Mobilidade','Transporte Público','Aluguel / Carsharing'],
     saude:       ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
     educacao:    ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
     pets:        ['Ração','Banho e Tosa','Veterinário','Acessórios / Brinquedos'],
     assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
-    financeiro:  ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
+    financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Diversão Local','Famílias e Amigos','Viagens'],
     individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
@@ -1277,14 +1277,27 @@ const Store = (function () {
         'Feira / Sacolão':   'Hortifruti',
         'iFood':             'Delivery',
       },
+      transporte: {
+        'Aluguel Carro': 'Aluguel / Carsharing',
+        'Uber':          'App de Mobilidade',
+      },
+      financeiro: {
+        'Seguro de Vida': 'Seguro de Vida', // mantém
+      },
     };
-    // Move despesa de uma categoria/sub pra outra
+    // Move despesa de uma categoria/sub pra outra (mais que renomear)
     const SUB_REASSIGN = [
       // Alimentação → Lazer (conceito Minewall: comer fora é opcional)
-      { fromCat: 'alimentacao', fromSub: 'Nespresso',          toCat: 'lazer', toSub: 'Doceria / Lanchonete' },
-      { fromCat: 'alimentacao', fromSub: 'Sorveteria',         toCat: 'lazer', toSub: 'Doceria / Lanchonete' },
-      { fromCat: 'alimentacao', fromSub: 'Lanche na Faculdade',toCat: 'lazer', toSub: 'Doceria / Lanchonete' },
-      // Lazer rename da sub combinada antiga
+      { fromCat: 'alimentacao', fromSub: 'Nespresso',          toCat: 'lazer',      toSub: 'Doceria / Lanchonete' },
+      { fromCat: 'alimentacao', fromSub: 'Sorveteria',         toCat: 'lazer',      toSub: 'Doceria / Lanchonete' },
+      { fromCat: 'alimentacao', fromSub: 'Lanche na Faculdade',toCat: 'lazer',      toSub: 'Doceria / Lanchonete' },
+      // Transporte → Financeiras (burocrático/legal/seguro)
+      { fromCat: 'transporte',  fromSub: 'IPVA',               toCat: 'financeiro', toSub: 'IPVA / Licenciamento' },
+      { fromCat: 'transporte',  fromSub: 'Documentos',         toCat: 'financeiro', toSub: 'IPVA / Licenciamento' },
+      { fromCat: 'transporte',  fromSub: 'Seguro',             toCat: 'financeiro', toSub: 'Seguro Veicular' },
+      { fromCat: 'transporte',  fromSub: 'Multas',             toCat: 'financeiro', toSub: 'Multas' },
+      // Moradia → Financeiras (seguro residencial — caso já existisse)
+      { fromCat: 'moradia',     fromSub: 'Seguro Residencial', toCat: 'financeiro', toSub: 'Seguro Residencial' },
     ];
     const LAZER_OLD_TO_NEW = { 'Restaurantes e Passeios': 'Restaurante' };
 
@@ -1307,7 +1320,7 @@ const Store = (function () {
     }
     // Atualiza _data.subcategorias para estruturas novas
     if (_data.subcategorias) {
-      ['moradia','alimentacao','lazer'].forEach(cat => {
+      ['moradia','alimentacao','lazer','transporte','financeiro'].forEach(cat => {
         if (_data.subcategorias[cat]) _data.subcategorias[cat] = [...SUBCATEGORIES[cat]];
       });
     }
