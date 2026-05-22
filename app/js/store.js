@@ -15,15 +15,14 @@ const Store = (function () {
     alimentacao: 'essencial',
     transporte:  'essencial',
     saude:       'essencial',
-    manuela:     'essencial',
-    educacao:    'comprometido',
-    dogs:        'comprometido',
+    educacao:    'essencial',
+    pets:        'comprometido',
     assessorias: 'comprometido',
     financeiro:  'obrigatorio',
-    beneficios:  'obrigatorio',
     assinaturas: 'opcional',
     lazer:       'opcional',
-    pessoal:     'opcional',
+    individual:  'opcional',
+    mesada:      'opcional',
   };
 
   const CATEGORIES = {
@@ -31,32 +30,30 @@ const Store = (function () {
     alimentacao: { label: 'Alimentação',          color: '#22C55E', icon: 'shopping-cart' },
     transporte:  { label: 'Transporte',           color: '#3B82F6', icon: 'car' },
     saude:       { label: 'Saúde',               color: '#EC4899', icon: 'heart' },
-    pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: 'user-round' },
-    dogs:        { label: 'Dogs',                color: '#F97316', icon: 'dog' },
-    lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
-    assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
-    financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
-    manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: 'baby' },
     educacao:    { label: 'Educação',            color: '#06B6D4', icon: 'book-open' },
-    beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: 'gift' },
+    pets:        { label: 'Pets',                color: '#F97316', icon: 'dog' },
     assessorias: { label: 'Assessorias',         color: '#F59E0B', icon: 'scale' },
+    financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
+    assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
+    lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
+    individual:  { label: 'Individual',          color: '#F59E0B', icon: 'user-round' },
+    mesada:      { label: 'Mesada',              color: '#A78BFA', icon: 'hand-coins' },
     receita:     { label: 'Receita',             color: '#22C55E', icon: 'banknote' },
   };
 
   const SUBCATEGORIES = {
-    moradia: ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Móveis e itens casa','Outras despesas'],
-    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade','iFood'],
-    transporte: ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
-    saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
-    pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja','Celular','Telegrama','Mesada'],
-    dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios / Brinquedos'],
-    lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
+    moradia:     ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Móveis e itens casa','Outras despesas'],
+    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade','Delivery','iFood'],
+    transporte:  ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
+    saude:       ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
+    educacao:    ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
+    pets:        ['Ração','Banho e Tosa','Veterinário','Acessórios / Brinquedos'],
+    assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
+    financeiro:  ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
-    financeiro: ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
-    manuela:    ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
-    educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
-    beneficios: ['Mesada','Vale Refeição','Vale Transporte','Plano de Saúde','Outros'],
-    assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','Melissa Advogada','OAB','Outros'],
+    lazer:       ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
+    individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
+    mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
   };
 
   const PAYMENT_METHODS = ['Cartão','Débito','Dinheiro','Pix'];
@@ -359,6 +356,7 @@ const Store = (function () {
       __fix_passeios_escolares: true,
       __migrated_assinaturas: true,
       __migrated_default_cat_tipo: true,
+      __migrated_categorias_v2: true,
     };
   }
 
@@ -813,6 +811,68 @@ const Store = (function () {
     _data.__migrated_default_cat_tipo = true;
   }
 
+  // Renomeia/exclui categorias conforme padrão V2:
+  // - dogs → pets
+  // - beneficios → mesada (subs: Filhos, Cônjuge, etc — diferentes do antigo)
+  // - pessoal → individual (remove sub "Mesada" que virou categoria)
+  // - manuela: removida (já migrada antes via _migrateManuelaCat)
+  // - educacao: tipo passa de 'comprometido' para 'essencial'
+  function _migrateCategoriasV2() {
+    if (_data.__migrated_categorias_v2) return;
+    const RENAME = { dogs: 'pets', beneficios: 'mesada', pessoal: 'individual' };
+
+    // 1. Renomeia em despesas
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        if (RENAME[d.category]) return { ...d, category: RENAME[d.category] };
+        return d;
+      });
+    }
+    // 2. Renomeia em receitas (se houver)
+    if (Array.isArray(_data.receitas)) {
+      _data.receitas = _data.receitas.map(r => {
+        if (RENAME[r.category]) return { ...r, category: RENAME[r.category] };
+        return r;
+      });
+    }
+    // 3. Renomeia em _data.categorias persistido
+    if (_data.categorias) {
+      Object.entries(RENAME).forEach(([oldId, newId]) => {
+        if (_data.categorias[oldId] && !_data.categorias[newId]) {
+          _data.categorias[newId] = { ...CATEGORIES[newId] };
+        }
+        delete _data.categorias[oldId];
+      });
+      // Remove manuela (já migrada antes)
+      delete _data.categorias.manuela;
+    }
+    // 4. Renomeia em subcategorias
+    if (_data.subcategorias) {
+      Object.entries(RENAME).forEach(([oldId, newId]) => {
+        if (_data.subcategorias[oldId] && !_data.subcategorias[newId]) {
+          _data.subcategorias[newId] = SUBCATEGORIES[newId] ? [...SUBCATEGORIES[newId]] : _data.subcategorias[oldId];
+        }
+        delete _data.subcategorias[oldId];
+      });
+      delete _data.subcategorias.manuela;
+    }
+    // 5. Renomeia em settings.catTipo (e atualiza educacao → essencial)
+    if (_data.settings?.catTipo) {
+      Object.entries(RENAME).forEach(([oldId, newId]) => {
+        if (_data.settings.catTipo[oldId] !== undefined) {
+          _data.settings.catTipo[newId] = _data.settings.catTipo[oldId];
+          delete _data.settings.catTipo[oldId];
+        }
+      });
+      delete _data.settings.catTipo.manuela;
+      // educacao agora é essencial
+      _data.settings.catTipo.educacao = 'essencial';
+      // benefícios → mesada agora é opcional (em vez do obrigatorio antigo)
+      _data.settings.catTipo.mesada = 'opcional';
+    }
+    _data.__migrated_categorias_v2 = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -903,6 +963,7 @@ const Store = (function () {
     _fixPasseiosEscolares();
     _migrateAssinaturas();
     _migrateDefaultCatTipo();
+    _migrateCategoriasV2();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
