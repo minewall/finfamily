@@ -47,7 +47,7 @@ const Store = (function () {
     transporte:  ['Combustível','Manutenção','Estacionamento','Pedágio','App de Mobilidade','Transporte Público','Aluguel / Carsharing'],
     saude:       ['Plano de Saúde','Consultas','Exames','Medicamentos','Terapia','Academia / Atividade Física','Dentista','Emergências','Outros'],
     educacao:    ['Mensalidade Escolar','Mensalidade Faculdade','Pós-graduação / MBA','Cursos Livres','Idiomas','Material Escolar/Universitário','Uniforme','Livros e Apostilas','Feiras e Eventos Educacionais','Outros'],
-    pets:        ['Ração','Banho e Tosa','Veterinário','Acessórios / Brinquedos'],
+    pets:        ['Ração','Petiscos / Snacks','Banho e Tosa','Veterinário','Medicamentos / Vermífugos','Plano de Saúde Pet','Acessórios / Brinquedos','Hotel / Daycare'],
     assessorias: ['Honorários Advocatícios','Consultoria','Contador Pessoal','OAB','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Seguro Veicular','Seguro de Vida','Seguro Residencial','IPTU','IPVA / Licenciamento','Imposto de Renda','Multas','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
     assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
@@ -1320,6 +1320,7 @@ const Store = (function () {
       _data.subcategorias.pessoal  = [...SUBCATEGORIES.pessoal];
       _data.subcategorias.saude    = [...SUBCATEGORIES.saude];
       _data.subcategorias.educacao = [...SUBCATEGORIES.educacao];
+      _data.subcategorias.pets     = [...SUBCATEGORIES.pets];
     }
     // settings.catTipo rename
     if (_data.settings?.catTipo) {
