@@ -2788,6 +2788,111 @@ body.sidebar-open { overflow: hidden; }
    Mantém compatibilidade com componentes legados (kpi-card, dash-hero).
 ═══════════════════════════════════════════════════════════════════ */
 
+/* ── Welcome Coach (empty state pra usuário novo) ──────────── */
+.welcome-coach {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 12%, var(--bg-card)) 0%,
+    var(--bg-card) 60%);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  border-radius: 18px;
+  padding: 24px 26px;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.18);
+}
+.welcome-coach-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.welcome-coach-avatar {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(115,103,240,0.32);
+}
+.welcome-coach-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.welcome-coach-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.4px;
+  margin-bottom: 8px;
+}
+.welcome-coach-sub {
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.5;
+  max-width: 640px;
+}
+.welcome-coach-steps {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (max-width: 800px) { .welcome-coach-steps { grid-template-columns: 1fr; } }
+
+.welcome-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .18s, transform .18s, box-shadow .18s;
+  font: inherit;
+}
+.welcome-step:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+}
+.welcome-step-num {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.welcome-step-body { flex: 1; min-width: 0; }
+.welcome-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: 3px;
+}
+.welcome-step-sub {
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+.welcome-step-arrow {
+  color: var(--accent);
+  flex-shrink: 0;
+  transition: transform .18s;
+}
+.welcome-step:hover .welcome-step-arrow { transform: translateX(3px); }
+
+.welcome-coach-footer {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
 /* ── Greeting ──────────────────────────────────────────────── */
 .dash-greeting {
   display: flex;

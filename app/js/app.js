@@ -903,6 +903,66 @@ ${(() => {
   </button>`}
 </div>
 
+${(() => {
+  // ── Empty state guiado pelo Coach (usuário novo) ──────────────
+  // Mostra apenas quando o usuário ainda não tem dados transacionais.
+  // Cada passo é um link pra a tela correspondente — usuário escolhe a ordem.
+  const isFresh = (data.receitas?.length || 0) === 0
+               && (data.despesas?.length || 0) === 0
+               && (data.contas?.length   || 0) === 0;
+  if (!isFresh) return '';
+  return `
+<div class="welcome-coach mb-4">
+  <div class="welcome-coach-head">
+    <div class="welcome-coach-avatar">
+      <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="44" height="44" style="border-radius:50%;object-fit:cover"/>
+    </div>
+    <div>
+      <div class="welcome-coach-eyebrow">HAILE · SEU COACH FINANCEIRO</div>
+      <h2 class="welcome-coach-title">Bem-vindo. Vamos começar?</h2>
+      <p class="welcome-coach-sub">Eu sou o Haile. Pra eu te ajudar com clareza, conte aos poucos como sua vida financeira funciona. Escolha um passo abaixo — você pode pular ou voltar quando quiser.</p>
+    </div>
+  </div>
+  <div class="welcome-coach-steps">
+    <button class="welcome-step" data-go="receitas">
+      <div class="welcome-step-num">1</div>
+      <div class="welcome-step-body">
+        <div class="welcome-step-title">Como você ganha dinheiro?</div>
+        <div class="welcome-step-sub">Salário, contratos, pensão, freelas — adicione suas fontes de receita</div>
+      </div>
+      <svg class="welcome-step-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <button class="welcome-step" data-go="despesas">
+      <div class="welcome-step-num">2</div>
+      <div class="welcome-step-body">
+        <div class="welcome-step-title">O que costuma sair todo mês?</div>
+        <div class="welcome-step-sub">Aluguel, contas fixas, escola dos filhos — comece pelas despesas recorrentes</div>
+      </div>
+      <svg class="welcome-step-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <button class="welcome-step" data-go="contas">
+      <div class="welcome-step-num">3</div>
+      <div class="welcome-step-body">
+        <div class="welcome-step-title">Onde seu dinheiro fica?</div>
+        <div class="welcome-step-sub">Cadastre suas contas bancárias e saldos atuais</div>
+      </div>
+      <svg class="welcome-step-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <button class="welcome-step" data-go="metas">
+      <div class="welcome-step-num">4</div>
+      <div class="welcome-step-body">
+        <div class="welcome-step-title">O que você quer conquistar?</div>
+        <div class="welcome-step-sub">Reserva, casa própria, viagem — defina uma meta importante</div>
+      </div>
+      <svg class="welcome-step-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+  <div class="welcome-coach-footer">
+    <span>Conforme você for adicionando seus dados, eu vou aprendendo sobre você e personalizando minhas sugestões.</span>
+  </div>
+</div>`;
+})()}
+
 <!-- Hero grid 3 col: Poder de Escolha (1.25fr) · Receitas+Despesas · Saúde+Maior Gasto -->
 <div class="dash-hero-grid mb-4">
 
@@ -12025,6 +12085,14 @@ ${coachInlineHTML({
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('#btnNovaEntrada');
       if (btn) openNovaEntrada();
+
+      // Welcome guide: clique em passo navega pra página correspondente
+      const step = e.target.closest('[data-go]');
+      if (step) {
+        const page = step.dataset.go;
+        const navEl = document.querySelector(`[data-page="${page}"]`);
+        if (navEl) navEl.click();
+      }
     });
 
     // Tema: fixado em dark (redesign 2026-05 — app é dark-only)
