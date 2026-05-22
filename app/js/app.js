@@ -186,7 +186,7 @@ const App = (function () {
       despesas:      'Despesas',
       contas:        'Contas Bancárias',
       cartoes:       'Cartões de Crédito',
-      contratos:     'Contratos',
+      contratos:     'Compromissos',
       reserva:       'Patrimônio',
       metas:         'Metas & Projetos',
       investimentos: 'Investimentos',
@@ -1564,7 +1564,7 @@ ${filtered.map(d => {
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th>Contrato</th><th class="num">Valor</th><th></th>
+  <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th>Compromisso</th><th class="num">Valor</th><th></th>
 </tr></thead>
 <tbody>
 ${filtered.map(r => {
@@ -1576,7 +1576,7 @@ ${filtered.map(r => {
   <td>${r.desc}</td>
   <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
   <td class="muted">${r.sub || ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
-  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Contrato: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
+  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap;width:42px">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido ✓':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
@@ -3445,7 +3445,7 @@ ${(() => {
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Receita via Contratos</div>
+      <div class="kpi-label">Receita via Compromissos</div>
       <div class="kpi-value" style="color:var(--green)">${Utils.currency(totReceitaMes)}</div>
       <div class="kpi-sub">${Utils.pct(receitaMes > 0 ? totReceitaMes / receitaMes : 0)} da receita do mês</div>
     </div>
@@ -3453,7 +3453,7 @@ ${(() => {
   <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 22 17 22 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Despesa via Contratos</div>
+      <div class="kpi-label">Despesa via Compromissos</div>
       <div class="kpi-value" style="color:var(--red)">${Utils.currency(totDespesaMes)}</div>
       <div class="kpi-sub">${Utils.pct(despesaMes > 0 ? totDespesaMes / despesaMes : 0)} da despesa do mês</div>
     </div>
@@ -3461,7 +3461,7 @@ ${(() => {
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
     <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
     <div class="kpi-body">
-      <div class="kpi-label">Contratos Ativos</div>
+      <div class="kpi-label">Compromissos Ativos</div>
       <div class="kpi-value accent">${rows.filter(r => r.status === 'ativo').length}</div>
       <div class="kpi-sub">${rows.filter(r => r.status === 'atrasado').length} atrasado(s) · ${contratos.length} total</div>
     </div>
@@ -3484,15 +3484,15 @@ ${(() => {
 
 ${contratos.length === 0 ? `
   <div class="empty-state" style="padding:48px;text-align:center;border:1px dashed var(--border);border-radius:12px">
-    <div style="font-size:14px;color:var(--text-3);margin-bottom:8px">Nenhum contrato cadastrado</div>
-    <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Contrato" para começar.</div>
+    <div style="font-size:14px;color:var(--text-3);margin-bottom:8px">Nenhum compromisso cadastrado</div>
+    <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Compromisso" para começar.</div>
   </div>
 ` : `
 <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap">
     <table class="data-table" style="min-width:900px">
       <thead><tr>
-        <th>Tipo</th><th>Contrato</th><th>Responsável</th>
+        <th>Tipo</th><th>Compromisso</th><th>Responsável</th>
         <th class="num">Parcela/mês</th><th class="num">Valor Pago</th><th class="num">Total</th>
         <th style="min-width:140px">Parcelas</th>
         <th>Status</th><th></th>
@@ -3624,7 +3624,7 @@ ${contratos.length === 0 ? `
             if (!confirm('Excluir contrato e todos os lançamentos vinculados?')) return;
             Store.deleteContrato(id, true);
             renderContratos(container);
-            toast('Contrato excluído', 'success');
+            toast('Compromisso excluído', 'success');
           } else if (action === 'mark-past') {
             Store.markAllPastParcelas(id);
             renderContratos(container);
@@ -3661,7 +3661,7 @@ ${contratos.length === 0 ? `
     const cats = Store.categoriesOrdered();
     const today = new Date().toISOString().slice(0,10);
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Contrato Bridge" value="${c.label||''}"/></div>
+      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Compromisso Bridge" value="${c.label||''}"/></div>
       <div class="form-group"><label class="form-label">Tipo</label>
         <select class="form-select" id="fCKind">
           <option value="despesa" ${c.kind==='despesa'||!isEdit?'selected':''}>Despesa</option>
@@ -3674,7 +3674,7 @@ ${contratos.length === 0 ? `
           <option value="divida" ${c.natureza==='divida'?'selected':''}>Dívida (financiamento, empréstimo)</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Tipo de Contrato</label>
+      <div class="form-group"><label class="form-label">Tipo de Compromisso</label>
         <select class="form-select" id="fCTipo">
           <option value="assinatura" ${c.tipoContrato==='assinatura'?'selected':''}>Assinatura</option>
           <option value="servico" ${c.tipoContrato==='servico'?'selected':''}>Serviço</option>
@@ -4770,7 +4770,7 @@ ${passivos.length === 0
           <td>
             <div style="font-weight:600;color:var(--text-1)">${desc}</div>
             ${p.notes ? `<div style="font-size:11px;color:var(--text-4)">${p.notes}</div>` : ''}
-            ${p.contratoId ? `<div style="font-size:11px;color:var(--accent)">📋 Contrato gerado</div>` : ''}
+            ${p.contratoId ? `<div style="font-size:11px;color:var(--accent)">📋 Compromisso gerado</div>` : ''}
           </td>
           <td style="color:var(--text-3)">${tipo}</td>
           <td style="color:var(--text-2)">${p.responsavel||'—'}</td>
@@ -5041,7 +5041,7 @@ ${passivos.length === 0
         </select>
       </div>
     </div>`;
-    Modal.open('Gerar Contrato para Passivo', html, () => {
+    Modal.open('Gerar Compromisso para Passivo', html, () => {
       const contratoData = {
         label:        passivo.desc,
         kind:         'despesa',
@@ -5064,7 +5064,7 @@ ${passivos.length === 0
       Store.updatePassivo(passivo.id, { status: 'acordado', contratoId: novo.id });
       Modal.close();
       onSaved();
-      toast('Contrato criado e passivo marcado como acordado!', 'success');
+      toast('Compromisso criado e passivo marcado como acordado!', 'success');
     });
   }
 
@@ -7322,7 +7322,7 @@ ${fins.length === 0
       active: true,
       periodicidade: 'mensal',
     });
-    toast(`Contrato de ${restante} parcelas criado`, 'success');
+    toast(`Compromisso de ${restante} parcelas criado`, 'success');
     if (onDone) onDone();
   }
 
@@ -8299,7 +8299,7 @@ ${usarReserva ? `
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
   ${vistaMelhor
     ? `<button class="btn-primary" id="cSaveMeta">→ Criar meta "Juntar ${Utils.currency(vista)} para ${desc}"</button>`
-    : `<button class="btn-primary" id="cSaveContrato">→ Criar contrato com as ${n} parcelas</button>`}
+    : `<button class="btn-primary" id="cSaveContrato">→ Criar compromisso com as ${n} parcelas</button>`}
   <button class="btn-coach" id="cCoachBtn" style="padding:10px 18px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
     Consultar Coach
@@ -8333,10 +8333,10 @@ ${usarReserva ? `
             entrada: 0,
             diaVencimento: new Date().getDate(),
             pay: 'cartao',
-            notes: `Contrato gerado pela Simulação de Compra. Total nominal: ${Utils.currency(totalNominal)}.`,
+            notes: `Compromisso gerado pela Simulação de Compra. Total nominal: ${Utils.currency(totalNominal)}.`,
             active: true,
           });
-          toast(`Contrato de ${n}× ${Utils.currency(pmt)} criado`, 'success');
+          toast(`Compromisso de ${n}× ${Utils.currency(pmt)} criado`, 'success');
         });
 
         document.getElementById('cCoachBtn').addEventListener('click', () => {
@@ -10472,7 +10472,7 @@ ${personalities.map(p => `
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Grupo Familiar</div>
-  <div class="section-sub">Pessoas usadas em Receitas, Contratos e Rateios</div></div>
+  <div class="section-sub">Pessoas usadas em Receitas, Compromissos e Rateios</div></div>
   <button class="btn-primary" id="btnAddPessoa">+ Nova Pessoa</button>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px" id="pessoasList">
@@ -10747,7 +10747,7 @@ ${isConnected && isAdmin ? `
     const data = Store.get();
     const counts = {
       Receitas: data.receitas.length, Despesas: data.despesas.length,
-      Contratos: (data.contratos||[]).length, Metas: data.metas.length,
+      Compromissos: (data.contratos||[]).length, Metas: data.metas.length,
       Cartões: data.cartoes.length, Ativos: data.ativos.length,
     };
     content.innerHTML = `
@@ -12356,7 +12356,7 @@ ${coachInlineHTML({
       { group: 'PUSH' },
       { key: 'pushAtivo',       label: 'Notificações Push',        sub: 'Alertas no dispositivo em tempo real',               default: true },
       { key: 'pushMeta',        label: 'Metas atingidas',          sub: 'Aviso quando uma meta for concluída',                default: true },
-      { key: 'pushVencimento',  label: 'Vencimentos próximos',     sub: 'Contratos e faturas vencendo em 3 dias',             default: true },
+      { key: 'pushVencimento',  label: 'Vencimentos próximos',     sub: 'Compromissos e faturas vencendo em 3 dias',          default: true },
       { key: 'pushCoach',       label: 'Insights do Coach',        sub: 'Quando o Coach tiver uma análise nova para você',    default: false },
       { group: 'E-MAIL' },
       { key: 'emailResumoMes',  label: 'Resumo mensal',            sub: 'Relatório consolidado do mês no 1º dia útil',        default: true },
