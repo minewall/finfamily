@@ -420,6 +420,26 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Configurações default pra usuário novo. Aplicadas em buildEmpty()
+  // e na migração _migrateDefaultSettings (preenche só o que falta —
+  // não sobrescreve preferências do usuário).
+  const DEFAULT_SETTINGS = {
+    timezone:           'America/Sao_Paulo',
+    idioma:             'pt-BR',
+    moedaBase:          'BRL',
+    tema:               'dark',
+    coachPersonality:   'mentor',     // mais acolhedor pra primeiro contato
+    limiteGasto:        0.75,         // regra dos 75% da receita
+    metaReceita:        0,            // usuário define quando quiser
+    notificacaoPush:    true,         // opt-out
+    notificacaoEmail:   false,        // opt-in
+    visibilidadeDefault:'familiar',   // lançamentos compartilhados por padrão
+    confirmDelete:      true,         // confirmação antes de apagar
+    firstDayWeek:       1,            // segunda-feira (padrão BR)
+    mostrarSaldoSidebar:true,
+    formatoMoeda:       'BRL',        // R$ 1.234,56
+  };
+
   // Personalidades do Coach (Haile) — define o tom de TODOS os textos
   // gerados pelo Coach (insights, recados, mensagens inline).
   // Usado em onboarding (escolha inicial) e em Configurações > Coach.
@@ -467,7 +487,7 @@ const Store = (function () {
       id: 'tpl_limite',
       label: 'Limite de Gastos',
       type: 'gasto_max_pct',
-      target: 0.70,       // regra dos 70% — pré-configurado, usuário ajusta
+      target: 0.75,       // regra dos 75% — pré-configurado, usuário ajusta
       period: 'mensal',
       active: true,
       template: true,
@@ -593,8 +613,8 @@ const Store = (function () {
       financiamentos: [],
       pessoas: ['Você'],
       profile: {},
-      // Já aplica os tipos default (filosofia Minewall) na criação do estado
-      settings: { catTipo: { ...DEFAULT_CAT_TIPO } },
+      // Settings default + catTipo (filosofia Minewall) já aplicados
+      settings: { ...DEFAULT_SETTINGS, catTipo: { ...DEFAULT_CAT_TIPO } },
       // Bloqueia migrations que injetam dados pessoais
       __cleanup_v101: true,
       __cleanup_despesas2026q1: true,
@@ -609,6 +629,7 @@ const Store = (function () {
       __migrated_account_types: true,
       __migrated_card_types: true,
       __migrated_metas_templates: true,
+      __migrated_default_settings: true,
     };
   }
 
@@ -1226,6 +1247,20 @@ const Store = (function () {
     _data.__migrated_metas_templates = true;
   }
 
+  // Preenche settings default que estão faltando (sem sobrescrever
+  // preferências já configuradas). Idempotente, mas tem flag pra
+  // performance — só roda uma vez por sessão pós-deploy.
+  function _migrateDefaultSettings() {
+    if (_data.__migrated_default_settings) return;
+    if (!_data.settings) _data.settings = {};
+    Object.entries(DEFAULT_SETTINGS).forEach(([k, v]) => {
+      if (_data.settings[k] === undefined || _data.settings[k] === null) {
+        _data.settings[k] = v;
+      }
+    });
+    _data.__migrated_default_settings = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -1322,6 +1357,7 @@ const Store = (function () {
     _migrateAccountTypes();
     _migrateCardTypes();
     _migrateMetasTemplates();
+    _migrateDefaultSettings();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
@@ -3063,7 +3099,7 @@ const Store = (function () {
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
     FINANCIAMENTO_TIPOS, COMPROMISSO_TIPOS,
-    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS, MOEDAS, COACH_PERSONALITIES,
+    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS, MOEDAS, COACH_PERSONALITIES, DEFAULT_SETTINGS,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
