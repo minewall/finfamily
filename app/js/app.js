@@ -10361,17 +10361,8 @@ ${tipos.map(t => {
   function renderConfigCoach(content) {
     const data = Store.get();
     const current = (data.settings && data.settings.coachPersonality) || 'mentor';
-    const personalities = [
-      { key: 'mentor',       iconName: 'heart-handshake', label: 'Mentor', short: 'Conselho dos pais',
-        desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor.',
-        sample: '"Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte para a viagem da família? Vocês merecem esse descanso."' },
-      { key: 'educador',     iconName: 'graduation-cap', label: 'Educador', short: 'Mestre paciente',
-        desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias do dia-a-dia.',
-        sample: '"Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI hoje está em 14,40% a.a. (poupança rende ~6,17%). Em 12 meses, a diferença gira em torno de R$ 240."' },
-      { key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO pessoal',
-        desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais.',
-        sample: '"Seu Poder de Escolha este mês é R$ 4.850. Considerando seu comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco."' },
-    ];
+    // Lista canônica vem do Store — sem duplicação aqui
+    const personalities = Store.COACH_PERSONALITIES;
 
     content.innerHTML = `
 <div class="section-header mb-4">
@@ -12235,23 +12226,8 @@ ${coachInlineHTML({
 
   function showOnboarding() {
     // ── Definições estáveis ──────────────────────────────────────
-    const PERSONALITIES = [
-      {
-        key: 'mentor', iconName: 'heart-handshake', label: 'Mentor', short: 'Acolhedor e encorajador',
-        desc: 'Celebra conquistas com genuinidade, sugere sem impor. Foco em construir confiança.',
-        sample: 'Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte pra viagem da família? Vocês merecem esse descanso.',
-      },
-      {
-        key: 'educador', iconName: 'graduation-cap', label: 'Educador', short: 'Didático e explicativo',
-        desc: 'Ensina o porquê junto com o quê. Usa analogias e exemplos do dia-a-dia.',
-        sample: 'Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI está em 14,40% a.a. Em 12 meses, a diferença gira em torno de R$ 240.',
-      },
-      {
-        key: 'profissional', iconName: 'briefcase', label: 'Profissional', short: 'CFO direto e técnico',
-        desc: 'Respeita seu tempo, foca em dados. Sem rodeios emocionais. Para quem prefere objetividade.',
-        sample: 'Seu Poder de Escolha este mês é R$ 4.850. Considerando comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco.',
-      },
-    ];
+    // Lista canônica vem do Store — sem duplicação aqui
+    const PERSONALITIES = Store.COACH_PERSONALITIES;
 
     const AVATAR_SEEDS = ['Aurora','Apolo','Bento','Cora','Dante','Eva','Flora','Gael','Helena','Ícaro','Lis','Theo'];
 

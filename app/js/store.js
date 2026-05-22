@@ -420,6 +420,36 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Personalidades do Coach (Haile) — define o tom de TODOS os textos
+  // gerados pelo Coach (insights, recados, mensagens inline).
+  // Usado em onboarding (escolha inicial) e em Configurações > Coach.
+  const COACH_PERSONALITIES = [
+    {
+      key: 'mentor',
+      iconName: 'heart-handshake',
+      label: 'Mentor',
+      short: 'Conselho dos pais — acolhedor e encorajador',
+      desc: 'Acolhedor, paciente, encorajador. Celebra conquistas com genuinidade, sugere sem impor. Foco em construir confiança e mudar hábitos com apoio emocional.',
+      sample: 'Que bom ver que você economizou R$ 450 este mês! Que tal direcionar uma parte pra viagem da família? Vocês merecem esse descanso.',
+    },
+    {
+      key: 'educador',
+      iconName: 'graduation-cap',
+      label: 'Educador',
+      short: 'Mestre paciente — didático e explicativo',
+      desc: 'Didático, explicativo. Ensina o "porquê" junto com o "o quê". Usa analogias e exemplos do dia-a-dia.',
+      sample: 'Aporte de R$ 500/mês no CDB 100% CDI rende mais que poupança porque o CDI está em 14,40% a.a. Em 12 meses, a diferença gira em torno de R$ 240.',
+    },
+    {
+      key: 'profissional',
+      iconName: 'briefcase',
+      label: 'Profissional',
+      short: 'CFO pessoal — direto e técnico',
+      desc: 'Direto, técnico, sério. Respeita seu tempo, foca em dados. Sem rodeios emocionais. Para quem prefere objetividade.',
+      sample: 'Seu Poder de Escolha este mês é R$ 4.850. Considerando comprometimento de 65%, há espaço para aporte adicional de R$ 800 sem risco.',
+    },
+  ];
+
   // Metas templates universais — criadas em buildEmpty() pra todo usuário
   // novo. Já aparecem no app desde o dia 1 (zeradas até o usuário definir
   // target). Coach pode sugerir os valores corretos com base no perfil.
@@ -3033,7 +3063,7 @@ const Store = (function () {
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
     FINANCIAMENTO_TIPOS, COMPROMISSO_TIPOS,
-    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS, MOEDAS,
+    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS, MOEDAS, COACH_PERSONALITIES,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
