@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#7367F0" />
+  <title>Haile — Bem-vindo</title>
+  <link rel="icon" href="../assets/favicon/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="../assets/svg/haile-mark-indigo.svg" />
+  <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --violet:    #7367F0;
+      --violet-2:  #5048CC;
+      --violet-3:  #9990ff;
+      --ink:       #0f1020;
+      --slate:     #5b5e73;
+      --slate-2:   #8a8da4;
+      --cream:     #faf9f6;
+      --paper:     #ffffff;
+      --soft:      #F0EFFE;
+      --line:      #e6e4f4;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      color: #0f1020;
+      background-color: #0f1020;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+      min-height: 100vh;
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+    h1, h2, h3, p { margin: 0; }
+    button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+    input  { font: inherit; border: 0; background: none; outline: none; color: inherit; }
+
+    /* stage backgrounds via body class */
+    body.is-dark  { background-color: #0f1020; color: #fff; }
+    body.is-light { background-color: #faf9f6; color: #0f1020; }
+
+    /* glow on dark only */
+    .glow {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    body.is-dark .glow { opacity: 1; }
+    .glow-1 {
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 720px; height: 460px;
+      background: radial-gradient(ellipse, rgba(115,103,240,0.34), transparent 70%);
+      filter: blur(80px);
+    }
+
+    /* ─── progress ──────────────────────────────────────── */
+    .progress {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background-color: rgba(115,103,240,0.10);
+      z-index: 90;
+    }
+    body.is-dark .progress { background-color: rgba(255,255,255,0.08); }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--violet);
+      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ─── topbar ────────────────────────────────────────── */
+    .topbar {
+      position: fixed;
+      top: 14px; left: 0; right: 0;
+      padding: 12px clamp(20px, 4vw, 56px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 80;
+      pointer-events: none;
+    }
+    .topbar > * { pointer-events: auto; }
+    .pill-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      color: var(--slate);
+      background-color: rgba(255,255,255,0.6);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, transform 0.2s;
+    }
+    .pill-btn:hover { transform: translateY(-1px); }
+    .pill-btn svg { width: 14px; height: 14px; }
+    body.is-dark .pill-btn {
+      background-color: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.72);
+    }
+    body.is-dark .pill-btn:hover {
+      background-color: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+    .pill-btn[hidden] { display: none !important; }
+
+    /* ─── steps container ──────────────────────────────── */
+    main {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px clamp(20px, 5vw, 40px) 40px;
+    }
+
+    .step { display: none; }
+    .step.is-active {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      max-width: 520px;
+      animation: step-in 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .step.welcome,
+    .step.done {
+      align-items: center;
+      text-align: center;
+    }
+    @keyframes step-in {
+      from { opacity: 0; transform: translateX(28px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ─── Haile avatar + speech ────────────────────────── */
+    .haile-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .step.welcome .haile-row,
+    .step.done .haile-row {
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .haile-avatar {
+      flex-shrink: 0;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #9990ff 0%, #7367F0 50%, #5048CC 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.005em;
+      box-shadow: 0 6px 20px rgba(115,103,240,0.45);
+      position: relative;
+    }
+    .haile-avatar::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(115,103,240,0.32);
+      animation: pulse-halo 2.4s ease-out infinite;
+    }
+    @keyframes pulse-halo {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+    .step.welcome .haile-avatar {
+      width: 84px; height: 84px;
+      font-size: 22px;
+    }
+    .step.done .haile-avatar {
+      width: 64px; height: 64px;
+      font-size: 18px;
+    }
+    .haile-meta {
+      display: flex; flex-direction: column; gap: 2px;
+      padding-top: 2px;
+    }
+    .step.welcome .haile-meta,
+    .step.done .haile-meta {
+      align-items: center;
+      padding-top: 0;
+    }
+    .haile-name {
+      font-size: 16px; font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--violet);
+    }
+    body.is-dark .haile-name { color: var(--violet-3); }
+    .haile-role {
+      font-size: 11px;
+      color: var(--slate-2);
+      letter-spacing: 0.04em;
+    }
+    body.is-dark .haile-role { color: rgba(255,255,255,0.45); }
+
+    /* speech */
+    .speech {
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 400;
+      line-height: 1.18;
+      letter-spacing: -0.012em;
+      text-wrap: balance;
+      margin-bottom: 12px;
+    }
+    .speech em {
+      font-style: italic;
+      color: var(--violet);
+    }
+    body.is-dark .speech em { color: var(--violet-3); }
+    .step.welcome .speech {
+      font-size: clamp(34px, 5vw, 56px);
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .step.done .speech {
+      font-size: clamp(30px, 4.4vw, 48px);
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hint {
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--slate);
+      margin-bottom: 32px;
+    }
+    body.is-dark .hint { color: rgba(255,255,255,0.62); }
+    .step.welcome .hint,
+    .step.done .hint {
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ─── name input ────────────────────────────────────── */
+    .name-field {
+      width: 100%;
+      padding: 18px 4px 12px;
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      border-bottom: 2px solid var(--line);
+      transition: border-color 0.25s;
+    }
+    .name-field::placeholder { color: var(--slate-2); font-style: italic; }
+    .name-field:focus { border-bottom-color: var(--violet); }
+
+    /* ─── option cards ──────────────────────────────────── */
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .options.stacked { grid-template-columns: 1fr; }
+
+    .opt {
+      text-align: left;
+      padding: 18px;
+      background-color: var(--paper);
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 124px;
+      transition: border-color 0.2s, background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .opt:hover:not(.selected) {
+      border-color: var(--violet-3);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(15,16,32,0.06);
+    }
+    .opt.selected {
+      border-color: var(--violet);
+      background-color: var(--soft);
+      box-shadow: 0 0 0 3px rgba(115,103,240,0.18);
+    }
+    .opt-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background-color: var(--soft);
+      color: var(--violet-2);
+      display: flex; align-items: center; justify-content: center;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .opt.selected .opt-icon {
+      background-color: var(--violet);
+      color: #fff;
+    }
+    .opt-icon svg { width: 18px; height: 18px; }
+    .opt-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .opt-sub {
+      font-size: 13px;
+      color: var(--slate);
+      line-height: 1.45;
+    }
+    .opt.family { min-height: auto; padding: 16px 18px; }
+    .opt.family .opt-row {
+      display: flex; align-items: center; gap: 14px;
+    }
+
+    /* ─── pills ─────────────────────────────────────────── */
+    .pills {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+    .pill {
+      text-align: left;
+      padding: 14px 18px;
+      background-color: var(--paper);
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .pill:hover:not(.selected) { border-color: var(--violet-3); }
+    .pill.selected {
+      border-color: var(--violet);
+      background-color: var(--soft);
+      color: var(--violet-2);
+    }
+    .pill-check {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--line);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+    .pill.selected .pill-check {
+      background-color: var(--violet);
+      border-color: var(--violet);
+    }
+    .pill-check svg { width: 10px; height: 10px; color: #fff; opacity: 0; transition: opacity 0.15s; }
+    .pill.selected .pill-check svg { opacity: 1; }
+
+    .privacy-note {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--slate-2);
+    }
+    .privacy-note svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    /* ─── continue button ───────────────────────────────── */
+    .step-footer {
+      width: 100%;
+      margin-top: 36px;
+    }
+    .btn-continue {
+      width: 100%;
+      padding: 16px 24px;
+      background-color: var(--violet);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 14px 36px rgba(115,103,240,0.32);
+      transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s, opacity 0.2s;
+    }
+    .btn-continue:hover:not(:disabled) {
+      background-color: var(--violet-2);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 48px rgba(115,103,240,0.42);
+    }
+    .btn-continue:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-continue svg {
+      width: 16px; height: 16px;
+      transition: transform 0.2s;
+    }
+    .btn-continue:hover:not(:disabled) svg { transform: translateX(3px); }
+    body.is-dark .btn-continue {
+      background-color: #fff;
+      color: var(--ink);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.32);
+    }
+    body.is-dark .btn-continue:hover:not(:disabled) {
+      background-color: #fff;
+      box-shadow: 0 20px 48px rgba(0,0,0,0.42);
+    }
+    .btn-continue.shake { animation: shake 0.3s ease-in-out; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%      { transform: translateX(-4px); }
+      75%      { transform: translateX(4px); }
+    }
+
+    /* ─── summary ───────────────────────────────────────── */
+    .summary {
+      margin: 32px auto 0;
+      max-width: 420px;
+      padding: 22px 24px;
+      background-color: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      display: grid;
+      gap: 12px;
+      text-align: left;
+      width: 100%;
+    }
+    .summary-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .summary-label {
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+    .summary-value {
+      font-size: 14.5px; font-weight: 600;
+      color: #fff;
+      text-align: right;
+    }
+
+    /* ─── mobile ─────────────────────────────────────────── */
+    @media (max-width: 540px) {
+      .options { grid-template-columns: 1fr; }
+      main { padding: 96px 22px 32px; }
+      .topbar { padding: 8px 16px; top: 6px; }
+      .pill-btn { padding: 7px 12px; font-size: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="is-dark">
+
+<!-- Auth guard + onboarding guard (inline, antes do Store carregar) -->
+<script>
+  (function () {
+    if (sessionStorage.getItem('ff_auth') !== '1') {
+      window.location.replace('../login.html');
+      return;
+    }
+    // Se já completou o onboarding, vai direto para o app
+    try {
+      const _raw = JSON.parse(localStorage.getItem('ff_data') || '{}');
+      if (_raw.onboarding?.completed) {
+        window.location.replace('app.html');
+      }
+    } catch (e) {}
+  })();
+</script>
+
+<div class="glow glow-1"></div>
+
+<div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+
+<div class="topbar">
+  <button class="pill-btn" id="back-btn" type="button" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    Voltar
+  </button>
+  <span aria-hidden="true"></span>
+  <button class="pill-btn" id="skip-btn" type="button" hidden style="opacity:0.7">Pular</button>
+</div>
+
+<main>
+
+  <!-- ── STEP 0 — WELCOME ── -->
+  <section class="step welcome is-active" data-step="0">
+    <div class="haile-row">
+      <div class="haile-avatar">H</div>
+      <div class="haile-meta">
+        <span class="haile-name">Haile</span>
+        <span class="haile-role">Seu coach financeiro</span>
+      </div>
+    </div>
+    <p class="speech">Finalmente <em>te vejo</em> por aqui.</p>
+    <p class="hint">Sou o Haile, seu coach financeiro com IA. Antes de começarmos, queria te conhecer um pouco. Vai levar só 1 minuto.</p>
+    <div class="step-footer">
+      <button class="btn-continue" type="button" data-action="next">
+        Vamos começar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ── STEP 1 — NAME ── -->
+  <section class="step" data-step="1">
+    <div class="haile-row">
+      <div class="haile-avatar">H</div>
+      <div class="haile-meta">
+        <span class="haile-name">Haile</span>
+        <span class="haile-role">pergunta 1 de 4</span>
+      </div>
+    </div>
+    <p class="speech">Como você quer ser <em>chamado</em>?</p>
+    <p class="hint">Pode ser seu nome, apelido ou como preferir.</p>
+
+    <input
+      class="name-field"
+      id="name-input"
+      type="text"
+      placeholder="Digite aqui"
+      autocomplete="given-name"
+      maxlength="40"
+      aria-label="Seu nome ou apelido" />
+
+    <div class="step-footer">
+      <button class="btn-continue" type="button" data-action="next" disabled>
+        Continuar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ── STEP 2 — GOAL ── -->
+  <section class="step" data-step="2">
+    <div class="haile-row">
+      <div class="haile-avatar">H</div>
+      <div class="haile-meta">
+        <span class="haile-name">Haile</span>
+        <span class="haile-role">pergunta 2 de 4</span>
+      </div>
+    </div>
+    <p class="speech">Qual é sua <em>prioridade</em> financeira agora?</p>
+    <p class="hint">Você pode mudar isso depois, é só pra eu entender por onde começar com você.</p>
+
+    <div class="options" data-group="goal">
+      <button class="opt" type="button" data-value="Quitar dívidas">
+        <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></span>
+        <span class="opt-label">Quitar dívidas</span>
+        <span class="opt-sub">Sair do vermelho e respirar</span>
+      </button>
+      <button class="opt" type="button" data-value="Construir reserva">
+        <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        <span class="opt-label">Construir reserva</span>
+        <span class="opt-sub">Ter um colchão de segurança</span>
+      </button>
+      <button class="opt" type="button" data-value="Investir">
+        <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></span>
+        <span class="opt-label">Investir</span>
+        <span class="opt-sub">Fazer o dinheiro trabalhar</span>
+      </button>
+      <button class="opt" type="button" data-value="Conquistar um sonho">
+        <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.39 7.36H22l-6.18 4.49L18.18 21 12 16.27 5.82 21l2.36-7.15L2 9.36h7.61z"/></svg></span>
+        <span class="opt-label">Conquistar um sonho</span>
+        <span class="opt-sub">Imóvel, viagem, negócio…</span>
+      </button>
+    </div>
+
+    <div class="step-footer">
+      <button class="btn-continue" type="button" data-action="next" disabled>
+        Continuar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ── STEP 3 — FAMILY ── -->
+  <section class="step" data-step="3">
+    <div class="haile-row">
+      <div class="haile-avatar">H</div>
+      <div class="haile-meta">
+        <span class="haile-name">Haile</span>
+        <span class="haile-role">pergunta 3 de 4</span>
+      </div>
+    </div>
+    <p class="speech">Quem faz parte da sua <em>vida financeira</em>?</p>
+    <p class="hint">Isso me ajuda a entender o contexto das suas decisões.</p>
+
+    <div class="options stacked" data-group="family">
+      <button class="opt family" type="button" data-value="Só eu">
+        <div class="opt-row">
+          <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></span>
+          <div>
+            <div class="opt-label">Só eu</div>
+            <div class="opt-sub">Decido sozinho(a) minhas finanças</div>
+          </div>
+        </div>
+      </button>
+      <button class="opt family" type="button" data-value="Eu e meu cônjuge">
+        <div class="opt-row">
+          <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><circle cx="16" cy="8" r="3.5"/><path d="M2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1M22 21v-1a4.5 4.5 0 0 0-3-4.2"/></svg></span>
+          <div>
+            <div class="opt-label">Eu e meu cônjuge</div>
+            <div class="opt-sub">Decisões compartilhadas a dois</div>
+          </div>
+        </div>
+      </button>
+      <button class="opt family" type="button" data-value="Família">
+        <div class="opt-row">
+          <span class="opt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="12" cy="15" r="2.5"/><path d="M2 22v-1a4 4 0 0 1 4-4h2M22 22v-1a4 4 0 0 0-4-4h-2M8 22v-.5a4 4 0 0 1 4-4 4 4 0 0 1 4 4v.5"/></svg></span>
+          <div>
+            <div class="opt-label">Família</div>
+            <div class="opt-sub">Cônjuge, filhos e quem mais entra</div>
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <div class="step-footer">
+      <button class="btn-continue" type="button" data-action="next" disabled>
+        Continuar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ── STEP 4 — INCOME ── -->
+  <section class="step" data-step="4">
+    <div class="haile-row">
+      <div class="haile-avatar">H</div>
+      <div class="haile-meta">
+        <span class="haile-name">Haile</span>
+        <span class="haile-role">pergunta 4 de 4</span>
+      </div>
+    </div>
+    <p class="speech">Qual é a <em>renda mensal</em> da sua família, aproximadamente?</p>
+    <p class="hint">É só pra calibrar minhas orientações ao seu contexto. Pode pular se preferir.</p>
+
+    <div class="pills" data-group="income">
+      <button class="pill" type="button" data-value="Até R$ 3.000">
+        Até R$ 3.000
+        <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+      </button>
+      <button class="pill" type="button" data-value="R$ 3.000 a R$ 8.000">
+        R$ 3.000 a R$ 8.000
+        <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+      </button>
+      <button class="pill" type="button" data-value="R$ 8.000 a R$ 20.000">
+        R$ 8.000 a R$ 20.000
+        <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+      </button>
+      <button class="pill" type="button" data-value="Acima de R$ 20.000">
+        Acima de R$ 20.000
+        <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+      </button>
+      <button class="pill" type="button" data-value="Prefiro não dizer">
+        Prefiro não dizer
+        <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6l3 3 5-6"/></svg></span>
+      </button>
+    </div>
+
+    <p class="privacy-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Confidencial. Só eu vejo isso.
+    </p>
+
+    <div class="step-footer">
+      <button class="btn-continue" type="button" data-action="next" disabled>
+        Continuar
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ── STEP 5 — DONE ── -->
+  <section class="step done" data-step="5">
+    <div class="haile-row">
+      <div class="haile-avatar">H</div>
+      <div class="haile-meta">
+        <span class="haile-name">Haile</span>
+        <span class="haile-role">tudo pronto</span>
+      </div>
+    </div>
+    <p class="speech" id="done-speech">Entendido. Vou te ajudar.</p>
+    <p class="hint">Sua jornada começa agora. Da próxima vez que conversarmos, já estarei com tudo pronto pra te orientar.</p>
+
+    <div class="summary">
+      <div class="summary-row">
+        <span class="summary-label">Nome</span>
+        <span class="summary-value" id="sum-name">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Prioridade</span>
+        <span class="summary-value" id="sum-goal">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Vida financeira</span>
+        <span class="summary-value" id="sum-family">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Faixa de renda</span>
+        <span class="summary-value" id="sum-income">—</span>
+      </div>
+    </div>
+
+    <div class="step-footer">
+      <button class="btn-continue" type="button" data-action="finish">
+        Entrar no Haile
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Store para persistência -->
+<script src="js/store.js?v=80"></script>
+
+<script>
+  (function () {
+    const TOTAL = 6;
+    const DARK_STEPS = new Set([0, 5]);
+
+    const body  = document.body;
+    const fill  = document.getElementById('progress-fill');
+    const back  = document.getElementById('back-btn');
+    const skip  = document.getElementById('skip-btn');
+    const steps = [...document.querySelectorAll('.step')];
+
+    const state = {
+      idx: 0,
+      name: '',
+      goal: '',
+      family: '',
+      income: '',
+    };
+
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+      });
+    }
+
+    function setStage(idx) {
+      const isDark = DARK_STEPS.has(idx);
+      body.classList.toggle('is-dark', isDark);
+      body.classList.toggle('is-light', !isDark);
+    }
+
+    function setProgress(idx) {
+      const pct = (idx / (TOTAL - 1)) * 100;
+      fill.style.width = pct + '%';
+    }
+
+    function setChrome(idx) {
+      if (idx === 0 || idx === 5) back.setAttribute('hidden', '');
+      else back.removeAttribute('hidden');
+      if (idx === 4) skip.removeAttribute('hidden');
+      else skip.setAttribute('hidden', '');
+    }
+
+    function showStep(idx) {
+      idx = Math.max(0, Math.min(TOTAL - 1, idx));
+      state.idx = idx;
+
+      steps.forEach(function (s, i) {
+        if (i === idx) s.classList.add('is-active');
+        else s.classList.remove('is-active');
+      });
+
+      setStage(idx);
+      setProgress(idx);
+      setChrome(idx);
+      if (idx === 5) renderDone();
+      if (idx === 1) {
+        setTimeout(function () { document.getElementById('name-input').focus(); }, 280);
+      }
+      updateCurrentCTA();
+    }
+
+    function canAdvance() {
+      switch (state.idx) {
+        case 0: return true;
+        case 1: return state.name.trim().length > 0;
+        case 2: return !!state.goal;
+        case 3: return !!state.family;
+        case 4: return !!state.income;
+        default: return true;
+      }
+    }
+
+    function updateCurrentCTA() {
+      const step = steps[state.idx];
+      if (!step) return;
+      const btn = step.querySelector('.btn-continue');
+      if (!btn) return;
+      btn.disabled = !canAdvance();
+    }
+
+    function renderDone() {
+      const greet = state.name || 'você';
+      const goalVerb = {
+        'Quitar dívidas':       'sair do vermelho com leveza',
+        'Construir reserva':    'construir uma reserva sólida',
+        'Investir':             'fazer seu dinheiro trabalhar',
+        'Conquistar um sonho':  'conquistar seu próximo sonho',
+      }[state.goal] || 'organizar suas finanças com clareza';
+
+      document.getElementById('done-speech').innerHTML =
+        'Entendido, <em>' + escapeHTML(greet) + '</em>. Vou te ajudar a ' + escapeHTML(goalVerb) + '.';
+
+      document.getElementById('sum-name').textContent   = state.name   || '—';
+      document.getElementById('sum-goal').textContent   = state.goal   || '—';
+      document.getElementById('sum-family').textContent = state.family || '—';
+      document.getElementById('sum-income').textContent = state.income || 'Não informado';
+    }
+
+    // ─── wire up ───
+    document.querySelectorAll('[data-action="next"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.disabled) {
+          btn.classList.remove('shake');
+          void btn.offsetWidth;
+          btn.classList.add('shake');
+          return;
+        }
+        showStep(state.idx + 1);
+      });
+    });
+
+    document.querySelectorAll('[data-action="finish"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        btn.innerHTML = 'Tudo pronto. Bem-vindo(a) ao Haile!';
+
+        // Persiste no Store e mapeia ao ICP
+        Store.completeOnboarding({
+          name:   state.name,
+          goal:   state.goal,
+          family: state.family,
+          income: state.income,
+        });
+
+        // Redireciona ao dashboard após breve feedback visual
+        setTimeout(function () {
+          window.location.replace('app.html');
+        }, 900);
+      });
+    });
+
+    back.addEventListener('click', function () { showStep(state.idx - 1); });
+    skip.addEventListener('click', function () {
+      state.income = 'Prefiro não dizer';
+      showStep(state.idx + 1);
+    });
+
+    const nameInput = document.getElementById('name-input');
+    nameInput.addEventListener('input', function () {
+      state.name = nameInput.value;
+      updateCurrentCTA();
+    });
+    nameInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && canAdvance()) {
+        e.preventDefault();
+        showStep(state.idx + 1);
+      }
+    });
+
+    // option cards
+    document.querySelectorAll('.options').forEach(function (group) {
+      const key = group.getAttribute('data-group');
+      group.querySelectorAll('.opt').forEach(function (opt) {
+        opt.addEventListener('click', function () {
+          group.querySelectorAll('.opt').forEach(function (o) { o.classList.remove('selected'); });
+          opt.classList.add('selected');
+          state[key] = opt.getAttribute('data-value');
+          updateCurrentCTA();
+        });
+      });
+    });
+
+    // pills
+    document.querySelectorAll('.pills').forEach(function (group) {
+      const key = group.getAttribute('data-group');
+      group.querySelectorAll('.pill').forEach(function (p) {
+        p.addEventListener('click', function () {
+          group.querySelectorAll('.pill').forEach(function (x) { x.classList.remove('selected'); });
+          p.classList.add('selected');
+          state[key] = p.getAttribute('data-value');
+          updateCurrentCTA();
+        });
+      });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'Enter' && canAdvance()) showStep(state.idx + 1);
+      if (e.key === 'Escape' && state.idx > 0 && state.idx < 5) showStep(state.idx - 1);
+    });
+
+    // init
+    setStage(0);
+    setProgress(0);
+    setChrome(0);
+  })();
+</script>
+
+</body>
+</html>

@@ -21,6 +21,20 @@
   // Auth guard — redirect to login if not authenticated
   if (sessionStorage.getItem('ff_auth') !== '1') {
     window.location.replace('../login.html');
+  } else {
+    // Onboarding guard — novos usuários sem dados vão para o onboarding
+    // Lê direto do localStorage sem carregar o Store completo
+    try {
+      const _raw = JSON.parse(localStorage.getItem('ff_data') || '{}');
+      const _onb = _raw.onboarding;
+      const _hasData = (_raw.receitas && _raw.receitas.length > 0)
+        || (_raw.despesas && _raw.despesas.length > 0)
+        || (_raw.contas && _raw.contas.length > 0);
+      // Se não tem onboarding completo E não tem dados legados → onboarding
+      if (!_onb?.completed && !_hasData) {
+        window.location.replace('onboarding.html');
+      }
+    } catch (e) { /* parsing error — segue em frente */ }
   }
 </script>
 
@@ -296,7 +310,7 @@
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabase-client.js?v=73"></script>
-<script src="js/store.js?v=79"></script>
+<script src="js/store.js?v=80"></script>
 <script src="js/charts.js?v=71"></script>
 <script src="js/svg-charts.js?v=1"></script>
 <script src="js/app.js?v=135"></script>

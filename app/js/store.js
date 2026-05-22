@@ -1884,6 +1884,20 @@ const Store = (function () {
     _data.onboarding.completedAt = new Date().toISOString();
     _data.onboarding.answers = answers || {};
     _markAllOnboardingStepsCompleted();
+
+    // Mapeia respostas ao ICP (Coach conhece melhor o usuário desde o dia 1)
+    const a = answers || {};
+    if (a.goal)   addContextoResposta('basic',  { perguntaId: 'onb_goal',   pergunta: 'Prioridade financeira principal',   resposta: a.goal,   version: 1 });
+    if (a.family) addContextoResposta('family', { perguntaId: 'onb_family', pergunta: 'Composição familiar e financeira',  resposta: a.family, version: 1 });
+    if (a.income) addContextoResposta('money',  { perguntaId: 'onb_income', pergunta: 'Faixa de renda mensal familiar',    resposta: a.income, version: 1 });
+
+    // Salva nome na lista de pessoas se fornecido e posição 0 estiver vazia
+    if (a.name && _data.pessoas && (!_data.pessoas[0] || _data.pessoas[0] === 'Você')) {
+      _data.pessoas[0] = a.name;
+    } else if (a.name && _data.pessoas && _data.pessoas.length === 0) {
+      _data.pessoas.push(a.name);
+    }
+
     persist();
   }
 
