@@ -3717,12 +3717,10 @@ ${contratos.length === 0 ? `
       </div>
       <div class="form-group"><label class="form-label">Tipo de Compromisso</label>
         <select class="form-select" id="fCTipo">
-          <option value="assinatura" ${c.tipoContrato==='assinatura'?'selected':''}>Assinatura</option>
-          <option value="servico" ${c.tipoContrato==='servico'?'selected':''}>Serviço</option>
-          <option value="aluguel" ${c.tipoContrato==='aluguel'?'selected':''}>Aluguel</option>
-          <option value="seguro" ${c.tipoContrato==='seguro'?'selected':''}>Seguro</option>
-          <option value="outro" ${(!c.tipoContrato||c.tipoContrato==='outro')?'selected':''}>Outro</option>
+          <!-- Opções injetadas dinamicamente via change em fCNatureza —
+               COMPROMISSO_TIPOS pra recorrente, FINANCIAMENTO_TIPOS pra dívida -->
         </select>
+        <div id="fCTipoHint" style="font-size:11px;color:var(--text-3);margin-top:4px"></div>
       </div>
       <div class="form-group"><label class="form-label">Responsável</label>
         <select class="form-select" id="fCResp">
@@ -3796,6 +3794,9 @@ ${contratos.length === 0 ? `
       const subSel = document.getElementById('fCSub');
       const subGrp = document.getElementById('fCSubGroup');
       const payGrp = document.getElementById('fCPayGroup');
+      const natSel = document.getElementById('fCNatureza');
+      const tipoSel = document.getElementById('fCTipo');
+      const tipoHint = document.getElementById('fCTipoHint');
 
       function fillSub() {
         const cat = catSel.value;
@@ -3807,10 +3808,33 @@ ${contratos.length === 0 ? `
         subGrp.style.display = isDesp ? '' : 'none';
         payGrp.style.display = isDesp ? '' : 'none';
       }
+      // Atualiza opções de Tipo conforme natureza (recorrente vs dívida).
+      // Recorrente → COMPROMISSO_TIPOS (7). Dívida → FINANCIAMENTO_TIPOS (8).
+      function updateTipoOptions() {
+        const isDivida = natSel.value === 'divida';
+        const lista = isDivida ? Store.FINANCIAMENTO_TIPOS : Store.COMPROMISSO_TIPOS;
+        const atual = c.tipoContrato || '';
+        tipoSel.innerHTML = lista.map(t =>
+          `<option value="${t.id}" ${atual===t.id?'selected':''}>${t.label}</option>`
+        ).join('');
+        const updateHint = () => {
+          const sel = lista.find(t => t.id === tipoSel.value);
+          if (!tipoHint) return;
+          if (sel?.taxaMin != null) {
+            tipoHint.textContent = `${sel.desc} · taxa típica ${sel.taxaMin}-${sel.taxaMax}% a.a.`;
+          } else {
+            tipoHint.textContent = sel?.desc || '';
+          }
+        };
+        updateHint();
+        tipoSel.onchange = updateHint;
+      }
       catSel.addEventListener('change', fillSub);
       kindSel.addEventListener('change', updateKindUI);
+      natSel.addEventListener('change', updateTipoOptions);
       fillSub();
       updateKindUI();
+      updateTipoOptions();
     }, 50);
   }
 
@@ -4395,29 +4419,11 @@ ${(() => {
       document.getElementById('btnAddConta')?.click();
     });
 
+    // Reusa openCartaoModal (tem dropdown de Tipo, campos condicionais
+    // de Benefício, validações). Antes esse handler abria um form curto
+    // sem Tipo — bug visível no QA report.
     document.getElementById('btnAddCartao')?.addEventListener('click', () => {
-      const html = `<div class="form-grid">
-        <div class="form-group form-full"><label class="form-label">Nome do cartão</label><input class="form-input" id="fCcNome" placeholder="Ex: Itaú Click"/></div>
-        <div class="form-group"><label class="form-label">Banco</label>
-          <input class="form-input" id="fCcBanco" list="bankListCC" placeholder="Itaú, Nubank…"/>
-          <datalist id="bankListCC">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
-        </div>
-        <div class="form-group"><label class="form-label">Limite (R$)</label><input class="form-input" id="fCcLimit" type="number" step="100" placeholder="10000"/></div>
-        <div class="form-group"><label class="form-label">Fecha dia</label><input class="form-input" id="fCcClose" type="number" min="1" max="28" value="25"/></div>
-        <div class="form-group"><label class="form-label">Vence dia</label><input class="form-input" id="fCcDue" type="number" min="1" max="28" value="3"/></div>
-      </div>`;
-      Modal.open('Novo Cartão de Crédito', html, () => {
-        const name  = document.getElementById('fCcNome').value;
-        const banco = document.getElementById('fCcBanco').value;
-        const limit = parseFloat(document.getElementById('fCcLimit').value);
-        const closingDay = parseInt(document.getElementById('fCcClose').value);
-        const dueDay     = parseInt(document.getElementById('fCcDue').value);
-        if (!name || !banco || !limit) return toast('Preencha nome, banco e limite', 'error');
-        Store.addCartao({ name, banco, limit, closingDay, dueDay, color: 'default', parcelas: [] });
-        Modal.close();
-        renderContas(container);
-        toast('Cartão adicionado!', 'success');
-      });
+      openCartaoModal(null, container);
     });
   }
 
