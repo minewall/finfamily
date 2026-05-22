@@ -10650,7 +10650,7 @@ ${isConnected && isAdmin ? `
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Backup & Dados</div>
-  <div class="section-sub">Exporte/importe seus dados. Os dados vivem em localStorage — faça backup periódico.</div></div>
+  <div class="section-sub">Seus dados ficam salvos na sua conta. Exporte ou restaure um arquivo de backup quando quiser.</div></div>
 </div>
 <div class="card mb-4">
   <div class="card-header"><span class="card-title">Resumo</span></div>
@@ -10658,8 +10658,8 @@ ${isConnected && isAdmin ? `
 </div>
 <div class="card">
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
-    <button class="btn-primary"   id="btnDoExport">${icon('download', {size:13})} Exportar JSON</button>
-    <button class="btn-secondary" id="btnDoImport">${icon('upload', {size:13})} Importar JSON</button>
+    <button class="btn-primary"   id="btnDoExport">${icon('download', {size:13})} Exportar meus dados</button>
+    <button class="btn-secondary" id="btnDoImport">${icon('upload', {size:13})} Restaurar meus dados</button>
     <div style="flex:1"></div>
     <button class="btn-secondary" id="btnDoSeed">${icon('rotate-ccw', {size:13})} Restaurar exemplo</button>
     <button class="btn-secondary" id="btnDoClear" style="color:var(--red);border-color:rgba(255,74,104,0.3)">${icon('trash-2', {size:13})} Limpar tudo</button>
