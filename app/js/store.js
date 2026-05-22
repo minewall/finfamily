@@ -50,7 +50,7 @@ const Store = (function () {
     pets:        ['Ração','Petiscos / Snacks','Banho e Tosa','Veterinário','Medicamentos / Vermífugos','Plano de Saúde Pet','Acessórios / Brinquedos','Hotel / Daycare'],
     servicos_profissionais: ['Advogado','Contador','Consultoria','Coach / Mentor','Planejador Financeiro','Outros'],
     financeiro:  ['Taxas Bancárias','Saques','Anuidade de Cartão','Tarifas de Investimento','Seguro de Vida','Seguro Veicular','Seguro Residencial','Outros Seguros','IPTU','IPVA / Licenciamento','Imposto de Renda','Taxas PJ','Multas','Cartório / Documentos'],
-    assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
+    assinaturas: ['Streaming de Vídeo','Streaming de Música','IA / Produtividade','Software','Outras assinaturas'],
     lazer:       ['Restaurante','Doceria / Lanchonete','Bar / Balada','Entretenimento','Eventos com Amigos','Hobbies','Jogos / Apostas','Viagens'],
     pessoal:     ['Salão de Beleza','Vestuário','Higiene Pessoal','Celular','Presentes','Outros'],
     mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
@@ -1292,6 +1292,15 @@ const Store = (function () {
         if (category === 'saude' && sub === 'Convênio Médico') {
           sub = 'Plano de Saúde';
         }
+        // Assinaturas — vendors antigos → funções genéricas
+        if (category === 'assinaturas') {
+          const VIDEO = ['Netflix','HBO','Disney+','Amazon Prime'];
+          const AUDIO = ['Spotify','YouTube Premium','Apple Music'];
+          if (VIDEO.includes(sub))             sub = 'Streaming de Vídeo';
+          else if (AUDIO.includes(sub))        sub = 'Streaming de Música';
+          else if (sub === 'Apple')            sub = 'Streaming de Música'; // assumido (mais comum)
+          else if (sub === 'ChatGPT / IA')     sub = 'IA / Produtividade';
+        }
         // Financeiras — reorganização interna + reassign de subs que saíram
         if (category === 'financeiro') {
           if (sub === 'Cartório')           sub = 'Cartório / Documentos';
@@ -1352,6 +1361,7 @@ const Store = (function () {
       _data.subcategorias.pets                   = [...SUBCATEGORIES.pets];
       _data.subcategorias.servicos_profissionais = [...SUBCATEGORIES.servicos_profissionais];
       _data.subcategorias.financeiro             = [...SUBCATEGORIES.financeiro];
+      _data.subcategorias.assinaturas            = [...SUBCATEGORIES.assinaturas];
     }
     // settings.catTipo rename
     if (_data.settings?.catTipo) {
