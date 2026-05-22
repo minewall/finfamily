@@ -10724,105 +10724,192 @@ ${isConnected && isAdmin ? `
   // ─── ICP Sprint 2 — Banco de perguntas + modal ─────────────────
   // Adicionar novas categorias aqui conforme sprints avançam.
   const ICP_QUESTIONS = {
+    // ── Tolerância a risco (10 perguntas) ──────────────────────────
     risk: [
       {
         id: 'risk_1', version: 1,
         pergunta: 'Se você tivesse R$ 20.000 disponíveis hoje, o que faria?',
         opcoes: [
-          { id: 'a', label: 'Deixaria na poupança ou conta corrente, sem risco' },
-          { id: 'b', label: 'Aplicaria em renda fixa conservadora (Tesouro, CDB)' },
-          { id: 'c', label: 'Dividiria entre renda fixa e algum fundo de renda variável' },
-          { id: 'd', label: 'Investiria boa parte em ações, fundos ou cripto buscando retorno maior' },
+          { id: 'a', label: 'Deixaria na poupança ou conta corrente',       sub: 'Sem risco, liquidez total' },
+          { id: 'b', label: 'Aplicaria em renda fixa conservadora',         sub: 'Tesouro, CDB, LCI/LCA' },
+          { id: 'c', label: 'Dividiria entre renda fixa e variável',        sub: 'Um pouco de tudo' },
+          { id: 'd', label: 'Investiria buscando retorno maior',            sub: 'Ações, fundos ou cripto' },
         ],
       },
       {
         id: 'risk_2', version: 1,
-        pergunta: 'Um investimento seu caiu 30% em dois meses. O que você faz?',
+        pergunta: 'Como você se sente quando perde dinheiro — seja num investimento, num negócio ou emprestando para a pessoa errada?',
         opcoes: [
-          { id: 'a', label: 'Resgato tudo imediatamente para evitar perder mais' },
-          { id: 'b', label: 'Fico tenso, mas aguardo sem mexer' },
-          { id: 'c', label: 'Analiso a situação e possivelmente compro mais na queda' },
-          { id: 'd', label: 'Encaro como parte do jogo e sigo o plano sem ansiedade' },
+          { id: 'a', label: 'Fico muito mal e fico com medo de repetir',    sub: 'Prefiro não arriscar de novo' },
+          { id: 'b', label: 'Fico tenso, mas consigo seguir em frente',     sub: 'Demoro algumas semanas' },
+          { id: 'c', label: 'Analiso o que deu errado e aprendo',           sub: 'Encaro como lição' },
+          { id: 'd', label: 'Encaro como parte do jogo',                    sub: 'Faz parte do processo' },
         ],
       },
       {
         id: 'risk_3', version: 1,
         pergunta: 'Qual frase descreve melhor sua relação com dívida?',
         opcoes: [
-          { id: 'a', label: 'Evito a qualquer custo — dívida me tira o sono' },
-          { id: 'b', label: 'Aceito dívida só para bens essenciais (imóvel, carro)' },
-          { id: 'c', label: 'Uso crédito de forma estratégica quando o retorno vale' },
-          { id: 'd', label: 'Me sinto confortável alavancando para crescer mais rápido' },
+          { id: 'a', label: 'Evito a qualquer custo',                       sub: 'Dívida me tira o sono' },
+          { id: 'b', label: 'Aceito só para bens essenciais',               sub: 'Imóvel, carro — com planejamento' },
+          { id: 'c', label: 'Uso crédito de forma estratégica',             sub: 'Quando o retorno justifica' },
+          { id: 'd', label: 'Me sinto confortável alavancando',             sub: 'Para crescer mais rápido' },
         ],
       },
       {
         id: 'risk_4', version: 1,
         pergunta: 'Em quanto tempo você precisaria resgatar uma reserva de emergência, se necessário?',
         opcoes: [
-          { id: 'a', label: 'Imediatamente — preciso de liquidez diária' },
-          { id: 'b', label: 'Em até 30 dias' },
-          { id: 'c', label: 'Em até 6 meses está bom' },
-          { id: 'd', label: 'Poderia esperar mais de 1 ano sem problema' },
+          { id: 'a', label: 'Imediatamente',                                sub: 'Preciso de liquidez diária' },
+          { id: 'b', label: 'Em até 30 dias',                               sub: 'Posso esperar um pouco' },
+          { id: 'c', label: 'Em até 6 meses',                              sub: 'Tenho margem para isso' },
+          { id: 'd', label: 'Poderia esperar mais de 1 ano',               sub: 'Tenho outras fontes no curto prazo' },
         ],
       },
       {
         id: 'risk_5', version: 1,
         pergunta: 'Você já perdeu dinheiro em algum investimento ou negócio?',
         opcoes: [
-          { id: 'a', label: 'Não, e prefiro que continue assim' },
-          { id: 'b', label: 'Sim, pequenas perdas que me deixaram mais cauteloso' },
-          { id: 'c', label: 'Sim, aprendi com isso e estou mais tranquilo hoje' },
-          { id: 'd', label: 'Sim, várias vezes — faz parte do processo' },
+          { id: 'a', label: 'Não, e prefiro que continue assim',            sub: 'Isso me preocupa bastante' },
+          { id: 'b', label: 'Sim, pequenas perdas',                        sub: 'Me deixou mais cauteloso' },
+          { id: 'c', label: 'Sim, e aprendi com isso',                     sub: 'Hoje estou mais tranquilo' },
+          { id: 'd', label: 'Sim, várias vezes',                           sub: 'Faz parte do processo' },
         ],
       },
       {
         id: 'risk_6', version: 1,
         pergunta: 'Qual cenário de investimento você prefere?',
         opcoes: [
-          { id: 'a', label: 'Ganhar 6% ao ano com certeza absoluta' },
-          { id: 'b', label: 'Ganhar entre 4% e 10% com baixo risco de perda' },
-          { id: 'c', label: 'Ganhar entre 0% e 20% com chance real de perda temporária' },
-          { id: 'd', label: 'Arriscar perder 20% para ter chance de ganhar 40% ou mais' },
+          { id: 'a', label: 'Ganhar 6% ao ano com certeza absoluta',        sub: 'Sem risco, sem surpresas' },
+          { id: 'b', label: 'Entre 4% e 10% com baixo risco de perda',     sub: 'Conservador com potencial' },
+          { id: 'c', label: 'Entre 0% e 20% com chance real de perda',     sub: 'Aceito oscilações' },
+          { id: 'd', label: 'Arriscar perder 20% para ganhar 40%+',        sub: 'Alto risco, alto retorno' },
         ],
       },
       {
         id: 'risk_7', version: 1,
         pergunta: 'Quando ouve "a bolsa caiu 5% hoje", qual é sua primeira reação?',
         opcoes: [
-          { id: 'a', label: 'Fico apreensivo e checo meus investimentos' },
-          { id: 'b', label: 'Noto, mas não deixo afetar meu humor' },
-          { id: 'c', label: 'Penso se é hora de comprar mais' },
-          { id: 'd', label: 'Não ligo — volatilidade é normal' },
+          { id: 'a', label: 'Fico apreensivo e checo meus investimentos',  sub: 'Me preocupa' },
+          { id: 'b', label: 'Noto, mas não deixo afetar meu humor',        sub: 'Sei que passa' },
+          { id: 'c', label: 'Penso se é hora de comprar mais',             sub: 'Vejo como oportunidade' },
+          { id: 'd', label: 'Nem ligo — volatilidade é normal',            sub: 'Faz parte do mercado' },
         ],
       },
       {
         id: 'risk_8', version: 1,
-        pergunta: 'Na sua carreira ou negócio, você prefere:',
+        pergunta: 'Na sua carreira ou negócio, o que você prefere?',
         opcoes: [
-          { id: 'a', label: 'Estabilidade garantida, mesmo com salário menor' },
-          { id: 'b', label: 'Boa estabilidade com algum bônus por desempenho' },
-          { id: 'c', label: 'Renda variável com potencial de crescimento alto' },
-          { id: 'd', label: 'Máximo de autonomia e risco, buscando grande retorno' },
+          { id: 'a', label: 'Estabilidade garantida',                      sub: 'Mesmo com salário menor' },
+          { id: 'b', label: 'Boa base com algum bônus',                   sub: 'Estabilidade + recompensa' },
+          { id: 'c', label: 'Renda variável com potencial alto',           sub: 'Assumo a volatilidade' },
+          { id: 'd', label: 'Máxima autonomia e risco',                   sub: 'Busco grande retorno' },
         ],
       },
       {
         id: 'risk_9', version: 1,
         pergunta: 'Quando toma uma decisão importante e dá errado, como costuma reagir?',
         opcoes: [
-          { id: 'a', label: 'Fico mal por muito tempo e demoro a retomar' },
-          { id: 'b', label: 'Fico abalado, mas me recupero em algumas semanas' },
-          { id: 'c', label: 'Analiso o que deu errado e sigo em frente' },
-          { id: 'd', label: 'Encaro como aprendizado e parto para o próximo passo' },
+          { id: 'a', label: 'Fico mal por muito tempo',                    sub: 'Demoro a retomar o ritmo' },
+          { id: 'b', label: 'Fico abalado, mas me recupero em semanas',   sub: 'Passa com o tempo' },
+          { id: 'c', label: 'Analiso o que deu errado e sigo em frente',  sub: 'Prefiro aprender e agir' },
+          { id: 'd', label: 'Encaro como aprendizado e parto pro próximo', sub: 'Não me prendo ao passado' },
         ],
       },
       {
         id: 'risk_10', version: 1,
         pergunta: 'Como você se descreveria como investidor hoje?',
         opcoes: [
-          { id: 'a', label: 'Conservador — proteger o que tenho é prioridade' },
-          { id: 'b', label: 'Moderado — aceito algum risco com equilíbrio' },
-          { id: 'c', label: 'Arrojado — busco crescimento mesmo com oscilações' },
-          { id: 'd', label: 'Agressivo — maximizar retorno é o que importa' },
+          { id: 'a', label: 'Conservador',                                 sub: 'Proteger o que tenho é prioridade' },
+          { id: 'b', label: 'Moderado',                                    sub: 'Aceito algum risco com equilíbrio' },
+          { id: 'c', label: 'Arrojado',                                    sub: 'Busco crescimento mesmo com oscilações' },
+          { id: 'd', label: 'Agressivo',                                   sub: 'Maximizar retorno é o que importa' },
+        ],
+      },
+    ],
+
+    // ── Valores & Prioridades (8 perguntas) ────────────────────────
+    // Captura disciplina, abdicação de prazeres, consciência de trade-offs
+    // e mentalidade sobre tempo + dinheiro — drivers essenciais pro Coach.
+    values: [
+      {
+        id: 'values_1', version: 1,
+        pergunta: 'O que você nunca cortaria do orçamento, mesmo em aperto?',
+        opcoes: [
+          { id: 'a', label: 'Educação dos filhos',           sub: 'Escola, cursos, faculdade' },
+          { id: 'b', label: 'Saúde e bem-estar',             sub: 'Plano, terapia, exercício' },
+          { id: 'c', label: 'Alimentação de qualidade',      sub: 'Comida boa e saudável' },
+          { id: 'd', label: 'Lazer em família',              sub: 'Viagens, encontros, experiências' },
+        ],
+      },
+      {
+        id: 'values_2', version: 1,
+        pergunta: 'Você conseguiria abrir mão de um prazer hoje para ter algo muito melhor daqui a 5 anos?',
+        opcoes: [
+          { id: 'a', label: 'Raramente — prefiro aproveitar o presente',   sub: 'O agora vale mais' },
+          { id: 'b', label: 'Depende do prazer e da recompensa',           sub: 'Analiso caso a caso' },
+          { id: 'c', label: 'Na maioria das vezes, sim',                   sub: 'Tenho paciência razoável' },
+          { id: 'd', label: 'Sim, sem dificuldade',                        sub: 'Foco no longo prazo' },
+        ],
+      },
+      {
+        id: 'values_3', version: 1,
+        pergunta: 'Se precisasse escolher entre uma viagem de fim de semana e pagar uma dívida, o que faria?',
+        opcoes: [
+          { id: 'a', label: 'Viagem — equilíbrio também importa',          sub: 'Vivo o presente' },
+          { id: 'b', label: 'Depende do valor e da dívida',               sub: 'Avaliaria cada caso' },
+          { id: 'c', label: 'Pagaria a dívida, mas talvez renegociasse a viagem', sub: 'Tentaria ter os dois' },
+          { id: 'd', label: 'Pagaria a dívida sem pensar duas vezes',      sub: 'Dívida em dia primeiro' },
+        ],
+      },
+      {
+        id: 'values_4', version: 1,
+        pergunta: 'Como você enxerga a relação entre disciplina e resultado financeiro?',
+        opcoes: [
+          { id: 'a', label: 'Sorte importa tanto quanto disciplina',       sub: 'Não é só esforço' },
+          { id: 'b', label: 'Disciplina ajuda, mas não é tudo',           sub: 'O contexto também importa' },
+          { id: 'c', label: 'Disciplina consistente gera resultado certo', sub: 'Quem planta, colhe' },
+          { id: 'd', label: 'É o fator mais importante — sem ela, nada',  sub: 'Tudo começa na disciplina' },
+        ],
+      },
+      {
+        id: 'values_5', version: 1,
+        pergunta: 'O que te move mais a agir em relação ao dinheiro?',
+        opcoes: [
+          { id: 'a', label: 'Medo de passar por aperto',                  sub: 'Quero evitar o pior' },
+          { id: 'b', label: 'Vontade de proporcionar mais à família',      sub: 'Penso nos que amo' },
+          { id: 'c', label: 'Desejo de conquistar objetivos específicos',  sub: 'Tenho metas claras' },
+          { id: 'd', label: 'Busca de liberdade e independência',         sub: 'Não depender de ninguém' },
+        ],
+      },
+      {
+        id: 'values_6', version: 1,
+        pergunta: 'Você consegue enxergar com clareza o impacto das suas escolhas de hoje no seu futuro financeiro?',
+        opcoes: [
+          { id: 'a', label: 'Raramente — o futuro parece distante',       sub: 'É difícil conectar isso' },
+          { id: 'b', label: 'Às vezes, mas perco o fio facilmente',       sub: 'A rotina atrapalha' },
+          { id: 'c', label: 'Na maior parte do tempo sim',                sub: 'Costumo pensar nos efeitos' },
+          { id: 'd', label: 'Sim, com bastante clareza',                  sub: 'Considero isso em cada decisão' },
+        ],
+      },
+      {
+        id: 'values_7', version: 1,
+        pergunta: 'Quando recebe um dinheiro extra (bônus, 13º, herança), qual é sua primeira reação?',
+        opcoes: [
+          { id: 'a', label: 'Já sei em que gastar — tenho vontades represadas', sub: 'Mereci aproveitar' },
+          { id: 'b', label: 'Pago alguma dívida ou conta importante',     sub: 'Alivio o que está pesando' },
+          { id: 'c', label: 'Divido: uma parte aproveito, o resto guardo', sub: 'Equilíbrio entre prazer e futuro' },
+          { id: 'd', label: 'Invisto ou guardo quase tudo',               sub: 'Dinheiro parado é dinheiro perdido' },
+        ],
+      },
+      {
+        id: 'values_8', version: 1,
+        pergunta: 'Como você avalia sua saúde financeira hoje, de forma honesta?',
+        opcoes: [
+          { id: 'a', label: 'Estou no vermelho ou muito apertado',        sub: 'Preciso de ajuda urgente' },
+          { id: 'b', label: 'Pago as contas, mas não sobra nada',        sub: 'Estável, mas sem folga' },
+          { id: 'c', label: 'Tenho alguma reserva e consigo planejar',   sub: 'Estou no caminho certo' },
+          { id: 'd', label: 'Estou bem e já penso em multiplicar',       sub: 'Posso ir além do básico' },
         ],
       },
     ],
@@ -10852,131 +10939,227 @@ ${isConnected && isAdmin ? `
     _renderICPModal();
   }
 
+  // ─── ICP Modal — Redesign Mai/2026 ────────────────────────────
+  // Funções internas: _buildICPOptionsHtml, _wireICPOptions,
+  // _renderICPModal (cria overlay), _updateICPModalContent (atualiza
+  // body in-place com animação), _icpModalAdvance, _renderICPCelebration,
+  // _closeICPModal.
+  // ──────────────────────────────────────────────────────────────
+
+  function _buildICPOptionsHtml(q) {
+    return q.opcoes.map(op => `
+      <button class="icp-opt${_icpModal.selected === op.id ? ' selected' : ''}"
+              type="button" data-val="${op.id}">
+        <div class="icp-opt-indicator">
+          <svg class="icp-opt-check" width="11" height="11" viewBox="0 0 24 24"
+               fill="none" stroke="#fff" stroke-width="3"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+        </div>
+        <div class="icp-opt-text">
+          <div class="icp-opt-label">${op.label}</div>
+          ${op.sub ? `<div class="icp-opt-sub">${op.sub}</div>` : ''}
+        </div>
+        ${op.identified ? `
+          <div class="icp-identified-badge">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Identificado
+          </div>` : ''}
+      </button>`).join('');
+  }
+
+  function _wireICPOptions(q, isLast) {
+    const optionsEl = document.getElementById('icpOptions');
+    if (!optionsEl) return;
+    optionsEl.addEventListener('click', e => {
+      const btn = e.target.closest('.icp-opt');
+      if (!btn) return;
+      _icpModal.selected = btn.dataset.val;
+      document.querySelectorAll('#icpOptions .icp-opt').forEach(b =>
+        b.classList.toggle('selected', b.dataset.val === _icpModal.selected)
+      );
+      const hintDot  = document.getElementById('icpHintDot');
+      const hintText = document.getElementById('icpHintText');
+      const nextBtn  = document.getElementById('icpNext');
+      if (hintDot)  hintDot.classList.remove('pending');
+      if (hintText) hintText.textContent = 'Pronto pra avançar';
+      if (nextBtn)  { nextBtn.disabled = false; }
+      if (q.textarea) {
+        const wrap = document.getElementById('icpTextareaWrap');
+        if (wrap) wrap.style.display = 'block';
+      }
+    });
+    const extraEl = document.getElementById('icpExtra');
+    if (extraEl) extraEl.addEventListener('input', e => { _icpModal.extra = e.target.value; });
+    const nextBtn = document.getElementById('icpNext');
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+      if (!_icpModal.selected) return;
+      _icpModalAdvance();
+    });
+  }
+
   function _renderICPModal() {
     const { catId, qIdx } = _icpModal;
-    const cat  = _icpCatMeta(catId);
-    const qs   = _icpPendingQuestions(catId);
+    const cat   = _icpCatMeta(catId);
+    const qs    = _icpPendingQuestions(catId);
     const total = ICP_QUESTIONS[catId]?.length || 0;
     const alreadyAnswered = total - qs.length;
 
-    // Remover overlay existente, se houver
     document.getElementById('icpModalOverlay')?.remove();
 
     if (!qs.length) {
-      // Tela de conclusão
-      const overlay = document.createElement('div');
-      overlay.className = 'icp-modal-overlay';
-      overlay.id = 'icpModalOverlay';
-      overlay.style.setProperty('--cat-color', cat?.color || 'var(--accent)');
-      overlay.innerHTML = `
-        <div class="icp-modal" role="dialog" aria-modal="true">
-          <div class="icp-modal-done">
-            <div class="icp-modal-done-icon">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <h3>Categoria concluída!</h3>
-            <p>Você respondeu todas as ${total} perguntas de <strong>${cat?.name}</strong>. O Coach já tem contexto suficiente nessa área.</p>
-            <button class="icp-modal-done-close" id="icpDoneClose">Fechar</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-      document.getElementById('icpDoneClose').addEventListener('click', _closeICPModal);
-      overlay.addEventListener('click', e => { if (e.target === overlay) _closeICPModal(); });
+      _renderICPCelebration(catId);
       return;
     }
 
     const q = qs[Math.min(qIdx, qs.length - 1)];
-    const currentNum = alreadyAnswered + qIdx + 1; // número absoluto de perguntas
-    const pct = Math.round((currentNum - 1) / total * 100);
+    const currentNum = alreadyAnswered + qIdx + 1;
+    const isLast = qIdx + 1 >= qs.length;
+    const pct = Math.round(((currentNum - 1) / total) * 100);
+    const catName = cat?.name || catId;
+    const catIcon = cat?.icon || 'user';
+    const canContinue = !!_icpModal.selected;
 
     const overlay = document.createElement('div');
     overlay.className = 'icp-modal-overlay';
     overlay.id = 'icpModalOverlay';
-    overlay.style.setProperty('--cat-color', cat?.color || 'var(--accent)');
     overlay.innerHTML = `
-      <div class="icp-modal" role="dialog" aria-modal="true" aria-label="Pergunta ${currentNum} de ${total}">
-        <div class="icp-modal-header">
-          <div class="icp-modal-cat-chip" style="background:${cat?.color || 'var(--accent)'}">
-            ${cat?.name || catId}
+      <div class="icp-modal" id="icpModalCard" role="dialog" aria-modal="true"
+           aria-label="Pergunta ${currentNum} de ${total}">
+        <div class="icp-prog"><div class="icp-prog-fill" id="icpProgFill" style="width:${pct}%"></div></div>
+        <div class="icp-hdr">
+          <div class="icp-hdr-left">
+            <div class="icp-cat-icon-wrap" id="icpCatIconWrap">
+              ${icon(catIcon, { size: 14, color: '#7367F0' })}
+            </div>
+            <div>
+              <div class="icp-supertitle">Haile te conhecendo</div>
+              <div class="icp-subtitle" id="icpSubtitle">
+                ${catName}<span class="icp-dot">·</span><span class="icp-count">${currentNum} de ${total}</span>
+              </div>
+            </div>
           </div>
-          <div class="icp-modal-meta">
-            <span class="icp-modal-count">${currentNum} de ${total}</span>
-            <button class="icp-modal-close" id="icpClose" aria-label="Fechar">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
+          <button class="icp-x-btn" id="icpClose" aria-label="Fechar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="icp-body-wrap" id="icpBodyWrap">
+          <h2 class="icp-q-text">${q.pergunta}</h2>
+          <div class="icp-options-list" id="icpOptions">${_buildICPOptionsHtml(q)}</div>
+          <div id="icpTextareaWrap" style="display:none" class="icp-textarea-anim">
+            <label class="icp-textarea-label">Quer contar mais? <span>· opcional</span></label>
+            <textarea id="icpExtra" class="icp-textarea-field"
+              placeholder="Adicione contexto ou detalhes...">${_icpModal.extra}</textarea>
           </div>
         </div>
-        <div class="icp-modal-bar-wrap">
-          <div class="icp-modal-bar"><div style="width:${pct}%"></div></div>
-        </div>
-        <div class="icp-modal-body">
-          <p class="icp-modal-question">${q.pergunta}</p>
-          <div class="icp-modal-options" id="icpOptions">
-            ${q.opcoes.map(op => `
-              <button class="icp-option${_icpModal.selected === op.id ? ' selected' : ''}"
-                      type="button" data-val="${op.id}">
-                <span class="icp-option-dot"></span>
-                ${op.label}
-              </button>`).join('')}
+        <div class="icp-footer">
+          <div class="icp-footer-hint" id="icpFooterHint">
+            <span class="icp-hint-dot${canContinue ? '' : ' pending'}" id="icpHintDot"></span>
+            <span id="icpHintText">${canContinue ? 'Pronto pra avançar' : 'Selecione uma opção'}</span>
           </div>
-          <div class="icp-modal-elaborate">
-            <label>Quer elaborar? (opcional)</label>
-            <textarea id="icpExtra" placeholder="Adicione contexto ou detalhes se quiser...">${_icpModal.extra}</textarea>
-          </div>
-        </div>
-        <div class="icp-modal-footer">
-          <button class="icp-modal-skip" id="icpSkip">Pular pergunta</button>
-          <button class="icp-modal-next" id="icpNext" ${_icpModal.selected ? '' : 'disabled'}>
-            ${qIdx + 1 >= qs.length ? 'Concluir' : 'Próxima'}
+          <button class="icp-next-btn${isLast ? ' is-last' : ''}" id="icpNext"
+                  ${canContinue ? '' : 'disabled'}>
+            ${isLast ? 'Concluir' : 'Continuar'}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              ${isLast ? '<path d="M20 6L9 17l-5-5"/>' : '<path d="M5 12h14M12 5l7 7-7 7"/>'}
+            </svg>
           </button>
         </div>
       </div>`;
 
     document.body.appendChild(overlay);
+    upgradeIcons(document.getElementById('icpCatIconWrap'));
 
-    // Fechar ao clicar fora
     overlay.addEventListener('click', e => { if (e.target === overlay) _closeICPModal(); });
     document.getElementById('icpClose').addEventListener('click', _closeICPModal);
-
-    // Seleção de opção
-    document.getElementById('icpOptions').addEventListener('click', e => {
-      const btn = e.target.closest('.icp-option');
-      if (!btn) return;
-      _icpModal.selected = btn.dataset.val;
-      document.querySelectorAll('#icpOptions .icp-option').forEach(b =>
-        b.classList.toggle('selected', b.dataset.val === _icpModal.selected)
-      );
-      document.getElementById('icpNext').disabled = false;
-    });
-
-    // Textarea
-    document.getElementById('icpExtra').addEventListener('input', e => {
-      _icpModal.extra = e.target.value;
-    });
-
-    // Pular
-    document.getElementById('icpSkip').addEventListener('click', () => {
-      _icpModal.selected = null;
-      _icpModal.extra = '';
-      _icpModalAdvance(true);
-    });
-
-    // Confirmar / Próxima
-    document.getElementById('icpNext').addEventListener('click', () => {
-      if (!_icpModal.selected) return;
-      _icpModalAdvance(false);
-    });
-
-    // Foco na primeira opção para acessibilidade
-    overlay.querySelector('.icp-option')?.focus();
+    _wireICPOptions(q, isLast);
   }
 
-  function _icpModalAdvance(skipped) {
+  function _updateICPModalContent() {
+    const { catId, qIdx } = _icpModal;
+    const cat   = _icpCatMeta(catId);
+    const qs    = _icpPendingQuestions(catId);
+    const total = ICP_QUESTIONS[catId]?.length || 0;
+    const alreadyAnswered = total - qs.length;
+
+    if (!qs.length) {
+      document.getElementById('icpModalOverlay')?.remove();
+      _renderICPCelebration(catId);
+      return;
+    }
+
+    const q = qs[Math.min(qIdx, qs.length - 1)];
+    const currentNum = alreadyAnswered + qIdx + 1;
+    const isLast = qIdx + 1 >= qs.length;
+    const pct = Math.round(((currentNum - 1) / total) * 100);
+    const catName = cat?.name || catId;
+
+    // Atualizar barra de progresso
+    const progFill = document.getElementById('icpProgFill');
+    if (progFill) progFill.style.width = pct + '%';
+
+    // Atualizar contador no header
+    const subtitle = document.getElementById('icpSubtitle');
+    if (subtitle) {
+      subtitle.innerHTML = `${catName}<span class="icp-dot">·</span><span class="icp-count">${currentNum} de ${total}</span>`;
+    }
+
+    // Atualizar body com animação
+    const body = document.getElementById('icpBodyWrap');
+    if (!body) { _renderICPModal(); return; }
+
+    body.innerHTML = `
+      <h2 class="icp-q-text">${q.pergunta}</h2>
+      <div class="icp-options-list" id="icpOptions">${_buildICPOptionsHtml(q)}</div>
+      <div id="icpTextareaWrap" style="display:none" class="icp-textarea-anim">
+        <label class="icp-textarea-label">Quer contar mais? <span>· opcional</span></label>
+        <textarea id="icpExtra" class="icp-textarea-field"
+          placeholder="Adicione contexto ou detalhes...">${_icpModal.extra}</textarea>
+      </div>`;
+    body.classList.remove('anim-out');
+    body.classList.add('anim-in');
+    body.addEventListener('animationend', () => body.classList.remove('anim-in'), { once: true });
+
+    // Atualizar footer
+    const hintDot  = document.getElementById('icpHintDot');
+    const hintText = document.getElementById('icpHintText');
+    const nextBtn  = document.getElementById('icpNext');
+    if (hintDot)  { hintDot.classList.add('pending'); }
+    if (hintText) { hintText.textContent = 'Selecione uma opção'; }
+    if (nextBtn)  {
+      nextBtn.disabled = true;
+      nextBtn.className = 'icp-next-btn' + (isLast ? ' is-last' : '');
+      nextBtn.innerHTML = `${isLast ? 'Concluir' : 'Continuar'}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          ${isLast ? '<path d="M20 6L9 17l-5-5"/>' : '<path d="M5 12h14M12 5l7 7-7 7"/>'}
+        </svg>`;
+      // Re-wire click (remover listener antigo via clone)
+      const newBtn = nextBtn.cloneNode(true);
+      nextBtn.replaceWith(newBtn);
+      newBtn.addEventListener('click', () => {
+        if (!_icpModal.selected) return;
+        _icpModalAdvance();
+      });
+    }
+
+    _wireICPOptions(q, isLast);
+  }
+
+  function _icpModalAdvance() {
     const { catId, qIdx, selected, extra } = _icpModal;
     const qs = _icpPendingQuestions(catId);
     const q  = qs[qIdx];
 
-    if (!skipped && selected && q) {
+    if (selected && q) {
       const opcaoLabel = q.opcoes.find(o => o.id === selected)?.label || selected;
       const resposta   = extra ? `${opcaoLabel} — ${extra.trim()}` : opcaoLabel;
       Store.addContextoResposta(catId, {
@@ -10987,19 +11170,176 @@ ${isConnected && isAdmin ? `
       });
     }
 
-    const nextIdx = qIdx + 1;
+    const nextIdx   = qIdx + 1;
     const remaining = _icpPendingQuestions(catId); // recalcula após save
     _icpModal.selected = null;
     _icpModal.extra    = '';
 
-    if (nextIdx >= qs.length || !remaining.length) {
-      // Terminou as perguntas desta sessão
-      _icpModal.qIdx = 0;
-      _renderICPModal(); // vai para tela de conclusão ou próxima pendente
+    if (!remaining.length || nextIdx >= qs.length) {
+      // Terminou — tela de celebração
+      document.getElementById('icpModalOverlay')?.remove();
+      _renderICPCelebration(catId);
     } else {
+      // Próxima pergunta — anima body saindo e atualiza
       _icpModal.qIdx = nextIdx;
-      _renderICPModal();
+      const body = document.getElementById('icpBodyWrap');
+      if (body) {
+        body.classList.add('anim-out');
+        body.addEventListener('animationend', _updateICPModalContent, { once: true });
+      } else {
+        _renderICPModal();
+      }
     }
+  }
+
+  function _renderICPCelebration(catId) {
+    const cat   = _icpCatMeta(catId);
+    const allCats = Store.getContextoCategories();
+    const icp   = Store.calculateICP();
+    const level = Store.getContextoLevel(icp);
+    const totalQAll = allCats.reduce((s, c) => s + c.total, 0);
+    const catData   = allCats.find(c => c.id === catId);
+    const catGain   = catData && totalQAll > 0
+      ? Math.round((catData.answered / totalQAll) * 100) : 0;
+
+    const LEVELS_ORDER = ['Recém-chegado', 'Apresentado', 'Conhecido', 'Próximo', 'Confidente'];
+    const levelIdx = LEVELS_ORDER.indexOf(level.name);
+
+    const circumference = 2 * Math.PI * 46;
+    const dashAfter  = circumference * (icp / 100);
+    const dashBefore = circumference * (Math.max(0, icp - catGain) / 100);
+
+    const levelBars = LEVELS_ORDER.map((_, i) => {
+      const reached    = i <= levelIdx;
+      const isCurrent  = i === levelIdx;
+      return `<span style="width:${isCurrent ? 14 : 8}px;height:4px;border-radius:99px;
+        background:${reached ? (isCurrent ? '#9990ff' : 'rgba(115,103,240,0.5)') : 'rgba(255,255,255,0.12)'}">
+        </span>`;
+    }).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'icp-modal-overlay';
+    overlay.id = 'icpModalOverlay';
+    overlay.innerHTML = `
+      <div class="icp-modal icp-celebration" id="icpModalCard" role="dialog" aria-modal="true">
+        <div class="icp-prog"><div class="icp-prog-fill icp-prog-shimmer" style="width:100%"></div></div>
+        <button class="icp-x-btn" id="icpClose" aria-label="Fechar"
+                style="position:absolute;top:14px;right:14px;z-index:2;color:rgba(255,255,255,0.5)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+
+        <div style="padding:34px 24px 22px;text-align:center;position:relative">
+          <!-- Ring -->
+          <div style="position:relative;width:140px;height:140px;margin:0 auto 22px">
+            <div class="icp-ring-glow"></div>
+            <svg width="140" height="140" viewBox="0 0 100 100"
+                 style="position:absolute;inset:0;transform:rotate(-90deg)">
+              <circle cx="50" cy="50" r="46" fill="none"
+                      stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="46" fill="none"
+                      stroke="rgba(115,103,240,0.4)" stroke-width="4" stroke-linecap="round"
+                      stroke-dasharray="${circumference}"
+                      stroke-dashoffset="${circumference - dashBefore}"/>
+              <circle cx="50" cy="50" r="46" fill="none"
+                      stroke="url(#icpVGrad)" stroke-width="4" stroke-linecap="round"
+                      stroke-dasharray="${dashAfter} ${circumference}"
+                      stroke-dashoffset="0"
+                      style="animation:icp-ring-draw 1.6s cubic-bezier(.5,1.4,.4,1) 0.2s both;
+                             --from:${(circumference - dashBefore).toFixed(2)}px;
+                             --to:${(circumference - dashAfter).toFixed(2)}px"/>
+              <defs>
+                <linearGradient id="icpVGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#9990ff"/>
+                  <stop offset="100%" stop-color="#7367F0"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;
+                        align-items:center;justify-content:center">
+              <div style="font-size:38px;font-weight:700;color:#fff;letter-spacing:-1.4px;
+                          line-height:1;font-variant-numeric:tabular-nums">${icp}%</div>
+              <div class="icp-cel-gain" style="animation:icp-fade-up 0.5s ease 1.1s both">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 19V5M5 12l7-7 7 7"/>
+                </svg>
+                +${catGain}
+              </div>
+            </div>
+          </div>
+
+          <!-- Chip -->
+          <div class="icp-cel-chip" style="animation:icp-fade-up 0.5s ease 0.25s both">
+            <span style="width:6px;height:6px;border-radius:99px;background:#9990ff"></span>
+            Categoria completa
+          </div>
+
+          <!-- Título -->
+          <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.7px;color:#fff;
+                     line-height:1.15;margin-bottom:8px;animation:icp-fade-up 0.5s ease 0.4s both">
+            ${cat?.name || catId} completa
+          </h2>
+          <p style="font-size:13.5px;color:rgba(255,255,255,0.6);line-height:1.5;
+                    max-width:340px;margin:0 auto 22px;animation:icp-fade-up 0.5s ease 0.55s both">
+            O Haile te conhece melhor agora. Suas respostas foram salvas.
+          </p>
+
+          <!-- Level card -->
+          <div class="icp-cel-level" style="animation:icp-fade-up 0.5s ease 0.7s both">
+            <div class="icp-cel-level-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                   stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/>
+              </svg>
+            </div>
+            <div style="flex:1;min-width:0;text-align:left">
+              <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,0.55);
+                          letter-spacing:.08em;text-transform:uppercase">Nível atual</div>
+              <div style="font-size:17px;font-weight:700;color:#fff;margin-top:1px;
+                          letter-spacing:-0.3px">Você é ${level.name}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;
+                        color:rgba(255,255,255,0.5);font-size:9px;font-weight:600">
+              <div style="display:flex;gap:3px">${levelBars}</div>
+              <span>${levelIdx + 1} de 5</span>
+            </div>
+          </div>
+
+          <!-- Botões -->
+          <div style="display:flex;flex-direction:column;gap:8px;
+                      animation:icp-fade-up 0.5s ease 0.85s both">
+            <button id="icpCelViewProfile" class="icp-cel-cta-primary">
+              Ver meu perfil
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <button id="icpCelClose" class="icp-cel-cta-ghost">Fechar</button>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) _closeICPModal(); });
+    document.getElementById('icpClose').addEventListener('click', _closeICPModal);
+    document.getElementById('icpCelClose').addEventListener('click', _closeICPModal);
+    document.getElementById('icpCelViewProfile').addEventListener('click', () => {
+      _closeICPModal();
+      // Navega para aba Perfil ICP (dentro de Configurações)
+      setTimeout(() => {
+        const cfgBtn = document.querySelector('[data-page="config"]');
+        if (cfgBtn) cfgBtn.click();
+        setTimeout(() => {
+          const icpTab = document.querySelector('[data-cfg-tab="icp"]');
+          if (icpTab) icpTab.click();
+        }, 120);
+      }, 250);
+    });
   }
 
   function _closeICPModal() {
