@@ -566,6 +566,26 @@ body { background: var(--bg-base); color: var(--text-1); }
 .btn-coach:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(6, 182, 212, 0.50); transform: translateY(-1px); }
 .btn-coach:active { transform: translateY(1px); }
 
+/* Variante topbar — botão Coach persistente no header, em todas as telas internas */
+.btn-coach--topbar {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: linear-gradient(135deg, #2dcfc0 0%, #1ba89a 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(45, 207, 192, 0.35);
+  gap: 6px;
+}
+.btn-coach--topbar:hover { filter: brightness(1.1); box-shadow: 0 6px 18px rgba(45, 207, 192, 0.45); }
+.btn-coach--topbar .btn-coach__icon { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .btn-coach--topbar { padding: 8px 10px; }
+  .btn-coach--topbar .btn-coach__label { display: none; }
+}
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;

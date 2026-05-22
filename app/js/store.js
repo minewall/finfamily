@@ -2584,6 +2584,22 @@ const Store = (function () {
     _syncEditableConfig(); persist();
   }
 
+  function moveSubcategoria(fromCat, subName, toCat) {
+    if (fromCat === toCat) return;
+    const fromArr = _data.subcategorias[fromCat] || [];
+    const idx = fromArr.indexOf(subName);
+    if (idx < 0) throw new Error('Subcategoria não encontrada');
+    fromArr.splice(idx, 1);
+    if (!_data.subcategorias[toCat]) _data.subcategorias[toCat] = [];
+    if (!_data.subcategorias[toCat].includes(subName)) _data.subcategorias[toCat].push(subName);
+    // Atualiza lançamentos existentes
+    _data.despesas.forEach(d => { if (d.category === fromCat && d.sub === subName) d.category = toCat; });
+    // Registra o movimento para rastreabilidade
+    if (!_data.settings.subcatMoves) _data.settings.subcatMoves = {};
+    _data.settings.subcatMoves[`${fromCat}.${subName}`] = { to: toCat, ts: Date.now() };
+    _syncEditableConfig(); persist();
+  }
+
   // ── RATEIO (split de despesas) ───────────────────────────────────
   // Cada despesa pode ter d.split = [{person, share, valor}], opcional.
   // share é fração de 0..1; valor é montante absoluto. Manter consistente.
@@ -3353,6 +3369,90 @@ const Store = (function () {
     _data.contas     = [];
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // PAINEL DA FAMÍLIA — helpers explícitos (Fase A v=117)
+  // Wrappers convenientes sobre as funções já existentes
+  // (computeContribuicoesByPerson / despesasPorPessoa / receitasByMonth)
+  // ═══════════════════════════════════════════════════════════════
+
+  function getReceitasByPessoa(year, month) {
+    // Retorna { [pessoa]: { total, items: [...] } } filtrado por ano
+    // (e mês opcional, 1-12). Pessoa é r.person ou 'Família' como fallback.
+    const all = (_data.receitas || []).filter(r => {
+      if (r.year !== year) return false;
+      if (month != null && r.month !== month) return false;
+      return true;
+    });
+    const acc = {};
+    all.forEach(r => {
+      const p = r.person || 'Família';
+      if (!acc[p]) acc[p] = { total: 0, items: [] };
+      acc[p].total += Number(r.amount) || 0;
+      acc[p].items.push(r);
+    });
+    return acc;
+  }
+
+  function getDespesasByPessoa(year, month) {
+    // Retorna { [pessoa]: { total, items: [...] } } considerando splits.
+    // Para despesa com split, cada pessoa entra com sua fatia.
+    // Se a despesa não tiver split, vai 100% pra d.person (ou 'Família').
+    const all = (_data.despesas || []).filter(d => {
+      if (d.year !== year) return false;
+      if (month != null && d.month !== month) return false;
+      return true;
+    });
+    const acc = {};
+    all.forEach(d => {
+      const contrib = computeContribuicoesByPerson(d);
+      const hasSplit = Array.isArray(d.split) && d.split.length;
+      if (!hasSplit) {
+        // computeContribuicoesByPerson devolve { Família: total } sem split;
+        // queremos atribuir ao d.person se houver um titular explícito.
+        const p = d.person || 'Família';
+        if (!acc[p]) acc[p] = { total: 0, items: [] };
+        acc[p].total += Number(d.amount) || 0;
+        acc[p].items.push(d);
+        return;
+      }
+      Object.entries(contrib).forEach(([p, v]) => {
+        if (!acc[p]) acc[p] = { total: 0, items: [] };
+        acc[p].total += v;
+        // O mesmo item entra na lista de cada pessoa que rateia
+        acc[p].items.push(d);
+      });
+    });
+    return acc;
+  }
+
+  function getMetasFamilia() {
+    // Heurística: metas explicitamente marcadas (tipo/escopo === 'familia'),
+    // ou cujo label menciona família/viagem/casa/imóvel/carro.
+    const metas = (_data.metas || []).filter(m => m.active !== false);
+    return metas.filter(m => {
+      if (m.tipo === 'familia' || m.escopo === 'familia') return true;
+      const lbl = String(m.label || '').toLowerCase();
+      return /famí|familia|viagem|casa|carro|imóvel|imovel/.test(lbl);
+    });
+  }
+
+  function calcContribuicaoMembro(pessoa, year, month) {
+    if (!pessoa) return { receita: 0, despesa: 0, contribuicaoLiquida: 0, pctReceita: 0, pctDespesa: 0 };
+    const recAll = getReceitasByPessoa(year, month);
+    const despAll = getDespesasByPessoa(year, month);
+    const receita = (recAll[pessoa]?.total) || 0;
+    const despesa = (despAll[pessoa]?.total) || 0;
+    const totalRec = Object.values(recAll).reduce((s, x) => s + x.total, 0);
+    const totalDesp = Object.values(despAll).reduce((s, x) => s + x.total, 0);
+    return {
+      receita,
+      despesa,
+      contribuicaoLiquida: receita - despesa,
+      pctReceita: totalRec > 0 ? (receita / totalRec) * 100 : 0,
+      pctDespesa: totalDesp > 0 ? (despesa / totalDesp) * 100 : 0,
+    };
+  }
+
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
@@ -3396,14 +3496,16 @@ const Store = (function () {
     getProximasParcelas,
     getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,
     addCategoria, updateCategoria, deleteCategoria, getCategoriaUsage,
-    addSubcategoria, renameSubcategoria, deleteSubcategoria,
+    addSubcategoria, renameSubcategoria, deleteSubcategoria, moveSubcategoria,
     addPessoa, renamePessoa, deletePessoa,
     computeContribuicoesByPerson, despesasPorPessoa, despesasPorPessoaRange,
+    getReceitasByPessoa, getDespesasByPessoa, getMetasFamilia, calcContribuicaoMembro,
     getProfile, setProfile, getCredHash, setCredHash,
     getOnboarding, getOnboardingSteps, completeOnboarding, resetOnboarding, pauseOnboarding,
     createOnboardingGoal, getOnboardingGoal, markOnboardingStep,
     addMeta,
     applyMemberFilter,
     syncFromCloud,
+    persist,
   };
 })();

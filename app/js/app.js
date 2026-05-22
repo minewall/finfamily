@@ -740,6 +740,61 @@ const App = (function () {
     };
   }
 
+  // ─── Pergunta do dia (ICP widget no Dashboard) ──────────────────
+  // Sprint 7 do ICP: 1 pergunta aleatória estável durante o dia,
+  // snooze (Pular hoje) e link direto pra responder via openICPModal.
+  function _icpDailyPick() {
+    try {
+      const data = Store.get();
+      const today = new Date().toISOString().slice(0, 10);
+      const settings = data.settings || {};
+      const st = settings.dailyICP || {};
+      // Snoozed hoje? não mostra.
+      if (st.lastSnoozedDate === today) return null;
+      // ICP completo? não mostra.
+      const cats = (typeof Store.getContextoCategories === 'function')
+        ? Store.getContextoCategories() : [];
+      const pending = [];
+      cats.forEach(cat => {
+        if (!ICP_QUESTIONS[cat.id]) return;
+        const answered = (typeof Store.getContextoAnsweredIds === 'function')
+          ? Store.getContextoAnsweredIds(cat.id) : [];
+        ICP_QUESTIONS[cat.id].forEach(q => {
+          if (!answered.includes(q.id)) pending.push({ catId: cat.id, cat, q });
+        });
+      });
+      if (!pending.length) return null;
+      // Reaproveita a escolha do dia (estável durante o mesmo dia).
+      if (st.dailyPick && st.dailyPick.date === today) {
+        const same = pending.find(p =>
+          p.catId === st.dailyPick.catId && p.q.id === st.dailyPick.perguntaId);
+        if (same) return same;
+      }
+      // Pick determinístico por data (hash simples) — não usa Math.random pra
+      // evitar trocar a pergunta ao re-renderizar dashboard durante o dia.
+      const seed = today.split('-').reduce((s, n) => s + parseInt(n, 10), 0);
+      const pick = pending[seed % pending.length];
+      // Persiste a escolha
+      if (!data.settings) data.settings = {};
+      if (!data.settings.dailyICP) data.settings.dailyICP = {};
+      data.settings.dailyICP.dailyPick = {
+        date: today, catId: pick.catId, perguntaId: pick.q.id,
+      };
+      Store.persist?.();
+      return pick;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function _icpDailySnooze() {
+    const data = Store.get();
+    if (!data.settings) data.settings = {};
+    if (!data.settings.dailyICP) data.settings.dailyICP = {};
+    data.settings.dailyICP.lastSnoozedDate = new Date().toISOString().slice(0, 10);
+    Store.persist?.();
+  }
+
   function renderDashboard(container) {
     const month = getMonth(), year = getYear();
     const data  = Store.get();
@@ -1120,6 +1175,31 @@ ${(() => {
   <button class="coach-inline-cta" id="btnCoachInlineVer">Ver análise →</button>
 </div>
 
+${(() => {
+  const pick = _icpDailyPick();
+  if (!pick) return '';
+  const { catId, cat, q } = pick;
+  return `
+<div class="dash-icp-daily mb-6" style="position:relative;border-radius:16px;background:linear-gradient(135deg,${cat.color}1a 0%,${cat.color}08 50%,var(--bg-card) 100%);border:1px solid ${cat.color}22;padding:18px 20px;overflow:hidden">
+  <div style="position:absolute;top:0;right:0;width:160px;height:100%;background:radial-gradient(circle at 80% 50%,${cat.color}26 0%,transparent 70%);pointer-events:none"></div>
+  <div style="position:relative;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+    <div style="width:38px;height:38px;border-radius:10px;background:${cat.color}1f;color:${cat.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      ${icon(cat.icon || 'sparkles', { size: 18 })}
+    </div>
+    <div style="flex:1;min-width:240px">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:${cat.color};text-transform:uppercase;margin-bottom:4px">Pergunta do dia · ${cat.name}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-1);line-height:1.35">${q.pergunta}</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;align-items:center">
+      <button class="btn-secondary" data-icp-daily-snooze style="padding:7px 12px;font-size:12px">Pular hoje</button>
+      <button class="btn-primary" data-icp-daily-answer="${catId}" style="padding:7px 14px;font-size:12px;background:${cat.color};border-color:${cat.color}">Responder
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>`;
+})()}
+
 <!-- Charts grid 2 col: Distribuição + Receitas por Pessoa -->
 <div class="dash-section-tag mb-2">DISTRIBUIÇÃO · ${Utils.monthsFull[month-1].toUpperCase()} ${year}</div>
 <div class="chart-grid mb-6">
@@ -1280,6 +1360,21 @@ ${renderPrevisaoCaixa(saldo)}
         document.getElementById('coachToggleBtn')?.click();
       });
 
+      // ── ICP daily widget — "Responder" abre o modal da categoria,
+      // "Pular hoje" snooza e re-renderiza o dashboard.
+      document.querySelectorAll('[data-icp-daily-answer]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const catId = btn.getAttribute('data-icp-daily-answer');
+          if (typeof openICPModal === 'function') openICPModal(catId);
+        });
+      });
+      document.querySelectorAll('[data-icp-daily-snooze]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          _icpDailySnooze();
+          renderDashboard(container);
+        });
+      });
+
       // Continuar / Começar onboarding
       document.getElementById('btnContinuarOnboarding')?.addEventListener('click', () => {
         if (typeof showOnboarding === 'function') showOnboarding();
@@ -1301,78 +1396,6 @@ ${renderPrevisaoCaixa(saldo)}
     });
   }
 
-  function initKpiDnd(container) {
-    // V1: posições fixas — drag-and-drop desativado
-    return;
-
-    // Drag state
-    let dragging = null;
-
-    grid.querySelectorAll('.kpi-card').forEach(card => {
-      card.setAttribute('draggable', 'true');
-
-      card.addEventListener('dragstart', e => {
-        dragging = card;
-        requestAnimationFrame(() => card.classList.add('kpi-dragging'));
-        e.dataTransfer.effectAllowed = 'move';
-      });
-
-      card.addEventListener('dragend', () => {
-        card.classList.remove('kpi-dragging');
-        grid.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('kpi-drop-over'));
-        // Save new order
-        const order = [...grid.querySelectorAll('[data-kpi-id]')].map(c => c.dataset.kpiId);
-        Store.updateSettings({ kpiOrder: order });
-        dragging = null;
-      });
-
-      card.addEventListener('dragover', e => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (!dragging || dragging === card) return;
-        grid.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('kpi-drop-over'));
-        card.classList.add('kpi-drop-over');
-        // Determine insertion point
-        const rect = card.getBoundingClientRect();
-        const midX = rect.left + rect.width / 2;
-        const after = e.clientX > midX;
-        if (after) {
-          card.after(dragging);
-        } else {
-          card.before(dragging);
-        }
-      });
-
-      card.addEventListener('dragleave', () => {
-        card.classList.remove('kpi-drop-over');
-      });
-
-      card.addEventListener('drop', e => {
-        e.preventDefault();
-        card.classList.remove('kpi-drop-over');
-      });
-    });
-  }
-
-  function renderPersonReceitas(month, year) {
-    const recs = Store.receitasByMonth(month, year);
-    const byPerson = {};
-    recs.forEach(r => { byPerson[r.person] = (byPerson[r.person] || 0) + r.amount; });
-    const total = Object.values(byPerson).reduce((a,b) => a+b, 0) || 1;
-    return Object.entries(byPerson).map(([p, v]) => `
-      <div class="stat-row">
-        <div style="display:flex;align-items:center;gap:8px">
-          ${Utils.personAvatarHtml(p, { size: 28 })}
-          <span class="stat-row-label">${p}</span>
-        </div>
-        <div>
-          <div class="stat-row-value green">${Utils.currency(v)}</div>
-          <div style="font-size:11px;color:var(--text-3);text-align:right">${((v/total)*100).toFixed(0)}%</div>
-        </div>
-      </div>
-    `).join('') || '<div class="empty-state" style="padding:20px"><p>Sem receitas neste mês</p></div>';
-  }
-
   function renderProximasParcelas() {
     const rows = Store.getProximasParcelas(30).slice(0, 6);
     if (!rows.length) return '<div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Sem parcelas previstas para os próximos 30 dias.<br><a href="#contratos" style="color:var(--accent);font-size:12px">Cadastrar contratos recorrentes →</a></p></div>';
@@ -1392,39 +1415,6 @@ ${renderPrevisaoCaixa(saldo)}
         <div class="stat-row-value ${isRec?'green':'red'}">${Utils.currency(p.amount)}</div>
       </div>`;
     }).join('');
-  }
-
-  function renderPersonDespesas(month, year) {
-    const map = Store.despesasPorPessoa(month, year);
-    const total = Object.values(map).reduce((a,b) => a+b, 0) || 1;
-    const entries = Object.entries(map).sort((a,b) => b[1]-a[1]);
-    if (!entries.length) return '<div class="empty-state" style="padding:20px"><p>Sem despesas neste mês</p></div>';
-    return entries.map(([p, v]) => `
-      <div class="stat-row">
-        <div style="display:flex;align-items:center;gap:8px">
-          ${Utils.personAvatarHtml(p, { size: 28 })}
-          <span class="stat-row-label">${p}</span>
-        </div>
-        <div>
-          <div class="stat-row-value red">${Utils.currency(v)}</div>
-          <div style="font-size:11px;color:var(--text-3);text-align:right">${((v/total)*100).toFixed(0)}%</div>
-        </div>
-      </div>`).join('');
-  }
-
-  function renderRecentTransactions(month, year) {
-    const rows = [...Store.despesasByMonth(month, year)]
-      .sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
-    if (!rows.length) return '<div class="empty-state" style="padding:20px"><p>Sem lançamentos</p></div>';
-    return rows.map(d => `
-      <div class="stat-row">
-        <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text-1)">${d.desc}</div>
-          <div style="font-size:11px;color:var(--text-3)">${d.sub} · ${d.date.slice(5)}</div>
-        </div>
-        <div class="stat-row-value red">${Utils.currency(d.amount)}</div>
-      </div>
-    `).join('');
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1968,6 +1958,70 @@ ${filtered.map(r => {
   </div>
 </div>
 
+${(() => {
+  const _TREC_COLOR = {salario:'#10b981',contrato:'#2dcfc0',pensao:'#6b5ef5',emprestimo:'#f59e0b',outros:'#64748b'};
+  const _TREC_LABEL = {salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'};
+  const recsHero = Store.get().receitas.filter(r => r.year === year && r.month === month);
+  const _byType = {}, _byPerson = {};
+  recsHero.forEach(r => {
+    const t = r.type || 'outros';
+    _byType[t]    = (_byType[t]    || 0) + r.amount;
+    _byPerson[r.person] = (_byPerson[r.person] || 0) + r.amount;
+  });
+  const _dir   = recChg >= 5 ? 'up' : recChg <= -5 ? 'down' : 'flat';
+  const _dClr  = _dir === 'up' ? '#10b981' : _dir === 'down' ? '#ef4444' : '#64748b';
+  const _dIco  = _dir === 'up' ? '↑'       : _dir === 'down' ? '↓'       : '→';
+  const _barSegs = Object.entries(_byType).filter(([,v]) => v > 0).map(([t, v]) => {
+    const pct = recMesAtual > 0 ? (v / recMesAtual * 100) : 0;
+    return `<div style="width:${pct.toFixed(1)}%;background:${_TREC_COLOR[t]||'#64748b'};height:100%;border-radius:2px;transition:width .3s" title="${_TREC_LABEL[t]||t}: ${Utils.currency(v)}"></div>`;
+  }).join('');
+  const _legend = Object.entries(_byType).filter(([,v]) => v > 0).map(([t, v]) => `
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
+      <span style="width:8px;height:8px;border-radius:50%;background:${_TREC_COLOR[t]||'#64748b'};flex-shrink:0"></span>
+      <span>${_TREC_LABEL[t]||t}</span>
+      <span style="color:var(--text-2);font-weight:600;font-family:var(--mono);margin-left:2px">${Utils.currency(v)}</span>
+    </div>`).join('');
+  const _persons = Object.entries(_byPerson).sort((a, b) => b[1] - a[1]).map(([p, v]) => {
+    const pct = recMesAtual > 0 ? (v / recMesAtual * 100) : 0;
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05)">
+      ${Utils.personAvatarHtml(p, {size:32, fontSize:13})}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--text-2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p}</span>
+          <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:#10b981;white-space:nowrap">${Utils.currency(v)}</span>
+        </div>
+        <div style="height:3px;background:rgba(255,255,255,.07);border-radius:2px;display:flex">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:#10b981;border-radius:2px"></div>
+        </div>
+      </div>
+      <span style="font-size:11px;color:var(--text-3);width:32px;text-align:right;flex-shrink:0">${pct.toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+  return `
+<div style="position:relative;border-radius:18px;background:linear-gradient(135deg,#061812 0%,#0a1f14 40%,#1a1e2e 100%);margin-bottom:16px">
+  <div style="position:absolute;inset:0;border-radius:18px;background:radial-gradient(ellipse at 15% 45%,rgba(16,185,129,.20) 0%,transparent 62%);pointer-events:none"></div>
+  <div style="position:relative;padding:24px">
+    <div style="margin-bottom:${recMesAtual > 0 ? '20px' : '0'}">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.09em;color:rgba(16,185,129,.65);text-transform:uppercase;margin-bottom:6px">${Utils.monthsFull[month-1]} ${year}</div>
+      <div style="font-size:44px;font-weight:800;font-family:var(--mono);color:#10b981;line-height:1;letter-spacing:-1.5px">${Utils.currency(recMesAtual)}</div>
+      ${recMesAnt > 0
+        ? `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;font-size:13px;color:${_dClr};font-weight:600">
+             <span>${_dIco}</span><span>${Math.abs(recChg).toFixed(1)}% vs mês anterior</span>
+           </div>`
+        : `<div style="margin-top:8px;font-size:12px;color:var(--text-4)">Primeiro mês registrado</div>`}
+    </div>
+    ${recMesAtual > 0 ? `
+    <div style="margin-bottom:10px">
+      <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.06);display:flex;gap:2px">${_barSegs}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px 14px${_persons ? ';margin-bottom:4px' : ''}">${_legend}</div>
+    ${_persons ? `<div>${_persons}</div>` : ''}
+    ` : `<div style="color:var(--text-4);font-size:13px;margin-top:4px">Nenhuma receita registrada neste mês.</div>`}
+  </div>
+</div>`;
+})()}
+
 ${coachInlineHTML({
   contexto: `Receitas · ${Utils.monthsFull[month-1]}`,
   titulo: _recCoach.titulo,
@@ -2295,6 +2349,83 @@ ${(() => {
     </p>
   </div>
 </div>
+
+${(() => {
+  const despMesAtual = Store.get().despesas.filter(d => d.year === year && d.month === month).reduce((s,d) => s + d.amount, 0);
+  const _py = month > 1 ? year : year - 1;
+  const _pm = month > 1 ? month - 1 : 12;
+  const despMesAnt = Store.get().despesas.filter(d => d.year === _py && d.month === _pm).reduce((s,d) => s + d.amount, 0);
+  const despChg = despMesAnt > 0 ? ((despMesAtual - despMesAnt) / despMesAnt * 100) : 0;
+  // Para despesas: aumento = ruim (amber/red), queda = bom (green)
+  const _dir   = despChg <= -5 ? 'down' : despChg >= 5 ? 'up' : 'flat';
+  const _dClr  = _dir === 'down' ? '#10b981' : _dir === 'up' ? '#ef4444' : '#64748b';
+  const _dIco  = _dir === 'down' ? '↓'       : _dir === 'up' ? '↑'       : '→';
+  // breakdown por categoria (mês atual), top 5 + Outros
+  const _catH = {};
+  Store.get().despesas.filter(d => d.year === year && d.month === month).forEach(d => {
+    _catH[d.category] = (_catH[d.category] || 0) + d.amount;
+  });
+  const _catSortedH = Object.entries(_catH).sort((a,b) => b[1] - a[1]);
+  const _top5 = _catSortedH.slice(0, 5);
+  const _rest = _catSortedH.slice(5).reduce((s, [,v]) => s + v, 0);
+  const _segs = _top5.map(([c, v]) => ({c, v, color: (Store.CATEGORIES[c]||{}).color || '#7C6EF8', label: (Store.CATEGORIES[c]||{}).label || c}));
+  if (_rest > 0) _segs.push({c:'__rest', v:_rest, color:'#64748b', label:'Outras'});
+  // por pessoa (mês atual)
+  const _byPersonD = {};
+  Store.get().despesas.filter(d => d.year === year && d.month === month).forEach(d => {
+    _byPersonD[d.person] = (_byPersonD[d.person] || 0) + d.amount;
+  });
+  const _barSegs = _segs.filter(s => s.v > 0).map(s => {
+    const pct = despMesAtual > 0 ? (s.v / despMesAtual * 100) : 0;
+    return `<div style="width:${pct.toFixed(1)}%;background:${s.color};height:100%;border-radius:2px;transition:width .3s" title="${s.label}: ${Utils.currency(s.v)}"></div>`;
+  }).join('');
+  const _legend = _segs.filter(s => s.v > 0).map(s => `
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
+      <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
+      <span>${s.label}</span>
+      <span style="color:var(--text-2);font-weight:600;font-family:var(--mono);margin-left:2px">${Utils.currency(s.v)}</span>
+    </div>`).join('');
+  const _persons = Object.entries(_byPersonD).sort((a, b) => b[1] - a[1]).map(([p, v]) => {
+    const pct = despMesAtual > 0 ? (v / despMesAtual * 100) : 0;
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05)">
+      ${Utils.personAvatarHtml(p, {size:32, fontSize:13})}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--text-2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p}</span>
+          <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:#ef4444;white-space:nowrap">${Utils.currency(v)}</span>
+        </div>
+        <div style="height:3px;background:rgba(255,255,255,.07);border-radius:2px;display:flex">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:#ef4444;border-radius:2px"></div>
+        </div>
+      </div>
+      <span style="font-size:11px;color:var(--text-3);width:32px;text-align:right;flex-shrink:0">${pct.toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+  return `
+<div style="position:relative;border-radius:18px;background:linear-gradient(135deg,#1a0a0a 0%,#1f1208 40%,#1a1e2e 100%);margin-bottom:16px">
+  <div style="position:absolute;inset:0;border-radius:18px;background:radial-gradient(ellipse at 15% 45%,rgba(239,68,68,.18) 0%,transparent 62%);pointer-events:none"></div>
+  <div style="position:relative;padding:24px">
+    <div style="margin-bottom:${despMesAtual > 0 ? '20px' : '0'}">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.09em;color:rgba(239,68,68,.65);text-transform:uppercase;margin-bottom:6px">${Utils.monthsFull[month-1]} ${year}</div>
+      <div style="font-size:44px;font-weight:800;font-family:var(--mono);color:#ef4444;line-height:1;letter-spacing:-1.5px">${Utils.currency(despMesAtual)}</div>
+      ${despMesAnt > 0
+        ? `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;font-size:13px;color:${_dClr};font-weight:600">
+             <span>${_dIco}</span><span>${Math.abs(despChg).toFixed(1)}% vs mês anterior</span>
+           </div>`
+        : `<div style="margin-top:8px;font-size:12px;color:var(--text-4)">Primeiro mês registrado</div>`}
+    </div>
+    ${despMesAtual > 0 ? `
+    <div style="margin-bottom:10px">
+      <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.06);display:flex;gap:2px">${_barSegs}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px 14px${_persons ? ';margin-bottom:4px' : ''}">${_legend}</div>
+    ${_persons ? `<div>${_persons}</div>` : ''}
+    ` : `<div style="color:var(--text-4);font-size:13px;margin-top:4px">Nenhuma despesa registrada neste mês.</div>`}
+  </div>
+</div>`;
+})()}
+
 ${isMember ? `
 <div class="card mb-4" style="border-color:var(--amber)30;background:var(--amber)08">
   <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber)">
@@ -2986,10 +3117,10 @@ ${despesas.length === 0 ? coachEmptyHTML({
     const metas = Store.get().metas.filter(m => m.active !== false);
 
     const TYPE_META = {
-      limite_desp: { icon: '🛑', label: 'Limite de Despesa' },
-      min_receita: { icon: '💰', label: 'Receita Mínima' },
-      reserva:     { icon: '🏦', label: 'Reserva' },
-      objetivo:    { icon: '🎯', label: 'Objetivo' },
+      limite_desp: { icon: icon('shield-alert', {size:16}), label: 'Limite de Despesa' },
+      min_receita: { icon: icon('wallet',        {size:16}), label: 'Receita Mínima' },
+      reserva:     { icon: icon('landmark',      {size:16}), label: 'Reserva' },
+      objetivo:    { icon: icon('target',        {size:16}), label: 'Objetivo' },
     };
     const STATUS_CLASS = { ok: 'green', warn: 'amber', over: 'red', neutral: 'accent' };
     const STATUS_BADGE = { ok: '✓ No alvo', warn: '⚠ Atenção', over: '✗ Crítico', neutral: '○ Sem dados' };
@@ -3028,6 +3159,33 @@ ${despesas.length === 0 ? coachEmptyHTML({
         texto: 'Adicione limites de despesa, metas de receita, reservas e objetivos para que o Coach acompanhe sua evolução automaticamente.' };
     })();
 
+    // ── AllocationBanner: Poder de Escolha → metas ────────────────
+    const poder = Store.calcPoderDeEscolha(month, year);
+    const poderVal = Math.max(0, poder.poderDeEscolha);
+    const metaAporteTotal = (() => {
+      const today = new Date();
+      return objetivos.reduce((sum, m) => {
+        const perf = Store.getMetaPerformance(m.id, year, month);
+        const falta = Math.max(0, perf.target - perf.current);
+        if (!falta) return sum;
+        if (m.deadline) {
+          const dl = new Date(m.deadline + 'T12:00:00');
+          const mesesRestantes = Math.max(1, (dl.getFullYear() - today.getFullYear()) * 12 + (dl.getMonth() - today.getMonth()));
+          return sum + falta / mesesRestantes;
+        }
+        return sum + falta / 24; // sem prazo: diluir em 2 anos
+      }, 0);
+    })();
+    const disponivel = Math.max(0, poderVal - metaAporteTotal);
+    const pctMetas   = poderVal > 0 ? Math.min(1, metaAporteTotal / poderVal) : 0;
+    const pctDisp    = poderVal > 0 ? Math.max(0, disponivel / poderVal) : 0;
+
+    // ── SpotlightCard: objetivo mais próximo de concluir ───────────
+    const spotlightEntry = [...objetivos]
+      .map(m => ({ m, p: Store.getMetaPerformance(m.id, year, month) }))
+      .filter(({p}) => p.pct > 0 && p.pct < 1)
+      .sort((a, b) => b.p.pct - a.p.pct)[0] || null;
+
     container.innerHTML = `
 <div class="page-head mb-4">
   <div>
@@ -3053,8 +3211,38 @@ ${despesas.length === 0 ? coachEmptyHTML({
     </div>
     <div class="coach-inline-texto">${metasInsight.texto}</div>
   </div>
-  <button class="coach-inline-cta" id="btnMetasCoachVer">Ver análise →</button>
+  <div style="display:flex;gap:8px;flex-shrink:0">
+    <button class="coach-inline-cta" id="btnMetasCoachVer">Ver análise →</button>
+    <button class="coach-inline-cta" id="btnMetasAlocar" style="background:var(--accent)1a;color:var(--accent)">Alocar →</button>
+  </div>
 </div>
+
+${poderVal > 0 && objetivos.length > 0 ? `
+<div class="card mb-6" style="padding:16px 20px">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);margin-bottom:12px">ALOCAÇÃO DO PODER DE ESCOLHA</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
+    <div>
+      <div style="font-size:11px;color:var(--text-4)">Poder de Escolha</div>
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:var(--accent)">${Utils.currency(poderVal)}</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text-4)">Necessário p/ metas</div>
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:${metaAporteTotal > poderVal ? 'var(--red)' : 'var(--amber)'}">${Utils.currency(metaAporteTotal)}</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text-4)">Disponível</div>
+      <div style="font-size:20px;font-weight:800;font-family:var(--mono);color:var(--green)">${Utils.currency(disponivel)}</div>
+    </div>
+  </div>
+  <div style="height:8px;border-radius:4px;background:var(--bg-elevated);overflow:hidden;display:flex">
+    <div style="width:${(pctMetas*100).toFixed(1)}%;background:var(--amber);transition:width .4s"></div>
+    <div style="width:${(pctDisp*100).toFixed(1)}%;background:var(--green);transition:width .4s"></div>
+  </div>
+  <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;color:var(--text-4)">
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--amber);display:inline-block"></span>Em metas (${(pctMetas*100).toFixed(0)}%)</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--green);display:inline-block"></span>Disponível (${(pctDisp*100).toFixed(0)}%)</span>
+  </div>
+</div>` : ''}
 
 ${indicadores.length === 0 ? '' : `
 <div class="section-label mb-3" style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)">Indicadores</div>
@@ -3142,6 +3330,39 @@ ${indicadores.length === 0 ? '' : `
 
 ${objetivos.length === 0 ? '' : `
 <div class="dash-section-tag mb-2">OBJETIVOS</div>
+
+${spotlightEntry ? (() => {
+  const { m, p } = spotlightEntry;
+  const pctNum = Math.round(p.pct * 100);
+  const gaugeColor = p.pct > 0.75 ? 'var(--green)' : p.pct > 0.4 ? 'var(--accent)' : 'var(--amber)';
+  const deadlineStr = m.deadline ? new Date(m.deadline + 'T12:00:00').toLocaleDateString('pt-BR') : null;
+  const falta = Math.max(0, p.target - p.current);
+  return `
+<div class="card mb-4" data-edit-meta="${m.id}" style="cursor:pointer;position:relative;overflow:hidden;padding:20px 24px;border:1px solid ${gaugeColor}33">
+  <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:${gaugeColor};opacity:.04;pointer-events:none"></div>
+  <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${gaugeColor};margin-bottom:12px">
+    ${icon('star', {size:12})} MAIS PRÓXIMO DE CONCLUIR
+  </div>
+  <div style="display:flex;align-items:center;gap:24px">
+    <div style="position:relative;flex-shrink:0;width:96px;height:96px">
+      ${SvgCharts.gauge(pctNum, { size: 96, color: gaugeColor, thickness: 10 })}
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:${gaugeColor};line-height:1">${pctNum}%</div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.label}</div>
+      <div style="font-size:13px;color:var(--text-3);margin-bottom:10px">${Utils.currency(p.current)} <span style="color:var(--text-4)">de</span> ${Utils.currency(p.target)}${deadlineStr ? ` <span style="color:var(--text-4)">· prazo ${deadlineStr}</span>` : ''}</div>
+      <div style="font-size:12px;color:${gaugeColor};font-weight:600">Faltam ${Utils.currency(falta)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+      <button class="btn-xs" data-action="ver-lanc-meta" data-id="${m.id}" style="white-space:nowrap">Ver lançamentos</button>
+      <button class="btn-xs" style="background:var(--teal-coach-dim,#0b2828);color:var(--teal-coach,#2dcfc0);border-color:var(--teal-coach,#2dcfc0);white-space:nowrap" id="btnSpotlightCoach">Consultar Coach</button>
+    </div>
+  </div>
+</div>`;
+})() : ''}
+
 <div class="metas-objetivos-grid mb-6">
   ${objetivos.map(m => {
     const perf = Store.getMetaPerformance(m.id, year, month);
@@ -3220,6 +3441,8 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 
     document.getElementById('btnAddMeta')?.addEventListener('click', () => openMetaModal(null, container));
     document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => document.getElementById('coachToggleBtn')?.click());
+    document.getElementById('btnMetasAlocar')?.addEventListener('click', () => document.getElementById('coachToggleBtn')?.click());
+    document.getElementById('btnSpotlightCoach')?.addEventListener('click', e => { e.stopPropagation(); document.getElementById('coachToggleBtn')?.click(); });
 
     container.querySelectorAll('[data-edit-meta]').forEach(card => {
       card.addEventListener('click', e => {
@@ -3608,10 +3831,13 @@ ${contratos.length === 0 ? `
           };
           const tc = TIPO_CONTRATO_CFG[c.tipoContrato || 'outro'];
           const dotColor = cat.color || (isRec ? 'var(--green)' : 'var(--accent)');
+          // LLP tipo (Minewall) — só faz sentido em despesas
+          const llpTipo = !isRec ? Store.getTipoById(Store.getCatTipo(c.category)) : null;
           return `<tr class="row-clickable" data-action="edit-contrato" data-id="${c.id}">
             <td>
               <span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span>
               <div style="margin-top:4px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:5px;background:${tc.bg};color:${tc.color}">${icon(tc.icon, { size: 10 })} ${tc.label}</span></div>
+              ${llpTipo ? `<div style="margin-top:4px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:5px;background:${llpTipo.color}1a;color:${llpTipo.color};border:1px solid ${llpTipo.color}33" title="${llpTipo.desc||''}"><span style="width:6px;height:6px;border-radius:50%;background:${llpTipo.color};display:inline-block"></span>${llpTipo.label}</span></div>` : ''}
             </td>
             <td>
               <div style="display:flex;align-items:center;gap:8px">
@@ -3625,8 +3851,14 @@ ${contratos.length === 0 ? `
             <td class="num fw-700" style="font-family:var(--mono);color:${isRec?'var(--green)':'var(--accent)'}">${Utils.currency(perf.valorCumprido)}</td>
             <td class="num" style="font-family:var(--mono);color:var(--text-3)">${Utils.currency(perf.valorTotal)}</td>
             <td>
-              <div style="font-size:11px;color:var(--text-3);margin-bottom:3px">${perf.cumpridas}/${perf.totalParcelas} · ${pctW}%</div>
-              <div style="display:flex;gap:1px;height:7px;overflow:hidden;max-width:180px;border-radius:2px">${cells}</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--text-3);margin-bottom:4px;max-width:180px">
+                <span>${perf.cumpridas}/${perf.totalParcelas}</span>
+                <span style="font-weight:700;font-family:var(--mono);color:${pctW>=100?'var(--green)':pctW>=66?'var(--teal)':pctW>=33?'var(--amber)':'var(--text-2)'}">${pctW}%</span>
+              </div>
+              <div style="position:relative;height:5px;max-width:180px;border-radius:3px;background:rgba(255,255,255,.05);overflow:hidden;margin-bottom:4px">
+                <div style="height:100%;width:${pctW}%;border-radius:3px;background:linear-gradient(90deg,${pctW>=100?'#10b981,#22C55E':pctW>=66?'#2dcfc0,#10b981':pctW>=33?'#f59e0b,#2dcfc0':'#64748b,#94a3b8'});transition:width .4s"></div>
+              </div>
+              <div style="display:flex;gap:1px;height:5px;overflow:hidden;max-width:180px;border-radius:2px;opacity:.7" title="Parcelas individuais">${cells}</div>
             </td>
             <td><span class="badge" style="background:${STATUS_COLOR[status]}20;color:${STATUS_COLOR[status]}">${STATUS_LABEL[status]}</span></td>
             <td style="white-space:nowrap">
@@ -4064,6 +4296,12 @@ ${(() => {
   });
   const entradasMes = lancamentos.filter(l => l.tipo === 'receita').reduce((a, l) => a + (l.valor || 0), 0);
   const saidasMes  = lancamentos.filter(l => l.tipo === 'despesa').reduce((a, l) => a + (l.valor || 0), 0);
+  const bancarias = allContas.filter(c => (c.categoria || 'bancaria') === 'bancaria');
+  const digitais  = allContas.filter(c => c.categoria === 'digital');
+  const cripto    = allContas.filter(c => c.categoria === 'cripto');
+  const saldoBanc = bancarias.reduce((a, c) => a + (c.saldo || 0), 0);
+  const saldoDigit= digitais.reduce((a, c) => a + (c.saldo || 0), 0);
+  const saldoCripto= cripto.reduce((a, c) => a + (c.saldo || 0), 0);
   return `
 <div class="card mb-4" style="background:linear-gradient(135deg,var(--accent-dim) 0%,var(--bg-card) 100%);border:1.5px solid var(--accent)">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
@@ -4082,6 +4320,33 @@ ${(() => {
         <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--red)">-${Utils.currency(saidasMes)}</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="color:var(--accent)">${icon('landmark', {size:16})}</span>
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Bancárias</span>
+    </div>
+    <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--accent)">${Utils.currency(saldoBanc)}</div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:2px">${bancarias.length} conta${bancarias.length!==1?'s':''}</div>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="color:var(--green)">${icon('smartphone', {size:16})}</span>
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Digitais</span>
+    </div>
+    <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--green)">${Utils.currency(saldoDigit)}</div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:2px">${digitais.length} conta${digitais.length!==1?'s':''}</div>
+  </div>
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="color:var(--amber)">${icon('bitcoin', {size:16})}</span>
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Cripto</span>
+    </div>
+    <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--amber)">${Utils.currency(saldoCripto)}</div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:2px">${cripto.length} conta${cripto.length!==1?'s':''}</div>
   </div>
 </div>`;
 })()}
@@ -4243,7 +4508,7 @@ ${(() => {
         const restantes = p.qtd - parcPaga;
         const pct = parcPaga / p.qtd;
         return `
-        <div class="timeline-item">
+        <div class="timeline-item row-clickable" style="cursor:pointer" data-edit-parcela data-cc="${cc.id}" data-pid="${p.id}">
           <div class="timeline-dot" style="background:${cc.color==='gold'?'var(--amber)':'var(--accent)'}"></div>
           <div style="flex:1">
             <div class="timeline-desc">${p.desc}</div>
@@ -4252,9 +4517,7 @@ ${(() => {
           </div>
           <div class="timeline-value">${Utils.currency(p.parcela)}/mês</div>
           <div style="display:flex;gap:4px;margin-left:8px;align-items:center">
-            <button class="btn-icon-sm" data-action="edit-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Editar">${icon('pencil', {size:14})}</button>
             <button class="btn-icon-sm success" data-action="quitar-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Quitar">${icon('check', {size:14})}</button>
-            <button class="btn-icon-sm danger" data-action="del-parcela" data-cc="${cc.id}" data-pid="${p.id}" title="Excluir">${icon('trash-2', {size:14})}</button>
           </div>
         </div>`;
       }).join('') : '<div style="padding:8px 0;font-size:13px;color:var(--text-4)">Sem parcelamentos ativos</div>'}
@@ -4307,19 +4570,9 @@ ${(() => {
     });
 
     // ── Parcelamentos actions ────────────────────────────────────
-    container.querySelectorAll('[data-action="del-parcela"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cc = Store.get().cartoes.find(c => c.id === btn.dataset.cc);
-        if (!cc || !confirm(`Excluir parcelamento "${cc.parcelas.find(p=>p.id===btn.dataset.pid)?.desc}"?`)) return;
-        cc.parcelas = cc.parcelas.filter(p => p.id !== btn.dataset.pid);
-        Store.persist();
-        renderContas(container);
-        toast('Parcelamento excluído!', 'success');
-      });
-    });
-
     container.querySelectorAll('[data-action="quitar-parcela"]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
         const cc = Store.get().cartoes.find(c => c.id === btn.dataset.cc);
         if (!cc || !confirm('Quitar este parcelamento (marcar como concluído)?')) return;
         cc.parcelas = cc.parcelas.filter(p => p.id !== btn.dataset.pid);
@@ -4329,10 +4582,11 @@ ${(() => {
       });
     });
 
-    container.querySelectorAll('[data-action="edit-parcela"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const cc = Store.get().cartoes.find(c => c.id === btn.dataset.cc);
-        const p  = cc?.parcelas.find(p => p.id === btn.dataset.pid);
+    container.querySelectorAll('[data-edit-parcela]').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const cc = Store.get().cartoes.find(c => c.id === row.dataset.cc);
+        const p  = cc?.parcelas.find(p => p.id === row.dataset.pid);
         if (!p) return;
         const html = `<div class="form-grid">
           <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPDesc" value="${p.desc}"/></div>
@@ -4351,6 +4605,13 @@ ${(() => {
           Modal.close();
           renderContas(container);
           toast('Parcelamento atualizado!', 'success');
+        }, () => {
+          if (!confirm(`Excluir parcelamento "${p.desc}"?`)) return;
+          cc.parcelas = cc.parcelas.filter(x => x.id !== p.id);
+          Store.persist();
+          Modal.close();
+          renderContas(container);
+          toast('Parcelamento excluído!', 'success');
         });
       });
     });
@@ -5539,30 +5800,6 @@ ${passivos.length === 0
       });
     }, 50);
   }
-
-  // ── Modal: Recebimento Futuro (renamed to avoid conflict) ─────
-  function openFuturoModal2(onSaved) {
-    const thisYear = new Date().getFullYear();
-    const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fFDesc" placeholder="Ex: Rescisão, Dividendos…"/></div>
-      <div class="form-group"><label class="form-label">Valor Esperado (R$)</label><input class="form-input" id="fFValor" type="number" step="100"/></div>
-      <div class="form-group"><label class="form-label">Mês Previsto</label>
-        <select class="form-select" id="fFMes">${MESES_LABEL.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label class="form-label">Ano</label><input class="form-input" id="fFAno" type="number" value="${thisYear}" min="${thisYear}"/></div>
-    </div>`;
-    Modal.open('Recebimento Futuro Previsto', html, () => {
-      const descricao = document.getElementById('fFDesc').value.trim();
-      const valor     = parseFloat(document.getElementById('fFValor').value) || 0;
-      const mes       = parseInt(document.getElementById('fFMes').value);
-      const ano       = parseInt(document.getElementById('fFAno').value) || thisYear;
-      if (!descricao || !valor) return toast('Preencha descrição e valor', 'error');
-      Store.addRecebimentoFuturo({ descricao, valor, mes, ano, status: 'pendente' });
-      toast('Adicionado!', 'success');
-      Modal.close(); if (onSaved) onSaved();
-    });
-  }
-
 
   // ══════════════════════════════════════════════════════════════
   // PAGE: COMPARATIVO
@@ -7149,9 +7386,7 @@ ${fins.length === 0
       const progresso = f.prazo ? ((f.parcelasPagas||0) / f.prazo) * 100 : 0;
       const cor = TIPO_COLOR[f.type] || 'var(--accent)';
       return `
-    <div class="card" style="border-top:3px solid ${cor};position:relative">
-      <button class="btn-icon-sm danger" style="position:absolute;top:8px;right:8px" data-del-fin="${f.id}" title="Remover">${icon('trash-2', {size:14})}</button>
-      <button class="btn-icon-sm" style="position:absolute;top:8px;right:36px" data-edit-fin="${f.id}" title="Editar">${icon('pencil', {size:14})}</button>
+    <div class="card row-clickable" style="border-top:3px solid ${cor};position:relative;cursor:pointer" data-edit-fin="${f.id}">
       <div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${TIPO_LABEL[f.type] || f.type} · ${f.sistema === 'sac' ? 'SAC' : 'Price'}</div>
       <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${f.label}</div>
       ${f.banco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${f.banco}</div>` : '<div style="margin-bottom:10px"></div>'}
@@ -7283,22 +7518,24 @@ ${fins.length === 0
     }
 
     container.addEventListener('click', e => {
-      const editBtn = e.target.closest('[data-edit-fin]');
-      if (editBtn) { const f = fins.find(x => x.id === editBtn.dataset.editFin); if (f) openFinanciamentoModal(f, re); return; }
-      const delBtn = e.target.closest('[data-del-fin]');
-      if (delBtn) { if (!confirm('Remover este financiamento?')) return; Store.deleteFinanciamento(delBtn.dataset.delFin); re(); toast('Removido', 'success'); return; }
-      const pagBtn = e.target.closest('[data-pagar-fin]');
-      if (pagBtn) {
-        const f = fins.find(x => x.id === pagBtn.dataset.pagarFin);
-        if (f) { Store.updateFinanciamento(f.id, { parcelasPagas: Math.min((f.parcelasPagas||0)+1, f.prazo) }); re(); toast('Parcela contabilizada', 'success'); }
+      // Ignora clique se foi em um botão interno (ações de estado)
+      if (e.target.closest('button')) {
+        const pagBtn = e.target.closest('[data-pagar-fin]');
+        if (pagBtn) {
+          const f = fins.find(x => x.id === pagBtn.dataset.pagarFin);
+          if (f) { Store.updateFinanciamento(f.id, { parcelasPagas: Math.min((f.parcelasPagas||0)+1, f.prazo) }); re(); toast('Parcela contabilizada', 'success'); }
+          return;
+        }
+        const tabBtn = e.target.closest('[data-tabela-fin]');
+        if (tabBtn) { const f = fins.find(x => x.id === tabBtn.dataset.tabelaFin); if (f) _showTabelaFinanciamento(f); return; }
+        const antBtn = e.target.closest('[data-antec-fin]');
+        if (antBtn) { const f = fins.find(x => x.id === antBtn.dataset.antecFin); if (f) _showAntecipacaoModal(f, re); return; }
+        const progBtn = e.target.closest('[data-prog-fin-c]');
+        if (progBtn) { const f = fins.find(x => x.id === progBtn.dataset.progFinC); if (f) _programarParcelaFin(f, re); return; }
         return;
       }
-      const tabBtn = e.target.closest('[data-tabela-fin]');
-      if (tabBtn) { const f = fins.find(x => x.id === tabBtn.dataset.tabelaFin); if (f) _showTabelaFinanciamento(f); return; }
-      const antBtn = e.target.closest('[data-antec-fin]');
-      if (antBtn) { const f = fins.find(x => x.id === antBtn.dataset.antecFin); if (f) _showAntecipacaoModal(f, re); return; }
-      const progBtn = e.target.closest('[data-prog-fin-c]');
-      if (progBtn) { const f = fins.find(x => x.id === progBtn.dataset.progFinC); if (f) _programarParcelaFin(f, re); return; }
+      const editCard = e.target.closest('[data-edit-fin]');
+      if (editCard) { const f = fins.find(x => x.id === editCard.dataset.editFin); if (f) openFinanciamentoModal(f, re); return; }
     });
   }
 
@@ -7360,7 +7597,6 @@ ${fins.length === 0
       if (tInfo && data.taxaMensal > 0) {
         const taxaAnual = (Math.pow(1 + data.taxaMensal / 100, 12) - 1) * 100;
         if (taxaAnual < tInfo.taxaMin || taxaAnual > tInfo.taxaMax) {
-          console.warn(`[Financiamento] Taxa ${taxaAnual.toFixed(2)}% a.a. fora do range típico de "${tInfo.label}" (${tInfo.taxaMin}% – ${tInfo.taxaMax}%).`);
           toast(`Taxa fora do range típico pra esse tipo (${tInfo.taxaMin}% a ${tInfo.taxaMax}%). Confere se está correto?`, 'warning');
         }
       }
@@ -7369,7 +7605,13 @@ ${fins.length === 0
       else        { Store.addFinanciamento(data);                      toast('Financiamento cadastrado', 'success'); }
       Modal.close();
       if (onSaved) onSaved();
-    });
+    }, isEdit ? () => {
+      if (!confirm('Remover este financiamento?')) return;
+      Store.deleteFinanciamento(financiamento.id);
+      Modal.close();
+      toast('Financiamento removido', 'success');
+      if (onSaved) onSaved();
+    } : null);
     // Atualiza descrição + range ao trocar tipo
     setTimeout(() => {
       const sel  = document.getElementById('fFNTipoNovo');
@@ -8805,6 +9047,50 @@ ${memberData.length === 0 ? `
   <div style="font-size:12px;color:var(--text-3)">Lance receitas e despesas para ver a consolidação aqui.</div>
 </div>` : `
 
+${(() => {
+  // Coach inline — tom de família, foco em equilíbrio e oportunidade de meta
+  if (memberData.length < 2) {
+    return coachInlineHTML({
+      contexto: `Família · ${monthLabel}`,
+      titulo: 'Visão familiar ainda em construção',
+      texto: `Só uma pessoa com movimento neste mês. Convide o seu cônjuge ou registre a receita/despesa dele(a) pra ver o equilíbrio entre os dois.`,
+      tone: 'neutral',
+      acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+    });
+  }
+  const sorted = [...memberData].sort((a,b) => b.receita - a.receita);
+  const top = sorted[0], second = sorted[1];
+  const pctTop = top.pctContribReceita;
+  const poderTop = top.poder;
+  const poderSecond = second.poder;
+  const diffPct = poderSecond !== 0 ? Math.abs((poderTop - poderSecond) / Math.max(Math.abs(poderSecond), 1) * 100) : 0;
+  let tone = 'neutral', titulo, texto;
+  if (poder.poderDeEscolha < 0) {
+    tone = 'attention';
+    titulo = 'A família gastou mais do que recebeu este mês';
+    texto = `O Poder de Escolha consolidado ficou em <strong style="color:var(--red)">-${Utils.currency(Math.abs(poder.poderDeEscolha))}</strong>. Vale conversar com ${top.person} e ${second.person} sobre quais compromissos podem ser revistos em conjunto.`;
+  } else if (diffPct > 50 && poderTop > 0 && poderSecond > 0) {
+    tone = 'attention';
+    titulo = `${top.person} tem Poder de Escolha bem maior que ${second.person}`;
+    texto = `${top.person} cobre <strong>${pctTop.toFixed(0)}%</strong> da receita familiar e sobra <strong style="color:var(--accent-2)">${Utils.currency(poderTop)}</strong> pra decidir. ${second.person} fica com <strong>${Utils.currency(poderSecond)}</strong>. Ajustar a divisão de despesas compartilhadas pode equilibrar isso sem culpa.`;
+  } else {
+    tone = 'positive';
+    titulo = 'Equilíbrio familiar saudável';
+    texto = `Vocês fecham o mês com <strong style="color:var(--green)">${Utils.currency(poder.poderDeEscolha)}</strong> livres como família — boa janela pra acelerar uma meta compartilhada ou reforçar a reserva.`;
+  }
+  return coachInlineHTML({
+    contexto: `Família · ${monthLabel}`,
+    titulo,
+    texto,
+    tone,
+    acoes: [
+      { label: 'Ver análise completa', action: 'open-coach' },
+      ...(metasFamilia.length ? [{ label: 'Ir para metas', href: '#metas' }] : []),
+    ],
+  });
+})()}
+
+
 <!-- Hero consolidado da família -->
 <div class="dash-hero-grid mb-4">
   <div class="poder-hero ${poder.poderDeEscolha < 0 ? 'is-negative' : ''}">
@@ -8936,6 +9222,34 @@ ${memberData.length === 0 ? `
     </div>`;
   }).join('')}
 </div>
+
+${(() => {
+  // Despesas compartilhadas (com split) — lista enxuta com link p/ reembolsos
+  const compartilhadas = allDesp.filter(d => Array.isArray(d.split) && d.split.length >= 2).slice(0, 5);
+  if (!compartilhadas.length) return '';
+  return `
+<div class="dash-section-tag mb-2">DESPESAS COMPARTILHADAS</div>
+<div class="card mb-6" style="padding:0;overflow:hidden">
+  <table class="data-table">
+    <thead><tr><th>Descrição</th><th>Pagou</th><th>Rateio</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      ${compartilhadas.map(d => {
+        const payer = d.person || '—';
+        const splitTxt = d.split.map(s => `<span style="color:${Utils.personColor(s.person)};font-weight:600">${s.person}</span> ${Utils.currency(s.valor || 0)}`).join(' · ');
+        return `<tr class="row-clickable" data-row-desp="${d.id}">
+          <td>${d.desc || d.sub || d.category || '—'}</td>
+          <td>${payer}</td>
+          <td style="font-size:11px;color:var(--text-3)">${splitTxt}</td>
+          <td class="num">${Utils.currency(d.amount)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+  <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
+    <a href="#reembolsos" style="font-size:12px;color:var(--accent);text-decoration:none">Ver reembolsos pendentes →</a>
+  </div>
+</div>`;
+})()}
 
 ${metasFamilia.length ? `
 <!-- Metas compartilhadas -->
@@ -9923,6 +10237,12 @@ ${renderPageMonthPicker(container)}
 
     const naoLidosTotal = countNaoLidos();
 
+    const allRecados = Store.get().recados || [];
+    const nAlertas       = allRecados.filter(r => r.tipo === 'alerta').length;
+    const nOportunidades = allRecados.filter(r => r.tipo === 'oportunidade').length;
+    const nConquistas    = allRecados.filter(r => r.tipo === 'conquista').length;
+    const nAnalises      = allRecados.filter(r => r.tipo === 'insight' || r.tipo === 'dica').length;
+
     container.innerHTML = `
 <div class="page-head mb-4">
   <div style="display:flex;align-items:center;gap:14px">
@@ -9935,6 +10255,37 @@ ${renderPageMonthPicker(container)}
         ${naoLidosTotal > 0 ? `<span style="color:var(--teal-coach);font-weight:600">${naoLidosTotal} não lido${naoLidosTotal!==1?'s':''}</span><span class="page-head-meta-sep">·</span>` : ''}
         <span style="color:var(--text-3)">insights e recomendações personalizadas da sua IA financeira</span>
       </p>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+  <div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:10px">
+    <span style="color:var(--red);flex-shrink:0">${icon('alert-triangle', {size:18})}</span>
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Alertas</div>
+      <div style="font-size:24px;font-weight:700;color:var(--text-1);line-height:1.1">${nAlertas}</div>
+    </div>
+  </div>
+  <div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:10px">
+    <span style="color:var(--accent);flex-shrink:0">${icon('trending-up', {size:18})}</span>
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Oportunidades</div>
+      <div style="font-size:24px;font-weight:700;color:var(--text-1);line-height:1.1">${nOportunidades}</div>
+    </div>
+  </div>
+  <div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:10px">
+    <span style="color:var(--green);flex-shrink:0">${icon('star', {size:18})}</span>
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Conquistas</div>
+      <div style="font-size:24px;font-weight:700;color:var(--text-1);line-height:1.1">${nConquistas}</div>
+    </div>
+  </div>
+  <div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:10px">
+    <span style="color:var(--text-3);flex-shrink:0">${icon('bar-chart-2', {size:18})}</span>
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Análises</div>
+      <div style="font-size:24px;font-weight:700;color:var(--text-1);line-height:1.1">${nAnalises}</div>
     </div>
   </div>
 </div>
@@ -9961,6 +10312,7 @@ ${renderPageMonthPicker(container)}
 
 <div id="rcCardsBox"></div>`;
 
+    upgradeIcons(container);
     renderCards();
 
     // Avatar filter
@@ -10211,11 +10563,7 @@ ${tipos.map(t => {
   const catsAqui = catsPorTipo[t.id] || [];
   const peso = pesoPorTipo[t.id] || 0;
   return `
-  <div class="tipo-card-redesign" style="--tipo-color:${t.color}">
-    <div class="tipo-card-actions-top">
-      <button class="btn-icon-sm" data-edit-tipo="${t.id}" title="Editar">${icon('pencil', {size:14})}</button>
-      ${!t.builtin ? `<button class="btn-icon-sm danger" data-del-tipo="${t.id}" title="Remover">${icon('trash-2', {size:14})}</button>` : ''}
-    </div>
+  <div class="tipo-card-redesign" style="--tipo-color:${t.color};cursor:pointer" data-edit-tipo="${t.id}">
     <div class="tipo-card-head">
       <span class="tipo-card-tag" style="background:${t.color}22;color:${t.color}">${info.tag}</span>
       ${t.builtin ? `<span style="font-size:10px;color:var(--text-4);font-weight:500">padrão</span>` : ''}
@@ -10238,46 +10586,69 @@ ${tipos.map(t => {
 <div class="section-header mb-3" style="margin-top:28px">
   <div>
     <div class="section-title" style="font-size:14px">Atribuição de categorias</div>
-    <div class="section-sub">Clique no badge pra trocar o tipo de cada categoria. As subcategorias herdam (mas podem ser sobrescritas em Categorias).</div>
+    <div class="section-sub">Arraste uma categoria para outro tipo. As subcategorias herdam (mas podem ser sobrescritas em Categorias).</div>
   </div>
 </div>
-<div class="card" style="padding:0">
-  <div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Categoria</th><th>Tipo atual</th><th></th></tr></thead>
-    <tbody>
-    ${cats.filter(([k]) => k !== 'receita').map(([key, info]) => {
-      if (!info) return '';
-      const tid = Store.getCatTipo(key);
-      const t = Store.getTipoById(tid) || tipos[0];
-      return `
-      <tr>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${info.color};margin-right:8px;vertical-align:middle"></span><strong>${info.label}</strong></td>
-        <td><span style="display:inline-block;background:${t.color}20;color:${t.color};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">${t.icon||''} ${t.label}</span></td>
-        <td style="text-align:right"><button class="btn-xs" data-set-cat-tipo="${key}">Trocar</button></td>
-      </tr>`;
-    }).join('')}
-    </tbody>
-  </table></div>
+<div style="display:flex;flex-direction:column;gap:8px" id="tipoLanes">
+  ${tipos.map(t => {
+    const catsDoTipo = cats.filter(([k]) => k !== 'receita' && Store.getCatTipo(k) === t.id);
+    return `
+    <div class="card" data-drop-tipo="${t.id}"
+         style="padding:12px 16px;border:2px solid transparent;transition:border-color .15s"
+         ondragover="event.preventDefault();this.style.borderColor='${t.color}'"
+         ondragleave="this.style.borderColor='transparent'"
+         ondrop="event.preventDefault();this.style.borderColor='transparent'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:16px">${t.icon||'✦'}</span>
+        <span style="font-size:12px;font-weight:700;color:${t.color};text-transform:uppercase;letter-spacing:.06em">${t.label}</span>
+        <span style="font-size:11px;color:var(--text-4);margin-left:auto">${catsDoTipo.length} categoria${catsDoTipo.length===1?'':'s'}</span>
+      </div>
+      <div class="tipo-lane-cats" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px">
+        ${catsDoTipo.length === 0
+          ? `<span style="font-size:11px;color:var(--text-4);font-style:italic;align-self:center">Arraste uma categoria aqui</span>`
+          : catsDoTipo.map(([k, info]) => `
+            <div draggable="true" data-drag-cat="${k}" data-drag-from-tipo="${t.id}"
+                 style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;background:${info.color}18;color:${info.color};font-size:12px;font-weight:600;cursor:grab;user-select:none;border:1px solid ${info.color}33">
+              <span style="font-size:10px;color:var(--text-4)">⠿</span>
+              ${icon(info.icon||'tag',{size:13,color:info.color})}
+              ${info.label}
+            </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('')}
 </div>`;
 
     document.getElementById('btnAddTipo')?.addEventListener('click', () => _openTipoModal(null, () => renderConfigTipos(content)));
 
+    // ── D&D: arrastar categoria entre lanes de tipo ───────────────
+    let dragCatKey = null, dragFromTipo = null;
+    content.querySelectorAll('[data-drag-cat]').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        dragCatKey   = el.dataset.dragCat;
+        dragFromTipo = el.dataset.dragFromTipo;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => el.style.opacity = '0.35', 0);
+      });
+      el.addEventListener('dragend', () => { el.style.opacity = ''; dragCatKey = null; dragFromTipo = null; });
+    });
+    content.querySelectorAll('[data-drop-tipo]').forEach(lane => {
+      lane.addEventListener('drop', e => {
+        e.preventDefault();
+        lane.style.borderColor = 'transparent';
+        const toTipo = lane.dataset.dropTipo;
+        if (!dragCatKey || !toTipo || toTipo === dragFromTipo) return;
+        Store.setCatTipo(dragCatKey, toTipo);
+        const catLabel = Store.CATEGORIES[dragCatKey]?.label || dragCatKey;
+        const tipoLabel = Store.getTipoById(toTipo)?.label || toTipo;
+        renderConfigTipos(content);
+        toast(`"${catLabel}" movida para ${tipoLabel}`, 'success');
+      });
+    });
+
     content.addEventListener('click', e => {
+      if (e.target.closest('button')) return;
       const edit = e.target.closest('[data-edit-tipo]');
       if (edit) { const t = tipos.find(x => x.id === edit.dataset.editTipo); if (t) _openTipoModal(t, () => renderConfigTipos(content)); return; }
-      const del = e.target.closest('[data-del-tipo]');
-      if (del) {
-        if (!confirm('Remover este tipo? Categorias que o usam voltam pra "Opcional".')) return;
-        try { Store.deleteTipo(del.dataset.delTipo); renderConfigTipos(content); toast('Tipo removido', 'success'); }
-        catch (err) { toast(err.message, 'error'); }
-        return;
-      }
-      const setCat = e.target.closest('[data-set-cat-tipo]');
-      if (setCat) {
-        const catKey = setCat.dataset.setCatTipo;
-        const tuple = cats.find(([k]) => k === catKey);
-        if (tuple) _openSelectTipoForCat({ key: tuple[0], label: tuple[1].label, color: tuple[1].color, icon: tuple[1].icon }, () => renderConfigTipos(content));
-      }
     });
     upgradeIcons(content);
   }
@@ -10352,7 +10723,11 @@ ${tipos.map(t => {
       } catch (err) { return toast(err.message, 'error'); }
       Modal.close();
       if (onSaved) onSaved();
-    });
+    }, (isEdit && !isBuiltin) ? () => {
+      if (!confirm('Remover este tipo? Categorias que o usam voltam pra "Opcional".')) return;
+      try { Store.deleteTipo(t.id); Modal.close(); toast('Tipo removido', 'success'); if (onSaved) onSaved(); }
+      catch (err) { toast(err.message, 'error'); }
+    } : null);
   }
 
   function _openSelectTipoForCat(cat, onSaved) {
@@ -10389,7 +10764,7 @@ ${tipos.map(t => {
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Categorias & Subcategorias</div>
-  <div class="section-sub">Adicione, renomeie ou exclua categorias e suas subcategorias</div></div>
+  <div class="section-sub">Reordene categorias arrastando o ⠿. Arraste subcategorias entre categorias para movê-las.</div></div>
   <button class="btn-primary" id="btnAddCat">+ Nova Categoria</button>
 </div>
 
@@ -10399,9 +10774,9 @@ ${tipos.map(t => {
     const subs = Store.SUBCATEGORIES[key] || [];
     const isProtected = key === 'receita';
     return `
-    <details class="card" draggable="true" data-cat-key="${key}" style="padding:0;cursor:grab">
+    <details class="card" draggable="true" data-cat-key="${key}" style="padding:0">
       <summary style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none">
-        <span style="font-size:16px;color:var(--text-4);cursor:grab" title="Arrastar para reordenar">⠿</span>
+        <span class="cat-drag-handle" style="font-size:16px;color:var(--text-4);cursor:grab" title="Arrastar para reordenar">⠿</span>
         <span style="width:36px;height:36px;border-radius:10px;background:${info.color}1a;color:${info.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(info.icon || 'tag', { size: 18, color: info.color })}</span>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--text-1)">${info.label}</div>
@@ -10409,17 +10784,20 @@ ${tipos.map(t => {
         </div>
         <span class="badge" style="background:${info.color}20;color:${info.color}">${info.color}</span>
         <button class="btn-icon-sm" data-action="edit-cat" data-key="${key}" title="Editar">${icon('pencil', {size:14})}</button>
-        ${isProtected ? '<span class="badge badge-amber" title="Reservada">🔒</span>'
-          : `<button class="btn-xs btn-red" data-action="del-cat" data-key="${key}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''} title="${usage>0?'Existem lançamentos':'Excluir'}">✕</button>`}
+        ${isProtected ? '<span class="badge badge-amber" title="Reservada">' + icon('lock', {size:12}) + '</span>' : ''}
       </summary>
-      <div style="padding:0 16px 14px 60px">
-        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Subcategorias</div>
-        ${subs.length === 0 ? '<div style="font-size:12px;color:var(--text-4);font-style:italic;padding:4px 0">Nenhuma subcategoria</div>'
+      <div class="subcat-drop-zone" data-drop-cat="${key}"
+           style="padding:0 16px 14px 60px;border-radius:0 0 12px 12px;transition:background .15s">
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Subcategorias
+          <span style="font-size:10px;color:var(--text-4);margin-left:6px">— arraste subs de outras categorias aqui</span>
+        </div>
+        ${subs.length === 0
+          ? '<div class="subcat-empty-hint" style="font-size:12px;color:var(--text-4);font-style:italic;padding:4px 0">Nenhuma subcategoria</div>'
           : subs.map(s => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)">
+            <div draggable="true" data-drag-sub="${s.replace(/"/g,'&quot;')}" data-drag-sub-from="${key}" data-edit-sub data-cat="${key}" data-sub="${s.replace(/"/g,'&quot;')}"
+                 class="row-clickable" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);cursor:pointer">
+              <span style="font-size:12px;color:var(--text-4);cursor:grab">⠿</span>
               <span style="flex:1;font-size:13px;color:var(--text-2)">${s}</span>
-              <button class="btn-icon-sm" data-action="ren-sub" data-cat="${key}" data-sub="${s.replace(/"/g,'&quot;')}" title="Renomear">${icon('pencil', {size:14})}</button>
-              <button class="btn-icon-sm danger" data-action="del-sub" data-cat="${key}" data-sub="${s.replace(/"/g,'&quot;')}" title="Excluir">${icon('trash-2', {size:14})}</button>
             </div>`).join('')}
         <button class="btn-xs" style="margin-top:10px" data-action="add-sub" data-cat="${key}">+ Subcategoria</button>
       </div>
@@ -10427,66 +10805,98 @@ ${tipos.map(t => {
   }).join('')}
 </div>`;
 
-    // ── Drag-and-drop reorder ─────────────────────────────────────
-    let dragSrc = null;
+    // ── D&D 1: reordenar categorias ───────────────────────────────
+    let dragCatSrc = null, dragSubSrc = null, dragSubFromCat = null;
     const list = document.getElementById('catSortList');
+
+    // Cada <details> é draggable apenas a partir do ⠿ handle
     list.querySelectorAll('[data-cat-key]').forEach(el => {
+      const handle = el.querySelector('.cat-drag-handle');
+      // Só inicia cat-drag se o evento originar do handle (ou não houver sub-drag ativo)
       el.addEventListener('dragstart', e => {
-        dragSrc = el;
+        if (e.target.closest('[data-drag-sub]')) { e.stopPropagation(); return; }
+        dragCatSrc = el;
         e.dataTransfer.effectAllowed = 'move';
         setTimeout(() => el.style.opacity = '0.4', 0);
       });
-      el.addEventListener('dragend', () => { el.style.opacity = ''; dragSrc = null; });
+      el.addEventListener('dragend', () => { el.style.opacity = ''; dragCatSrc = null; });
       el.addEventListener('dragover', e => {
+        if (dragSubSrc) return; // sub-drag tem prioridade
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        if (el !== dragSrc) el.style.outline = '2px dashed var(--accent)';
+        if (el !== dragCatSrc) el.style.outline = '2px dashed var(--accent)';
       });
       el.addEventListener('dragleave', () => { el.style.outline = ''; });
       el.addEventListener('drop', e => {
+        if (dragSubSrc) return; // handled by subcat drop zone
         e.preventDefault();
         el.style.outline = '';
-        if (!dragSrc || dragSrc === el) return;
+        if (!dragCatSrc || dragCatSrc === el) return;
         const items = [...list.querySelectorAll('[data-cat-key]')];
-        const fromIdx = items.indexOf(dragSrc);
+        const fromIdx = items.indexOf(dragCatSrc);
         const toIdx   = items.indexOf(el);
         const order = items.map(i => i.dataset.catKey);
         order.splice(fromIdx, 1);
-        order.splice(toIdx, 0, dragSrc.dataset.catKey);
+        order.splice(toIdx, 0, dragCatSrc.dataset.catKey);
         Store.setCategoryOrder(order);
         renderConfigCategorias(content);
         toast('Ordem salva', 'success');
       });
     });
 
+    // ── D&D 2: mover subcategoria entre categorias ─────────────────
+    list.querySelectorAll('[data-drag-sub]').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        e.stopPropagation(); // não propaga para o cat-drag
+        dragSubSrc     = el.dataset.dragSub;
+        dragSubFromCat = el.dataset.dragSubFrom;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => el.style.opacity = '0.35', 0);
+      });
+      el.addEventListener('dragend', () => {
+        el.style.opacity = '';
+        dragSubSrc = null; dragSubFromCat = null;
+      });
+    });
+    list.querySelectorAll('.subcat-drop-zone').forEach(zone => {
+      zone.addEventListener('dragover', e => {
+        if (!dragSubSrc) return;
+        e.preventDefault(); e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        zone.style.background = 'var(--bg-elevated)';
+      });
+      zone.addEventListener('dragleave', () => { zone.style.background = ''; });
+      zone.addEventListener('drop', e => {
+        if (!dragSubSrc) return;
+        e.preventDefault(); e.stopPropagation();
+        zone.style.background = '';
+        const toCat = zone.dataset.dropCat;
+        if (!toCat || toCat === dragSubFromCat) return;
+        try {
+          Store.moveSubcategoria(dragSubFromCat, dragSubSrc, toCat);
+          const fromLabel = Store.CATEGORIES[dragSubFromCat]?.label || dragSubFromCat;
+          const toLabel   = Store.CATEGORIES[toCat]?.label || toCat;
+          renderConfigCategorias(content);
+          // Abre o details destino para confirmar visualmente
+          const destDetails = list.querySelector(`[data-cat-key="${toCat}"]`);
+          if (destDetails) destDetails.open = true;
+          toast(`"${dragSubSrc}" movida de ${fromLabel} → ${toLabel}`, 'success');
+        } catch (err) { toast(err.message, 'error'); }
+      });
+    });
+
     document.getElementById('btnAddCat').addEventListener('click', () => openCategoriaModal(null));
-    content.querySelectorAll('[data-action="edit-cat"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openCategoriaModal(b.dataset.key); }));
-    content.querySelectorAll('[data-action="del-cat"]').forEach(b => b.addEventListener('click', e => {
-      e.preventDefault();
-      if (!confirm(`Excluir a categoria "${Store.CATEGORIES[b.dataset.key].label}"?`)) return;
-      try { Store.deleteCategoria(b.dataset.key); renderConfigCategorias(content); toast('Categoria excluída', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
+    content.querySelectorAll('[data-action="edit-cat"]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      openCategoriaModal(b.dataset.key);
     }));
     content.querySelectorAll('[data-action="add-sub"]').forEach(b => b.addEventListener('click', e => {
-      e.preventDefault();
-      const name = prompt('Nome da subcategoria:');
-      if (!name) return;
-      try { Store.addSubcategoria(b.dataset.cat, name); renderConfigCategorias(content); toast('Subcategoria adicionada', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
+      e.preventDefault(); e.stopPropagation();
+      openSubcategoriaModal(b.dataset.cat, null, () => renderConfigCategorias(content));
     }));
-    content.querySelectorAll('[data-action="ren-sub"]').forEach(b => b.addEventListener('click', e => {
-      e.preventDefault();
-      const old = b.dataset.sub;
-      const newName = prompt('Novo nome:', old);
-      if (!newName || newName === old) return;
-      try { Store.renameSubcategoria(b.dataset.cat, old, newName); renderConfigCategorias(content); toast('Subcategoria renomeada (lançamentos atualizados)', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
-    }));
-    content.querySelectorAll('[data-action="del-sub"]').forEach(b => b.addEventListener('click', e => {
-      e.preventDefault();
-      if (!confirm(`Excluir a subcategoria "${b.dataset.sub}"?`)) return;
-      try { Store.deleteSubcategoria(b.dataset.cat, b.dataset.sub); renderConfigCategorias(content); toast('Subcategoria excluída', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
+    content.querySelectorAll('[data-edit-sub]').forEach(row => row.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      openSubcategoriaModal(row.dataset.cat, row.dataset.sub, () => renderConfigCategorias(content));
     }));
     upgradeIcons(content);
   }
@@ -10500,6 +10910,41 @@ ${tipos.map(t => {
     'banknote','credit-card','wallet','trending-up','piggy-bank','landmark','receipt','scale','tag',
     'sun','tree-pine','flower','globe','map-pin','umbrella','shirt','scissors','glasses',
   ];
+  function openSubcategoriaModal(catKey, subName, onSaved) {
+    const isEdit = !!subName;
+    const catLabel = Store.CATEGORIES[catKey]?.label || catKey;
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Subcategoria de "${catLabel}"</label>
+        <input class="form-input" id="fSubNome" value="${isEdit ? subName : ''}" placeholder="Ex.: Supermercado"/>
+      </div>
+    </div>`;
+    Modal.open(isEdit ? `Editar Subcategoria — ${subName}` : 'Nova Subcategoria', html, () => {
+      const newName = document.getElementById('fSubNome').value.trim();
+      if (!newName) return toast('Nome obrigatório', 'error');
+      try {
+        if (isEdit) {
+          if (newName !== subName) {
+            Store.renameSubcategoria(catKey, subName, newName);
+            toast('Subcategoria renomeada (lançamentos atualizados)', 'success');
+          }
+        } else {
+          Store.addSubcategoria(catKey, newName);
+          toast('Subcategoria adicionada', 'success');
+        }
+        Modal.close();
+        if (onSaved) onSaved();
+      } catch (err) { toast(err.message, 'error'); }
+    }, isEdit ? () => {
+      if (!confirm(`Excluir a subcategoria "${subName}"?`)) return;
+      try {
+        Store.deleteSubcategoria(catKey, subName);
+        Modal.close();
+        toast('Subcategoria excluída', 'success');
+        if (onSaved) onSaved();
+      } catch (err) { toast(err.message, 'error'); }
+    } : null);
+  }
+
   function openCategoriaModal(key) {
     const isEdit = !!key;
     const c = isEdit ? Store.CATEGORIES[key] : { label:'', icon:'tag', color:'#7C6EF8' };
@@ -10523,6 +10968,8 @@ ${tipos.map(t => {
         <input type="hidden" id="fCatColor" value="${c.color}">
       </div>
     </div>`;
+    const usage = isEdit ? Store.getCategoriaUsage(key) : 0;
+    const isProtected = key === 'receita';
     Modal.open(isEdit?'Editar Categoria':'Nova Categoria', html, () => {
       const label = document.getElementById('fCatLabel').value.trim();
       const ic = document.getElementById('fCatIcon').value.trim() || 'tag';
@@ -10535,7 +10982,15 @@ ${tipos.map(t => {
         renderConfigCategorias(document.getElementById('configContent'));
         toast(isEdit?'Categoria atualizada':'Categoria criada', 'success');
       } catch (err) { toast(err.message, 'error'); }
-    });
+    }, (isEdit && !isProtected && usage === 0) ? () => {
+      if (!confirm(`Excluir a categoria "${c.label}"?`)) return;
+      try {
+        Store.deleteCategoria(key);
+        Modal.close();
+        renderConfigCategorias(document.getElementById('configContent'));
+        toast('Categoria excluída', 'success');
+      } catch (err) { toast(err.message, 'error'); }
+    } : null);
     // Interatividade: seleção de ícone e cor
     setTimeout(() => {
       const modal = document.getElementById('modal');
@@ -10613,6 +11068,42 @@ ${personalities.map(p => `
     upgradeIcons(content);
   }
 
+  function openPessoaModal(pessoaName, onSaved) {
+    const isEdit = !!pessoaName;
+    const usage = isEdit ? Store.get().receitas.filter(r => r.person === pessoaName).length : 0;
+    const html = `<div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome</label>
+        <input class="form-input" id="fPessoaNome" value="${isEdit ? pessoaName : ''}" placeholder="Ex.: Roberto"/>
+      </div>
+      ${isEdit ? `<div class="form-group form-full" style="font-size:11px;color:var(--text-4)">${usage} receita(s) vinculada(s)${usage>0?' — não é possível excluir enquanto houver receitas vinculadas':''}</div>` : ''}
+    </div>`;
+    Modal.open(isEdit ? `Editar Pessoa — ${pessoaName}` : 'Nova Pessoa', html, () => {
+      const newName = document.getElementById('fPessoaNome').value.trim();
+      if (!newName) return toast('Nome obrigatório', 'error');
+      try {
+        if (isEdit) {
+          if (newName !== pessoaName) {
+            Store.renamePessoa(pessoaName, newName);
+            toast('Pessoa renomeada (receitas atualizadas)', 'success');
+          }
+        } else {
+          Store.addPessoa(newName);
+          toast('Pessoa cadastrada', 'success');
+        }
+        Modal.close();
+        if (onSaved) onSaved();
+      } catch (err) { toast(err.message, 'error'); }
+    }, (isEdit && usage === 0) ? () => {
+      if (!confirm(`Excluir "${pessoaName}"?`)) return;
+      try {
+        Store.deletePessoa(pessoaName);
+        Modal.close();
+        toast('Pessoa excluída', 'success');
+        if (onSaved) onSaved();
+      } catch (err) { toast(err.message, 'error'); }
+    } : null);
+  }
+
   function renderConfigPessoas(content) {
     const pessoas = Store.PESSOAS;
     const isConnected = typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected();
@@ -10629,14 +11120,12 @@ ${personalities.map(p => `
   ${pessoas.map(p => {
     const usage = Store.get().receitas.filter(r => r.person === p).length;
     return `
-    <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+    <div class="card row-clickable" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer" data-edit-pessoa="${p}">
       ${Utils.personAvatarHtml(p, { size: 36, fontSize: 14 })}
       <div style="flex:1">
         <div style="font-size:14px;font-weight:700;color:var(--text-1)">${p}</div>
         <div style="font-size:11px;color:var(--text-4)">${usage} receita(s) vinculada(s)</div>
       </div>
-      <button class="btn-icon-sm" data-action="ren-pessoa" data-name="${p}" title="Renomear">${icon('pencil', {size:14})}</button>
-      <button class="btn-xs btn-red" data-action="del-pessoa" data-name="${p}" ${usage>0?'disabled style="opacity:.4;cursor:not-allowed"':''}>✕</button>
     </div>`;
   }).join('')}
 </div>
@@ -10687,23 +11176,9 @@ ${isConnected && isAdmin ? `
 </div>
 `}`;
 
-    document.getElementById('btnAddPessoa').addEventListener('click', () => {
-      const name = prompt('Nome da pessoa:');
-      if (!name) return;
-      try { Store.addPessoa(name); renderConfigPessoas(content); toast('Pessoa cadastrada', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
-    });
-    content.querySelectorAll('[data-action="ren-pessoa"]').forEach(b => b.addEventListener('click', () => {
-      const old = b.dataset.name;
-      const newName = prompt('Novo nome:', old);
-      if (!newName || newName === old) return;
-      try { Store.renamePessoa(old, newName); renderConfigPessoas(content); toast('Pessoa renomeada (receitas atualizadas)', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
-    }));
-    content.querySelectorAll('[data-action="del-pessoa"]').forEach(b => b.addEventListener('click', () => {
-      if (!confirm(`Excluir "${b.dataset.name}"?`)) return;
-      try { Store.deletePessoa(b.dataset.name); renderConfigPessoas(content); toast('Pessoa excluída', 'success'); }
-      catch (err) { toast(err.message, 'error'); }
+    document.getElementById('btnAddPessoa').addEventListener('click', () => openPessoaModal(null, () => renderConfigPessoas(content)));
+    content.querySelectorAll('[data-edit-pessoa]').forEach(card => card.addEventListener('click', () => {
+      openPessoaModal(card.dataset.editPessoa, () => renderConfigPessoas(content));
     }));
 
     if (isConnected && isAdmin) {
@@ -10789,14 +11264,14 @@ ${isConnected && isAdmin ? `
     const sub = subParts.join(' · ');
 
     const actions = isActive
-      ? `<button class="btn-icon-sm danger" data-action="remove" data-member-id="${m.id}" title="Remover acesso">${icon('user-minus', {size:14})}</button>`
+      ? ''
       : `
         <button class="btn-icon-sm" data-action="resend" data-member-id="${m.id}" title="Reenviar convite" style="color:var(--accent)">${icon('refresh-cw', {size:14})}</button>
         <button class="btn-icon-sm danger" data-action="cancel" data-member-id="${m.id}" title="Cancelar convite">${icon('x', {size:14})}</button>
       `;
 
     return `
-    <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 16px">
+    <div class="card${isActive ? ' row-clickable' : ''}" ${isActive ? `data-edit-member="${m.id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer"` : 'style="display:flex;align-items:center;gap:12px;padding:10px 16px"'}>
       <div class="person-avatar" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]};width:34px;height:34px;font-size:12px;font-weight:700;border:1px solid ${ROLE_COLORS[role]}40">
         ${email.slice(0,2).toUpperCase()}
       </div>
@@ -10813,12 +11288,31 @@ ${isConnected && isAdmin ? `
 
       upgradeIcons(listEl);
 
-      // Remover (ativo)
-      listEl.querySelectorAll('[data-action="remove"]').forEach(b => b.addEventListener('click', async () => {
-        if (!confirm('Remover acesso deste membro? Ele perde acesso ao grupo imediatamente.')) return;
-        await SupabaseSync.removeMember(b.dataset.memberId);
-        toast('Membro removido', 'success');
-        _loadFamilyMembers();
+      // Membro ativo: clique no card abre modal de gestão (com Remover dentro)
+      listEl.querySelectorAll('[data-edit-member]').forEach(card => card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const memberId = card.dataset.editMember;
+        const m = members.find(x => x.id === memberId);
+        if (!m) return;
+        const html = `<div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">E-mail</label>
+            <div style="font-size:13px;color:var(--text-2);padding:8px 0">${m.invited_email || '—'}</div>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Perfil</label>
+            <div style="font-size:13px;color:var(--text-2);padding:4px 0">${ROLE_LABELS[m.role] || m.role}</div>
+          </div>
+          ${m.pessoa_name ? `<div class="form-group form-full"><label class="form-label">Pessoa local</label><div style="font-size:13px;color:var(--text-2);padding:4px 0">${m.pessoa_name}</div></div>` : ''}
+          ${m.accepted_at ? `<div class="form-group form-full" style="font-size:11px;color:var(--text-4)">Ativo desde ${new Date(m.accepted_at).toLocaleDateString('pt-BR')}</div>` : ''}
+        </div>`;
+        Modal.open(`Membro — ${m.invited_email || ''}`, html, () => Modal.close(), async () => {
+          if (!confirm('Remover acesso deste membro? Ele perde acesso ao grupo imediatamente.')) return;
+          await SupabaseSync.removeMember(m.id);
+          Modal.close();
+          toast('Membro removido', 'success');
+          _loadFamilyMembers();
+        });
       }));
 
       // Cancelar (pendente/expirado)
@@ -11632,6 +12126,163 @@ ${isConnected && isAdmin ? `
           { id: 'b', label: 'Plano de saúde ficando inviável',          sub: 'Mensalidade subindo' },
           { id: 'c', label: 'Depender financeiramente de alguém',       sub: 'Perder autonomia' },
           { id: 'd', label: 'Não me preocupo com isso ainda',           sub: 'Tá distante' },
+        ],
+      },
+    ],
+
+    // ── Onboarding inicial (15 perguntas) ──────────────────────────
+    // Captura o "contexto de entrada" — quem é o usuário ao chegar no Haile,
+    // de onde vem, o que busca, como se sente em relação a dinheiro hoje.
+    // Diferente das outras categorias, foca em motivação + autopercepção.
+    onbo: [
+      {
+        id: 'onbo_1', version: 1,
+        pergunta: 'O que te trouxe até o Haile?',
+        opcoes: [
+          { id: 'a', label: 'Quero me organizar financeiramente',       sub: 'Sair da bagunça' },
+          { id: 'b', label: 'Preciso sair de uma situação difícil',     sub: 'Dívidas, aperto, descontrole' },
+          { id: 'c', label: 'Quero planejar uma meta importante',       sub: 'Casa, viagem, IF, aposentadoria' },
+          { id: 'd', label: 'Curiosidade — quero aprender mais',        sub: 'Educação e melhoria contínua' },
+        ],
+      },
+      {
+        id: 'onbo_2', version: 1,
+        pergunta: 'Como você descreveria sua relação atual com dinheiro?',
+        opcoes: [
+          { id: 'a', label: 'Estou no controle',                        sub: 'Sei pra onde vai cada real' },
+          { id: 'b', label: 'Equilibrado, mas posso melhorar',          sub: 'Funciona, faltam detalhes' },
+          { id: 'c', label: 'Tenso — vivo no aperto',                   sub: 'Mês a mês raspando' },
+          { id: 'd', label: 'Caótico — preciso de ajuda',               sub: 'Sem controle real' },
+        ],
+      },
+      {
+        id: 'onbo_3', version: 1,
+        pergunta: 'Você já tentou se organizar financeiramente antes?',
+        opcoes: [
+          { id: 'a', label: 'Não, é a primeira vez',                    sub: 'Começando agora' },
+          { id: 'b', label: 'Sim, mas não engatou',                     sub: 'Comecei e parei' },
+          { id: 'c', label: 'Sim, e funcionou por um tempo',            sub: 'Mas desisti depois' },
+          { id: 'd', label: 'Sim, tenho rotina há anos',                sub: 'Já é hábito' },
+        ],
+      },
+      {
+        id: 'onbo_4', version: 1,
+        pergunta: 'Qual é sua maior preocupação financeira hoje?',
+        opcoes: [
+          { id: 'a', label: 'Não conseguir pagar tudo no fim do mês',   sub: 'Aperto recorrente' },
+          { id: 'b', label: 'Não conseguir guardar nada',               sub: 'Falta sobrar' },
+          { id: 'c', label: 'Não saber se estou no caminho certo',      sub: 'Falta clareza' },
+          { id: 'd', label: 'Não tenho — quero é avançar mais rápido',  sub: 'Estou bem, busco mais' },
+        ],
+      },
+      {
+        id: 'onbo_5', version: 1,
+        pergunta: 'Quão organizado é seu controle financeiro hoje?',
+        opcoes: [
+          { id: 'a', label: 'Nem tenho — uso a memória',                sub: 'Sem registro algum' },
+          { id: 'b', label: 'Anoto em papel ou bloco de notas',         sub: 'Informal' },
+          { id: 'c', label: 'Uso planilha ou outro app',                sub: 'Sistemático' },
+          { id: 'd', label: 'Tenho rotina e revisões mensais',          sub: 'Disciplina firme' },
+        ],
+      },
+      {
+        id: 'onbo_6', version: 1,
+        pergunta: 'Com que frequência você olha seu saldo bancário?',
+        opcoes: [
+          { id: 'a', label: 'Várias vezes ao dia',                      sub: 'Quase compulsivo' },
+          { id: 'b', label: 'Algumas vezes na semana',                  sub: 'Acompanho de perto' },
+          { id: 'c', label: 'Uma vez por semana ou menos',              sub: 'Quando precisa' },
+          { id: 'd', label: 'Quase nunca olho',                         sub: 'Evito o tema' },
+        ],
+      },
+      {
+        id: 'onbo_7', version: 1,
+        pergunta: 'O que você sente quando vê o saldo bancário?',
+        opcoes: [
+          { id: 'a', label: 'Ansiedade ou medo',                        sub: 'É um gatilho ruim' },
+          { id: 'b', label: 'Frustração — esperava mais',               sub: 'Decepção recorrente' },
+          { id: 'c', label: 'Tranquilidade — está sob controle',        sub: 'Confio no que vejo' },
+          { id: 'd', label: 'Orgulho — venho construindo bem',          sub: 'Vejo evolução' },
+        ],
+      },
+      {
+        id: 'onbo_8', version: 1,
+        pergunta: 'Você tem reserva de emergência hoje?',
+        opcoes: [
+          { id: 'a', label: 'Nenhuma',                                   sub: 'Nada guardado' },
+          { id: 'b', label: 'Menos de 1 mês de despesas',                sub: 'Início de construção' },
+          { id: 'c', label: 'Entre 1 e 6 meses',                         sub: 'Caminho intermediário' },
+          { id: 'd', label: '6 meses ou mais',                           sub: 'Reserva consolidada' },
+        ],
+      },
+      {
+        id: 'onbo_9', version: 1,
+        pergunta: 'Você tem dívidas hoje que te incomodam?',
+        opcoes: [
+          { id: 'a', label: 'Sim, e me tiram o sono',                    sub: 'Impactam meu dia a dia' },
+          { id: 'b', label: 'Sim, mas estão sob controle',               sub: 'Pagamento planejado' },
+          { id: 'c', label: 'Só dívidas estratégicas',                   sub: 'Imóvel, estudo — saudáveis' },
+          { id: 'd', label: 'Não tenho dívidas',                         sub: 'Estou no zero' },
+        ],
+      },
+      {
+        id: 'onbo_10', version: 1,
+        pergunta: 'Como você decide grandes compras?',
+        opcoes: [
+          { id: 'a', label: 'Por impulso, na hora',                      sub: 'Vejo e compro' },
+          { id: 'b', label: 'Penso uns dias antes',                      sub: 'Reflito brevemente' },
+          { id: 'c', label: 'Pesquiso e comparo opções',                 sub: 'Decisão racional' },
+          { id: 'd', label: 'Discuto com cônjuge ou família',            sub: 'Decisão compartilhada' },
+        ],
+      },
+      {
+        id: 'onbo_11', version: 1,
+        pergunta: 'Quem mais influencia suas decisões financeiras?',
+        opcoes: [
+          { id: 'a', label: 'Eu mesmo — decido sozinho(a)',              sub: 'Autonomia total' },
+          { id: 'b', label: 'Cônjuge ou parceiro(a)',                    sub: 'Decisões a dois' },
+          { id: 'c', label: 'Família próxima (pais, irmãos)',            sub: 'Peso da família' },
+          { id: 'd', label: 'Amigos ou profissionais (contador, etc)',   sub: 'Busco opinião externa' },
+        ],
+      },
+      {
+        id: 'onbo_12', version: 1,
+        pergunta: 'Como sua família de origem lidava com dinheiro?',
+        opcoes: [
+          { id: 'a', label: 'Sempre faltou',                             sub: 'Cresci vendo aperto' },
+          { id: 'b', label: 'Tinha o necessário, sem sobra',             sub: 'Equilíbrio simples' },
+          { id: 'c', label: 'Vivia confortável e bem planejado',         sub: 'Casa organizada' },
+          { id: 'd', label: 'Era assunto pouco discutido',               sub: 'Tabu em casa' },
+        ],
+      },
+      {
+        id: 'onbo_13', version: 1,
+        pergunta: 'Você já fez algum tipo de educação financeira formal?',
+        opcoes: [
+          { id: 'a', label: 'Nunca',                                     sub: 'Aprendi na prática' },
+          { id: 'b', label: 'Livros e conteúdos online',                 sub: 'Autodidata' },
+          { id: 'c', label: 'Cursos curtos ou workshops',                sub: 'Aprendizado direcionado' },
+          { id: 'd', label: 'Formação aprofundada',                      sub: 'Pós, MBA, mercado' },
+        ],
+      },
+      {
+        id: 'onbo_14', version: 1,
+        pergunta: 'Em uma escala de 1 a 4, quão preparado(a) você se sente para o futuro financeiro?',
+        opcoes: [
+          { id: 'a', label: '1 — Nada preparado',                        sub: 'Vivendo o presente' },
+          { id: 'b', label: '2 — Pouco preparado',                       sub: 'Sei que falta muito' },
+          { id: 'c', label: '3 — Razoavelmente preparado',               sub: 'Sigo um plano básico' },
+          { id: 'd', label: '4 — Bem preparado',                         sub: 'Planos sólidos em andamento' },
+        ],
+      },
+      {
+        id: 'onbo_15', version: 1,
+        pergunta: 'Daqui a 3 meses, o que faria você se sentir orgulhoso do seu uso do Haile?',
+        opcoes: [
+          { id: 'a', label: 'Saber pra onde vai cada real',              sub: 'Visibilidade total' },
+          { id: 'b', label: 'Ter quitado pelo menos uma dívida',         sub: 'Progresso concreto' },
+          { id: 'c', label: 'Ter construído reserva de emergência',      sub: 'Colchão de segurança' },
+          { id: 'd', label: 'Ter avançado numa meta importante',         sub: 'Avançar no que importa' },
         ],
       },
     ],
@@ -12628,6 +13279,17 @@ ${coachInlineHTML({
   function init() {
     Store.init();
 
+    // Populate sidebar user card (name + initial)
+    (() => {
+      const p = Store.getProfile();
+      const fullName = p?.name || Store.PESSOAS[0] || '';
+      const initial = (fullName.trim()[0] || '?').toUpperCase();
+      const nameEl   = document.getElementById('sidebarUserName');
+      const avatarEl = document.getElementById('sidebarUserAvatar');
+      if (nameEl)   nameEl.textContent   = fullName || '—';
+      if (avatarEl) avatarEl.textContent = initial;
+    })();
+
     // Sync cloud → local após login (non-blocking)
     if (typeof SupabaseSync !== 'undefined') {
       SupabaseSync.init();
@@ -12679,18 +13341,14 @@ ${coachInlineHTML({
           if (syncDot)   syncDot.style.background = 'var(--green)';
           if (syncLabel) syncLabel.textContent = ctx?.role && ctx.role !== 'admin'
             ? `Conectado (${ctx.role})` : 'Sincronizado';
-          console.log('Haile: nuvem ganhou (cloud', new Date(cloudTs).toISOString(), ')');
         } else if (cloudData && cloudData.despesas && localTs > cloudTs) {
           // Local mais recente → local ganha, push para sincronizar
           if (!ctx || ctx.role !== 'member') SupabaseSync.schedulePush(Store.get());
           if (syncDot)   syncDot.style.background = 'var(--amber)';
           if (syncLabel) syncLabel.textContent = 'Sincronizando…';
-          console.log('Haile: local ganhou (local', new Date(localTs).toISOString(),
-            '> cloud', new Date(cloudTs).toISOString(), ')');
         } else {
           // Sem dados na nuvem → push local
           if (!ctx || ctx.role === 'admin') SupabaseSync.schedulePush(Store.get());
-          console.log('Haile: nuvem vazia, enviando dados locais');
         }
 
         // Apply member-role restrictions after data is settled
@@ -13809,6 +14467,46 @@ ${recFutStr}
 
 === ANOMALIAS DETECTADAS ===
 ${anomStr}
+
+=== CONTEXTO PESSOAL DO USUÁRIO (ICP — quanto você o conhece) ===
+${(() => {
+  // Injeta as respostas do ICP (Perfil & Contexto Pessoal) no system prompt
+  // para que o Coach personalize de verdade — não só com dados financeiros,
+  // mas também com perfil psicológico, valores, motivação, tolerância a risco.
+  try {
+    const cats = (typeof Store.getContextoCategories === 'function')
+      ? Store.getContextoCategories() : [];
+    if (!cats.length) return '  (sistema ICP indisponível)';
+    const icpPct = (typeof Store.calculateICP === 'function') ? Store.calculateICP() : 0;
+    const icpLevel = (typeof Store.getContextoLevel === 'function')
+      ? Store.getContextoLevel(icpPct) : null;
+    const totalResp = cats.reduce((s, c) => s + c.answered, 0);
+    if (totalResp === 0) {
+      return `Nível: ${icpLevel?.name || 'Recém-chegado'} (${icpPct}%) — usuário ainda não respondeu nenhuma pergunta de contexto.
+Diretriz: dê sugestões mais genéricas e, quando fizer sentido, convide o usuário a responder algumas perguntas em Perfil para você poder personalizar mais. Não force.`;
+    }
+    // Ordem de prioridade (mais útil para personalizar resposta)
+    const order = ['risk', 'values', 'money', 'dreams', 'onbo', 'family', 'career', 'health', 'basic'];
+    const lines = [`Nível: ${icpLevel?.name || '—'} (${icpPct}%) — ${totalResp} respostas em ${cats.filter(c => c.answered > 0).length} categorias.`];
+    order.forEach(catId => {
+      const cat = cats.find(c => c.id === catId);
+      if (!cat || cat.answered === 0) return;
+      const respostas = (typeof Store.getContextoRespostas === 'function')
+        ? Store.getContextoRespostas(catId) : [];
+      if (!respostas.length) return;
+      lines.push(`\n▸ ${cat.name} (${cat.answered}/${cat.total}):`);
+      respostas.slice(0, 5).forEach(r => {
+        const pergunta = (r.pergunta || '').replace(/^./, c => c.toUpperCase());
+        const resposta = (r.resposta || '').toString().slice(0, 120);
+        lines.push(`  - ${pergunta} → ${resposta}`);
+      });
+    });
+    lines.push('\nDiretriz: Use estas respostas para CALIBRAR seu tom e suas sugestões. Por exemplo: se o usuário marcou "Conservador" em risco, não sugira ativos voláteis. Se ele marcou "Educação dos filhos" como prioridade inegociável, não recomende cortar essa categoria mesmo em aperto. Mencione o contexto pessoal de forma sutil ("você me contou que...") em vez de citar IDs ou categorias.');
+    return lines.join('\n');
+  } catch (e) {
+    return '  (erro ao carregar ICP)';
+  }
+})()}
 
 ${(() => {
   const personality = (data.settings && data.settings.coachPersonality) || 'mentor';
