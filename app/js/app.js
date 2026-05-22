@@ -104,6 +104,24 @@ const App = (function () {
     }, 3000);
   }
 
+  // ── COACH EMPTY CARD (empty state com voz do Coach) ──────────
+  // Usado em Receitas / Despesas / Contas quando não há dados.
+  // ctaId: id do botão de ação primária (pra renderizadores ligarem o handler)
+  function coachEmptyHTML({ titulo, texto, ctaLabel, ctaId }) {
+    return `
+<div class="coach-empty-card mb-4">
+  <div class="coach-empty-avatar">
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="40" height="40" style="border-radius:50%;object-fit:cover"/>
+  </div>
+  <div class="coach-empty-body">
+    <div class="coach-empty-eyebrow">HAILE · SEU COACH FINANCEIRO</div>
+    <h3 class="coach-empty-title">${titulo}</h3>
+    <p class="coach-empty-text">${texto}</p>
+    ${ctaLabel ? `<button class="btn-primary" id="${ctaId}" style="margin-top:10px">${ctaLabel}</button>` : ''}
+  </div>
+</div>`;
+  }
+
   // ── MODAL ──────────────────────────────────────────────────────
   const Modal = {
     overlay: null, modal: null,
@@ -2047,6 +2065,17 @@ ${coachInlineHTML({
   </div>
 </div>
 
+${(() => {
+  const recsPeriodo = Store.get().receitas.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
+  if (recsPeriodo.length > 0) return '';
+  return coachEmptyHTML({
+    titulo: 'Aqui você vai cadastrar receitas',
+    texto: 'Aqui você vai cadastrar como dinheiro entra na sua vida — salário, freelas, aluguéis, qualquer fonte. Quanto mais completo, melhor consigo te orientar.',
+    ctaLabel: '+ Adicionar primeira receita',
+    ctaId: 'btnCoachEmptyRec',
+  });
+})()}
+
 <div class="card mb-6">
   <div class="card-header">
     <span class="card-title">Receitas — ${periodLabel}</span>
@@ -2119,6 +2148,7 @@ ${coachInlineHTML({
 
     renderPageMonthPicker(container.querySelector('#recFilterRow1'));
     document.getElementById('btnAddRec')?.addEventListener('click', () => openAddReceita(container));
+    document.getElementById('btnCoachEmptyRec')?.addEventListener('click', () => openAddReceita(container));
     bindPeriodToggle(container, 'ff_rec_period', () => renderReceitas(container));
 
     document.getElementById('btnAddRf')?.addEventListener('click', () => openRfModal(container));
@@ -2348,6 +2378,13 @@ ${coachInlineHTML({
 
 ${anomaliasHTML(anomalias, total)}
 
+${despesas.length === 0 ? coachEmptyHTML({
+  titulo: 'Aqui você vai cadastrar despesas',
+  texto: 'Aqui você vai cadastrar o que sai todo mês. Começa pelas despesas fixas (aluguel, contas) — o resto a gente refina depois.',
+  ctaLabel: '+ Adicionar primeira despesa',
+  ctaId: 'btnCoachEmptyDesp',
+}) : ''}
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">Detalhamento — ${Utils.monthsFull[month-1]}</span>
@@ -2459,6 +2496,10 @@ ${anomaliasHTML(anomalias, total)}
 
     renderPageMonthPicker(container.querySelector('#despFilterRow1'));
     document.getElementById('btnAddDesp')?.addEventListener('click', () => {
+      if (isMember && familyCtx?.pessoaName) openMemberDespesa(familyCtx.pessoaName, () => renderDespesas(container));
+      else openAddDespesa(container);
+    });
+    document.getElementById('btnCoachEmptyDesp')?.addEventListener('click', () => {
       if (isMember && familyCtx?.pessoaName) openMemberDespesa(familyCtx.pessoaName, () => renderDespesas(container));
       else openAddDespesa(container);
     });
@@ -4021,16 +4062,21 @@ ${(() => {
 </div>`;
 })()}
 
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
-  ${contas.length ? contas.map(ct => `
+${contas.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
+  ${contas.map(ct => `
   <div class="card" data-edit-conta="${ct.id}" style="border-top:3px solid ${ct.cor}">
     <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${ct.banco}</div>
     <div style="font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:2px">${ct.nome}</div>
     <div style="font-size:11px;color:var(--text-4);margin-bottom:12px">${ct.tipo}</div>
     <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">Saldo</div>
     <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:${ct.cor}">${Utils.currency(ct.saldo)}</div>
-  </div>`).join('') : '<div class="empty-state"><p>Nenhuma conta cadastrada</p></div>'}
-</div>
+  </div>`).join('')}
+</div>` : coachEmptyHTML({
+  titulo: 'Aqui você vai cadastrar contas',
+  texto: 'Adicione suas contas bancárias e saldos. Vou te ajudar a enxergar onde seu dinheiro está, em tempo real.',
+  ctaLabel: '+ Adicionar primeira conta',
+  ctaId: 'btnCoachEmptyConta',
+})}
 ` : ''}
 
 ${showCartoes ? `
@@ -4342,6 +4388,11 @@ ${(() => {
           });
         });
       }, 50);
+    });
+
+    // Empty state CTA: dispara o mesmo flow do btnAddConta
+    document.getElementById('btnCoachEmptyConta')?.addEventListener('click', () => {
+      document.getElementById('btnAddConta')?.click();
     });
 
     document.getElementById('btnAddCartao')?.addEventListener('click', () => {
@@ -5376,11 +5427,48 @@ ${passivos.length === 0
     const isEdit = !!ativo;
     const TYPES = ['Crypto','Token','FIAT BR','FIAT EUR'];
     const CURRENCIES = ['BRL','USD','EUR'];
+    const CATS = Store.ATIVO_CATEGORIAS || [];
+    const SUBS = Store.ATIVO_SUBCATEGORIAS || {};
+    const catAtual = (isEdit && ativo.categoria) || (CATS[0] && CATS[0].id) || '';
+    const catInfo  = CATS.find(c => c.id === catAtual) || CATS[0] || null;
+    const subAtual = (isEdit && ativo.sub) || '';
+
+    // Badges visuais de risco (0-4) e liquidez (0-3)
+    const riscoBadge = (n) => {
+      const labels = ['Segurança total','Baixo','Médio','Alto','Especulativo'];
+      const colors = ['var(--green)','var(--teal)','var(--amber)','var(--red)','var(--red)'];
+      const k = Math.max(0, Math.min(4, n|0));
+      return `<span class="badge" style="background:${colors[k]}22;color:${colors[k]};font-weight:700">Risco: ${labels[k]}</span>`;
+    };
+    const liqBadge = (n) => {
+      const labels = ['Ilíquido','Baixa','Média','Alta'];
+      const colors = ['var(--red)','var(--amber)','var(--teal)','var(--green)'];
+      const k = Math.max(0, Math.min(3, n|0));
+      return `<span class="badge" style="background:${colors[k]}22;color:${colors[k]};font-weight:700">Liquidez: ${labels[k]}</span>`;
+    };
+
+    const subOptions = (catId) => {
+      const arr = SUBS[catId] || [];
+      return arr.map(s => `<option value="${s}"${s===subAtual?' selected':''}>${s}</option>`).join('');
+    };
+
     const html = `
 <div class="form-grid">
   <div class="form-group" style="grid-column:1/-1">
     <label class="form-label">Nome / Plataforma</label>
     <input class="form-input" id="fAP" placeholder="Ex: Bitcoin, Wise" value="${isEdit?ativo.platform:''}"/>
+  </div>
+  <div class="form-group form-full">
+    <label class="form-label">Categoria de investimento</label>
+    <select class="form-select" id="fACat">${CATS.map(c=>`<option value="${c.id}"${catAtual===c.id?' selected':''}>${c.label}</option>`).join('')}</select>
+    <div id="fACatDesc" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.45">${catInfo ? catInfo.desc : ''}</div>
+    <div id="fACatBadges" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      ${catInfo ? riscoBadge(catInfo.risco) + liqBadge(catInfo.liquidez) : ''}
+    </div>
+  </div>
+  <div class="form-group form-full">
+    <label class="form-label">Subcategoria</label>
+    <select class="form-select" id="fASub">${subOptions(catAtual)}</select>
   </div>
   <div class="form-group">
     <label class="form-label">Tipo</label>
@@ -5406,6 +5494,8 @@ ${passivos.length === 0
     Modal.open(isEdit ? 'Editar Ativo' : 'Novo Ativo', html, () => {
       const patch = {
         platform : document.getElementById('fAP').value.trim(),
+        categoria: document.getElementById('fACat').value,
+        sub      : document.getElementById('fASub').value,
         type     : document.getElementById('fAT').value,
         currency : document.getElementById('fACur').value,
         qty      : parseFloat(document.getElementById('fAQ').value) || 0,
@@ -5425,6 +5515,23 @@ ${passivos.length === 0
       if (onSaved) onSaved();
       toast('Ativo excluído', 'success');
     } : null);
+
+    // Toggle dinâmico: ao trocar categoria, atualiza subs + descrição + badges
+    setTimeout(() => {
+      const selCat = document.getElementById('fACat');
+      const selSub = document.getElementById('fASub');
+      const desc   = document.getElementById('fACatDesc');
+      const badges = document.getElementById('fACatBadges');
+      if (!selCat) return;
+      selCat.addEventListener('change', () => {
+        const c = CATS.find(x => x.id === selCat.value);
+        if (selSub) selSub.innerHTML = (SUBS[selCat.value] || []).map(s => `<option value="${s}">${s}</option>`).join('');
+        if (c) {
+          if (desc)   desc.textContent = c.desc || '';
+          if (badges) badges.innerHTML = riscoBadge(c.risco) + liqBadge(c.liquidez);
+        }
+      });
+    }, 50);
   }
 
   // ── Modal: Recebimento Futuro (renamed to avoid conflict) ─────
@@ -7192,11 +7299,21 @@ ${fins.length === 0
   function openFinanciamentoModal(financiamento, onSaved) {
     const isEdit = !!financiamento;
     const f = financiamento || {};
+    // Tipos legados (mantidos pra compat com financiamentos pré-existentes — antigo campo `type`)
     const TIPOS = [['imovel','Imóvel'],['veiculo','Veículo'],['pessoal','Pessoal'],['estudantil','Estudantil'],['empresarial','Empresarial']];
+    // Tipos canônicos do Store (perfil esperado de taxa pro Coach validar)
+    const STORE_TIPOS = (Store.FINANCIAMENTO_TIPOS || []);
+    const tipoAtual = f.tipo || (STORE_TIPOS[0] && STORE_TIPOS[0].id) || '';
+    const tipoInfo  = STORE_TIPOS.find(t => t.id === tipoAtual) || STORE_TIPOS[0] || null;
     const hoje = new Date().toISOString().slice(0, 10);
     const html = `
 <div class="form-grid">
-  <div class="form-group"><label class="form-label">Tipo</label>
+  <div class="form-group form-full"><label class="form-label">Tipo de financiamento</label>
+    <select class="form-select" id="fFNTipoNovo">${STORE_TIPOS.map(t=>`<option value="${t.id}"${tipoAtual===t.id?' selected':''}>${t.label}</option>`).join('')}</select>
+    <div id="fFNTipoDesc" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.45">${tipoInfo ? tipoInfo.desc : ''}</div>
+    <div id="fFNTipoRange" style="font-size:11px;color:var(--text-4);margin-top:2px">${tipoInfo ? `Taxa típica a.a.: ${tipoInfo.taxaMin}% – ${tipoInfo.taxaMax}%` : ''}</div>
+  </div>
+  <div class="form-group"><label class="form-label">Categoria (legado)</label>
     <select class="form-select" id="fFNTipo">${TIPOS.map(([v,l])=>`<option value="${v}"${f.type===v?' selected':''}>${l}</option>`).join('')}</select>
   </div>
   <div class="form-group"><label class="form-label">Sistema</label>
@@ -7215,7 +7332,9 @@ ${fins.length === 0
   <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fFNNotes" value="${f.notes||''}"></div>
 </div>`;
     Modal.open(isEdit ? 'Editar Financiamento' : 'Novo Financiamento', html, () => {
+      const tipoSel = document.getElementById('fFNTipoNovo').value;
       const data = {
+        tipo:             tipoSel,
         type:             document.getElementById('fFNTipo').value,
         sistema:          document.getElementById('fFNSistema').value,
         label:            document.getElementById('fFNLabel').value.trim(),
@@ -7229,11 +7348,36 @@ ${fins.length === 0
       };
       if (!data.label) return toast('Informe a descrição', 'error');
       if (!data.valorFinanciado || !data.prazo) return toast('Preencha valor e prazo', 'error');
+
+      // Validação de taxa fora do range esperado do tipo (warning, não bloqueia)
+      const tInfo = STORE_TIPOS.find(t => t.id === tipoSel);
+      if (tInfo && data.taxaMensal > 0) {
+        const taxaAnual = (Math.pow(1 + data.taxaMensal / 100, 12) - 1) * 100;
+        if (taxaAnual < tInfo.taxaMin || taxaAnual > tInfo.taxaMax) {
+          console.warn(`[Financiamento] Taxa ${taxaAnual.toFixed(2)}% a.a. fora do range típico de "${tInfo.label}" (${tInfo.taxaMin}% – ${tInfo.taxaMax}%).`);
+          toast(`Taxa fora do range típico pra esse tipo (${tInfo.taxaMin}% a ${tInfo.taxaMax}%). Confere se está correto?`, 'warning');
+        }
+      }
+
       if (isEdit) { Store.updateFinanciamento(financiamento.id, data); toast('Financiamento atualizado', 'success'); }
       else        { Store.addFinanciamento(data);                      toast('Financiamento cadastrado', 'success'); }
       Modal.close();
       if (onSaved) onSaved();
     });
+    // Atualiza descrição + range ao trocar tipo
+    setTimeout(() => {
+      const sel  = document.getElementById('fFNTipoNovo');
+      const desc = document.getElementById('fFNTipoDesc');
+      const rng  = document.getElementById('fFNTipoRange');
+      if (!sel) return;
+      sel.addEventListener('change', () => {
+        const t = STORE_TIPOS.find(x => x.id === sel.value);
+        if (t) {
+          if (desc) desc.textContent = t.desc || '';
+          if (rng)  rng.textContent  = `Taxa típica a.a.: ${t.taxaMin}% – ${t.taxaMax}%`;
+        }
+      });
+    }, 50);
   }
 
   function _showTabelaFinanciamento(f) {
