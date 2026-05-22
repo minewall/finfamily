@@ -88,7 +88,7 @@
       <div class="body">
 
         <p class="body-text">
-          Olá, <strong>{{ user_name }}</strong>! Que bom ter você por aqui.
+          Olá! Que bom ter você por aqui.
         </p>
         <p class="body-text">
           Clique no botão abaixo para confirmar seu endereço de email e ativar sua conta no <strong>Haile</strong>.
@@ -96,19 +96,19 @@
 
         <div class="cta-wrap">
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ confirmation_url }}" style="height:50px;v-text-anchor:middle;width:240px" arcsize="24%" stroke="f" fillcolor="#10B981">
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ .ConfirmationURL }}" style="height:50px;v-text-anchor:middle;width:240px" arcsize="24%" stroke="f" fillcolor="#10B981">
           <w:anchorlock/>
           <center style="color:#ffffff;font-family:'DM Sans',Arial,sans-serif;font-size:15px;font-weight:600">Confirmar email</center>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-->
-          <a href="{{ confirmation_url }}" class="cta-btn">Confirmar email →</a>
+          <a href="{{ .ConfirmationURL }}" class="cta-btn">Confirmar email →</a>
           <!--<![endif]-->
         </div>
 
         <p class="link-fallback">
           Se o botão não funcionar, copie e cole este link:<br>
-          <a href="{{ confirmation_url }}">{{ confirmation_url }}</a>
+          <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
         </p>
 
         <div class="expiry-note">
