@@ -420,6 +420,22 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Tipos de financiamento/dívida com perfil esperado de taxa.
+  // - taxaMin/taxaMax: ranges típicos a.a. (pro Coach validar se está fora do mercado)
+  // - saudavel: dívidas geralmente "saudáveis" (taxa baixa + ativo se valoriza)
+  //   vs "destrutivas" (taxa alta + nenhum ativo associado)
+  // - prioridade: ordem sugerida de quitação (1 = mais urgente)
+  const FINANCIAMENTO_TIPOS = [
+    { id: 'imobiliario',     label: 'Imobiliário',         taxaMin: 8,   taxaMax: 12,   saudavel: true,  prioridade: 8, desc: 'Casa/apartamento (SFH, SBPE, PMCMV)' },
+    { id: 'veiculo',         label: 'Veículo',             taxaMin: 18,  taxaMax: 30,   saudavel: false, prioridade: 5, desc: 'CDC, leasing de carro ou moto' },
+    { id: 'estudantil',      label: 'Estudantil',          taxaMin: 6,   taxaMax: 15,   saudavel: true,  prioridade: 7, desc: 'FIES, P-FIES, financiamento privado' },
+    { id: 'consignado',      label: 'Consignado',          taxaMin: 18,  taxaMax: 30,   saudavel: false, prioridade: 4, desc: 'Desconto direto na folha (CLT, aposentado)' },
+    { id: 'pessoal',         label: 'Pessoal',             taxaMin: 30,  taxaMax: 120,  saudavel: false, prioridade: 2, desc: 'Empréstimo livre, sem garantia específica' },
+    { id: 'rotativo',        label: 'Cartão Rotativo',     taxaMin: 200, taxaMax: 500,  saudavel: false, prioridade: 1, desc: 'Saldo não pago da fatura — taxa altíssima' },
+    { id: 'cheque_especial', label: 'Cheque Especial',     taxaMin: 80,  taxaMax: 200,  saudavel: false, prioridade: 1, desc: 'Limite negativo da conta — taxa muito alta' },
+    { id: 'familiar',        label: 'Familiar / Amigo',    taxaMin: 0,   taxaMax: 0,    saudavel: true,  prioridade: 6, desc: 'Empréstimo informal — geralmente sem juros, mas é compromisso' },
+  ];
+
   // Emissores comuns de cartões de benefício (BR). "Outros" pra fallback.
   // Importante: usar SEMPRE este label pro Coach reconhecer no extrato.
   const BENEFIT_EMISSORES = [
@@ -2912,7 +2928,7 @@ const Store = (function () {
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
-    CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
+    CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS, FINANCIAMENTO_TIPOS,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
