@@ -407,12 +407,37 @@ const Store = (function () {
   const ACCOUNT_TYPES = ['Corrente','Poupança','Salário','Corretora'];
 
   // Tipos de cartão — usado pra saber se gera fatura (Crédito/Múltiplo em
-  // modo crédito) ou é pagamento imediato (Débito/Pré-pago).
+  // modo crédito) ou é pagamento imediato (Débito/Pré-pago/Benefício).
+  //
+  // Benefício é especial: tem flag `terceiro=true` pra indicar que NÃO sai
+  // da conta do usuário (carregado por empregador/empresa). Despesas pagas
+  // com benefício são contadas no histórico mas NÃO reduzem Poder de Escolha.
   const CARD_TYPES = [
-    { id: 'credito',  label: 'Crédito',   geraFatura: true,  desc: 'Gera fatura mensal — paga no vencimento' },
-    { id: 'debito',   label: 'Débito',    geraFatura: false, desc: 'Desconta direto da conta' },
-    { id: 'prepago',  label: 'Pré-pago',  geraFatura: false, desc: 'Carrega antes de usar' },
-    { id: 'multiplo', label: 'Múltiplo',  geraFatura: true,  desc: 'Funciona como crédito ou débito' },
+    { id: 'credito',  label: 'Crédito',   geraFatura: true,  terceiro: false, desc: 'Gera fatura mensal — paga no vencimento' },
+    { id: 'debito',   label: 'Débito',    geraFatura: false, terceiro: false, desc: 'Desconta direto da conta' },
+    { id: 'prepago',  label: 'Pré-pago',  geraFatura: false, terceiro: false, desc: 'Você carrega antes de usar' },
+    { id: 'multiplo', label: 'Múltiplo',  geraFatura: true,  terceiro: false, desc: 'Funciona como crédito ou débito' },
+    { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
+  ];
+
+  // Emissores comuns de cartões de benefício (BR). "Outros" pra fallback.
+  // Importante: usar SEMPRE este label pro Coach reconhecer no extrato.
+  const BENEFIT_EMISSORES = [
+    'VR', 'Alelo', 'Sodexo', 'Ticket', 'Caju', 'Flash', 'Pluxee', 'Swile', 'iFood Benefícios', 'Outros',
+  ];
+
+  // Tipos de uso restrito do cartão de benefício. Cada tipo restringe
+  // automaticamente as despesas válidas — Coach valida no momento do
+  // lançamento se a categoria escolhida é compatível.
+  const BENEFIT_USOS = [
+    { id: 'refeicao',   label: 'Refeição',    catsPermitidas: ['alimentacao'],            subsPermitidas: ['Delivery','iFood','Padaria','Sorveteria','Lanche na Faculdade'] },
+    { id: 'alimentacao',label: 'Alimentação', catsPermitidas: ['alimentacao'],            subsPermitidas: ['Supermercado','Feira / Sacolão','Açougue','Padaria'] },
+    { id: 'combustivel',label: 'Combustível', catsPermitidas: ['transporte'],             subsPermitidas: ['Combustível'] },
+    { id: 'cultura',    label: 'Cultura',     catsPermitidas: ['lazer','assinaturas'],    subsPermitidas: [] },
+    { id: 'saude',      label: 'Saúde',       catsPermitidas: ['saude'],                  subsPermitidas: [] },
+    { id: 'mobilidade', label: 'Mobilidade',  catsPermitidas: ['transporte'],             subsPermitidas: ['Uber'] },
+    { id: 'gympass',    label: 'Wellness',    catsPermitidas: ['individual','saude'],     subsPermitidas: ['Academia / Esportes','Terapia'] },
+    { id: 'multi',      label: 'Multi',       catsPermitidas: [],                          subsPermitidas: [] }, // sem restrição (Caju/Flash multi-uso)
   ];
 
   // ── EMPTY STATE (para novos usuários — usado em init()) ────────
@@ -2886,7 +2911,8 @@ const Store = (function () {
 
   return {
     init, get, persist,
-    CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES, CARD_TYPES,
+    CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
+    CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
