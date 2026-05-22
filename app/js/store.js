@@ -420,6 +420,28 @@ const Store = (function () {
     { id: 'beneficio',label: 'Benefício', geraFatura: false, terceiro: true,  desc: 'VR/VA/VC — carregado pelo empregador, uso restrito' },
   ];
 
+  // Categorias de ativos (módulo Investimentos/Patrimônio).
+  // Reservas/Imóveis/Veículos têm módulos próprios — não estão aqui.
+  // - risco: 0=segurança total, 1=baixo, 2=médio, 3=alto, 4=especulativo
+  // - liquidez: 0=ilíquido, 1=baixa, 2=média, 3=alta (≤D+1)
+  const ATIVO_CATEGORIAS = [
+    { id: 'renda_fixa',    label: 'Renda Fixa',    risco: 1, liquidez: 2, desc: 'CDB, Tesouro, LCI/LCA, Debêntures' },
+    { id: 'renda_variavel',label: 'Renda Variável',risco: 3, liquidez: 3, desc: 'Ações, FIIs, ETFs, Fundos Multi' },
+    { id: 'cripto',        label: 'Cripto',        risco: 4, liquidez: 3, desc: 'BTC, ETH, stablecoins, altcoins' },
+    { id: 'previdencia',   label: 'Previdência',   risco: 2, liquidez: 1, desc: 'PGBL, VGBL — longo prazo' },
+    { id: 'commodities',   label: 'Commodities',   risco: 2, liquidez: 1, desc: 'Ouro, prata, metais físicos' },
+    { id: 'outros',        label: 'Outros',        risco: 3, liquidez: 0, desc: 'Tokens/NFT, joias, arte, empréstimos a receber' },
+  ];
+
+  const ATIVO_SUBCATEGORIAS = {
+    renda_fixa:     ['Tesouro Direto','CDB','LCI / LCA','Debêntures','Fundos RF','Outros'],
+    renda_variavel: ['Ações nacionais','Ações internacionais / BDR','FIIs','ETFs','Fundos Multimercado','Outros'],
+    cripto:         ['Bitcoin (BTC)','Ethereum (ETH)','Stablecoins (USDT/USDC)','Altcoins','Outros'],
+    previdencia:    ['PGBL','VGBL'],
+    commodities:    ['Ouro físico','Prata física','Outros metais'],
+    outros:         ['Tokens / NFT','Joias / Coleção / Arte','Empréstimo a receber','Outros'],
+  };
+
   // Tipos de compromisso (Contratos/Recorrentes). Cada um carrega
   // expectativas de peso e flexibilidade pro Coach.
   // - fixoMensal: o pagamento vem todo mês com valor previsível
@@ -2944,6 +2966,7 @@ const Store = (function () {
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
     FINANCIAMENTO_TIPOS, COMPROMISSO_TIPOS,
+    ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS,
     RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     PERIODICIDADES, periodicidadeStepMeses,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
