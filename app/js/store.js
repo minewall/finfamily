@@ -42,7 +42,7 @@ const Store = (function () {
   };
 
   const SUBCATEGORIES = {
-    moradia:     ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Móveis e itens casa','Outras despesas'],
+    moradia:     ['Aluguel','Condomínio','IPTU','Energia Elétrica','Água e Saneamento','Gás','Internet','TV','Telefone','Segurança','Seguro Residencial','Reparos e Manutenção','Móveis e Decoração','Outras despesas'],
     alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade','Delivery','iFood'],
     transporte:  ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
     saude:       ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
@@ -630,6 +630,7 @@ const Store = (function () {
       __migrated_card_types: true,
       __migrated_metas_templates: true,
       __migrated_default_settings: true,
+      __migrated_subcats_v2: true,
     };
   }
 
@@ -1261,6 +1262,32 @@ const Store = (function () {
     _data.__migrated_default_settings = true;
   }
 
+  // Revisão de subcategorias V2 — rodada de refino por categoria.
+  // Por enquanto: Moradia.
+  function _migrateSubcatsV2() {
+    if (_data.__migrated_subcats_v2) return;
+    const SUB_RENAME = {
+      moradia: {
+        'TV / Internet / Telefone': 'Internet', // assume Internet como mais usado
+        'Móveis e itens casa':       'Móveis e Decoração',
+      },
+    };
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        const renameMap = SUB_RENAME[d.category];
+        if (renameMap && renameMap[d.sub]) {
+          return { ...d, sub: renameMap[d.sub] };
+        }
+        return d;
+      });
+    }
+    // Atualiza _data.subcategorias da Moradia pra estrutura nova
+    if (_data.subcategorias?.moradia) {
+      _data.subcategorias.moradia = [...SUBCATEGORIES.moradia];
+    }
+    _data.__migrated_subcats_v2 = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -1358,6 +1385,7 @@ const Store = (function () {
     _migrateCardTypes();
     _migrateMetasTemplates();
     _migrateDefaultSettings();
+    _migrateSubcatsV2();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
