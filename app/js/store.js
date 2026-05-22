@@ -2094,6 +2094,8 @@ const Store = (function () {
       perguntaId: resp.perguntaId,
       pergunta:   resp.pergunta,
       resposta:   resp.resposta,
+      opcaoId:    resp.opcaoId || null, // ID da opção escolhida (pra pré-selecionar em edição)
+      extra:      resp.extra || '',     // Texto livre adicional, se houver
       version:    resp.version || 1,
       ts:         new Date().toISOString(),
     };
@@ -2111,6 +2113,12 @@ const Store = (function () {
   function getContextoAnsweredIds(categoria) {
     _ensureContexto();
     return (_data.contexto[categoria]?.respostas || []).map(r => r.perguntaId);
+  }
+
+  /** Retorna o array de respostas (com opcaoId, extra, ts) de uma categoria. */
+  function getContextoRespostas(categoria) {
+    _ensureContexto();
+    return (_data.contexto[categoria]?.respostas || []).slice();
   }
 
   /**
@@ -2493,6 +2501,7 @@ const Store = (function () {
     exportData, importData, resetData, clearAll,
     getContextoCategories, calculateICP, getContextoLevel, getContextoNextLevel,
     addContextoResposta, removeContextoResposta, getContextoAnsweredIds,
+    getContextoRespostas,
     CONTEXTO_CATEGORIES, CONTEXTO_LEVELS,
     getProximasParcelas,
     getPassivos, addPassivo, updatePassivo, deletePassivo, totalPassivos,

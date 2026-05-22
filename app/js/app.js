@@ -10916,26 +10916,57 @@ ${isConnected && isAdmin ? `
   };
 
   // Estado do modal de perguntas ICP
-  let _icpModal = { catId: null, qIdx: 0, selected: null, extra: '' };
+  let _icpModal = {
+    catId: null, qIdx: 0, selected: null, extra: '',
+    isReview: false,    // todas as perguntas já foram respondidas (modo edição)
+    anyChange: false,   // alguma resposta foi alterada/adicionada nesta sessão
+    prevAnswers: {},    // { perguntaId: opcaoId } com respostas anteriores
+  };
 
   function _icpCatMeta(catId) {
     const cats = Store.getContextoCategories();
     return cats.find(c => c.id === catId) || null;
   }
 
-  function _icpPendingQuestions(catId) {
-    // Perguntas ainda não respondidas para essa categoria
+  /** Mapa { perguntaId: opcaoId } com as respostas já dadas pelo usuário. */
+  function _icpGetAnsweredMap(catId) {
+    const respostas = Store.getContextoRespostas ? Store.getContextoRespostas(catId) : [];
+    const map = {};
+    respostas.forEach(r => { if (r.opcaoId) map[r.perguntaId] = r.opcaoId; });
+    return map;
+  }
+
+  /** Total de perguntas + respondidas + idx da primeira pendente. */
+  function _icpQuestionsState(catId) {
+    const allQs   = ICP_QUESTIONS[catId] || [];
     const answered = Store.getContextoAnsweredIds(catId);
-    return (ICP_QUESTIONS[catId] || []).filter(q => !answered.includes(q.id));
+    const firstPending = allQs.findIndex(q => !answered.includes(q.id));
+    return {
+      allQs,
+      answeredCount: answered.length,
+      total: allQs.length,
+      firstPendingIdx: firstPending === -1 ? 0 : firstPending,
+      isComplete: allQs.length > 0 && answered.length >= allQs.length,
+    };
   }
 
   function openICPModal(catId) {
-    const qs = _icpPendingQuestions(catId);
-    if (!qs.length) {
-      toast('Todas as perguntas desta categoria já foram respondidas!', 'success');
+    const st = _icpQuestionsState(catId);
+    if (!st.total) {
+      toast('Categoria sem perguntas disponíveis ainda.', 'info');
       return;
     }
-    _icpModal = { catId, qIdx: 0, selected: null, extra: '' };
+    const prevAnswers = _icpGetAnsweredMap(catId);
+    const initialIdx  = st.isComplete ? 0 : st.firstPendingIdx;
+    _icpModal = {
+      catId,
+      qIdx: initialIdx,
+      selected: prevAnswers[st.allQs[initialIdx]?.id] || null,
+      extra: '',
+      isReview: st.isComplete,
+      anyChange: false,
+      prevAnswers,
+    };
     _renderICPModal();
   }
 
@@ -10982,12 +11013,18 @@ ${isConnected && isAdmin ? `
       document.querySelectorAll('#icpOptions .icp-opt').forEach(b =>
         b.classList.toggle('selected', b.dataset.val === _icpModal.selected)
       );
+      // Recalcula label/hint do footer baseado na mudança (review mode etc)
+      const fState   = _icpFooterState();
       const hintDot  = document.getElementById('icpHintDot');
       const hintText = document.getElementById('icpHintText');
       const nextBtn  = document.getElementById('icpNext');
-      if (hintDot)  hintDot.classList.remove('pending');
-      if (hintText) hintText.textContent = 'Pronto pra avançar';
-      if (nextBtn)  { nextBtn.disabled = false; }
+      if (hintDot)  hintDot.classList.toggle('pending', fState.hintPending);
+      if (hintText) hintText.textContent = fState.hint;
+      if (nextBtn) {
+        nextBtn.disabled = false;
+        nextBtn.className = 'icp-next-btn' + (fState.isLast ? ' is-last' : '');
+        nextBtn.innerHTML = _icpNextBtnHtml();
+      }
       if (q.textarea) {
         const wrap = document.getElementById('icpTextareaWrap');
         if (wrap) wrap.style.display = 'block';
@@ -11002,27 +11039,62 @@ ${isConnected && isAdmin ? `
     });
   }
 
+  // Calcula labels do footer baseado no estado atual (review/edit/last/etc)
+  function _icpFooterState() {
+    const { catId, qIdx, selected, isReview, prevAnswers } = _icpModal;
+    const allQs = ICP_QUESTIONS[catId] || [];
+    const q = allQs[qIdx];
+    const isLast = qIdx + 1 >= allQs.length;
+    const prev = q ? prevAnswers[q.id] : null;
+    const hasSel = !!selected;
+    const changed = hasSel && prev && selected !== prev;
+    let label, hint, hintPending = false;
+    if (!hasSel) {
+      label = isLast ? 'Concluir' : 'Continuar';
+      hint  = 'Selecione uma opção';
+      hintPending = true;
+    } else if (isReview && !changed) {
+      label = isLast ? 'Concluir' : 'Próxima';
+      hint  = 'Sua resposta atual';
+    } else if (changed) {
+      label = isLast ? 'Atualizar e concluir' : 'Atualizar';
+      hint  = 'Você mudou a resposta';
+    } else {
+      // Nova resposta (não tinha antes)
+      label = isLast ? 'Concluir' : 'Continuar';
+      hint  = 'Pronto pra avançar';
+    }
+    return { label, hint, hintPending, isLast, q, prev };
+  }
+
+  function _icpNextBtnHtml() {
+    const { label, isLast } = _icpFooterState();
+    return `${label}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        ${isLast ? '<path d="M20 6L9 17l-5-5"/>' : '<path d="M5 12h14M12 5l7 7-7 7"/>'}
+      </svg>`;
+  }
+
   function _renderICPModal() {
-    const { catId, qIdx } = _icpModal;
+    const { catId, qIdx, isReview } = _icpModal;
     const cat   = _icpCatMeta(catId);
-    const qs    = _icpPendingQuestions(catId);
-    const total = ICP_QUESTIONS[catId]?.length || 0;
-    const alreadyAnswered = total - qs.length;
+    const allQs = ICP_QUESTIONS[catId] || [];
+    const total = allQs.length;
 
     document.getElementById('icpModalOverlay')?.remove();
 
-    if (!qs.length) {
+    if (!total) {
       _renderICPCelebration(catId);
       return;
     }
 
-    const q = qs[Math.min(qIdx, qs.length - 1)];
-    const currentNum = alreadyAnswered + qIdx + 1;
-    const isLast = qIdx + 1 >= qs.length;
-    const pct = Math.round(((currentNum - 1) / total) * 100);
+    const q = allQs[Math.min(qIdx, total - 1)];
+    const currentNum = qIdx + 1;
+    const pct = Math.round((currentNum / total) * 100);
     const catName = cat?.name || catId;
     const catIcon = cat?.icon || 'user';
-    const canContinue = !!_icpModal.selected;
+    const fState  = _icpFooterState();
 
     const overlay = document.createElement('div');
     overlay.className = 'icp-modal-overlay';
@@ -11050,6 +11122,15 @@ ${isConnected && isAdmin ? `
             </svg>
           </button>
         </div>
+        ${isReview ? `
+        <div class="icp-review-banner" id="icpReviewBanner">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Revisando suas respostas — você pode ajustar qualquer uma
+        </div>` : ''}
         <div class="icp-body-wrap" id="icpBodyWrap">
           <h2 class="icp-q-text">${q.pergunta}</h2>
           <div class="icp-options-list" id="icpOptions">${_buildICPOptionsHtml(q)}</div>
@@ -11061,16 +11142,12 @@ ${isConnected && isAdmin ? `
         </div>
         <div class="icp-footer">
           <div class="icp-footer-hint" id="icpFooterHint">
-            <span class="icp-hint-dot${canContinue ? '' : ' pending'}" id="icpHintDot"></span>
-            <span id="icpHintText">${canContinue ? 'Pronto pra avançar' : 'Selecione uma opção'}</span>
+            <span class="icp-hint-dot${fState.hintPending ? ' pending' : ''}" id="icpHintDot"></span>
+            <span id="icpHintText">${fState.hint}</span>
           </div>
-          <button class="icp-next-btn${isLast ? ' is-last' : ''}" id="icpNext"
-                  ${canContinue ? '' : 'disabled'}>
-            ${isLast ? 'Concluir' : 'Continuar'}
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              ${isLast ? '<path d="M20 6L9 17l-5-5"/>' : '<path d="M5 12h14M12 5l7 7-7 7"/>'}
-            </svg>
+          <button class="icp-next-btn${fState.isLast ? ' is-last' : ''}" id="icpNext"
+                  ${_icpModal.selected ? '' : 'disabled'}>
+            ${_icpNextBtnHtml()}
           </button>
         </div>
       </div>`;
@@ -11080,27 +11157,30 @@ ${isConnected && isAdmin ? `
 
     overlay.addEventListener('click', e => { if (e.target === overlay) _closeICPModal(); });
     document.getElementById('icpClose').addEventListener('click', _closeICPModal);
-    _wireICPOptions(q, isLast);
+    _wireICPOptions(q, fState.isLast);
   }
 
   function _updateICPModalContent() {
-    const { catId, qIdx } = _icpModal;
+    const { catId, qIdx, isReview, prevAnswers } = _icpModal;
     const cat   = _icpCatMeta(catId);
-    const qs    = _icpPendingQuestions(catId);
-    const total = ICP_QUESTIONS[catId]?.length || 0;
-    const alreadyAnswered = total - qs.length;
+    const allQs = ICP_QUESTIONS[catId] || [];
+    const total = allQs.length;
 
-    if (!qs.length) {
+    if (!total) {
       document.getElementById('icpModalOverlay')?.remove();
       _renderICPCelebration(catId);
       return;
     }
 
-    const q = qs[Math.min(qIdx, qs.length - 1)];
-    const currentNum = alreadyAnswered + qIdx + 1;
-    const isLast = qIdx + 1 >= qs.length;
-    const pct = Math.round(((currentNum - 1) / total) * 100);
+    const q = allQs[Math.min(qIdx, total - 1)];
+    const currentNum = qIdx + 1;
+    const pct = Math.round((currentNum / total) * 100);
     const catName = cat?.name || catId;
+
+    // Pré-seleciona resposta anterior (se houver) ao trocar de pergunta
+    _icpModal.selected = prevAnswers[q.id] || null;
+    _icpModal.extra    = '';
+    const fState = _icpFooterState();
 
     // Atualizar barra de progresso
     const progFill = document.getElementById('icpProgFill');
@@ -11132,16 +11212,12 @@ ${isConnected && isAdmin ? `
     const hintDot  = document.getElementById('icpHintDot');
     const hintText = document.getElementById('icpHintText');
     const nextBtn  = document.getElementById('icpNext');
-    if (hintDot)  { hintDot.classList.add('pending'); }
-    if (hintText) { hintText.textContent = 'Selecione uma opção'; }
+    if (hintDot)  { hintDot.classList.toggle('pending', fState.hintPending); }
+    if (hintText) { hintText.textContent = fState.hint; }
     if (nextBtn)  {
-      nextBtn.disabled = true;
-      nextBtn.className = 'icp-next-btn' + (isLast ? ' is-last' : '');
-      nextBtn.innerHTML = `${isLast ? 'Concluir' : 'Continuar'}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          ${isLast ? '<path d="M20 6L9 17l-5-5"/>' : '<path d="M5 12h14M12 5l7 7-7 7"/>'}
-        </svg>`;
+      nextBtn.disabled = !_icpModal.selected;
+      nextBtn.className = 'icp-next-btn' + (fState.isLast ? ' is-last' : '');
+      nextBtn.innerHTML = _icpNextBtnHtml();
       // Re-wire click (remover listener antigo via clone)
       const newBtn = nextBtn.cloneNode(true);
       nextBtn.replaceWith(newBtn);
@@ -11151,34 +11227,44 @@ ${isConnected && isAdmin ? `
       });
     }
 
-    _wireICPOptions(q, isLast);
+    _wireICPOptions(q, fState.isLast);
   }
 
   function _icpModalAdvance() {
-    const { catId, qIdx, selected, extra } = _icpModal;
-    const qs = _icpPendingQuestions(catId);
-    const q  = qs[qIdx];
+    const { catId, qIdx, selected, extra, prevAnswers } = _icpModal;
+    const allQs = ICP_QUESTIONS[catId] || [];
+    const q  = allQs[qIdx];
 
+    // Só persiste se houver mudança de fato (nova resposta ou alteração)
     if (selected && q) {
-      const opcaoLabel = q.opcoes.find(o => o.id === selected)?.label || selected;
-      const resposta   = extra ? `${opcaoLabel} — ${extra.trim()}` : opcaoLabel;
-      Store.addContextoResposta(catId, {
-        perguntaId: q.id,
-        pergunta:   q.pergunta,
-        resposta,
-        version:    q.version || 1,
-      });
+      const prev = prevAnswers[q.id];
+      const isNewOrChanged = !prev || prev !== selected || !!extra;
+      if (isNewOrChanged) {
+        const opcaoLabel = q.opcoes.find(o => o.id === selected)?.label || selected;
+        const resposta   = extra ? `${opcaoLabel} — ${extra.trim()}` : opcaoLabel;
+        Store.addContextoResposta(catId, {
+          perguntaId: q.id,
+          pergunta:   q.pergunta,
+          resposta,
+          opcaoId:    selected,
+          extra:      extra ? extra.trim() : '',
+          version:    q.version || 1,
+        });
+        _icpModal.prevAnswers[q.id] = selected;
+        _icpModal.anyChange = true;
+      }
     }
 
-    const nextIdx   = qIdx + 1;
-    const remaining = _icpPendingQuestions(catId); // recalcula após save
-    _icpModal.selected = null;
-    _icpModal.extra    = '';
+    const nextIdx = qIdx + 1;
 
-    if (!remaining.length || nextIdx >= qs.length) {
-      // Terminou — tela de celebração
+    if (nextIdx >= allQs.length) {
+      // Última pergunta — fechar com celebração apenas se houve alteração
       document.getElementById('icpModalOverlay')?.remove();
-      _renderICPCelebration(catId);
+      if (_icpModal.anyChange) {
+        _renderICPCelebration(catId);
+      } else {
+        _closeICPModal();
+      }
     } else {
       // Próxima pergunta — anima body saindo e atualiza
       _icpModal.qIdx = nextIdx;
