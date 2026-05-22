@@ -54,25 +54,61 @@ const Store = (function () {
     lazer:       ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
     individual:  ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Celular','Outros'],
     mesada:      ['Filhos','Cônjuge','Pais','Outros familiares'],
-    receita:     ['Salário CLT','Pró-labore','Aposentadoria','Pensão','Freelance / Contrato','Bônus / Comissão','Aluguel recebido','Dividendos / Juros','13º / Férias / PLR','Restituição IR','Outros'],
+    receita:     [
+      // Recorrente
+      'Salário CLT','Pró-labore','Aposentadoria','Pensão (alimentícia)','Pensão (previdência)',
+      // Variável
+      'Freelance','Contrato PJ','Comissão','Bônus mensal','Aluguel recebido','Dividendos / Juros',
+      // Eventual
+      '13º Salário / Férias','PLR / Participação','Restituição IR','Indenização / Rescisão',
+      'Royalties','Venda de ativos','Empréstimo recebido','Reembolso','Presente / Doação',
+      'Herança','Outros',
+    ],
   };
 
-  // Natureza padrão de cada subcategoria de receita — usado pelo Coach
-  // pra interpretar a previsibilidade da renda. Usuário pode sobrescrever
-  // por lançamento (ex: alguém pode marcar Freelance como Eventual).
+  // Natureza padrão de cada subcategoria de receita — usada pelo Coach pra
+  // interpretar a previsibilidade da renda. Usuário pode sobrescrever por
+  // lançamento (ex: alguém pode marcar Freelance como Eventual).
+  // IMPORTANTE: nunca perguntar todas as subs ao usuário. Pra perguntar
+  // origem da renda, usar "principal renda" com máx 5 opções (onboarding/ICP).
   const DEFAULT_RECEITA_NATUREZA = {
-    'Salário CLT':            'recorrente',
+    // Recorrente
+    'Salário CLT':           'recorrente',
     'Pró-labore':             'recorrente',
     'Aposentadoria':          'recorrente',
-    'Pensão':                 'recorrente',
-    'Freelance / Contrato':   'variavel',
-    'Bônus / Comissão':       'variavel',
+    'Pensão (alimentícia)':   'recorrente',
+    'Pensão (previdência)':   'recorrente',
+    // Variável
+    'Freelance':              'variavel',
+    'Contrato PJ':            'variavel',
+    'Comissão':               'variavel',
+    'Bônus mensal':           'variavel',
     'Aluguel recebido':       'variavel',
     'Dividendos / Juros':     'variavel',
-    '13º / Férias / PLR':     'eventual',
+    // Eventual
+    '13º Salário / Férias':   'eventual',
+    'PLR / Participação':     'eventual',
     'Restituição IR':         'eventual',
+    'Indenização / Rescisão': 'eventual',
+    'Royalties':              'eventual',
+    'Venda de ativos':        'eventual',
+    'Empréstimo recebido':    'eventual',
+    'Reembolso':              'eventual',
+    'Presente / Doação':      'eventual',
+    'Herança':                'eventual',
     'Outros':                 'eventual',
   };
+
+  // 5 opções condensadas pra perguntar "Sua principal renda vem de onde?"
+  // (onboarding, ICP categoria career, formulários introdutórios).
+  // Cada opção mapeia pras subs detalhadas pra pré-seleção automática.
+  const RECEITA_PRINCIPAL_OPCOES = [
+    { id: 'clt',          label: 'Salário CLT',                  subDefault: 'Salário CLT' },
+    { id: 'pj',           label: 'Pró-labore / Autônomo',        subDefault: 'Pró-labore' },
+    { id: 'freelance',    label: 'Freelance / Contrato',         subDefault: 'Freelance' },
+    { id: 'aposentadoria', label: 'Aposentadoria / Pensão',     subDefault: 'Aposentadoria' },
+    { id: 'outros',       label: 'Outros (vou contar depois)',   subDefault: 'Outros' },
+  ];
 
   // Labels das naturezas (pra UI)
   const RECEITA_NATUREZAS = [
@@ -382,7 +418,7 @@ const Store = (function () {
       __migrated_assinaturas: true,
       __migrated_default_cat_tipo: true,
       __migrated_categorias_v2: true,
-      __migrated_receita_subs: true,
+      __migrated_receita_subs_v2: true,
     };
   }
 
@@ -899,28 +935,39 @@ const Store = (function () {
     _data.__migrated_categorias_v2 = true;
   }
 
-  // Mapeia receita.type (legacy) → receita.sub + receita.natureza
+  // Mapeia receita.type (legacy) → receita.sub + receita.natureza.
+  // Flag v2 pra re-rodar em quem já migrou pra estrutura intermediária
+  // de 11 subs (substituída pela final de 20 subs).
   function _migrateReceitaSubs() {
-    if (_data.__migrated_receita_subs) return;
+    if (_data.__migrated_receita_subs_v2) return;
     const TYPE_TO_SUB = {
       salario:    'Salário CLT',
-      contrato:   'Freelance / Contrato',
-      pensao:     'Pensão',
-      emprestimo: 'Outros',
+      contrato:   'Contrato PJ',
+      pensao:     'Pensão (alimentícia)',
+      emprestimo: 'Empréstimo recebido',
       outros:     'Outros',
+    };
+    // Mapeia subs antigas (intermediárias) → novas (caso já tenha migrado uma vez)
+    const SUB_REMAP = {
+      'Pensão':               'Pensão (alimentícia)',
+      'Freelance / Contrato': 'Freelance',
+      'Bônus / Comissão':     'Bônus mensal',
+      '13º / Férias / PLR':   '13º Salário / Férias',
     };
     if (Array.isArray(_data.receitas)) {
       _data.receitas = _data.receitas.map(r => {
-        const sub = r.sub || TYPE_TO_SUB[r.type] || 'Outros';
-        const natureza = r.natureza || DEFAULT_RECEITA_NATUREZA[sub] || 'eventual';
+        // Tenta sub atual → remap intermediário → legacy type → 'Outros'
+        let sub = SUB_REMAP[r.sub] || r.sub || TYPE_TO_SUB[r.type] || 'Outros';
+        const natureza = DEFAULT_RECEITA_NATUREZA[sub] || r.natureza || 'eventual';
         return { ...r, sub, natureza };
       });
     }
-    // Garante que _data.subcategorias.receita exista com defaults
-    if (_data.subcategorias && !_data.subcategorias.receita) {
+    // Atualiza _data.subcategorias.receita pra estrutura final de 20 subs.
+    // Sobrescreve mesmo se existia, pra usuários que tinham a estrutura intermediária.
+    if (_data.subcategorias) {
       _data.subcategorias.receita = [...SUBCATEGORIES.receita];
     }
-    _data.__migrated_receita_subs = true;
+    _data.__migrated_receita_subs_v2 = true;
   }
 
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
@@ -2750,7 +2797,7 @@ const Store = (function () {
   return {
     init, get, persist,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
-    RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA,
+    RECEITA_NATUREZAS, DEFAULT_RECEITA_NATUREZA, RECEITA_PRINCIPAL_OPCOES,
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
     addConta, deleteConta, updateConta, getContasByCategoria,
