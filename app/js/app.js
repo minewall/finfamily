@@ -11588,6 +11588,15 @@ ${(() => {
   </div>
 </div>
 
+<!-- Coach inline — explicação da seção -->
+${coachInlineHTML({
+  id: 'icpCoachInfo',
+  tone: 'neutral',
+  titulo: 'Como funciona',
+  contexto: `${totalRespondidas}/${totalPerguntas} respondidas`,
+  texto: 'Responda as perguntas de cada categoria pra eu entender melhor o seu perfil — quanto mais eu te conhecer, mais útil consigo ser. Suas respostas ficam salvas e você pode atualizá-las a qualquer momento.',
+})}
+
 <!-- CategoryGrid -->
 <div class="dash-section-tag mt-6 mb-2">CATEGORIAS DE CONTEXTO</div>
 <div class="icp-cat-grid">
@@ -11624,16 +11633,7 @@ ${(() => {
   }).join('')}
 </div>
 
-<!-- Footer info -->
-<div class="card mb-4" style="margin-top:24px;padding:14px 18px;border-style:dashed;background:transparent">
-  <div style="display:flex;gap:12px;align-items:flex-start">
-    <div style="color:var(--accent);flex-shrink:0">${icon('info', { size: 16 })}</div>
-    <div style="font-size:12px;color:var(--text-3);line-height:1.6">
-      <strong style="color:var(--text-2)">Como funciona:</strong> responda as perguntas de cada categoria para ajudar o Coach a entender melhor o seu perfil. Suas respostas ficam salvas e podem ser atualizadas a qualquer momento.
-      Total atual: <strong style="color:var(--text-1)">${totalRespondidas}/${totalPerguntas} perguntas respondidas</strong>.
-    </div>
-  </div>
-</div>`;
+`;
 })()}`;
 
     document.getElementById('btnSavePerfil').addEventListener('click', () => {
@@ -11690,6 +11690,9 @@ ${(() => {
       Store.resetOnboarding();
       showOnboarding();
     });
+
+    // Liga botão de dismiss do coach inline
+    if (typeof bindCoachInline === 'function') bindCoachInline(content);
   }
 
   async function _sha256Hex(str) {
