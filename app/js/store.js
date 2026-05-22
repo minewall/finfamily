@@ -2891,7 +2891,7 @@ const Store = (function () {
     { id: 'family', name: 'Família & responsab.',   icon: 'users',     color: '#ff70b8', desc: 'Dependentes, projetos com a família',             total: 8  },
     { id: 'career', name: 'Carreira & renda',       icon: 'briefcase', color: '#ffa930', desc: 'Estabilidade, ambições, transição',               total: 10 },
     { id: 'risk',   name: 'Tolerância a risco',     icon: 'scale',     color: '#ff4a68', desc: 'Como você decide diante de incerteza',            total: 10 },
-    { id: 'values', name: 'Valores & prioridades',  icon: 'star',      color: '#1dc97e', desc: 'O que importa de verdade pra você',               total: 10 },
+    { id: 'values', name: 'Valores & prioridades',  icon: 'star',      color: '#1dc97e', desc: 'O que importa de verdade pra você',               total: 8  },
     { id: 'health', name: 'Saúde & bem-estar',      icon: 'heart',     color: '#4aa8ff', desc: 'Impactos indiretos no seu orçamento',             total: 6  },
   ];
 
