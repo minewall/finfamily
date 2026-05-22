@@ -16,8 +16,8 @@ const Store = (function () {
     pessoal:     { label: 'Pessoal',             color: '#F59E0B', icon: 'user-round' },
     dogs:        { label: 'Dogs',                color: '#F97316', icon: 'dog' },
     lazer:       { label: 'Lazer',               color: '#14B8A6', icon: 'party-popper' },
+    assinaturas: { label: 'Assinaturas',         color: '#8B5CF6', icon: 'play-circle' },
     financeiro:  { label: 'Desp. Financeiras',   color: '#6366F1', icon: 'landmark' },
-    cartoes:     { label: 'Cartões & Wallets',   color: '#8B5CF6', icon: 'credit-card' },
     manuela:     { label: 'Manuela Individual',  color: '#F472B6', icon: 'baby' },
     educacao:    { label: 'Educação',            color: '#06B6D4', icon: 'book-open' },
     beneficios:  { label: 'Benefícios',          color: '#A78BFA', icon: 'gift' },
@@ -26,15 +26,15 @@ const Store = (function () {
   };
 
   const SUBCATEGORIES = {
-    moradia: ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Netflix','HBO','Spotify','Amazon Prime','Apple','iFood','Móveis e itens casa','Outras despesas'],
-    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade'],
+    moradia: ['Aluguel','Energia Elétrica','Água e Saneamento','TV / Internet / Telefone','Reparos e Manutenção','Móveis e itens casa','Outras despesas'],
+    alimentacao: ['Supermercado','Feira / Sacolão','Padaria','Açougue','Nespresso','Sorveteria','Água','Lanche na Faculdade','iFood'],
     transporte: ['Aluguel Carro','Combustível','Manutenção','Estacionamento','Multas','Uber','Seguro','IPVA','Documentos'],
     saude: ['Convênio Médico','Medicamentos','Higiene Pessoal','Dentista','Emergências'],
-    pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja','Assinaturas','Celular','Telegrama','Mesada'],
+    pessoal: ['Academia / Esportes','Salão de Beleza','Presentes','Vestuário','Terapia','Cigarro','Cerveja','Celular','Telegrama','Mesada'],
     dogs: ['Ração','Banho e Tosa','Veterinário','Assessórios / Brinquedos'],
     lazer: ['Restaurantes e Passeios','Diversão Local','Famílias e Amigos','Viagens'],
+    assinaturas: ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'],
     financeiro: ['Taxas Bancárias','Saques','Seguro de Vida','Imposto de Renda','Loteria','Correios','Cartório','Contador','Impostos Empresa'],
-    cartoes: ['Itaú Click','Itaú Uniclass','Wise','Santander','Shopee','Mercado Livre','Torra Torra'],
     manuela:    ['Escola Manuela','Livros e Materiais','Mesada','Uniforme','Passeios'],
     educacao:   ['Mensalidade Escolar','Material Escolar','Uniforme','Passeios Escolares','Livros','Cursos','Material','Faculdade','Material Universitário','Cursos e Especializações'],
     beneficios: ['Mesada','Vale Refeição','Vale Transporte','Plano de Saúde','Outros'],
@@ -338,6 +338,7 @@ const Store = (function () {
       __migrated_manuela_cat: true,
       __migrated_roberto_mariana: true,
       __fix_passeios_escolares: true,
+      __migrated_assinaturas: true,
     };
   }
 
@@ -713,6 +714,63 @@ const Store = (function () {
     _data.__fix_passeios_escolares = true;
   }
 
+  // Migra streaming/apps de moradia → assinaturas e iFood → alimentacao.
+  // Também remove categoria 'cartoes' (Cartões & Wallets) movendo despesas
+  // dela pra 'financeiro' como fallback. Aplicada uma vez por usuário.
+  function _migrateAssinaturas() {
+    if (_data.__migrated_assinaturas) return;
+    const STREAMING_SUBS = ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium'];
+    if (Array.isArray(_data.despesas)) {
+      _data.despesas = _data.despesas.map(d => {
+        // Streaming/apps em moradia → assinaturas
+        if (d.category === 'moradia' && STREAMING_SUBS.includes(d.sub)) {
+          return { ...d, category: 'assinaturas' };
+        }
+        // iFood em moradia → alimentacao
+        if (d.category === 'moradia' && d.sub === 'iFood') {
+          return { ...d, category: 'alimentacao' };
+        }
+        // "Assinaturas" (subcat antiga em pessoal) → categoria assinaturas
+        if (d.category === 'pessoal' && d.sub === 'Assinaturas') {
+          return { ...d, category: 'assinaturas', sub: 'Outras assinaturas' };
+        }
+        // Cartões & Wallets descontinuado → vai pra financeiro
+        if (d.category === 'cartoes') {
+          return { ...d, category: 'financeiro' };
+        }
+        return d;
+      });
+    }
+    // Atualiza o config editável persistido — remove cartoes, adiciona assinaturas
+    if (_data.categorias) {
+      delete _data.categorias.cartoes;
+      if (!_data.categorias.assinaturas) {
+        _data.categorias.assinaturas = { label: 'Assinaturas', color: '#8B5CF6', icon: 'play-circle' };
+      }
+    }
+    if (_data.subcategorias) {
+      delete _data.subcategorias.cartoes;
+      if (!_data.subcategorias.assinaturas) {
+        _data.subcategorias.assinaturas = ['Netflix','HBO','Spotify','Amazon Prime','Apple','Disney+','YouTube Premium','ChatGPT / IA','Software','Outras assinaturas'];
+      }
+      // Remove streaming/iFood de moradia
+      if (Array.isArray(_data.subcategorias.moradia)) {
+        _data.subcategorias.moradia = _data.subcategorias.moradia.filter(
+          s => !STREAMING_SUBS.includes(s) && s !== 'iFood'
+        );
+      }
+      // Remove "Assinaturas" de pessoal (virou categoria própria)
+      if (Array.isArray(_data.subcategorias.pessoal)) {
+        _data.subcategorias.pessoal = _data.subcategorias.pessoal.filter(s => s !== 'Assinaturas');
+      }
+      // iFood entra em alimentacao se não estiver
+      if (Array.isArray(_data.subcategorias.alimentacao) && !_data.subcategorias.alimentacao.includes('iFood')) {
+        _data.subcategorias.alimentacao.push('iFood');
+      }
+    }
+    _data.__migrated_assinaturas = true;
+  }
+
   // Varre TODOS os lançamentos com category='manuela' que ainda restarem
   // (cobre casos de backup importado com flag já setada mas dados não migrados)
   function _sweepRobertoCat() {
@@ -801,6 +859,7 @@ const Store = (function () {
     _migrateManuelaCat();
     _migrateRobertoMarianaCat();
     _fixPasseiosEscolares();
+    _migrateAssinaturas();
     _sweepManuelaCat();
     _sweepRobertoCat();
     _sweepMarianaCat();
