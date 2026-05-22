@@ -3841,29 +3841,60 @@ ${contratos.length === 0 ? `
   function openCartaoModal(cc, container) {
     const isEdit = !!cc;
     const c = cc || {};
+    const currentTipo = c.tipoCartao || 'credito';
+    const tipoOpts = Store.CARD_TYPES.map(t =>
+      `<option value="${t.id}"${t.id === currentTipo ? ' selected' : ''}>${t.label}</option>`
+    ).join('');
+    const emissorOpts = Store.BENEFIT_EMISSORES.map(e =>
+      `<option value="${e}"${c.emissor === e ? ' selected' : ''}>${e}</option>`
+    ).join('');
+    const usoOpts = Store.BENEFIT_USOS.map(u =>
+      `<option value="${u.id}"${c.uso === u.id ? ' selected' : ''}>${u.label}</option>`
+    ).join('');
+
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome do cartão</label><input class="form-input" id="fCcNomeE" value="${c.name||''}" placeholder="Ex: Itaú Click"/></div>
-      <div class="form-group"><label class="form-label">Banco</label>
+      <div class="form-group form-full"><label class="form-label">Nome do cartão</label><input class="form-input" id="fCcNomeE" value="${c.name||''}" placeholder="Ex: Itaú Click, VR Alimentação…"/></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="fCcTipoE">${tipoOpts}</select>
+      </div>
+      <div class="form-group"><label class="form-label">Banco / Emissor</label>
         <input class="form-input" id="fCcBancoE" list="bankListCCE" value="${c.banco||''}" placeholder="Itaú, Nubank…"/>
         <datalist id="bankListCCE">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
       </div>
-      <div class="form-group"><label class="form-label">Limite (R$)</label><input class="form-input" id="fCcLimitE" type="number" step="100" value="${c.limit||''}"/></div>
-      <div class="form-group"><label class="form-label">Fecha dia</label><input class="form-input" id="fCcCloseE" type="number" min="1" max="28" value="${c.closingDay||25}"/></div>
-      <div class="form-group"><label class="form-label">Vence dia</label><input class="form-input" id="fCcDueE" type="number" min="1" max="28" value="${c.dueDay||3}"/></div>
+      <!-- Campos só pra cartões que geram fatura (Crédito / Múltiplo) -->
+      <div class="form-group" id="fCcGrpLimit"><label class="form-label">Limite (R$)</label><input class="form-input" id="fCcLimitE" type="number" step="100" value="${c.limit||''}"/></div>
+      <div class="form-group" id="fCcGrpClose"><label class="form-label">Fecha dia</label><input class="form-input" id="fCcCloseE" type="number" min="1" max="28" value="${c.closingDay||25}"/></div>
+      <div class="form-group" id="fCcGrpDue"><label class="form-label">Vence dia</label><input class="form-input" id="fCcDueE" type="number" min="1" max="28" value="${c.dueDay||3}"/></div>
+      <!-- Campos só pra Benefício -->
+      <div class="form-group" id="fCcGrpEmissor" style="display:none"><label class="form-label">Emissor do benefício</label>
+        <select class="form-select" id="fCcEmissorE">${emissorOpts}</select>
+      </div>
+      <div class="form-group" id="fCcGrpUso" style="display:none"><label class="form-label">Uso permitido</label>
+        <select class="form-select" id="fCcUsoE">${usoOpts}</select>
+      </div>
     </div>`;
     Modal.open(isEdit ? 'Editar Cartão' : 'Novo Cartão', html, () => {
       const name  = document.getElementById('fCcNomeE').value.trim();
       const banco = document.getElementById('fCcBancoE').value.trim();
-      const limit = parseFloat(document.getElementById('fCcLimitE').value);
-      const closingDay = parseInt(document.getElementById('fCcCloseE').value);
-      const dueDay     = parseInt(document.getElementById('fCcDueE').value);
-      if (!name || !banco || !limit) return toast('Preencha nome, banco e limite', 'error');
+      const tipoCartao = document.getElementById('fCcTipoE').value;
+      const tipoMeta = Store.CARD_TYPES.find(t => t.id === tipoCartao);
+      const geraFatura = !!tipoMeta?.geraFatura;
+      const limit = geraFatura ? parseFloat(document.getElementById('fCcLimitE').value || 0) : null;
+      const closingDay = geraFatura ? parseInt(document.getElementById('fCcCloseE').value || 25) : null;
+      const dueDay     = geraFatura ? parseInt(document.getElementById('fCcDueE').value || 3) : null;
+      const emissor = tipoCartao === 'beneficio' ? document.getElementById('fCcEmissorE').value : null;
+      const uso     = tipoCartao === 'beneficio' ? document.getElementById('fCcUsoE').value : null;
+
+      if (!name || !banco) return toast('Preencha nome e banco/emissor', 'error');
+      if (geraFatura && !limit)  return toast('Cartões de crédito precisam de limite', 'error');
+
+      const payload = { name, banco, tipoCartao, limit, closingDay, dueDay, emissor, uso };
       if (isEdit) {
-        Object.assign(cc, { name, banco, limit, closingDay, dueDay });
+        Object.assign(cc, payload);
         Store.persist();
         toast('Cartão atualizado!', 'success');
       } else {
-        Store.addCartao({ name, banco, limit, closingDay, dueDay, color: 'default', parcelas: [] });
+        Store.addCartao({ ...payload, color: 'default', parcelas: [] });
         toast('Cartão adicionado!', 'success');
       }
       Modal.close();
@@ -3874,6 +3905,29 @@ ${contratos.length === 0 ? `
       renderContas(container);
       toast('Cartão removido', 'success');
     } : null);
+
+    // Toggle dinâmico dos campos conforme o tipo escolhido:
+    // - Limit/Close/Due aparecem só pra tipos que geram fatura
+    // - Emissor/Uso aparecem só pra Benefício
+    setTimeout(() => {
+      const tipoSel = document.getElementById('fCcTipoE');
+      const updateVisibility = () => {
+        const tipoId = tipoSel.value;
+        const tipoMeta = Store.CARD_TYPES.find(t => t.id === tipoId);
+        const showFatura = !!tipoMeta?.geraFatura;
+        const showBenef  = tipoId === 'beneficio';
+        ['fCcGrpLimit','fCcGrpClose','fCcGrpDue'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = showFatura ? '' : 'none';
+        });
+        ['fCcGrpEmissor','fCcGrpUso'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = showBenef ? '' : 'none';
+        });
+      };
+      tipoSel?.addEventListener('change', updateVisibility);
+      updateVisibility(); // estado inicial
+    }, 50);
   }
 
   function renderContas(container, mode = 'all') {
