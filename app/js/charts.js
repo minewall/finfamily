@@ -158,7 +158,7 @@ const Charts = (function () {
     const gridColor = css('--border');
 
     ctx.clearRect(0, 0, w, h);
-    ctx.font = '11px Inter, sans-serif';
+    ctx.font = '12px Inter, system-ui, sans-serif';
 
     let minVal = 0;
     let maxVal = 0;
@@ -180,7 +180,8 @@ const Charts = (function () {
       ctx.stroke();
       ctx.fillStyle = textColor;
       ctx.textAlign = 'right';
-      ctx.fillText(fmt(val, true), padL - 6, y + 4);
+      // Prefixo "R$ " explícito p/ evitar confusão entre "k" (mil) e "%" no eixo Y
+      ctx.fillText('R$ ' + fmt(val, true), padL - 6, y + 4);
     }
 
     // Lines + Areas

@@ -7761,7 +7761,7 @@ ${reservas.length > 0 ? `
     A diferença para alternativas de baixo custo pode passar de <strong style="color:var(--red)">${Utils.currency(rows[0].economia)}</strong>.
   </div>
 </div>
-<div class="chart-wrap mb-4" style="min-height:380px;display:flex;align-items:stretch"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="380" style="max-height:420px"></canvas></div>
+<div class="chart-wrap mb-4" style="height:480px;display:flex;align-items:stretch"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="480" style="width:100%;height:100%"></canvas></div>
 <div class="table-wrap">
   <table class="data-table">
     <thead><tr>
@@ -7792,7 +7792,7 @@ ${reservas.length > 0 ? `
 </div>`;
       if (window._chartFeeAnalyzer) window._chartFeeAnalyzer.destroy();
       window._chartFeeAnalyzer = Charts.Line(document.getElementById('chartFeeAnalyzer'),
-        { labels, datasets: dssets }, { height: 380 });
+        { labels, datasets: dssets }, { height: 480 });
     }
     _autoCalcInv(['feeCapital','feeTaxaFundo','feeAnos'], 'btnFeeAnalyzer');
     document.getElementById('btnFeeAnalyzer')?.addEventListener('click', calcFeeAnalyzer);
@@ -7835,7 +7835,7 @@ ${reservas.length > 0 ? `
       if (!resultEl) return;
 
       resultEl.innerHTML = `
-<div class="chart-wrap mb-4" style="min-height:400px;display:flex;align-items:stretch"><canvas id="chartCenarios" class="chart-canvas" height="400" style="max-height:440px"></canvas></div>
+<div class="chart-wrap mb-4" style="height:480px;display:flex;align-items:stretch"><canvas id="chartCenarios" class="chart-canvas" height="480" style="width:100%;height:100%"></canvas></div>
 <div class="table-wrap">
   <table class="data-table">
     <thead><tr><th>Cenário</th><th class="num">Capital</th><th class="num">Aporte/mês</th><th class="num">Taxa</th><th class="num">Horizonte</th><th class="num">Valor Final</th></tr></thead>
@@ -7856,7 +7856,7 @@ ${reservas.length > 0 ? `
 </div>`;
       if (window._chartCenarios) window._chartCenarios.destroy();
       window._chartCenarios = Charts.Line(document.getElementById('chartCenarios'),
-        { labels, datasets }, { height: 400 });
+        { labels, datasets }, { height: 480 });
     }
 
     // Auto-calc cenários: re-calcula ao mudar qualquer input
