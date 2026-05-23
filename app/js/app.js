@@ -1999,34 +1999,34 @@ ${(() => {
     const pct = recMesAtual > 0 ? (v / recMesAtual * 100) : 0;
     return `<div style="display:flex;align-items:center;gap:6px">
       <div style="width:7px;height:7px;border-radius:2px;background:${_TREC_COLOR[t]||'#64748b'}"></div>
-      <span style="font-size:11px;color:rgba(220,250,235,.7)">${_TREC_LABEL[t]||t} · <span style="color:#fff;font-weight:600">${pct.toFixed(0)}%</span></span>
+      <span class="hero-legend-text">${_TREC_LABEL[t]||t} · <span class="hero-legend-strong">${pct.toFixed(0)}%</span></span>
     </div>`;
   }).join('');
   return `
-<div style="position:relative;border-radius:18px;padding:22px 24px;background:linear-gradient(145deg,rgba(29,201,126,.18) 0%,rgba(29,201,126,.08) 60%,rgba(29,201,126,.04) 100%);border:1px solid rgba(29,201,126,.24);overflow:hidden;margin-bottom:16px;display:flex;flex-direction:column;gap:18px">
-  <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(29,201,126,.28) 0%,transparent 68%);pointer-events:none"></div>
+<div class="hero-mono is-receita" style="margin-bottom:16px">
+  <div class="hero-mono-glow"></div>
   <div style="position:relative;display:flex;align-items:center;gap:12px">
     <div style="width:34px;height:34px;border-radius:11px;background:rgba(29,201,126,.22);display:flex;align-items:center;justify-content:center;color:#1dc97e;flex-shrink:0">${icon('trending-up',{size:16})}</div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:9.5px;font-weight:700;color:rgba(180,235,210,.7);letter-spacing:.1em;text-transform:uppercase">Receita do Mês</div>
-      <div style="font-size:13px;font-weight:600;color:rgba(220,250,235,.85)">${Utils.monthsFull[month-1]} ${year} · ${recsHero.length} lançamento${recsHero.length===1?'':'s'}</div>
+      <div class="hero-eyebrow">Receita do Mês</div>
+      <div class="hero-sub">${Utils.monthsFull[month-1]} ${year} · ${recsHero.length} lançamento${recsHero.length===1?'':'s'}</div>
     </div>
   </div>
   <div style="position:relative">
-    <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${Utils.currency(recMesAtual)}</div>
+    <div class="hero-value">${Utils.currency(recMesAtual)}</div>
     ${recMesAnt > 0 ? `
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
       <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
         ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
         ${_dSign}${recChg.toFixed(1)}%
       </span>
-      <span style="font-size:12px;color:rgba(220,250,235,.55)">vs. ${_prevMonth} · ${_diff>=0?'+':''}${Utils.currency(_diff)}</span>
+      <span class="hero-mute">vs. ${_prevMonth} · ${_diff>=0?'+':''}${Utils.currency(_diff)}</span>
     </div>` : `
-    <div style="font-size:12px;color:rgba(220,250,235,.55);margin-top:12px">Primeiro mês registrado</div>`}
+    <div class="hero-mute" style="margin-top:12px">Primeiro mês registrado</div>`}
   </div>
   ${recMesAtual > 0 && _barSegs ? `
   <div style="margin-top:auto">
-    <div style="font-size:10px;font-weight:600;color:rgba(220,250,235,.55);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">Por tipo de fonte</div>
+    <div class="hero-caption" style="margin-bottom:7px">Por tipo de fonte</div>
     <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
     <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
   </div>` : ''}
@@ -2466,34 +2466,34 @@ ${(() => {
     const pct = despMesAtual > 0 ? (s.v / despMesAtual * 100) : 0;
     return `<div style="display:flex;align-items:center;gap:6px">
       <div style="width:7px;height:7px;border-radius:2px;background:${s.color}"></div>
-      <span style="font-size:11px;color:rgba(250,220,220,.7)">${s.label} · <span style="color:#fff;font-weight:600">${pct.toFixed(0)}%</span></span>
+      <span class="hero-legend-text">${s.label} · <span class="hero-legend-strong">${pct.toFixed(0)}%</span></span>
     </div>`;
   }).join('');
   return `
-<div style="position:relative;border-radius:18px;padding:22px 24px;background:linear-gradient(145deg,rgba(239,68,68,.18) 0%,rgba(239,68,68,.08) 60%,rgba(239,68,68,.04) 100%);border:1px solid rgba(239,68,68,.24);overflow:hidden;margin-bottom:16px;display:flex;flex-direction:column;gap:18px">
-  <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(239,68,68,.28) 0%,transparent 68%);pointer-events:none"></div>
+<div class="hero-mono is-despesa" style="margin-bottom:16px">
+  <div class="hero-mono-glow"></div>
   <div style="position:relative;display:flex;align-items:center;gap:12px">
     <div style="width:34px;height:34px;border-radius:11px;background:rgba(239,68,68,.22);display:flex;align-items:center;justify-content:center;color:#ef4444;flex-shrink:0">${icon('trending-down',{size:16})}</div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:9.5px;font-weight:700;color:rgba(235,180,180,.7);letter-spacing:.1em;text-transform:uppercase">Despesa do Mês</div>
-      <div style="font-size:13px;font-weight:600;color:rgba(250,220,220,.85)">${Utils.monthsFull[month-1]} ${year} · ${despHero.length} lançamento${despHero.length===1?'':'s'}</div>
+      <div class="hero-eyebrow">Despesa do Mês</div>
+      <div class="hero-sub">${Utils.monthsFull[month-1]} ${year} · ${despHero.length} lançamento${despHero.length===1?'':'s'}</div>
     </div>
   </div>
   <div style="position:relative">
-    <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${Utils.currency(despMesAtual)}</div>
+    <div class="hero-value">${Utils.currency(despMesAtual)}</div>
     ${despMesAnt > 0 ? `
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
       <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
         ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
         ${_dSign}${despChg.toFixed(1)}%
       </span>
-      <span style="font-size:12px;color:rgba(250,220,220,.55)">vs. ${_prevMonth} · ${_diff>=0?'+':''}${Utils.currency(_diff)}</span>
+      <span class="hero-mute">vs. ${_prevMonth} · ${_diff>=0?'+':''}${Utils.currency(_diff)}</span>
     </div>` : `
-    <div style="font-size:12px;color:rgba(250,220,220,.55);margin-top:12px">Primeiro mês registrado</div>`}
+    <div class="hero-mute" style="margin-top:12px">Primeiro mês registrado</div>`}
   </div>
   ${despMesAtual > 0 && _barSegs ? `
   <div style="margin-top:auto">
-    <div style="font-size:10px;font-weight:600;color:rgba(250,220,220,.55);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">Por categoria</div>
+    <div class="hero-caption" style="margin-bottom:7px">Por categoria</div>
     <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
     <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
   </div>` : ''}
@@ -3920,7 +3920,7 @@ ${(() => {
     return s + restante;
   }, 0);
   return `
-<div class="card mb-4" style="border-color:rgba(255,74,104,0.25);background:linear-gradient(135deg,rgba(255,74,104,0.05),var(--bg-card))">
+<div class="card accent-card-red mb-4">
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
     <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,74,104,0.15);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>
@@ -7182,7 +7182,7 @@ ${reservas.length > 0 ? `
 </div>
 
 <!-- ── COACH DO PORTFÓLIO ─────────────────────────────────────── -->
-<div class="card mb-6" style="border:1px solid rgba(115,103,240,0.25);background:linear-gradient(135deg,rgba(115,103,240,0.06) 0%,rgba(6,182,212,0.04) 100%)">
+<div class="card accent-card-purple-cyan mb-6">
   <div class="card-header">
     <span class="card-title" style="display:flex;align-items:center;gap:8px">
       <img src="assets/svg/haile-mark-white.svg" alt="" style="width:18px;height:auto;opacity:.9">
@@ -9541,23 +9541,23 @@ ${(() => {
 
 <!-- Hero da família — monocromático translúcido roxo + Fluxo + Saúde (padrão Figma) -->
 <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:20px" class="pf-hero-grid">
-  <div style="position:relative;border-radius:18px;padding:22px 24px;background:linear-gradient(145deg,rgba(107,94,245,.18) 0%,rgba(107,94,245,.08) 60%,rgba(107,94,245,.04) 100%);border:1px solid rgba(107,94,245,.24);overflow:hidden;display:flex;flex-direction:column;gap:18px">
-    <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(107,94,245,.28) 0%,transparent 68%);pointer-events:none"></div>
-    <div style="position:absolute;bottom:-60px;left:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(74,168,255,.12) 0%,transparent 70%);pointer-events:none"></div>
+  <div class="hero-mono is-poder">
+    <div class="hero-mono-glow"></div>
+    <div class="hero-mono-glow-2"></div>
 
     <div style="position:relative;display:flex;align-items:center;gap:12px">
       <div style="width:34px;height:34px;border-radius:11px;background:rgba(107,94,245,.25);display:flex;align-items:center;justify-content:center;color:#8a7ef8;flex-shrink:0">${icon('users',{size:16})}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:9.5px;font-weight:700;color:rgba(138,126,248,.75);letter-spacing:.1em;text-transform:uppercase">Poder de Escolha · Família</div>
-        <div style="font-size:13px;font-weight:600;color:#e2e0ff">${poder.poderDeEscolha < 0 ? 'Comprometido além da receita' : 'O que sobra depois dos compromissos'}</div>
+        <div class="hero-eyebrow">Poder de Escolha · Família</div>
+        <div class="hero-sub">${poder.poderDeEscolha < 0 ? 'Comprometido além da receita' : 'O que sobra depois dos compromissos'}</div>
       </div>
-      <div style="background:rgba(107,94,245,.2);border-radius:7px;padding:4px 10px;font-size:11px;color:#8a7ef8;border:1px solid rgba(107,94,245,.28);flex-shrink:0">${Utils.monthsFull[month-1].slice(0,3)} ${year}</div>
+      <div class="hero-month-pill">${Utils.monthsFull[month-1].slice(0,3)} ${year}</div>
     </div>
 
     <div style="position:relative;display:flex;align-items:center;gap:22px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
-        <div style="font-size:12px;color:rgba(180,175,255,.6);margin-top:10px;line-height:1.5">
+        <div class="hero-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
+        <div class="hero-mute" style="margin-top:10px;line-height:1.5">
           ${(poder.pct*100).toFixed(1)}% da receita familiar mensal
           <span style="display:block;margin-top:2px">livre para decidir em conjunto</span>
         </div>
@@ -9565,8 +9565,8 @@ ${(() => {
       <div style="position:relative;flex-shrink:0">
         ${SvgCharts.gauge(Math.max(0, Math.min(100, poder.pct*100)), { size: 92, color: '#8a7ef8', thickness: 10 })}
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;line-height:1">
-          <div style="font-size:18px;font-weight:700;color:#fff">${Math.round(poder.pct*100)}%</div>
-          <div style="font-size:9.5px;color:rgba(180,175,255,.55);margin-top:3px">livre</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text-1)" class="hero-gauge-pct">${Math.round(poder.pct*100)}%</div>
+          <div class="hero-mute" style="font-size:9.5px;margin-top:3px">livre</div>
         </div>
       </div>
     </div>
@@ -9574,9 +9574,9 @@ ${(() => {
     ${memberData.length > 0 && poder.poderDeEscolha > 0 ? `
     <div style="position:relative">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px">
-        <span style="font-size:10px;font-weight:600;color:rgba(180,175,255,.55);letter-spacing:.06em;text-transform:uppercase">Contribuição ao Poder de Escolha</span>
+        <span class="hero-caption">Contribuição ao Poder de Escolha</span>
       </div>
-      <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);gap:2px">
+      <div class="hero-track">
         ${memberData.filter(m => m.poder > 0).map(m => `<div style="width:${m.pctContribPoder.toFixed(1)}%;background:${m.color}" title="${m.person}: ${m.pctContribPoder.toFixed(0)}%"></div>`).join('') || `<div style="flex:1;background:rgba(138,126,248,.4)"></div>`}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:10px;gap:14px;flex-wrap:wrap">
@@ -9584,8 +9584,8 @@ ${(() => {
         <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:110px">
           <div style="width:22px;height:22px;border-radius:7px;flex-shrink:0;background:${m.color}26;color:${m.color};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${Utils.personInitial(m.person)}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:10.5px;color:rgba(180,175,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.person}</div>
-            <div style="font-size:12px;color:#fff;font-weight:600;font-variant-numeric:tabular-nums">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</div>
+            <div class="hero-mute" style="font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.person}</div>
+            <div class="hero-legend-strong" style="font-size:12px;font-variant-numeric:tabular-nums">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</div>
           </div>
         </div>`).join('')}
       </div>
@@ -10425,51 +10425,47 @@ ${outrs.length ? `
       const _dSign = deltaPoder >= 0 ? '+' : '';
       const _prevMonth = Utils.monthsFull[prevM-1];
 
-      // Cor base do hero — accent (roxo Haile) ou red se negativo
-      const baseRGB = isNeg ? '239,68,68' : '107,94,245';
-      const heroBg  = `linear-gradient(145deg,rgba(${baseRGB},.18) 0%,rgba(${baseRGB},.08) 60%,rgba(${baseRGB},.04) 100%)`;
-      const heroBorder = `rgba(${baseRGB},.24)`;
-      const heroGlow   = `radial-gradient(circle,rgba(${baseRGB},.28) 0%,transparent 68%)`;
-      const captionClr = isNeg ? 'rgba(255,210,215,.7)' : 'rgba(210,205,255,.7)';
-      const subClr     = isNeg ? 'rgba(255,225,228,.85)' : 'rgba(230,225,255,.85)';
-      const muteClr    = isNeg ? 'rgba(255,225,228,.55)' : 'rgba(230,225,255,.55)';
+      // Variante do hero: roxo (poder positivo) ou vermelho (poder negativo)
+      const heroVariant = isNeg ? 'is-poder-neg' : 'is-poder';
+      const iconColor   = isNeg ? '#ffbac8' : '#8a7ef8';
+      const baseRGB     = isNeg ? '239,68,68' : '107,94,245';
 
       return `
 <div class="painel-hero-grid" data-widget="poder_pessoal" style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
   <!-- Hero pessoal -->
-  <div style="position:relative;border-radius:18px;padding:22px 24px;background:${heroBg};border:1px solid ${heroBorder};overflow:hidden;display:flex;flex-direction:column;gap:18px">
-    <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:${heroGlow};pointer-events:none"></div>
+  <div class="hero-mono ${heroVariant}">
+    <div class="hero-mono-glow"></div>
     <div style="position:relative;display:flex;align-items:center;gap:12px">
-      <div style="width:34px;height:34px;border-radius:11px;background:rgba(${baseRGB},.22);display:flex;align-items:center;justify-content:center;color:${isNeg?'#ffbac8':'#8a7ef8'};flex-shrink:0">${icon('zap',{size:16})}</div>
+      <div style="width:34px;height:34px;border-radius:11px;background:rgba(${baseRGB},.22);display:flex;align-items:center;justify-content:center;color:${iconColor};flex-shrink:0">${icon('zap',{size:16})}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:9.5px;font-weight:700;color:${captionClr};letter-spacing:.1em;text-transform:uppercase">Meu Poder de Escolha</div>
-        <div style="font-size:13px;font-weight:600;color:${subClr}">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
+        <div class="hero-eyebrow">Meu Poder de Escolha</div>
+        <div class="hero-sub">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
       </div>
-      <div style="background:rgba(${baseRGB},.2);border:1px solid rgba(${baseRGB},.28);border-radius:7px;padding:3px 10px;font-size:11px;color:${isNeg?'#ffbac8':'#8a7ef8'};white-space:nowrap">${Utils.months[month-1]} ${year}</div>
+      <div class="hero-month-pill">${Utils.months[month-1]} ${year}</div>
     </div>
     <div style="position:relative">
-      <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${isNeg?'−':''}${Utils.currency(Math.abs(poderPessoal))}</div>
+      <div class="hero-value">${isNeg?'−':''}${Utils.currency(Math.abs(poderPessoal))}</div>
       ${prevPoder !== 0 ? `
       <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
         <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
           ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
           ${_dSign}${deltaPct.toFixed(1)}%
         </span>
-        <span style="font-size:12px;color:${muteClr}">vs. ${_prevMonth} · ${_dSign}${Utils.currency(Math.abs(deltaPoder))}</span>
+        <span class="hero-mute">vs. ${_prevMonth} · ${_dSign}${Utils.currency(Math.abs(deltaPoder))}</span>
       </div>` : `
-      <div style="font-size:12px;color:${muteClr};margin-top:12px">Primeiro mês registrado</div>`}
+      <div class="hero-mute" style="margin-top:12px">Primeiro mês registrado</div>`}
     </div>
-    <div style="position:relative;display:flex;justify-content:space-between;gap:18px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">
+    <div class="hero-mono-divider" style="position:relative;display:flex;justify-content:space-between;gap:18px;padding-top:6px">
       <div>
-        <div style="font-size:10px;font-weight:600;color:${muteClr};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Receita</div>
+        <div class="hero-caption" style="margin-bottom:4px">Receita</div>
         <div style="font-size:15px;font-weight:700;color:#1dc97e;letter-spacing:-0.3px;font-variant-numeric:tabular-nums">${Utils.currency(receitaPessoal)}</div>
       </div>
       <div>
-        <div style="font-size:10px;font-weight:600;color:${muteClr};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Comprometido</div>
+        <div class="hero-caption" style="margin-bottom:4px">Comprometido</div>
         <div style="font-size:15px;font-weight:700;color:#ef4444;letter-spacing:-0.3px;font-variant-numeric:tabular-nums">−${Utils.currency(despesaPessoal)}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:10px;font-weight:600;color:${muteClr};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Saúde</div>
+        <div class="hero-caption" style="margin-bottom:4px">Saúde</div>
         <div style="font-size:15px;font-weight:700;color:${saudeCor};letter-spacing:-0.3px">${saudePct.toFixed(1)}%</div>
       </div>
     </div>

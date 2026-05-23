@@ -4910,3 +4910,238 @@ tr.row-clickable:hover { background: var(--bg-hover) !important; }
 
 /* Toast: variante warning (taxa fora do range, etc) */
 .toast.warning { border-color: var(--amber); }
+
+/* ═══════════════════════════════════════════════════════════════
+   HERO MONOCHROMATIC CARDS — Fase 2 do tema claro
+   Gradients translúcidos sobre fundo escuro / paleta lavanda no light.
+   Use: <div class="hero-mono is-receita|is-despesa|is-poder|is-poder-neg">
+   Glow opcional: adicionar <div class="hero-mono-glow"></div> dentro
+   (com posicionamento manual) OU usar ::after auto.
+   ═══════════════════════════════════════════════════════════════ */
+.hero-mono {
+  position: relative;
+  border-radius: 18px;
+  padding: 22px 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+/* Variante VERDE — Receita */
+.hero-mono.is-receita {
+  background: linear-gradient(145deg, rgba(29,201,126,.18) 0%, rgba(29,201,126,.08) 60%, rgba(29,201,126,.04) 100%);
+  border: 1px solid rgba(29,201,126,.24);
+}
+[data-theme="light"] .hero-mono.is-receita {
+  background: linear-gradient(145deg, #e8f8f0 0%, #f0fbf5 50%, #f7fdfa 100%);
+  border-color: rgba(22,168,104,.22);
+}
+/* Variante VERMELHA — Despesa / Poder negativo */
+.hero-mono.is-despesa,
+.hero-mono.is-poder-neg {
+  background: linear-gradient(145deg, rgba(239,68,68,.18) 0%, rgba(239,68,68,.08) 60%, rgba(239,68,68,.04) 100%);
+  border: 1px solid rgba(239,68,68,.24);
+}
+[data-theme="light"] .hero-mono.is-despesa,
+[data-theme="light"] .hero-mono.is-poder-neg {
+  background: linear-gradient(145deg, #fde9ec 0%, #fef2f4 50%, #fef8f9 100%);
+  border-color: rgba(230,57,87,.22);
+}
+/* Variante ROXA — Poder de Escolha (pessoal & família) */
+.hero-mono.is-poder {
+  background: linear-gradient(145deg, rgba(107,94,245,.18) 0%, rgba(107,94,245,.08) 60%, rgba(107,94,245,.04) 100%);
+  border: 1px solid rgba(107,94,245,.24);
+}
+[data-theme="light"] .hero-mono.is-poder {
+  background: linear-gradient(145deg, #efebff 0%, #f3eefe 50%, #eef4ff 100%);
+  border-color: rgba(107,94,245,.22);
+}
+
+/* Valor grande do hero — branco no dark, navy/tom escuro acessível no light */
+.hero-mono .hero-value {
+  color: #fff;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1;
+  white-space: nowrap;
+}
+[data-theme="light"] .hero-mono.is-receita    .hero-value { color: #0a3520; }
+[data-theme="light"] .hero-mono.is-despesa    .hero-value,
+[data-theme="light"] .hero-mono.is-poder-neg  .hero-value { color: #4a0810; }
+[data-theme="light"] .hero-mono.is-poder      .hero-value { color: #1a1750; }
+
+/* Eyebrow (uppercase tiny) — versão temática */
+.hero-mono .hero-eyebrow {
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.hero-mono.is-receita   .hero-eyebrow { color: rgba(180,235,210,.7); }
+.hero-mono.is-despesa   .hero-eyebrow,
+.hero-mono.is-poder-neg .hero-eyebrow { color: rgba(235,180,180,.7); }
+.hero-mono.is-poder     .hero-eyebrow { color: rgba(210,205,255,.7); }
+[data-theme="light"] .hero-mono.is-receita   .hero-eyebrow { color: #16a868; }
+[data-theme="light"] .hero-mono.is-despesa   .hero-eyebrow,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-eyebrow { color: #c92a45; }
+[data-theme="light"] .hero-mono.is-poder     .hero-eyebrow { color: #5a4ee0; }
+
+/* Sub (linha secundária bold) */
+.hero-mono .hero-sub {
+  font-size: 13px; font-weight: 600;
+}
+.hero-mono.is-receita   .hero-sub { color: rgba(220,250,235,.85); }
+.hero-mono.is-despesa   .hero-sub,
+.hero-mono.is-poder-neg .hero-sub { color: rgba(250,220,220,.85); }
+.hero-mono.is-poder     .hero-sub { color: #e2e0ff; }
+[data-theme="light"] .hero-mono.is-receita   .hero-sub { color: #1d6b46; }
+[data-theme="light"] .hero-mono.is-despesa   .hero-sub,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-sub { color: #8a1828; }
+[data-theme="light"] .hero-mono.is-poder     .hero-sub { color: #3a3578; }
+
+/* Mute (linha de apoio, comparativos vs mês ant.) */
+.hero-mono .hero-mute {
+  font-size: 12px;
+}
+.hero-mono.is-receita   .hero-mute { color: rgba(220,250,235,.55); }
+.hero-mono.is-despesa   .hero-mute,
+.hero-mono.is-poder-neg .hero-mute { color: rgba(250,220,220,.55); }
+.hero-mono.is-poder     .hero-mute { color: rgba(180,175,255,.6); }
+[data-theme="light"] .hero-mono.is-receita   .hero-mute { color: #5a8472; }
+[data-theme="light"] .hero-mono.is-despesa   .hero-mute,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-mute { color: #92626a; }
+[data-theme="light"] .hero-mono.is-poder     .hero-mute { color: #6862a8; }
+
+/* Caption (tipo "Por categoria" / "Por tipo de fonte") */
+.hero-mono .hero-caption {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.hero-mono.is-receita   .hero-caption { color: rgba(220,250,235,.55); }
+.hero-mono.is-despesa   .hero-caption,
+.hero-mono.is-poder-neg .hero-caption { color: rgba(250,220,220,.55); }
+.hero-mono.is-poder     .hero-caption { color: rgba(180,175,255,.55); }
+[data-theme="light"] .hero-mono.is-receita   .hero-caption { color: #5a8472; }
+[data-theme="light"] .hero-mono.is-despesa   .hero-caption,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-caption { color: #92626a; }
+[data-theme="light"] .hero-mono.is-poder     .hero-caption { color: #6862a8; }
+
+/* Pill do mês (chip "Mai 2026" no canto direito do header) */
+.hero-mono .hero-month-pill {
+  border-radius: 7px; padding: 4px 10px;
+  font-size: 11px; flex-shrink: 0;
+  white-space: nowrap;
+}
+.hero-mono.is-poder .hero-month-pill {
+  background: rgba(107,94,245,.2);
+  border: 1px solid rgba(107,94,245,.28);
+  color: #8a7ef8;
+}
+.hero-mono.is-poder-neg .hero-month-pill {
+  background: rgba(239,68,68,.2);
+  border: 1px solid rgba(239,68,68,.28);
+  color: #ffbac8;
+}
+[data-theme="light"] .hero-mono.is-poder .hero-month-pill {
+  background: rgba(107,94,245,.10);
+  border-color: rgba(107,94,245,.22);
+  color: #5a4ee0;
+}
+[data-theme="light"] .hero-mono.is-poder-neg .hero-month-pill {
+  background: rgba(230,57,87,.10);
+  border-color: rgba(230,57,87,.22);
+  color: #c92a45;
+}
+
+/* Track de progresso interno (barra horizontal segmentada) */
+.hero-mono .hero-track {
+  height: 8px; border-radius: 4px; overflow: hidden;
+  display: flex; gap: 2px;
+  background: rgba(255,255,255,.06);
+}
+[data-theme="light"] .hero-mono .hero-track {
+  background: rgba(15,18,40,.06);
+}
+
+/* Legend (chip texto + cor) usado em "Por categoria"/"Por tipo de fonte" */
+.hero-mono .hero-legend-text { font-size: 11px; }
+.hero-mono.is-receita   .hero-legend-text { color: rgba(220,250,235,.7); }
+.hero-mono.is-despesa   .hero-legend-text,
+.hero-mono.is-poder-neg .hero-legend-text { color: rgba(250,220,220,.7); }
+.hero-mono.is-poder     .hero-legend-text { color: rgba(210,205,255,.7); }
+.hero-mono .hero-legend-strong { font-weight: 600; color: #fff; }
+[data-theme="light"] .hero-mono.is-receita   .hero-legend-text { color: #1d6b46; }
+[data-theme="light"] .hero-mono.is-despesa   .hero-legend-text,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-legend-text { color: #8a1828; }
+[data-theme="light"] .hero-mono.is-poder     .hero-legend-text { color: #3a3578; }
+[data-theme="light"] .hero-mono.is-receita   .hero-legend-strong { color: #0a3520; }
+[data-theme="light"] .hero-mono.is-despesa   .hero-legend-strong,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-legend-strong { color: #4a0810; }
+[data-theme="light"] .hero-mono.is-poder     .hero-legend-strong { color: #1a1750; }
+
+/* Glow radial decorativo — top-right (default). Opacidade reduzida no light. */
+.hero-mono-glow {
+  position: absolute;
+  top: -80px; right: -60px;
+  width: 240px; height: 240px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero-mono.is-receita   .hero-mono-glow { background: radial-gradient(circle, rgba(29,201,126,.28) 0%, transparent 68%); }
+.hero-mono.is-despesa   .hero-mono-glow,
+.hero-mono.is-poder-neg .hero-mono-glow { background: radial-gradient(circle, rgba(239,68,68,.28) 0%, transparent 68%); }
+.hero-mono.is-poder     .hero-mono-glow { background: radial-gradient(circle, rgba(107,94,245,.28) 0%, transparent 68%); }
+[data-theme="light"] .hero-mono.is-receita   .hero-mono-glow { background: radial-gradient(circle, rgba(22,168,104,.14) 0%, transparent 70%); }
+[data-theme="light"] .hero-mono.is-despesa   .hero-mono-glow,
+[data-theme="light"] .hero-mono.is-poder-neg .hero-mono-glow { background: radial-gradient(circle, rgba(230,57,87,.14) 0%, transparent 70%); }
+[data-theme="light"] .hero-mono.is-poder     .hero-mono-glow { background: radial-gradient(circle, rgba(107,94,245,.16) 0%, transparent 70%); }
+
+/* Glow secundário (bottom-left), usado no hero da família */
+.hero-mono-glow-2 {
+  position: absolute;
+  bottom: -60px; left: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(74,168,255,.12) 0%, transparent 70%);
+}
+[data-theme="light"] .hero-mono-glow-2 {
+  background: radial-gradient(circle, rgba(47,139,232,.08) 0%, transparent 70%);
+}
+
+/* Divider interno (border-top semitransparente) — para footer Receita/Comprometido/Saúde do Painel */
+.hero-mono-divider {
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+[data-theme="light"] .hero-mono-divider {
+  border-top-color: rgba(15,18,40,.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCENT CARDS — cards com gradient suave em accent color
+   Usados em "Coach do Portfólio" e resumo de Financiamentos.
+   ═══════════════════════════════════════════════════════════════ */
+.accent-card-purple-cyan {
+  border: 1px solid rgba(115,103,240,0.25);
+  background: linear-gradient(135deg, rgba(115,103,240,0.06) 0%, rgba(6,182,212,0.04) 100%);
+}
+[data-theme="light"] .accent-card-purple-cyan {
+  background: linear-gradient(135deg, #f1eefe 0%, #eaf7fb 100%);
+  border-color: rgba(107,94,245,0.20);
+}
+.accent-card-red {
+  border-color: rgba(255,74,104,0.25);
+  background: linear-gradient(135deg, rgba(255,74,104,0.05), var(--bg-card));
+}
+[data-theme="light"] .accent-card-red {
+  background: linear-gradient(135deg, #fdecef 0%, #fff 100%);
+  border-color: rgba(230,57,87,0.22);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ICP DAILY WIDGET (Dashboard) — pequeno reforço para fundo claro.
+   O componente usa ${cat.color}1a inline (8% alpha) — visível em
+   ambos os temas, mas no light reforçamos a borda para dar peso.
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] .dash-icp-daily {
+  box-shadow: var(--shadow-sm);
+}
