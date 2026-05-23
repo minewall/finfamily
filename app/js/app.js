@@ -2595,7 +2595,9 @@ ${despesas.length === 0 ? coachEmptyHTML({
   return`<tr class="row-clickable${isFut?' style="opacity:0.55"':'"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
   <td style="font-weight:500">
-    <div>${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">desc.</span>`:''}</div>
+    <div style="display:inline-flex;align-items:center;gap:6px">
+      ${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">desc.</span>`:''}${d.attachment?` <span style="color:var(--accent)" title="Recibo anexado">${icon('paperclip',{size:11})}</span>`:''}
+    </div>
     ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
   </td>
   <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
@@ -2713,6 +2715,109 @@ ${despesas.length === 0 ? coachEmptyHTML({
   <button type="button" class="btn-xs" id="fDRateioAdd" style="margin-top:8px">+ Pessoa</button>
   <div id="fDRateioSummary" style="font-size:11px;color:var(--text-3);margin-top:8px"></div>
 </div>`;
+  }
+
+  // ─── Helpers reutilizáveis: campo de Anexo (recibo) ─────────────
+  function anexoFieldHTML(prefix, currentAttachment) {
+    const hasCurrent = !!(currentAttachment && currentAttachment.path);
+    const kbCurrent = hasCurrent && currentAttachment.size
+      ? (currentAttachment.size / 1024).toFixed(1) + ' KB' : '';
+    return `
+      <div class="form-group form-full" style="grid-column:1/-1">
+        <label class="form-label">Anexar recibo (opcional)</label>
+        ${hasCurrent ? `
+        <div id="${prefix}AnexoCurrent" style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--green);border-radius:8px;background:rgba(34,197,94,.06);margin-bottom:8px">
+          ${icon('check-circle', {size:14, color:'var(--green)'})}
+          <a id="${prefix}AnexoView" href="#" style="flex:1;font-size:12px;color:var(--text-1);text-decoration:none;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" target="_blank" rel="noopener">${currentAttachment.name || 'Recibo anexado'}</a>
+          <span style="font-size:11px;color:var(--text-4);flex-shrink:0">${kbCurrent}</span>
+          <button type="button" id="${prefix}AnexoRemove" title="Remover anexo" style="background:none;border:0;color:var(--red);cursor:pointer;padding:4px;flex-shrink:0">${icon('trash-2',{size:14})}</button>
+        </div>` : ''}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-elevated)">
+          <input type="file" id="${prefix}AnexoInput" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" style="display:none"/>
+          <button type="button" class="btn-secondary" id="${prefix}AnexoBtn" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px">
+            ${icon('paperclip',{size:13})} ${hasCurrent ? 'Substituir' : 'Escolher arquivo'}
+          </button>
+          <div id="${prefix}AnexoInfo" style="flex:1;font-size:12px;color:var(--text-4);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nenhum arquivo selecionado</div>
+          <button type="button" id="${prefix}AnexoClear" style="display:none;background:none;border:0;color:var(--red);cursor:pointer;padding:4px">${icon('x',{size:14})}</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-4);margin-top:4px">Imagens (JPG, PNG, WEBP, HEIC) ou PDF, até 5MB. Salvo de forma segura na nuvem.</div>
+      </div>`;
+  }
+
+  function bindAnexoField(prefix, currentAttachment, despesaId, onUpdate) {
+    let staged = null;
+    let removed = false;
+    const $ = (id) => document.getElementById(prefix + id);
+    const btn = $('AnexoBtn'), inp = $('AnexoInput'), info = $('AnexoInfo'), clear = $('AnexoClear');
+    const view = $('AnexoView'), removeBtn = $('AnexoRemove');
+
+    view?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!currentAttachment?.path || typeof SupabaseSync === 'undefined') return;
+      const url = await SupabaseSync.getAnexoUrl?.(currentAttachment.path);
+      if (url) window.open(url, '_blank', 'noopener');
+      else toast('Não foi possível abrir o anexo', 'error');
+    });
+
+    removeBtn?.addEventListener('click', async () => {
+      if (!confirm('Remover este anexo? A ação não pode ser desfeita.')) return;
+      if (typeof SupabaseSync !== 'undefined' && currentAttachment?.path) {
+        await SupabaseSync.deleteAnexo?.(currentAttachment.path);
+      }
+      removed = true;
+      const cur = $('AnexoCurrent'); if (cur) cur.remove();
+      if (despesaId) {
+        const d = Store.get().despesas.find(x => x.id === despesaId);
+        if (d) { delete d.attachment; Store.persist?.(); }
+      }
+      if (onUpdate) onUpdate({ removed: true });
+      toast('Anexo removido', 'success');
+    });
+
+    btn?.addEventListener('click', () => inp?.click());
+
+    inp?.addEventListener('change', async () => {
+      const f = inp.files?.[0];
+      if (!f) return;
+      const maxBytes = SupabaseSync?.ANEXO_MAX_BYTES || 5 * 1024 * 1024;
+      if (f.size > maxBytes) { toast('Arquivo muito grande (máx 5MB)', 'error'); inp.value = ''; return; }
+      if (despesaId && typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected?.()) {
+        btn.disabled = true;
+        const kb = (f.size / 1024).toFixed(1);
+        if (info) { info.textContent = `Enviando ${f.name} (${kb} KB)...`; info.style.color = 'var(--accent)'; }
+        const res = await SupabaseSync.uploadAnexo(f, despesaId);
+        btn.disabled = false;
+        if (res.error) {
+          toast('Erro ao anexar: ' + res.error, 'error');
+          if (info) { info.textContent = 'Falhou'; info.style.color = 'var(--red)'; }
+          return;
+        }
+        if (currentAttachment?.path) SupabaseSync.deleteAnexo?.(currentAttachment.path);
+        const d = Store.get().despesas.find(x => x.id === despesaId);
+        if (d) {
+          d.attachment = { path: res.path, name: res.name, size: res.size, mime: res.mime };
+          Store.persist?.();
+        }
+        currentAttachment = d?.attachment || null;
+        if (info) { info.textContent = `${res.name} (${kb} KB)`; info.style.color = 'var(--text-1)'; }
+        toast('Recibo anexado', 'success');
+        if (onUpdate) onUpdate({ attachment: d?.attachment });
+      } else {
+        staged = f;
+        const kb = (f.size / 1024).toFixed(1);
+        if (info) { info.textContent = `${f.name} (${kb} KB)`; info.style.color = 'var(--text-1)'; }
+        if (clear) clear.style.display = 'inline-flex';
+      }
+    });
+
+    clear?.addEventListener('click', () => {
+      staged = null;
+      if (inp) inp.value = '';
+      if (info) { info.textContent = 'Nenhum arquivo selecionado'; info.style.color = 'var(--text-4)'; }
+      clear.style.display = 'none';
+    });
+
+    return { getStaged: () => staged, getRemoved: () => removed };
   }
 
   // Retorna interface: { read(): split[] | null }
@@ -3004,21 +3109,10 @@ ${despesas.length === 0 ? coachEmptyHTML({
         </div>
       </div>
       ${splitSectionHTML()}
-      <div class="form-group form-full" style="grid-column:1/-1">
-        <label class="form-label">Anexar recibo (opcional)</label>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-elevated)">
-          <input type="file" id="fDAnexoInput" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" style="display:none"/>
-          <button type="button" class="btn-secondary" id="fDAnexoBtn" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px">
-            ${icon('paperclip',{size:13})} Escolher arquivo
-          </button>
-          <div id="fDAnexoInfo" style="flex:1;font-size:12px;color:var(--text-4);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nenhum arquivo selecionado</div>
-          <button type="button" id="fDAnexoClear" style="display:none;background:none;border:0;color:var(--red);cursor:pointer;padding:4px">${icon('x',{size:14})}</button>
-        </div>
-        <div style="font-size:11px;color:var(--text-4);margin-top:4px">Imagens (JPG, PNG, WEBP, HEIC) ou PDF, até 5MB. Salvo de forma segura na nuvem.</div>
-      </div>
+      ${anexoFieldHTML('fD', null)}
     </div>`;
     let splitApi = null;
-    let _stagedAnexoFile = null; // arquivo aguardando upload após save
+    let novaAnexoApi = null;
     Modal.open('Nova Despesa', html, () => {
       const desc          = document.getElementById('fDDesc').value.trim();
       const amount        = parseFloat(document.getElementById('fDAmt').value);
@@ -3059,8 +3153,9 @@ ${despesas.length === 0 ? coachEmptyHTML({
         toast('Despesa adicionada!', 'success');
       }
       // Upload do anexo (se houver) — só pra despesa NÃO parcelada por enquanto.
-      if (createdEntry && _stagedAnexoFile && typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected?.()) {
-        SupabaseSync.uploadAnexo(_stagedAnexoFile, createdEntry.id).then(res => {
+      const stagedFile = novaAnexoApi?.getStaged?.();
+      if (createdEntry && stagedFile && typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected?.()) {
+        SupabaseSync.uploadAnexo(stagedFile, createdEntry.id).then(res => {
           if (res.error) { toast('Erro ao anexar: ' + res.error, 'error'); return; }
           // Patch despesa com attachment metadata
           const d = Store.get().despesas.find(x => x.id === createdEntry.id);
@@ -3092,29 +3187,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
       splitApi = setupSplitUI('fDAmt', null);
       document.getElementById('fDCat')?.addEventListener('change', updateSubs);
       updateSubs();
-      // Anexo: wire do botão e input
-      const aBtn   = document.getElementById('fDAnexoBtn');
-      const aIn    = document.getElementById('fDAnexoInput');
-      const aInfo  = document.getElementById('fDAnexoInfo');
-      const aClear = document.getElementById('fDAnexoClear');
-      aBtn?.addEventListener('click', () => aIn?.click());
-      aIn?.addEventListener('change', () => {
-        const f = aIn.files?.[0];
-        if (!f) return;
-        if (f.size > (SupabaseSync?.ANEXO_MAX_BYTES || 5*1024*1024)) {
-          toast('Arquivo muito grande (máx 5MB)', 'error'); aIn.value = ''; return;
-        }
-        _stagedAnexoFile = f;
-        const kb = (f.size / 1024).toFixed(1);
-        if (aInfo) { aInfo.textContent = `${f.name} (${kb} KB)`; aInfo.style.color = 'var(--text-1)'; }
-        if (aClear) aClear.style.display = 'inline-flex';
-      });
-      aClear?.addEventListener('click', () => {
-        _stagedAnexoFile = null;
-        if (aIn) aIn.value = '';
-        if (aInfo) { aInfo.textContent = 'Nenhum arquivo selecionado'; aInfo.style.color = 'var(--text-4)'; }
-        aClear.style.display = 'none';
-      });
+      novaAnexoApi = bindAnexoField('fD', null, null);
       document.getElementById('fDParcelado')?.addEventListener('change', e => {
         const opts = document.getElementById('fDParceladoOpts');
         if (opts) opts.style.display = e.target.checked ? 'grid' : 'none';
@@ -6381,8 +6454,11 @@ ${topCats.length ? `
   <div class="form-group"><label class="form-label">Pagamento</label>
     <select class="form-select" id="fMPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select>
   </div>
+  ${anexoFieldHTML('fM', null)}
 </div>`;
 
+    let _stagedMemberAnexo = null;
+    let memberAnexoApi = null;
     Modal.open('Lançar Despesa', html, () => {
       const desc   = document.getElementById('fMDesc').value.trim();
       const amount = parseFloat(document.getElementById('fMAmt').value);
@@ -6392,12 +6468,25 @@ ${topCats.length ? `
       const pay    = document.getElementById('fMPay').value;
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
       const d = new Date(date);
-      Store.addDespesa({
+      const created = Store.addDespesa({
         desc, amount, date, category: cat, sub, pay,
         month: d.getMonth()+1, year: d.getFullYear(),
         responsavel: pessoaName,
         split: [{ person: pessoaName, valor: amount, share: 100 }],
       });
+      // Upload do anexo (se houver) — pós-save porque precisa do id
+      const stagedFile = memberAnexoApi?.getStaged?.();
+      if (created && stagedFile && typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected?.()) {
+        SupabaseSync.uploadAnexo(stagedFile, created.id).then(res => {
+          if (res.error) { toast('Erro ao anexar: ' + res.error, 'error'); return; }
+          const d = Store.get().despesas.find(x => x.id === created.id);
+          if (d) {
+            d.attachment = { path: res.path, name: res.name, size: res.size, mime: res.mime };
+            Store.persist?.();
+            toast('Recibo anexado', 'success');
+          }
+        });
+      }
       // Push imediato para a nuvem para que o admin veja
       if (typeof SupabaseSync !== 'undefined') SupabaseSync.schedulePush(Store.get());
       toast('Despesa lançada!', 'success');
@@ -6413,6 +6502,7 @@ ${topCats.length ? `
       };
       updateSubs();
       document.getElementById('fMCat')?.addEventListener('change', updateSubs);
+      memberAnexoApi = bindAnexoField('fM', null, null);
     }, 0);
   }
 
@@ -6515,6 +6605,7 @@ ${topCats.length ? `
           </div>
         </div>
       </div>
+      ${anexoFieldHTML('eD', d.attachment)}
     </div>`;
 
     let editSplitApi = null;
@@ -6570,6 +6661,7 @@ ${topCats.length ? `
 
     setTimeout(() => {
       editSplitApi = setupSplitUI('eDAmt', d.split || null);
+      bindAnexoField('eD', d.attachment, d.id);
       document.getElementById('eDCat')?.addEventListener('change', () => {
         const cat = document.getElementById('eDCat').value;
         const sel = document.getElementById('eDSub');
@@ -10022,6 +10114,84 @@ ${outrs.length ? `
     const saldo    = receita - despesa;
 
     // ── Render helpers ────────────────────────────────────────────
+
+    // Hero: Poder de Escolha PESSOAL + Reembolsos (lado a lado, grid 1.55fr/1fr)
+    function wPoderPessoal() {
+      const saudeCor = saudePct > 70 ? 'var(--amber)' : saudePct > 85 ? 'var(--red)' : 'var(--green)';
+      const isNeg = poderPessoal < 0;
+      const liqReembolso = aReceber - aPagar;
+      return `
+<div class="painel-hero-grid" data-widget="poder_pessoal" style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
+  <!-- Hero pessoal -->
+  <div class="poder-hero ${isNeg ? 'is-negative' : ''}" style="padding:22px 24px">
+    <div class="poder-hero-glow"></div>
+    <div class="poder-hero-header">
+      <div class="poder-hero-icon">${icon('zap',{size:15})}</div>
+      <div class="poder-hero-meta">
+        <div class="poder-hero-tag">Meu Poder de Escolha</div>
+        <div class="poder-hero-label">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
+      </div>
+      <div class="poder-hero-month">${Utils.months[month-1]} ${year}</div>
+    </div>
+    <div class="poder-hero-main">
+      <div class="poder-hero-value-wrap">
+        <div class="poder-hero-value">${isNeg?'-':''}${Utils.currency(Math.abs(poderPessoal))}</div>
+        <div class="poder-hero-sub">
+          <span style="display:block;opacity:0.85">livre após seus compromissos pessoais</span>
+        </div>
+      </div>
+      <div class="poder-hero-gauge">
+        ${SvgCharts.gauge(Math.max(0, Math.min(100, pctPoder)), { size: 78, color: 'var(--accent-2)', thickness: 9 })}
+        <div class="poder-hero-gauge-label">
+          <div class="poder-hero-gauge-pct">${Math.round(Math.max(0,pctPoder))}%</div>
+          <div class="poder-hero-gauge-cap">livre</div>
+        </div>
+      </div>
+    </div>
+    <div class="poder-hero-flow">
+      <div class="poder-hero-flow-foot">
+        <div>
+          <div class="poder-hero-flow-foot-lbl">Receita</div>
+          <div class="poder-hero-flow-foot-val" style="color:var(--green)">${Utils.currency(receitaPessoal)}</div>
+        </div>
+        <div>
+          <div class="poder-hero-flow-foot-lbl">Comprometido</div>
+          <div class="poder-hero-flow-foot-val" style="color:var(--red)">−${Utils.currency(despesaPessoal)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="poder-hero-flow-foot-lbl">Saúde</div>
+          <div class="poder-hero-flow-foot-val" style="color:${saudeCor}">${saudePct.toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reembolsos -->
+  <div class="card" style="padding:15px 17px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text-1)">
+        ${icon('arrow-right-left',{size:14})} Reembolsos
+      </div>
+      <span style="font-size:11px;color:var(--text-3)">${meusReembolsos.length} aberto${meusReembolsos.length===1?'':'s'}</span>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(29,201,126,0.3);border-radius:9px">
+        <div style="font-size:9.5px;font-weight:700;color:var(--green);letter-spacing:0.08em;text-transform:uppercase">A receber</div>
+        <div style="font-size:18px;font-weight:700;color:var(--green);letter-spacing:-0.4px;margin-top:2px">+${Utils.currency(aReceber)}</div>
+      </div>
+      <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(255,74,104,0.3);border-radius:9px">
+        <div style="font-size:9.5px;font-weight:700;color:var(--red);letter-spacing:0.08em;text-transform:uppercase">A pagar</div>
+        <div style="font-size:18px;font-weight:700;color:var(--red);letter-spacing:-0.4px;margin-top:2px">−${Utils.currency(aPagar)}</div>
+      </div>
+    </div>
+    <a href="#reembolsos" onclick="Router.navigate('reembolsos')" style="padding:9px 11px;background:var(--surface-2);border-radius:8px;font-size:11px;color:var(--text-2);display:flex;align-items:center;gap:7px;text-decoration:none">
+      ${icon('arrow-right',{size:11})}
+      Líquido: <strong style="color:${liqReembolso>=0?'var(--green)':'var(--red)'};margin-left:auto">${liqReembolso>=0?'+':'−'}${Utils.currency(Math.abs(liqReembolso))}</strong>
+    </a>
+  </div>
+</div>`;
+    }
+
     function wSaldoMes() {
       const prevM = month > 1 ? month - 1 : 12;
       const prevY = month > 1 ? year : year - 1;
@@ -10074,29 +10244,76 @@ ${outrs.length ? `
     }
 
     function wMetas() {
-      const metas = (data.metas || []).filter(m => !m.concluida).slice(0, 4);
+      const metas = minhasMetas;
+      const aporteTotal = metas.reduce((s, m) => s + (m.aporte || 0), 0);
       if (!metas.length) return `
 <div class="card widget-card" data-widget="metas">
-  <div class="card-header"><span class="card-title">${icon('target',{size:15})} Metas em Andamento</span></div>
+  <div class="card-header"><span class="card-title">${icon('target',{size:15})} Minhas Metas</span></div>
   <div class="empty-state" style="padding:20px"><p>Nenhuma meta ativa. <a href="#metas" onclick="Router.navigate('metas')" style="color:var(--accent)">Criar meta →</a></p></div>
 </div>`;
+      const colorPool = ['var(--teal)', 'var(--amber)', 'var(--blue)', 'var(--accent-2)'];
+      const iconPool  = ['shield', 'sparkles', 'target', 'trending-up'];
       return `
 <div class="card widget-card" data-widget="metas">
-  <div class="card-header"><span class="card-title">${icon('target',{size:15})} Metas em Andamento</span>
-    <a href="#metas" onclick="Router.navigate('metas')" style="font-size:11px;color:var(--accent)">Ver todas →</a></div>
-  <div style="display:flex;flex-direction:column;gap:12px">
-    ${metas.map(m => {
-      const pct = m.alvo > 0 ? Math.min((m.atual || 0) / m.alvo * 100, 100) : 0;
-      const cor  = pct >= 100 ? 'var(--green)' : pct >= 60 ? 'var(--accent)' : 'var(--amber)';
-      const dataAlvo = m.dataAlvo ? new Date(m.dataAlvo+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) : '—';
-      return `<div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-weight:500;font-size:13px">${m.desc || m.label}</span>
-          <span style="font-size:11px;color:var(--text-3)">${Utils.currency(m.atual||0)} / ${Utils.currency(m.alvo)} · até ${dataAlvo}</span>
+  <div class="card-header" style="align-items:flex-start">
+    <div>
+      <div class="card-title" style="font-size:13.5px">${icon('target',{size:14})} Minhas Metas</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:2px">${metas.length} ativa${metas.length===1?'':'s'}${aporteTotal>0?` · ${Utils.currency(aporteTotal)}/mês aportando`:''}</div>
+    </div>
+    <a href="#metas" onclick="Router.navigate('metas')" style="font-size:11.5px;color:var(--accent);text-decoration:none">Ver todas →</a>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:9px;margin-top:8px">
+    ${metas.map((m, idx) => {
+      const target = m.target || m.alvo || 0;
+      const atual  = m.current || m.atual || 0;
+      const pct    = target > 0 ? Math.min(atual / target * 100, 100) : 0;
+      const cor    = colorPool[idx % colorPool.length];
+      const ico    = m.icon || iconPool[idx % iconPool.length];
+      return `<div style="padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">
+          <div style="width:26px;height:26px;border-radius:7px;background:color-mix(in srgb, ${cor} 14%, transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${cor}">${icon(ico,{size:12})}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.label || m.desc || '—'}</div>
+            <div style="font-size:10px;color:var(--text-3)">${Utils.currency(atual)} de ${Utils.currency(target)}</div>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:${cor};letter-spacing:-0.3px">${pct.toFixed(0)}%</div>
         </div>
-        <div class="progress-bar" style="height:6px;border-radius:3px">
-          <div class="progress-fill" style="width:${pct.toFixed(1)}%;background:${cor};border-radius:3px"></div>
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${cor};border-radius:2px"></div>
         </div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+    }
+
+    // Trend pessoal — barras dos últimos 5 meses
+    function wTrend() {
+      const deltaStr = (trendDelta >= 0 ? '+' : '−') + Utils.currency(Math.abs(trendDelta));
+      const deltaCor = trendDelta >= 0 ? 'var(--green)' : 'var(--red)';
+      return `
+<div class="card widget-card" data-widget="trend">
+  <div class="card-header" style="align-items:flex-start">
+    <div>
+      <div class="card-title" style="font-size:13.5px">${icon('trending-up',{size:14})} Meu Poder de Escolha · evolução</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:2px">${trendMeses[0].label} – ${trendMeses[4].label} · ganho líquido <strong style="color:${deltaCor}">${deltaStr}</strong></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;align-items:end;min-height:140px;margin-top:14px">
+    ${trendMeses.map((t, i) => {
+      const isLast = i === trendMeses.length - 1;
+      const h = (Math.abs(t.val) / trendMax) * 100;
+      const isNeg = t.val < 0;
+      const cor = isLast
+        ? (isNeg ? 'var(--red)' : 'linear-gradient(180deg, var(--accent-2), var(--accent))')
+        : 'rgba(255,255,255,0.07)';
+      const valLabel = (Math.abs(t.val) >= 1000)
+        ? `R$ ${(t.val/1000).toFixed(1)}k`
+        : `R$ ${Math.round(t.val)}`;
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="font-size:11px;font-weight:600;color:${isLast?'var(--accent-2)':'var(--text-2)'};font-variant-numeric:tabular-nums">${valLabel}</div>
+        <div style="width:100%;height:${h}px;background:${cor};border-radius:5px 5px 0 0;min-height:4px"></div>
+        <div style="font-size:10px;color:var(--text-3);font-weight:${isLast?700:400};text-transform:capitalize">${t.label}</div>
       </div>`;
     }).join('')}
   </div>
@@ -10179,30 +10396,36 @@ ${outrs.length ? `
     }
 
     function wTransacoes() {
-      const recent = [...(data.despesas||[]), ...(data.receitas||[])]
-        .filter(t => t.year === year && t.month === month)
+      // "Meus gastos" pessoais — só despesas pagas por mim (ou split com minha parte)
+      const recent = [...minhasDespesas]
         .sort((a,b) => (b.date||'').localeCompare(a.date||''))
         .slice(0, 6);
+      const totalMes = minhasDespesas.reduce((s, d) => s + d.amount, 0);
       if (!recent.length) return `
 <div class="card widget-card" data-widget="transacoes">
-  <div class="card-header"><span class="card-title">${icon('list',{size:15})} Últimas Transações</span></div>
-  <div class="empty-state" style="padding:20px"><p>Sem transações este mês.</p></div>
+  <div class="card-header"><span class="card-title">${icon('list',{size:14})} Meus gastos · ${Utils.months[month-1]}</span></div>
+  <div class="empty-state" style="padding:20px"><p>Sem gastos seus neste mês.</p></div>
 </div>`;
       return `
 <div class="card widget-card" data-widget="transacoes">
-  <div class="card-header"><span class="card-title">${icon('list',{size:15})} Últimas Transações</span>
-    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" style="font-size:11px;color:var(--accent)">Ver todas →</a></div>
-  <div style="display:flex;flex-direction:column;gap:0">
+  <div class="card-header" style="align-items:flex-start">
+    <div>
+      <div class="card-title" style="font-size:13.5px">${icon('list',{size:14})} Meus gastos · ${Utils.months[month-1]}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:2px">${minhasDespesas.length} lançamento${minhasDespesas.length===1?'':'s'} · ${Utils.currency(totalMes)}</div>
+    </div>
+    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" style="font-size:11.5px;color:var(--accent);text-decoration:none">Ver todos →</a>
+  </div>
+  <div style="display:flex;flex-direction:column;margin-top:8px">
     ${recent.map((t,i) => {
-      const isRec = !!t.type;
-      const dt = t.date ? new Date(t.date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '—';
+      const dia = t.day || (t.date ? new Date(t.date+'T12:00:00').getDate() : '—');
       const cat = Store.CATEGORIES[t.category] || { label: t.category||'—', color:'var(--text-4)' };
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i>0?'border-top:1px solid var(--border-faint,var(--border))':''}">
-        <span style="width:7px;height:7px;border-radius:50%;background:${isRec?'var(--green)':'var(--red)'};flex-shrink:0"></span>
-        <span style="flex:1;font-size:13px;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.desc||'—'}</span>
-        <span style="font-size:11px;color:var(--text-4);white-space:nowrap">${cat.label}</span>
-        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:${isRec?'var(--green)':'var(--text-1)'};white-space:nowrap">${isRec?'+':'−'}${Utils.currency(t.amount)}</span>
-        <span style="font-size:11px;color:var(--text-4);white-space:nowrap">${dt}</span>
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;${i < recent.length - 1?'border-bottom:1px solid var(--border)':''}">
+        <div style="width:24px;height:24px;border-radius:6px;background:var(--surface-2);color:var(--text-3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${dia}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:var(--text-1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.desc||'—'}</div>
+          <div style="font-size:10px;color:var(--text-3)">${cat.label}</div>
+        </div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums">−${Utils.currency(t.amount)}</div>
       </div>`;
     }).join('')}
   </div>
@@ -10231,7 +10454,22 @@ ${outrs.length ? `
 </div>`;
     }
 
+    // Widget composto: Metas + Lançamentos lado a lado (prototype: grid 1fr 1.1fr)
+    function wMetasTransacoesGrid() {
+      const hasMetas = vis.metas, hasTx = vis.transacoes;
+      if (!hasMetas && !hasTx) return '';
+      if (hasMetas && hasTx) {
+        return `<div style="display:grid;grid-template-columns:1fr 1.1fr;gap:14px">
+          ${wMetas()}
+          ${wTransacoes()}
+        </div>`;
+      }
+      return hasMetas ? wMetas() : wTransacoes();
+    }
+
     const WIDGET_RENDER = {
+      poder_pessoal: wPoderPessoal,
+      reembolsos:    () => '', // renderizado dentro de poder_pessoal
       saldo_mes:     wSaldoMes,
       patrimonio:    wPatrimonio,
       metas:         wMetas,
@@ -10239,6 +10477,7 @@ ${outrs.length ? `
       desp_cat:      wDespCat,
       parcelas:      wParcelas,
       transacoes:    wTransacoes,
+      trend:         wTrend,
       poder_escolha: wPoderEscolha,
     };
 
@@ -10266,36 +10505,97 @@ ${outrs.length ? `
 <div id="painelOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:199" id="painelOverlay"></div>`;
     }
 
+    // ── Coach inline contextual do "Meu Painel" ──────────────────
+    function buildCoachInline() {
+      // Compara com mês anterior para gerar mensagem contextual
+      const prevM = month > 1 ? month - 1 : 12;
+      const prevY = month > 1 ? year : year - 1;
+      const prevPoderPessoal = (() => {
+        const rec = Store.receitasByMonth(prevM, prevY).filter(r => r.person === eu).reduce((s,r)=>s+r.amount,0);
+        const desp = Store.despesasByMonth(prevM, prevY).map(d => {
+          if (Array.isArray(d.split) && d.split.length) {
+            const sl = d.split.find(x => x.person === eu);
+            return sl ? (sl.valor || 0) : 0;
+          }
+          return d.person === eu ? d.amount : 0;
+        }).reduce((s,v)=>s+v,0);
+        return rec - desp;
+      })();
+      const delta = poderPessoal - prevPoderPessoal;
+
+      let tone = 'neutral', titulo, texto;
+      if (receitaPessoal === 0 && despesaPessoal === 0) {
+        titulo = 'Comece a registrar suas movimentações';
+        texto = `Ainda não tem nada lançado em <strong>${monthLabel}</strong> com sua pessoa. Adicione uma receita ou despesa pra eu começar a calcular seu Poder de Escolha pessoal.`;
+        tone = 'neutral';
+      } else if (poderPessoal < 0) {
+        tone = 'attention';
+        titulo = 'Você gastou mais do que recebeu este mês';
+        texto = `Seu Poder de Escolha pessoal ficou em <strong style="color:var(--red)">-${Utils.currency(Math.abs(poderPessoal))}</strong>. Vale revisar onde dá pra segurar e proteger sua reserva.`;
+      } else if (delta > 0) {
+        tone = 'positive';
+        titulo = 'Seu Poder de Escolha cresceu vs mês anterior';
+        texto = `Seu Poder pessoal subiu <strong style="color:var(--green)">+${Utils.currency(delta)}</strong> vs ${Utils.monthsFull[prevM-1]}. Está no caminho — considere aumentar um aporte ou acelerar uma meta.`;
+      } else if (delta < 0) {
+        tone = 'neutral';
+        titulo = 'Seu Poder de Escolha caiu um pouco';
+        texto = `Você fechou ${Utils.currency(poderPessoal)} livres — <strong style="color:var(--amber)">${Utils.currency(Math.abs(delta))}</strong> abaixo de ${Utils.monthsFull[prevM-1]}. Vamos olhar juntos onde ajustar?`;
+      } else {
+        tone = 'positive';
+        titulo = 'Mês equilibrado pra você';
+        texto = `Você está com <strong style="color:var(--green)">${Utils.currency(poderPessoal)}</strong> de Poder de Escolha pessoal. Bom momento pra reforçar uma meta ou abrir espaço pra novos planos.`;
+      }
+      return coachInlineHTML({
+        contexto: `Meu Painel · ${monthLabel}`,
+        titulo, texto, tone,
+        acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+      });
+    }
+
     // ── Render principal ──────────────────────────────────────────
     function buildPainel() {
-      const visibleWidgets = WIDGETS_DEF.filter(w => vis[w.id]);
-      const html = visibleWidgets.map(w => WIDGET_RENDER[w.id]()).join('');
+      // Ordem aderente ao protótipo:
+      //   1. Hero pessoal + Reembolsos (linha única, grid interno)
+      //   2. Coach inline (sempre — mas se desligado em vis.coach, esconde)
+      //   3. Metas + Lançamentos (2 colunas)
+      //   4. Evolução do Poder de Escolha (trend)
+      //   5. Widgets opcionais (saldo, patrimônio, desp/cat, parcelas, coach feed)
+      const parts = [];
+      if (vis.poder_pessoal) parts.push(wPoderPessoal());
+      if (vis.metas || vis.transacoes) parts.push(wMetasTransacoesGrid());
+      if (vis.trend) parts.push(wTrend());
+      // Opcionais (visão expandida)
+      ['saldo_mes', 'patrimonio', 'desp_cat', 'parcelas', 'coach'].forEach(id => {
+        if (vis[id]) parts.push(WIDGET_RENDER[id]());
+      });
+      const html = parts.join('');
       return html || `<div class="empty-state card" style="padding:40px;text-align:center"><p>Nenhum widget selecionado.<br>Clique em <strong>Personalizar</strong> para escolher o que exibir.</p></div>`;
     }
 
     container.innerHTML = `
-<div class="page-head mb-4">
-  <div>
-    <h1 class="page-head-title">Meu Painel</h1>
-    <p class="page-head-meta">
-      <span class="page-head-meta-total">sua visão personalizada</span>
+<!-- Header pessoal: avatar + nome + link Painel da Família + Personalizar -->
+<div class="painel-pessoal-head" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+  <div style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg, ${corEu}, var(--blue, #4aa8ff));color:#fff;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px ${corEu}40;flex-shrink:0">${iniEu}</div>
+  <div style="flex:1;min-width:0">
+    <h1 class="page-head-title" style="line-height:1;margin:0">Olá, ${eu}</h1>
+    <p class="page-head-meta" style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="page-head-meta-total">${monthLabel}</span>
       <span class="page-head-meta-sep">·</span>
-      <span style="color:var(--text-3)">widgets configuráveis das finanças pessoais</span>
+      <span style="color:var(--text-3)">visão pessoal individual</span>
+      <span class="page-head-meta-sep">·</span>
+      <a href="#familia" onclick="Router.navigate('familia')" style="color:${corEu};text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+        ${icon('users',{size:11})} Ver painel da família ${icon('arrow-right',{size:10})}
+      </a>
     </p>
   </div>
   <button class="btn-secondary" id="btnPersonalizarPainel">${icon('sliders-horizontal',{size:14})} Personalizar</button>
 </div>
 
-${coachInlineHTML({
-  contexto: `Meu Painel · ${Utils.monthsFull[getMonth()-1]}`,
-  titulo: 'Personalize seu painel',
-  texto: 'O Coach mostra os widgets mais relevantes ao seu perfil. Use <strong>Personalizar</strong> para ajustar quais blocos quer ver — receitas, despesas, metas, contratos, reembolsos.',
-  tone: 'neutral',
-  acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
-})}
-
 ${renderPageMonthPicker(container)}
-<div id="painelWidgetsArea" style="display:grid;grid-template-columns:1fr;gap:16px">
+
+${buildCoachInline()}
+
+<div id="painelWidgetsArea" style="display:flex;flex-direction:column;gap:14px">
   ${buildPainel()}
 </div>`;
 
@@ -10322,6 +10622,9 @@ ${renderPageMonthPicker(container)}
       document.getElementById('painelCustomizeDrawer')?.remove();
       document.getElementById('painelOverlay')?.remove();
     }
+
+    // Liga botões de dismiss/ação do Coach inline
+    bindCoachInline(container);
   }
 
   // ══════════════════════════════════════════════════════════════
