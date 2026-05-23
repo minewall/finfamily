@@ -378,9 +378,14 @@ const App = (function () {
     container.querySelectorAll('[data-coach-action]').forEach(b => {
       b.addEventListener('click', () => {
         const act = b.dataset.coachAction;
-        // Ações padrão: abrir painel do Coach
+        const prompt = b.dataset.coachPrompt;
+        // Ações padrão: abrir painel do Coach (com prompt opcional)
         if (act === 'open-coach' || !act) {
-          document.getElementById('coachToggleBtn')?.click();
+          if (prompt && window.FFCoach?.ask) {
+            window.FFCoach.ask(prompt);
+          } else {
+            document.getElementById('btnCoach')?.click();
+          }
         }
         // Outras ações: deixa o handler específico cuidar
       });
@@ -1368,7 +1373,7 @@ ${renderPrevisaoCaixa(saldo)}
     requestAnimationFrame(() => {
       // Coach inline — abre painel ao clicar em "Ver análise"
       document.getElementById('btnCoachInlineVer')?.addEventListener('click', () => {
-        document.getElementById('coachToggleBtn')?.click();
+        document.getElementById('btnCoach')?.click();
       });
 
       // ── ICP daily widget — "Responder" abre o modal da categoria,
@@ -3670,9 +3675,9 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 </div>` : ''}`;
 
     document.getElementById('btnAddMeta')?.addEventListener('click', () => openMetaModal(null, container));
-    document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => document.getElementById('coachToggleBtn')?.click());
-    document.getElementById('btnMetasAlocar')?.addEventListener('click', () => document.getElementById('coachToggleBtn')?.click());
-    document.getElementById('btnSpotlightCoach')?.addEventListener('click', e => { e.stopPropagation(); document.getElementById('coachToggleBtn')?.click(); });
+    document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => document.getElementById('btnCoach')?.click());
+    document.getElementById('btnMetasAlocar')?.addEventListener('click', () => document.getElementById('btnCoach')?.click());
+    document.getElementById('btnSpotlightCoach')?.addEventListener('click', e => { e.stopPropagation(); document.getElementById('btnCoach')?.click(); });
 
     container.querySelectorAll('[data-edit-meta]').forEach(card => {
       card.addEventListener('click', e => {
@@ -7037,20 +7042,22 @@ ${_embed ? '' : `<div class="page-head mb-4">
 <!-- ═══════════════════════ SUA CARTEIRA ═══════════════════════════ -->
 ${reservas.length > 0 ? `
 <div class="dash-section-tag mt-6 mb-2">SUA CARTEIRA</div>
-<div class="mb-6" style="display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px;align-items:stretch">
+<div class="mb-6" style="display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:16px;align-items:stretch">
   <div class="card" style="display:flex;flex-direction:column">
     <div class="card-header"><span class="card-title">Distribuição</span></div>
-    <div style="display:flex;align-items:center;justify-content:center;padding:8px 0">
-      <canvas id="chartInvDonut" width="220" height="220"></canvas>
+    <div style="display:flex;align-items:center;justify-content:center;padding:16px 0;flex:1">
+      <canvas id="chartInvDonut" width="240" height="240" style="max-width:100%;height:auto"></canvas>
     </div>
-    <div id="invDonutLegend" style="display:flex;flex-direction:column;gap:6px;padding:4px 0 0"></div>
+    <div id="invDonutLegend" style="display:flex;flex-direction:column;gap:6px;padding:10px 0 0;border-top:1px solid var(--border)"></div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;min-width:0">
     <div class="card-header">
       <span class="card-title">Evolução Patrimonial — ${getYear()}</span>
       <span style="font-size:11px;color:var(--text-4)">reservas + saldo acumulado</span>
     </div>
-    <div class="chart-wrap" style="flex:1;min-height:260px"><canvas id="chartInvEvolucao" class="chart-canvas" height="260"></canvas></div>
+    <div class="chart-wrap" style="flex:1;display:flex;align-items:stretch;min-height:340px">
+      <canvas id="chartInvEvolucao" class="chart-canvas" height="340" style="max-height:380px"></canvas>
+    </div>
   </div>
 </div>
 
@@ -9338,6 +9345,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     const despesa = Store.sumDespesas(month, year);
     const poder   = Store.calcPoderDeEscolha(month, year);
     const familyCtx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
+    const meName  = (Store.getProfile && Store.getProfile()?.name) || Store.PESSOAS?.[0] || '';
 
     // Por pessoa: receita, despesa (considerando split), e poder estimado
     const allRec   = Store.receitasByMonth(month, year);
@@ -9361,10 +9369,64 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
         despesa: despP,
         poder: poderP,
         pctContribReceita: totalRec > 0 ? (recP / totalRec * 100) : 0,
+        pctContribPoder: poder.poderDeEscolha > 0 ? Math.max(0, poderP / poder.poderDeEscolha * 100) : 0,
         color: Utils.personColor(p),
         avatar: Utils.personAvatar(p),
+        isMe: p === meName,
       };
     }).filter(m => m.receita > 0 || m.despesa > 0);
+
+    // Ordena: principal primeiro, depois por receita decrescente
+    memberData.sort((a, b) => (b.isMe ? 1 : 0) - (a.isMe ? 1 : 0) || b.receita - a.receita);
+
+    // Histórico p/ Equilíbrio Familiar (últimos 5 meses incluindo o atual)
+    const balanceMonths = [];
+    for (let k = 4; k >= 0; k--) {
+      const dt = new Date(year, month - 1 - k, 1);
+      balanceMonths.push({ m: dt.getMonth() + 1, y: dt.getFullYear(), label: Utils.months[dt.getMonth()] });
+    }
+    const memberSeries = memberData.slice(0, 4).map(m => ({
+      name: m.person,
+      c: m.color,
+      data: balanceMonths.map(bm => {
+        const recsB = Store.receitasByMonth(bm.m, bm.y).filter(r => r.person === m.person).reduce((s, r) => s + r.amount, 0);
+        const despsB = Store.despesasByMonth(bm.m, bm.y).reduce((s, d) => {
+          if (Array.isArray(d.split) && d.split.length) {
+            const sl = d.split.find(x => x.person === m.person);
+            return s + (sl?.valor || 0);
+          }
+          return d.person === m.person ? s + d.amount : s;
+        }, 0);
+        return Math.max(0, recsB - despsB);
+      }),
+    }));
+    const familySerie = balanceMonths.map(bm => {
+      const pd = Store.calcPoderDeEscolha(bm.m, bm.y);
+      return Math.max(0, pd.poderDeEscolha || 0);
+    });
+    memberSeries.push({ name: 'Família', c: '#f59e0b', data: familySerie });
+
+    // "Quem cobre o quê" — categorias com 2+ contribuintes
+    const respCats = {};
+    allDesp.forEach(d => {
+      const cat = Store.CATEGORIES?.[d.category]?.label || d.category || 'Outras';
+      const color = Store.CATEGORIES?.[d.category]?.color || '#6b5ef5';
+      if (!respCats[cat]) respCats[cat] = { cat, color, total: 0, by: {} };
+      respCats[cat].total += d.amount;
+      if (Array.isArray(d.split) && d.split.length) {
+        d.split.forEach(sl => {
+          if (!sl.person) return;
+          respCats[cat].by[sl.person] = (respCats[cat].by[sl.person] || 0) + (sl.valor || 0);
+        });
+      } else if (d.person) {
+        respCats[cat].by[d.person] = (respCats[cat].by[d.person] || 0) + d.amount;
+      }
+    });
+    const respList = Object.values(respCats)
+      .map(r => ({ ...r, contribs: Object.entries(r.by).sort((a, b) => b[1] - a[1]) }))
+      .filter(r => r.contribs.length >= 2)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
 
     // Metas familiares (heurística: meta cuja descrição menciona "famí" ou que tem tag familiar)
     const allMetas = (Store.get().metas || []).filter(m => m.active !== false);
@@ -9375,9 +9437,31 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       /viagem|casa|carro|imóvel|imovel/i.test(m.label || '')
     ).slice(0, 4);
 
+    // Despesas compartilhadas + acerto final (reembolso net)
+    const compartilhadas = allDesp.filter(d => Array.isArray(d.split) && d.split.length >= 2).slice(0, 6);
+    const reembolsosPendentes = (Store.getReembolsosPendentes ? Store.getReembolsosPendentes() : []) || [];
+    const netByPair = {};
+    reembolsosPendentes.forEach(d => {
+      const r = d.reembolso || {};
+      if (!r.de || !r.para) return;
+      const key = [r.de, r.para].sort().join('|');
+      if (!netByPair[key]) {
+        const a = r.de < r.para ? r.de : r.para;
+        const b = r.de < r.para ? r.para : r.de;
+        netByPair[key] = { a, b, balance: 0 };
+      }
+      const v = r.valor || d.amount || 0;
+      netByPair[key].balance += (netByPair[key].a === r.para ? v : -v);
+    });
+    const netList = Object.values(netByPair).filter(n => Math.abs(n.balance) > 0.01);
+
     // Tem família multi-usuário ativa?
     const isMultiUser = familyCtx && (familyCtx.role === 'admin' || familyCtx.role === 'editor' || familyCtx.role === 'member');
     const familyName = familyCtx?.groupName || 'Minha Família';
+
+    // Cálculo do health p/ card Saúde Familiar
+    const healthPct = receita > 0 ? Math.min(despesa / receita, 1.2) : 0;
+    const healthColor = healthPct > 0.85 ? 'var(--red)' : healthPct > 0.33 ? 'var(--amber)' : 'var(--green)';
 
     container.innerHTML = `
 <div class="page-head mb-4">
@@ -10199,52 +10283,80 @@ ${outrs.length ? `
     // ── Render helpers ────────────────────────────────────────────
 
     // Hero: Poder de Escolha PESSOAL + Reembolsos (lado a lado, grid 1.55fr/1fr)
+    // Padrão monocromático translúcido — fiel aos heros de Receitas/Despesas.
     function wPoderPessoal() {
-      const saudeCor = saudePct > 70 ? 'var(--amber)' : saudePct > 85 ? 'var(--red)' : 'var(--green)';
       const isNeg = poderPessoal < 0;
+      const saudeCor = saudePct > 85 ? '#ef4444' : saudePct > 70 ? '#f59e0b' : '#1dc97e';
       const liqReembolso = aReceber - aPagar;
+
+      // Delta vs mês anterior (pill compacta)
+      const prevM = month > 1 ? month - 1 : 12;
+      const prevY = month > 1 ? year : year - 1;
+      const prevPoder = (() => {
+        const rec = Store.receitasByMonth(prevM, prevY).filter(r => r.person === eu).reduce((s,r)=>s+r.amount,0);
+        const desp = Store.despesasByMonth(prevM, prevY).map(d => {
+          if (Array.isArray(d.split) && d.split.length) {
+            const sl = d.split.find(x => x.person === eu);
+            return sl ? (sl.valor || 0) : 0;
+          }
+          return d.person === eu ? d.amount : 0;
+        }).reduce((s,v)=>s+v,0);
+        return rec - desp;
+      })();
+      const deltaPoder = poderPessoal - prevPoder;
+      const deltaPct = prevPoder !== 0 ? (deltaPoder / Math.abs(prevPoder)) * 100 : 0;
+      const _dir = deltaPoder >= 0 ? 'up' : 'down';
+      const _dClr = isNeg ? '#ef4444' : (_dir === 'down' ? '#ef4444' : '#1dc97e');
+      const _dBg  = isNeg ? 'rgba(239,68,68,.18)' : (_dir === 'down' ? 'rgba(239,68,68,.18)' : 'rgba(29,201,126,.18)');
+      const _dSign = deltaPoder >= 0 ? '+' : '';
+      const _prevMonth = Utils.monthsFull[prevM-1];
+
+      // Cor base do hero — accent (roxo Haile) ou red se negativo
+      const baseRGB = isNeg ? '239,68,68' : '107,94,245';
+      const heroBg  = `linear-gradient(145deg,rgba(${baseRGB},.18) 0%,rgba(${baseRGB},.08) 60%,rgba(${baseRGB},.04) 100%)`;
+      const heroBorder = `rgba(${baseRGB},.24)`;
+      const heroGlow   = `radial-gradient(circle,rgba(${baseRGB},.28) 0%,transparent 68%)`;
+      const captionClr = isNeg ? 'rgba(255,210,215,.7)' : 'rgba(210,205,255,.7)';
+      const subClr     = isNeg ? 'rgba(255,225,228,.85)' : 'rgba(230,225,255,.85)';
+      const muteClr    = isNeg ? 'rgba(255,225,228,.55)' : 'rgba(230,225,255,.55)';
+
       return `
 <div class="painel-hero-grid" data-widget="poder_pessoal" style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
   <!-- Hero pessoal -->
-  <div class="poder-hero ${isNeg ? 'is-negative' : ''}" style="padding:22px 24px">
-    <div class="poder-hero-glow"></div>
-    <div class="poder-hero-header">
-      <div class="poder-hero-icon">${icon('zap',{size:15})}</div>
-      <div class="poder-hero-meta">
-        <div class="poder-hero-tag">Meu Poder de Escolha</div>
-        <div class="poder-hero-label">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
+  <div style="position:relative;border-radius:18px;padding:22px 24px;background:${heroBg};border:1px solid ${heroBorder};overflow:hidden;display:flex;flex-direction:column;gap:18px">
+    <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:${heroGlow};pointer-events:none"></div>
+    <div style="position:relative;display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:11px;background:rgba(${baseRGB},.22);display:flex;align-items:center;justify-content:center;color:${isNeg?'#ffbac8':'#8a7ef8'};flex-shrink:0">${icon('zap',{size:16})}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:9.5px;font-weight:700;color:${captionClr};letter-spacing:.1em;text-transform:uppercase">Meu Poder de Escolha</div>
+        <div style="font-size:13px;font-weight:600;color:${subClr}">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
       </div>
-      <div class="poder-hero-month">${Utils.months[month-1]} ${year}</div>
+      <div style="background:rgba(${baseRGB},.2);border:1px solid rgba(${baseRGB},.28);border-radius:7px;padding:3px 10px;font-size:11px;color:${isNeg?'#ffbac8':'#8a7ef8'};white-space:nowrap">${Utils.months[month-1]} ${year}</div>
     </div>
-    <div class="poder-hero-main">
-      <div class="poder-hero-value-wrap">
-        <div class="poder-hero-value">${isNeg?'-':''}${Utils.currency(Math.abs(poderPessoal))}</div>
-        <div class="poder-hero-sub">
-          <span style="display:block;opacity:0.85">livre após seus compromissos pessoais</span>
-        </div>
-      </div>
-      <div class="poder-hero-gauge">
-        ${SvgCharts.gauge(Math.max(0, Math.min(100, pctPoder)), { size: 78, color: 'var(--accent-2)', thickness: 9 })}
-        <div class="poder-hero-gauge-label">
-          <div class="poder-hero-gauge-pct">${Math.round(Math.max(0,pctPoder))}%</div>
-          <div class="poder-hero-gauge-cap">livre</div>
-        </div>
-      </div>
+    <div style="position:relative">
+      <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${isNeg?'−':''}${Utils.currency(Math.abs(poderPessoal))}</div>
+      ${prevPoder !== 0 ? `
+      <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
+          ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
+          ${_dSign}${deltaPct.toFixed(1)}%
+        </span>
+        <span style="font-size:12px;color:${muteClr}">vs. ${_prevMonth} · ${_dSign}${Utils.currency(Math.abs(deltaPoder))}</span>
+      </div>` : `
+      <div style="font-size:12px;color:${muteClr};margin-top:12px">Primeiro mês registrado</div>`}
     </div>
-    <div class="poder-hero-flow">
-      <div class="poder-hero-flow-foot">
-        <div>
-          <div class="poder-hero-flow-foot-lbl">Receita</div>
-          <div class="poder-hero-flow-foot-val" style="color:var(--green)">${Utils.currency(receitaPessoal)}</div>
-        </div>
-        <div>
-          <div class="poder-hero-flow-foot-lbl">Comprometido</div>
-          <div class="poder-hero-flow-foot-val" style="color:var(--red)">−${Utils.currency(despesaPessoal)}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="poder-hero-flow-foot-lbl">Saúde</div>
-          <div class="poder-hero-flow-foot-val" style="color:${saudeCor}">${saudePct.toFixed(1)}%</div>
-        </div>
+    <div style="position:relative;display:flex;justify-content:space-between;gap:18px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">
+      <div>
+        <div style="font-size:10px;font-weight:600;color:${muteClr};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Receita</div>
+        <div style="font-size:15px;font-weight:700;color:#1dc97e;letter-spacing:-0.3px;font-variant-numeric:tabular-nums">${Utils.currency(receitaPessoal)}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:600;color:${muteClr};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Comprometido</div>
+        <div style="font-size:15px;font-weight:700;color:#ef4444;letter-spacing:-0.3px;font-variant-numeric:tabular-nums">−${Utils.currency(despesaPessoal)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;font-weight:600;color:${muteClr};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Saúde</div>
+        <div style="font-size:15px;font-weight:700;color:${saudeCor};letter-spacing:-0.3px">${saudePct.toFixed(1)}%</div>
       </div>
     </div>
   </div>
@@ -10260,16 +10372,17 @@ ${outrs.length ? `
     <div style="display:flex;gap:10px">
       <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(29,201,126,0.3);border-radius:9px">
         <div style="font-size:9.5px;font-weight:700;color:var(--green);letter-spacing:0.08em;text-transform:uppercase">A receber</div>
-        <div style="font-size:18px;font-weight:700;color:var(--green);letter-spacing:-0.4px;margin-top:2px">+${Utils.currency(aReceber)}</div>
+        <div style="font-size:17px;font-weight:700;color:var(--green);letter-spacing:-0.4px;margin-top:2px;font-variant-numeric:tabular-nums">+${Utils.currency(aReceber)}</div>
       </div>
-      <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(255,74,104,0.3);border-radius:9px">
+      <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(239,68,68,0.3);border-radius:9px">
         <div style="font-size:9.5px;font-weight:700;color:var(--red);letter-spacing:0.08em;text-transform:uppercase">A pagar</div>
-        <div style="font-size:18px;font-weight:700;color:var(--red);letter-spacing:-0.4px;margin-top:2px">−${Utils.currency(aPagar)}</div>
+        <div style="font-size:17px;font-weight:700;color:var(--red);letter-spacing:-0.4px;margin-top:2px;font-variant-numeric:tabular-nums">−${Utils.currency(aPagar)}</div>
       </div>
     </div>
     <a href="#reembolsos" onclick="Router.navigate('reembolsos')" style="padding:9px 11px;background:var(--surface-2);border-radius:8px;font-size:11px;color:var(--text-2);display:flex;align-items:center;gap:7px;text-decoration:none">
-      ${icon('arrow-right',{size:11})}
-      Líquido: <strong style="color:${liqReembolso>=0?'var(--green)':'var(--red)'};margin-left:auto">${liqReembolso>=0?'+':'−'}${Utils.currency(Math.abs(liqReembolso))}</strong>
+      ${icon('arrow-right',{size:11, color: liqReembolso>=0?'var(--green)':'var(--red)'})}
+      <span>Líquido</span>
+      <strong style="color:${liqReembolso>=0?'var(--green)':'var(--red)'};margin-left:auto;font-variant-numeric:tabular-nums">${liqReembolso>=0?'+':'−'}${Utils.currency(Math.abs(liqReembolso))}</strong>
     </a>
   </div>
 </div>`;
@@ -10848,7 +10961,7 @@ ${buildCoachInline()}
           const rec = recs.find(x => x.id === id);
           if (rec && !rec.lido) { rec.lido = true; Store.persist(); }
           if (target) Router.navigate(target);
-          else { document.getElementById('coachToggleBtn')?.click(); }
+          else { document.getElementById('btnCoach')?.click(); }
         });
       });
       // Clique no card todo: marca como lido (sem navegar)
