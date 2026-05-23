@@ -9464,16 +9464,29 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     const healthColor = healthPct > 0.85 ? 'var(--red)' : healthPct > 0.33 ? 'var(--amber)' : 'var(--green)';
 
     container.innerHTML = `
-<div class="page-head mb-4">
-  <div>
-    <h1 class="page-head-title">Painel da Família</h1>
-    <p class="page-head-meta">
-      <span class="page-head-meta-total">${familyName}</span>
-      <span class="page-head-meta-sep">·</span>
-      <span class="page-head-meta-total">${memberData.length} ${memberData.length === 1 ? 'pessoa ativa' : 'pessoas ativas'}</span>
-      <span class="page-head-meta-sep">·</span>
-      <span style="color:var(--text-3)">${monthLabel}</span>
-    </p>
+<!-- Family header com avatar group + ações (estilo Figma) -->
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:14px;min-width:0">
+    <div style="display:flex;flex-shrink:0">
+      ${(memberData.length ? memberData : pessoas.slice(0,3).map(p => ({person:p, color:Utils.personColor(p)}))).slice(0, 4).map((m, i) => `<div style="width:42px;height:42px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,${m.color},${m.color}cc);color:#fff;box-shadow:0 4px 12px ${m.color}40;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;margin-left:${i===0?0:-12}px;border:3px solid var(--bg);z-index:${10-i};position:relative">${Utils.personInitial(m.person)}</div>`).join('')}
+    </div>
+    <div style="min-width:0">
+      <h1 style="font-size:26px;font-weight:700;color:var(--text-1);letter-spacing:-0.8px;line-height:1;margin:0">${familyName}</h1>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;color:var(--text-3);font-size:12.5px;flex-wrap:wrap">
+        <span>${memberData.length || pessoas.length} ${(memberData.length || pessoas.length) === 1 ? 'membro' : 'membros'}</span>
+        <span style="width:3px;height:3px;border-radius:50%;background:var(--text-3)"></span>
+        <span>${monthLabel}</span>
+        <span style="width:3px;height:3px;border-radius:50%;background:var(--text-3)"></span>
+        <span style="color:${isMultiUser?'var(--green)':'var(--text-3)'};display:flex;align-items:center;gap:4px">
+          <span style="width:6px;height:6px;border-radius:50%;background:${isMultiUser?'var(--green)':'var(--text-4)'};display:inline-block"></span>
+          ${isMultiUser ? 'sincronizado' : 'modo individual'}
+        </span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
+    <a href="#config" class="btn-secondary" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:13px">${icon('users',{size:14})} Gerenciar membros</a>
+    <a href="#lancamentos" class="btn-primary" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:13px">${icon('plus',{size:14})} Novo Lançamento</a>
   </div>
 </div>
 
@@ -9526,203 +9539,295 @@ ${(() => {
   });
 })()}
 
+<!-- Hero da família — monocromático translúcido roxo + Fluxo + Saúde (padrão Figma) -->
+<div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:20px" class="pf-hero-grid">
+  <div style="position:relative;border-radius:18px;padding:22px 24px;background:linear-gradient(145deg,rgba(107,94,245,.18) 0%,rgba(107,94,245,.08) 60%,rgba(107,94,245,.04) 100%);border:1px solid rgba(107,94,245,.24);overflow:hidden;display:flex;flex-direction:column;gap:18px">
+    <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(107,94,245,.28) 0%,transparent 68%);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-60px;left:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(74,168,255,.12) 0%,transparent 70%);pointer-events:none"></div>
 
-<!-- Hero consolidado da família -->
-<div class="dash-hero-grid mb-4">
-  <div class="poder-hero ${poder.poderDeEscolha < 0 ? 'is-negative' : ''}">
-    <div class="poder-hero-glow"></div>
-    <div class="poder-hero-header">
-      <div class="poder-hero-icon">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    <div style="position:relative;display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:11px;background:rgba(107,94,245,.25);display:flex;align-items:center;justify-content:center;color:#8a7ef8;flex-shrink:0">${icon('users',{size:16})}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:9.5px;font-weight:700;color:rgba(138,126,248,.75);letter-spacing:.1em;text-transform:uppercase">Poder de Escolha · Família</div>
+        <div style="font-size:13px;font-weight:600;color:#e2e0ff">${poder.poderDeEscolha < 0 ? 'Comprometido além da receita' : 'O que sobra depois dos compromissos'}</div>
       </div>
-      <div class="poder-hero-meta">
-        <div class="poder-hero-tag">Família consolidada</div>
-        <div class="poder-hero-label">Poder de Escolha</div>
-      </div>
-      <div class="poder-hero-month">${Utils.monthsFull[month-1].slice(0,3)} ${year}</div>
+      <div style="background:rgba(107,94,245,.2);border-radius:7px;padding:4px 10px;font-size:11px;color:#8a7ef8;border:1px solid rgba(107,94,245,.28);flex-shrink:0">${Utils.monthsFull[month-1].slice(0,3)} ${year}</div>
     </div>
-    <div class="poder-hero-main">
-      <div class="poder-hero-value-wrap">
-        <div class="poder-hero-value">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
-        <div class="poder-hero-sub">
-          ${(poder.pct*100).toFixed(1)}% da receita familiar
-          <span style="display:block;margin-top:2px;opacity:0.85">livre após todos os compromissos da família</span>
-        </div>
-      </div>
-      <div class="poder-hero-gauge">
-        ${SvgCharts.gauge(Math.max(0, Math.min(100, poder.pct*100)), { size: 78, color: 'var(--accent-2)', thickness: 9 })}
-        <div class="poder-hero-gauge-label">
-          <div class="poder-hero-gauge-pct">${Math.round(poder.pct*100)}%</div>
-          <div class="poder-hero-gauge-cap">livre</div>
-        </div>
-      </div>
-    </div>
-    <div class="poder-hero-flow">
-      <div class="poder-hero-flow-foot">
-        <div>
-          <div class="poder-hero-flow-foot-lbl">Receita família</div>
-          <div class="poder-hero-flow-foot-val">${Utils.currency(receita)}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="poder-hero-flow-foot-lbl">Compromissos</div>
-          <div class="poder-hero-flow-foot-val">${Utils.currency(despesa)}</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="dash-metric-col">
-    <div class="metric-card">
-      <div class="metric-card-head">
-        <span class="metric-card-label">Receita Familiar</span>
-        <div class="metric-card-icon" style="background:var(--green-dim);color:var(--green)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <div style="position:relative;display:flex;align-items:center;gap:22px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${poder.poderDeEscolha<0?'-':''}${Utils.currency(Math.abs(poder.poderDeEscolha))}</div>
+        <div style="font-size:12px;color:rgba(180,175,255,.6);margin-top:10px;line-height:1.5">
+          ${(poder.pct*100).toFixed(1)}% da receita familiar mensal
+          <span style="display:block;margin-top:2px">livre para decidir em conjunto</span>
         </div>
       </div>
-      <div class="metric-card-value">${Utils.currency(receita)}</div>
-      <div class="metric-card-delta-cap">soma de todas as pessoas</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-card-head">
-        <span class="metric-card-label">Despesa Familiar</span>
-        <div class="metric-card-icon" style="background:var(--red-dim);color:var(--red)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+      <div style="position:relative;flex-shrink:0">
+        ${SvgCharts.gauge(Math.max(0, Math.min(100, poder.pct*100)), { size: 92, color: '#8a7ef8', thickness: 10 })}
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;line-height:1">
+          <div style="font-size:18px;font-weight:700;color:#fff">${Math.round(poder.pct*100)}%</div>
+          <div style="font-size:9.5px;color:rgba(180,175,255,.55);margin-top:3px">livre</div>
         </div>
       </div>
-      <div class="metric-card-value">${Utils.currency(despesa)}</div>
-      <div class="metric-card-delta-cap">incluindo rateios</div>
     </div>
-  </div>
 
-  <div class="dash-metric-col">
-    <div class="metric-card">
-      <div class="metric-card-head">
-        <span class="metric-card-label">Maior Contribuição</span>
+    ${memberData.length > 0 && poder.poderDeEscolha > 0 ? `
+    <div style="position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px">
+        <span style="font-size:10px;font-weight:600;color:rgba(180,175,255,.55);letter-spacing:.06em;text-transform:uppercase">Contribuição ao Poder de Escolha</span>
       </div>
-      ${(() => {
-        const top = [...memberData].sort((a,b) => b.receita - a.receita)[0];
-        if (!top) return `<div class="metric-card-empty">Sem dados</div>`;
-        return `<div class="metric-card-row">
-          <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;background:${top.color};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${Utils.personInitial(top.person)}</span>
+      <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.06);gap:2px">
+        ${memberData.filter(m => m.poder > 0).map(m => `<div style="width:${m.pctContribPoder.toFixed(1)}%;background:${m.color}" title="${m.person}: ${m.pctContribPoder.toFixed(0)}%"></div>`).join('') || `<div style="flex:1;background:rgba(138,126,248,.4)"></div>`}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;gap:14px;flex-wrap:wrap">
+        ${memberData.map(m => `
+        <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:110px">
+          <div style="width:22px;height:22px;border-radius:7px;flex-shrink:0;background:${m.color}26;color:${m.color};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${Utils.personInitial(m.person)}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">${top.person}</div>
-            <div style="font-size:18px;font-weight:700;color:var(--green);letter-spacing:-0.4px;line-height:1">${Utils.currency(top.receita)}</div>
+            <div style="font-size:10.5px;color:rgba(180,175,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.person}</div>
+            <div style="font-size:12px;color:#fff;font-weight:600;font-variant-numeric:tabular-nums">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="background:var(--surface-2);border-radius:14px;padding:17px 18px;border:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+      <span style="font-size:9.5px;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase">Fluxo Familiar</span>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-size:11px;color:var(--text-2);margin-bottom:4px">Receita líquida</div>
+          <div style="font-size:20px;font-weight:700;color:var(--green);letter-spacing:-.5px;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums">${Utils.currency(receita)}</div>
+          <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;background:rgba(255,255,255,.04)">
+            ${memberData.filter(m => m.receita > 0).map(m => `<div style="flex:${m.receita};background:${m.color}" title="${m.person}: ${Utils.currency(m.receita)}"></div>`).join('') || `<div style="flex:1;background:rgba(29,201,126,.4)"></div>`}
           </div>
         </div>
-        <div class="metric-card-foot">${top.pctContribReceita.toFixed(0)}% da receita da família</div>`;
-      })()}
-    </div>
-    <div class="metric-card">
-      <div class="metric-card-head">
-        <span class="metric-card-label">Saúde da Família</span>
+        <div>
+          <div style="font-size:11px;color:var(--text-2);margin-bottom:4px">Comprometido</div>
+          <div style="font-size:20px;font-weight:700;color:var(--red);letter-spacing:-.5px;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums">${Utils.currency(despesa)}</div>
+          <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.07)">
+            <div style="width:${receita > 0 ? Math.min(100, despesa/receita*100) : 0}%;background:var(--red)"></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:5px">${receita > 0 ? (despesa/receita*100).toFixed(0) : 0}% da receita familiar</div>
+        </div>
       </div>
-      <div class="metric-card-value" style="color:${despesa/receita > 0.85 ? 'var(--red)' : despesa/receita > 0.66 ? 'var(--amber)' : 'var(--green)'}">${Utils.pct(receita > 0 ? despesa/receita : 0)} <span style="font-size:11px;color:var(--text-3);font-weight:500">comprometido</span></div>
-      ${SvgCharts.healthBar(Math.min((receita > 0 ? despesa/receita : 0)*100, 100))}
-      <div class="metric-card-delta-cap" style="margin-top:2px">Ideal LLP: ≤ 33% comprometido</div>
+    </div>
+    <div style="background:var(--surface-2);border-radius:14px;padding:15px 17px;border:1px solid var(--border);display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:9.5px;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase">Saúde Familiar</span>
+        <div style="width:26px;height:26px;border-radius:7px;background:rgba(245,158,11,.13);display:flex;align-items:center;justify-content:center;color:var(--amber)">${icon('shield',{size:13})}</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:5px">
+        <span style="font-size:26px;font-weight:700;color:${healthColor};letter-spacing:-.6px;line-height:1">${Utils.pct(healthPct)}</span>
+        <span style="font-size:11px;color:var(--text-3)">comprometido</span>
+      </div>
+      ${SvgCharts.healthBar(Math.min(healthPct*100, 100))}
+      <div style="font-size:11px;color:var(--text-3)">Ideal: <span style="color:var(--amber)">≤ 33%</span> · LLP</div>
     </div>
   </div>
 </div>
 
-<!-- Membros -->
-<div class="dash-section-tag mb-2">CONTRIBUIÇÃO POR MEMBRO · ${monthLabel.toUpperCase()}</div>
-<div class="family-members-grid mb-6">
+<!-- Membros (cards estilo Figma — gradient avatar + glow corner + "Você" badge) -->
+<div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.1em;margin-bottom:10px">MEMBROS — ${monthLabel.toUpperCase()}</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:24px">
   ${memberData.map(m => {
     const poderPct = m.receita > 0 ? Math.max(0, m.poder / m.receita * 100) : 0;
     const comprometido = m.receita - m.poder;
-    return `<div class="family-member-card" style="--member-color:${m.color}">
-      <div class="family-member-head">
-        <div class="family-member-avatar" style="background:${m.color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">${Utils.personInitial(m.person)}</div>
+    return `<div style="position:relative;overflow:hidden;background:var(--surface-2);border-radius:14px;padding:15px 16px;border:1px solid ${m.isMe ? m.color + '40' : 'var(--border)'};display:flex;flex-direction:column;gap:12px;min-height:140px">
+      <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,${m.color}18 0%,transparent 70%);pointer-events:none"></div>
+      <div style="position:relative;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${m.color},${m.color}aa);color:#fff;box-shadow:0 4px 12px ${m.color}30;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${Utils.personInitial(m.person)}</div>
         <div style="flex:1;min-width:0">
-          <div class="family-member-name">${m.person}</div>
-          <div class="family-member-role">${m.pctContribReceita.toFixed(0)}% da receita familiar</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-1);display:flex;align-items:center;gap:6px">
+            ${m.person}
+            ${m.isMe ? `<span style="font-size:8.5px;font-weight:700;letter-spacing:.05em;color:${m.color};background:${m.color}20;padding:1px 5px;border-radius:3px;text-transform:uppercase">Você</span>` : ''}
+          </div>
+          <div style="font-size:10.5px;color:var(--text-3)">${m.pctContribReceita.toFixed(0)}% da receita familiar</div>
         </div>
+        <span style="font-size:10px;font-weight:700;color:${m.color};background:${m.color}18;padding:3px 8px;border-radius:5px;flex-shrink:0">${m.pctContribReceita.toFixed(0)}%</span>
       </div>
-      <div class="family-member-stats">
-        <div>
-          <div class="family-member-stat-lbl">Receita</div>
-          <div class="family-member-stat-val" style="color:var(--green)">${Utils.currency(m.receita)}</div>
+      <div style="position:relative;display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:11px;color:var(--text-3)">Receita</span>
+          <span style="font-size:13px;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums">${Utils.currency(m.receita)}</span>
         </div>
-        <div>
-          <div class="family-member-stat-lbl">Comprometido</div>
-          <div class="family-member-stat-val" style="color:var(--red)">${Utils.currency(comprometido)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:11px;color:var(--text-3)">Comprometido</span>
+          <span style="font-size:13px;font-weight:500;color:var(--red);font-variant-numeric:tabular-nums">−${Utils.currency(comprometido)}</span>
         </div>
-        <div>
-          <div class="family-member-stat-lbl">Poder de Escolha</div>
-          <div class="family-member-stat-val" style="color:${m.poder >= 0 ? 'var(--accent-2)' : 'var(--red)'}">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</div>
+        <div style="height:1px;background:var(--border);margin:3px 0"></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:11px;font-weight:600;color:var(--text-1)">Poder pessoal</span>
+          <span style="font-size:17px;font-weight:700;color:${m.poder >= 0 ? m.color : 'var(--red)'};letter-spacing:-.4px;font-variant-numeric:tabular-nums">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</span>
         </div>
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:3px">
+          <div style="width:${Math.max(0, Math.min(100, poderPct))}%;height:100%;background:${m.color};border-radius:2px"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:2px">${poderPct.toFixed(1)}% da própria receita livre</div>
       </div>
-      <div class="family-member-bar">
-        <div class="family-member-bar-fill" style="width:${Math.max(0, Math.min(100, poderPct))}%;background:${m.color}"></div>
-      </div>
-      <div class="family-member-bar-cap">${poderPct.toFixed(0)}% livre · ${(100-poderPct).toFixed(0)}% comprometido</div>
     </div>`;
   }).join('')}
 </div>
 
-${(() => {
-  // Despesas compartilhadas (com split) — lista enxuta com link p/ reembolsos
-  const compartilhadas = allDesp.filter(d => Array.isArray(d.split) && d.split.length >= 2).slice(0, 5);
-  if (!compartilhadas.length) return '';
-  return `
-<div class="dash-section-tag mb-2">DESPESAS COMPARTILHADAS</div>
-<div class="card mb-6" style="padding:0;overflow:hidden">
-  <table class="data-table">
-    <thead><tr><th>Descrição</th><th>Pagou</th><th>Rateio</th><th class="num">Total</th></tr></thead>
-    <tbody>
-      ${compartilhadas.map(d => {
-        const payer = d.person || '—';
-        const splitTxt = d.split.map(s => `<span style="color:${Utils.personColor(s.person)};font-weight:600">${s.person}</span> ${Utils.currency(s.valor || 0)}`).join(' · ');
-        return `<tr class="row-clickable" data-row-desp="${d.id}">
-          <td>${d.desc || d.sub || d.category || '—'}</td>
-          <td>${payer}</td>
-          <td style="font-size:11px;color:var(--text-3)">${splitTxt}</td>
-          <td class="num">${Utils.currency(d.amount)}</td>
-        </tr>`;
-      }).join('')}
-    </tbody>
-  </table>
-  <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
-    <a href="#reembolsos" style="font-size:12px;color:var(--accent);text-decoration:none">Ver reembolsos pendentes →</a>
+${memberData.length >= 2 && memberSeries.some(s => s.data.some(v => v > 0)) ? `
+<!-- Equilíbrio Familiar (line chart) + Quem cobre o quê -->
+<div style="display:grid;grid-template-columns:${respList.length ? '1fr 1.1fr' : '1fr'};gap:14px;margin-bottom:24px">
+  <div style="background:var(--surface-2);border-radius:14px;padding:17px 19px;border:1px solid var(--border);display:flex;flex-direction:column;gap:12px">
+    <div>
+      <div style="font-size:13.5px;font-weight:600;color:var(--text-1)">Equilíbrio Familiar</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:2px">Poder de Escolha por membro · últimos 5 meses</div>
+    </div>
+    <div style="flex:1">
+      ${SvgCharts.lineChart(memberSeries, balanceMonths.map(b => b.label), { width: 420, height: 160 })}
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      ${memberSeries.map(s => `<div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${s.c}"></div><span style="font-size:11px;color:var(--text-3)">${s.name}</span></div>`).join('')}
+    </div>
   </div>
-</div>`;
-})()}
+
+  ${respList.length ? `
+  <div style="background:var(--surface-2);border-radius:14px;padding:17px 19px;border:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text-1)">Quem cobre o quê</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">Divisão de comprometimentos por categoria</div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        ${memberData.slice(0, 3).map(m => `<div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:2px;background:${m.color}"></div><span style="font-size:11px;color:var(--text-3)">${m.person}</span></div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${(() => {
+        const maxTot = Math.max(...respList.map(r => r.total));
+        return respList.map(row => {
+          const widthPct = maxTot > 0 ? (row.total / maxTot) * 100 : 0;
+          return `<div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+              <span style="font-size:12px;color:var(--text-1);font-weight:500">${row.cat}</span>
+              <span style="font-size:12px;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums">${Utils.currency(row.total)}</span>
+            </div>
+            <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.05);width:${widthPct}%;gap:2px;min-width:30px">
+              ${row.contribs.map(([person, amt]) => `<div style="flex:${amt};background:${Utils.personColor(person)}" title="${person}: ${Utils.currency(amt)}"></div>`).join('')}
+            </div>
+            <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
+              ${row.contribs.map(([person, amt]) => {
+                const pct = row.total > 0 ? (amt / row.total) * 100 : 0;
+                return `<span style="font-size:10px;color:var(--text-3)"><span style="color:${Utils.personColor(person)};font-weight:600">${Utils.personInitial(person)}</span> ${pct.toFixed(0)}% · ${Utils.currency(amt)}</span>`;
+              }).join('')}
+            </div>
+          </div>`;
+        }).join('');
+      })()}
+    </div>
+  </div>` : ''}
+</div>` : ''}
 
 ${metasFamilia.length ? `
 <!-- Metas compartilhadas -->
-<div class="dash-section-tag mb-2">METAS COMPARTILHADAS</div>
-<div class="chart-grid mb-6" style="grid-template-columns:1fr">
-  <div class="card">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      ${metasFamilia.map(m => {
-        const target = m.target || 0;
-        const atual  = m.atual || 0;
-        const pct = target > 0 ? Math.min(atual/target*100, 100) : 0;
-        return `<div style="display:flex;align-items:center;gap:14px">
-          <div style="width:40px;height:40px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent-2)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+  <div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.1em">METAS COMPARTILHADAS</div>
+  <a href="#metas" style="font-size:11.5px;color:var(--text-2);text-decoration:none;display:inline-flex;align-items:center;gap:4px">Ver todas ${icon('arrow-right',{size:11})}</a>
+</div>
+<div style="background:var(--surface-2);border-radius:14px;padding:17px 19px;border:1px solid var(--border);margin-bottom:24px">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    ${metasFamilia.map(m => {
+      const target = m.target || 0;
+      const atual  = m.atual || 0;
+      const pct = target > 0 ? Math.min(atual/target*100, 100) : 0;
+      const mColor = pct >= 100 ? 'var(--green)' : pct >= 66 ? 'var(--teal)' : pct >= 33 ? 'var(--amber)' : 'var(--accent-2)';
+      return `<div style="background:var(--surface);border-radius:11px;padding:11px 13px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="position:relative;width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:${mColor}">
+            <div style="position:absolute;inset:0;border-radius:9px;background:${mColor};opacity:.2"></div>
+            <div style="position:relative">${icon('target',{size:14})}</div>
           </div>
           <div style="flex:1;min-width:0">
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-              <span style="font-size:13px;font-weight:600;color:var(--text-1)">${m.label}</span>
-              <span style="font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums">${Utils.currency(atual)} <span style="color:var(--text-4)">/ ${Utils.currency(target)}</span></span>
-            </div>
-            <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
-              <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div>
-            </div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:4px">${pct.toFixed(0)}% concluído</div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text-1)">${m.label}</div>
+            <div style="font-size:10.5px;color:var(--text-3)">${Utils.currency(atual)} de ${Utils.currency(target)}${m.deadline ? ` · ETA ${m.deadline}` : ''}</div>
           </div>
-        </div>`;
-      }).join('')}
-    </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:14px;font-weight:700;color:${mColor};letter-spacing:-.3px">${pct.toFixed(0)}%</div>
+            ${m.mensal ? `<div style="font-size:10px;color:var(--text-3)">+${Utils.currency(m.mensal)}/mês</div>` : ''}
+          </div>
+        </div>
+        <div style="height:5px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${mColor};border-radius:3px"></div>
+        </div>
+      </div>`;
+    }).join('')}
   </div>
 </div>` : ''}
 
-${isMultiUser ? '' : `
-<div class="card mb-4" style="border-color:rgba(74,168,255,0.3);background:rgba(74,168,255,0.05)">
-  <div style="display:flex;gap:12px;align-items:flex-start">
-    <div style="width:32px;height:32px;border-radius:10px;background:rgba(74,168,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--blue)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+${(compartilhadas.length || netList.length) ? `
+<!-- Despesas compartilhadas + Acerto final -->
+<div style="display:grid;grid-template-columns:${netList.length && compartilhadas.length ? '1.15fr 1fr' : '1fr'};gap:14px;margin-bottom:24px">
+  ${compartilhadas.length ? `
+  <div style="background:var(--surface-2);border-radius:14px;padding:17px 19px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text-1)">Despesas Compartilhadas</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">${compartilhadas.length} lançamento${compartilhadas.length===1?'':'s'} com rateio neste mês</div>
+      </div>
     </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" style="border:none;background:transparent">
+        <thead><tr><th>Descrição</th><th>Pagou</th><th>Rateio</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          ${compartilhadas.map(d => {
+            const payer = d.person || '—';
+            const splitTxt = d.split.map(s => `<span style="color:${Utils.personColor(s.person)};font-weight:600">${Utils.personInitial(s.person)}</span> ${Utils.currency(s.valor || 0)}`).join(' · ');
+            return `<tr class="row-clickable" data-row-desp="${d.id}">
+              <td>${d.desc || d.sub || d.category || '—'}</td>
+              <td><span style="color:${Utils.personColor(payer)};font-weight:500">${payer}</span></td>
+              <td style="font-size:11px;color:var(--text-3)">${splitTxt}</td>
+              <td class="num">${Utils.currency(d.amount)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>` : ''}
+  ${netList.length ? `
+  <div style="background:var(--surface-2);border-radius:14px;padding:17px 19px;border:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text-1)">Reembolsos pendentes</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">${reembolsosPendentes.length} acerto${reembolsosPendentes.length===1?'':'s'} entre membros</div>
+      </div>
+      <a href="#reembolsos" style="background:var(--accent-dim);color:var(--accent-2);border:1px solid rgba(107,94,245,.3);border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:500;text-decoration:none">Ver tudo</a>
+    </div>
+    <div style="background:var(--surface);border-radius:10px;padding:11px 13px;border:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Acerto final</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${netList.map(n => {
+          const debtor = n.balance > 0 ? n.a : n.b;
+          const creditor = n.balance > 0 ? n.b : n.a;
+          const v = Math.abs(n.balance);
+          const dColor = Utils.personColor(debtor);
+          const cColor = Utils.personColor(creditor);
+          return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:24px;height:24px;border-radius:50%;background:${dColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${Utils.personInitial(debtor)}</div>
+              <span style="font-size:12px;color:var(--text-1);font-weight:500">${debtor}</span>
+            </div>
+            <span style="color:var(--text-3);display:inline-flex">${icon('arrow-right',{size:12})}</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:24px;height:24px;border-radius:50%;background:${cColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${Utils.personInitial(creditor)}</div>
+              <span style="font-size:12px;color:var(--text-1);font-weight:500">${creditor}</span>
+            </div>
+            <span style="margin-left:auto;font-size:15px;font-weight:700;color:var(--amber);letter-spacing:-.3px;font-variant-numeric:tabular-nums">${Utils.currency(v)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>` : ''}
+</div>` : ''}
+
+${isMultiUser ? '' : `
+<div class="card" style="margin-bottom:16px;border-color:rgba(74,168,255,0.3);background:rgba(74,168,255,0.05)">
+  <div style="display:flex;gap:12px;align-items:flex-start">
+    <div style="width:32px;height:32px;border-radius:10px;background:rgba(74,168,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--blue)">${icon('users',{size:16})}</div>
     <div style="flex:1">
       <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">Modo individual</div>
       <div style="font-size:12px;color:var(--text-3);line-height:1.55">Para acompanhar a família com múltiplos logins, convide membros em <a href="#config" style="color:var(--accent)">Configurações → Grupo Familiar</a>.</div>
@@ -9730,6 +9835,15 @@ ${isMultiUser ? '' : `
   </div>
 </div>`}
 `}`;
+
+    // Handler: clique em linha de despesa compartilhada abre modal de edição
+    container.addEventListener('click', e => {
+      if (e.target.closest('a, button')) return;
+      const tr = e.target.closest('tr[data-row-desp]');
+      if (tr && typeof openEditDespesa === 'function') {
+        openEditDespesa(tr.dataset.rowDesp, () => renderPainelFamilia(container));
+      }
+    });
   }
 
   // ══════════════════════════════════════════════════════════════
