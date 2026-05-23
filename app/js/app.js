@@ -4986,12 +4986,25 @@ ${(() => {
     // ── data ────────────────────────────────────────────────────
     const investimentos = Store.get().reservas || [];
     const futuros       = Store.get().recebimentosFuturos || [];
-    const ativos        = Store.get().ativos;
+    const ativos        = Store.get().ativos || [];
     const { usdBrl = 5.85, eurBrl = 6.40 } = Store.get().settings;
     const total = Store.totalAtivos(); // now correctly sums reservas+ativos
 
+    // Normalização defensiva: ativos com schema variado podem quebrar a tela.
+    // Schema esperado: {platform, type, qty, unitPrice, currency, updated}
+    // Aliases comuns: {nome, categoria, valor, moeda} — migrar pra evitar
+    // TypeError em a.platform.slice(), a.qty * a.unitPrice (NaN), etc.
+    ativos.forEach(a => {
+      if (!a.platform) a.platform = a.nome || a.label || 'Ativo';
+      if (!a.type) a.type = a.categoria || a.tipo || 'Outros';
+      if (a.qty == null) a.qty = 1;
+      if (a.unitPrice == null) a.unitPrice = a.valor || a.value || 0;
+      if (!a.currency) a.currency = a.moeda || 'BRL';
+      if (!a.updated) a.updated = (new Date().toISOString().slice(0, 10));
+    });
+
     function toBRL(a) {
-      const val = a.qty * a.unitPrice;
+      const val = (a.qty || 0) * (a.unitPrice || 0);
       if (a.currency === 'USD') return val * usdBrl;
       if (a.currency === 'EUR') return val * eurBrl;
       return val;
