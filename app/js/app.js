@@ -10722,76 +10722,60 @@ ${outrs.length ? `
     // ── Render helpers ────────────────────────────────────────────
 
     // Hero: Poder de Escolha PESSOAL + Reembolsos (lado a lado, grid 1.55fr/1fr)
-    // Padrão monocromático translúcido — fiel aos heros de Receitas/Despesas.
+    // Reconstrução pixel-a-pixel do protótipo `Haile Meu Painel.html`:
+    //   - Gradient DARK SÓLIDO: linear-gradient(145deg,#1c1860,#172050,#131f50)
+    //   - Border roxo translúcido 0.25
+    //   - Glow radial top-right 240x240
+    //   - Valor 42px / letter-spacing -1.8px
+    //   - Footer 3-col Receita/Comprometido/Saúde (10px eyebrows + 15px values)
     function wPoderPessoal() {
       const isNeg = poderPessoal < 0;
-      const saudeCor = saudePct > 85 ? '#ef4444' : saudePct > 70 ? '#f59e0b' : '#1dc97e';
+      const saudeCor = saudePct > 85 ? '#ff4a68' : saudePct > 70 ? '#ffa930' : '#1dc97e';
       const liqReembolso = aReceber - aPagar;
 
-      // Delta vs mês anterior (pill compacta)
-      const prevM = month > 1 ? month - 1 : 12;
-      const prevY = month > 1 ? year : year - 1;
-      const prevPoder = (() => {
-        const rec = Store.receitasByMonth(prevM, prevY).filter(r => r.person === eu).reduce((s,r)=>s+r.amount,0);
-        const desp = Store.despesasByMonth(prevM, prevY).map(d => {
-          if (Array.isArray(d.split) && d.split.length) {
-            const sl = d.split.find(x => x.person === eu);
-            return sl ? (sl.valor || 0) : 0;
-          }
-          return d.person === eu ? d.amount : 0;
-        }).reduce((s,v)=>s+v,0);
-        return rec - desp;
-      })();
-      const deltaPoder = poderPessoal - prevPoder;
-      const deltaPct = prevPoder !== 0 ? (deltaPoder / Math.abs(prevPoder)) * 100 : 0;
-      const _dir = deltaPoder >= 0 ? 'up' : 'down';
-      const _dClr = isNeg ? '#ef4444' : (_dir === 'down' ? '#ef4444' : '#1dc97e');
-      const _dBg  = isNeg ? 'rgba(239,68,68,.18)' : (_dir === 'down' ? 'rgba(239,68,68,.18)' : 'rgba(29,201,126,.18)');
-      const _dSign = deltaPoder >= 0 ? '+' : '';
-      const _prevMonth = Utils.monthsFull[prevM-1];
-
-      // Variante do hero: roxo (poder positivo) ou vermelho (poder negativo)
-      const heroVariant = isNeg ? 'is-poder-neg' : 'is-poder';
-      const iconColor   = isNeg ? '#ffbac8' : '#8a7ef8';
-      const baseRGB     = isNeg ? '239,68,68' : '107,94,245';
+      // Variante: roxo (default) ou vermelho (poder negativo)
+      const heroBg = isNeg
+        ? 'linear-gradient(145deg, #5a1230 0%, #4a1230 50%, #3a1530 100%)'
+        : 'linear-gradient(145deg, #1c1860 0%, #172050 50%, #131f50 100%)';
+      const heroBorder = isNeg ? 'rgba(239,68,68,0.28)' : 'rgba(107,94,245,0.25)';
+      const glowRGB    = isNeg ? '239,74,104' : '107,94,245';
+      const iconBg     = isNeg ? 'rgba(239,74,104,0.25)' : 'rgba(107,94,245,0.25)';
+      const iconColor  = isNeg ? '#ffbac8' : '#8a7ef8';
+      const eyebrowCol = isNeg ? 'rgba(255,200,210,0.7)' : 'rgba(180,175,255,0.7)';
+      const subCol     = isNeg ? '#ffe2e8' : '#e2e0ff';
+      const captionCol = isNeg ? 'rgba(255,200,210,0.5)' : 'rgba(180,175,255,0.5)';
+      const pillBg     = isNeg ? 'rgba(239,74,104,0.2)' : 'rgba(107,94,245,0.2)';
+      const pillBorder = isNeg ? 'rgba(239,74,104,0.28)' : 'rgba(107,94,245,0.28)';
+      const pillCol    = isNeg ? '#ffbac8' : '#8a7ef8';
 
       return `
 <div class="painel-hero-grid" data-widget="poder_pessoal" style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
-  <!-- Hero pessoal -->
-  <div class="hero-mono ${heroVariant}">
-    <div class="hero-mono-glow"></div>
-    <div style="position:relative;display:flex;align-items:center;gap:12px">
-      <div style="width:34px;height:34px;border-radius:11px;background:rgba(${baseRGB},.22);display:flex;align-items:center;justify-content:center;color:${iconColor};flex-shrink:0">${icon('zap',{size:16})}</div>
-      <div style="flex:1;min-width:0">
-        <div class="hero-eyebrow">Meu Poder de Escolha</div>
-        <div class="hero-sub">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
-      </div>
-      <div class="hero-month-pill">${Utils.months[month-1]} ${year}</div>
-    </div>
+  <!-- Hero pessoal: Poder de Escolha (dark gradient sólido) -->
+  <div style="border-radius:18px;padding:22px 24px;background:${heroBg};border:1px solid ${heroBorder};position:relative;overflow:hidden">
+    <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle, rgba(${glowRGB},0.16) 0%, transparent 68%);pointer-events:none"></div>
     <div style="position:relative">
-      <div class="hero-value">${isNeg?'−':''}${Utils.currency(Math.abs(poderPessoal))}</div>
-      ${prevPoder !== 0 ? `
-      <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
-        <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
-          ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
-          ${_dSign}${deltaPct.toFixed(1)}%
-        </span>
-        <span class="hero-mute">vs. ${_prevMonth} · ${_dSign}${Utils.currency(Math.abs(deltaPoder))}</span>
-      </div>` : `
-      <div class="hero-mute" style="margin-top:12px">Primeiro mês registrado</div>`}
-    </div>
-    <div class="hero-mono-divider" style="position:relative;display:flex;justify-content:space-between;gap:18px;padding-top:6px">
-      <div>
-        <div class="hero-caption" style="margin-bottom:4px">Receita</div>
-        <div style="font-size:15px;font-weight:700;color:#1dc97e;letter-spacing:-0.3px;font-variant-numeric:tabular-nums">${Utils.currency(receitaPessoal)}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:32px;height:32px;border-radius:10px;background:${iconBg};display:flex;align-items:center;justify-content:center;color:${iconColor};flex-shrink:0">${icon('zap',{size:15, color: iconColor})}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:9.5px;font-weight:700;color:${eyebrowCol};letter-spacing:0.1em;text-transform:uppercase">Meu Poder de Escolha</div>
+          <div style="font-size:13px;color:${subCol};font-weight:600">Disponível agora · ${pctPoder.toFixed(1)}% da receita pessoal</div>
+        </div>
+        <div style="background:${pillBg};border-radius:7px;padding:3px 10px;font-size:11px;color:${pillCol};border:1px solid ${pillBorder};white-space:nowrap">${Utils.months[month-1]} ${year}</div>
       </div>
-      <div>
-        <div class="hero-caption" style="margin-bottom:4px">Comprometido</div>
-        <div style="font-size:15px;font-weight:700;color:#ef4444;letter-spacing:-0.3px;font-variant-numeric:tabular-nums">−${Utils.currency(despesaPessoal)}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="hero-caption" style="margin-bottom:4px">Saúde</div>
-        <div style="font-size:15px;font-weight:700;color:${saudeCor};letter-spacing:-0.3px">${saudePct.toFixed(1)}%</div>
+      <div style="font-size:42px;font-weight:700;color:#fff;letter-spacing:-1.8px;line-height:1;font-variant-numeric:tabular-nums">${isNeg?'−':''}${Utils.currency(Math.abs(poderPessoal))}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:18px">
+        <div>
+          <div style="font-size:10px;color:${captionCol};letter-spacing:0.06em;text-transform:uppercase">Receita</div>
+          <div style="font-size:15px;color:#1dc97e;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums">${Utils.currency(receitaPessoal)}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:${captionCol};letter-spacing:0.06em;text-transform:uppercase">Comprometido</div>
+          <div style="font-size:15px;color:#ff4a68;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums">−${Utils.currency(despesaPessoal)}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:${captionCol};letter-spacing:0.06em;text-transform:uppercase">Saúde</div>
+          <div style="font-size:15px;color:${saudeCor};font-weight:700;margin-top:3px">${saudePct.toFixed(1)}%</div>
+        </div>
       </div>
     </div>
   </div>
@@ -11219,26 +11203,26 @@ ${outrs.length ? `
     }
 
     container.innerHTML = `
-<!-- Header pessoal: avatar + nome + link Painel da Família + Personalizar -->
+<!-- Header pessoal: avatar 54x54 + "Olá, eu" 24px + meta line + Novo Lançamento -->
 <div class="painel-pessoal-head" style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
   <div style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg, ${corEu}, var(--blue, #4aa8ff));color:#fff;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px ${corEu}40;flex-shrink:0">${iniEu}</div>
   <div style="flex:1;min-width:0">
-    <h1 class="page-head-title" style="line-height:1;margin:0">Olá, ${eu}</h1>
-    <p class="page-head-meta" style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span class="page-head-meta-total">${monthLabel}</span>
-      <span class="page-head-meta-sep">·</span>
-      <span style="color:var(--green);display:inline-flex;align-items:center;gap:5px">
+    <h1 style="font-size:24px;font-weight:700;color:var(--text-1);letter-spacing:-0.6px;line-height:1;margin:0">Olá, ${eu}</h1>
+    <div style="font-size:12.5px;color:var(--text-3);margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>${monthLabel}</span>
+      <span style="width:3px;height:3px;border-radius:50%;background:var(--text-3);display:inline-block"></span>
+      <span style="color:var(--green);display:inline-flex;align-items:center;gap:4px">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
         Sincronizado
       </span>
-      <span class="page-head-meta-sep">·</span>
+      <span style="width:3px;height:3px;border-radius:50%;background:var(--text-3);display:inline-block"></span>
       <a href="#familia" onclick="Router.navigate('familia')" style="color:${corEu};text-decoration:none;display:inline-flex;align-items:center;gap:4px">
-        ${icon('users',{size:11})} Ver painel da família ${icon('arrow-right',{size:10})}
+        ${icon('users',{size:11, color: corEu})} Ver painel da família ${icon('arrow-right',{size:10, color: corEu})}
       </a>
-    </p>
+    </div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
-    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;padding:9px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(107,94,245,.32)">${icon('plus',{size:13, color:'#fff'})} Novo Lançamento</a>
+    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(107,94,245,.32);text-decoration:none">${icon('plus',{size:13, color:'#fff'})} Novo Lançamento</a>
     <button class="btn-secondary btn-sm" id="btnPersonalizarPainel" title="Personalizar painel" style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px">${icon('sliders-horizontal',{size:14})}</button>
   </div>
 </div>
