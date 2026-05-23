@@ -107,7 +107,7 @@ const App = (function () {
   // ── COACH EMPTY CARD (empty state com voz do Coach) ──────────
   // Usado em Receitas / Despesas / Contas quando não há dados.
   // ctaId: id do botão de ação primária (pra renderizadores ligarem o handler)
-  function coachEmptyHTML({ titulo, texto, ctaLabel, ctaId }) {
+  function coachEmptyHTML({ titulo, texto, ctaLabel, ctaId, showImportCta }) {
     return `
 <div class="coach-empty-card mb-4">
   <div class="coach-empty-avatar">
@@ -117,10 +117,25 @@ const App = (function () {
     <div class="coach-empty-eyebrow">HAILE · SEU COACH FINANCEIRO</div>
     <h3 class="coach-empty-title">${titulo}</h3>
     <p class="coach-empty-text">${texto}</p>
-    ${ctaLabel ? `<button class="btn-primary" id="${ctaId}" style="margin-top:10px">${ctaLabel}</button>` : ''}
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px">
+      ${ctaLabel ? `<button class="btn-primary" id="${ctaId}">${ctaLabel}</button>` : ''}
+      ${showImportCta ? `<button type="button" data-coach-import-cta style="background:transparent;border:0;color:var(--teal-coach,#2dcfc0);font-size:12.5px;font-weight:500;cursor:pointer;padding:6px 0;display:inline-flex;align-items:center;gap:6px">
+        ${icon('paperclip',{size:13})} ou importe do extrato bancário
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>` : ''}
+    </div>
   </div>
 </div>`;
   }
+
+  // Handler global: clicar "ou importe do extrato" em qualquer coach-empty card
+  // abre o Coach e dispara o paperclip — usuário escolhe arquivo direto
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-coach-import-cta]');
+    if (!btn) return;
+    document.getElementById('btnCoach')?.click();
+    setTimeout(() => { document.getElementById('coachAttachInput')?.click(); }, 200);
+  });
 
   // ── MODAL ──────────────────────────────────────────────────────
   const Modal = {
@@ -356,7 +371,7 @@ const App = (function () {
     </div>
     <div class="coach-inline-texto">${cfg.texto || ''}</div>
     ${acoes.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      ${acoes.map((a, i) => `<button data-coach-action="${a.action || ''}" data-coach-host="${id}" style="background:${i === 0 ? 'var(--teal-coach-dim)' : 'transparent'};color:${i === 0 ? 'var(--teal-coach)' : 'var(--text-2)'};border:1px solid ${i === 0 ? 'rgba(45,207,192,0.3)' : 'var(--border)'};border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer">${a.label}</button>`).join('')}
+      ${acoes.map((a, i) => `<button data-coach-action="${a.action || ''}" data-coach-host="${id}"${a.prompt ? ` data-coach-prompt="${String(a.prompt).replace(/"/g, '&quot;')}"` : ''} style="background:${i === 0 ? 'var(--teal-coach-dim)' : 'transparent'};color:${i === 0 ? 'var(--teal-coach)' : 'var(--text-2)'};border:1px solid ${i === 0 ? 'rgba(45,207,192,0.3)' : 'var(--border)'};border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer">${a.label}</button>`).join('')}
     </div>` : ''}
   </div>
   <button class="coach-inline-dismiss" data-coach-dismiss="${id}" title="Dispensar" style="background:none;border:none;color:var(--text-3);padding:4px;cursor:pointer;align-self:flex-start;display:flex">
@@ -599,7 +614,7 @@ const App = (function () {
         </div>` : ''}
       </div>
       ${firstNegDay ? `<div style="margin-top:10px;padding:8px 12px;background:var(--red-dim);border-radius:8px;border-left:3px solid var(--red);font-size:12px;color:var(--red)">
-        ⚠️ Saldo negativo previsto a partir de <strong>${firstNegDay.date.toLocaleDateString('pt-BR')}</strong>
+        ${icon('alert-triangle',{size:13})} <span>Saldo negativo previsto a partir de <strong>${firstNegDay.date.toLocaleDateString('pt-BR')}</strong></span>
       </div>` : ''}
     </div>
     <!-- Key events -->
@@ -650,7 +665,7 @@ const App = (function () {
         ? ` O maior empurrão veio de ${categoryDelta.label} (+${Math.round(categoryDelta.change * 100)}%).` : '';
       return {
         tone: 'critico',
-        icon: '⚠️',
+        icon: icon('alert-triangle',{size:16}),
         hero: {
           title: `Atenção, ${currentPessoa}.`,
           sub: limitBlown ? 'Você ultrapassou o limite de gastos do mês'
@@ -673,7 +688,7 @@ const App = (function () {
         ? ` ${categoryDelta.label} subiu ${Math.round(categoryDelta.change * 100)}% — vale revisar.` : '';
       return {
         tone: 'atencao',
-        icon: '⚠️',
+        icon: icon('alert-triangle',{size:16}),
         hero: {
           title: `Atenção ao ritmo, ${currentPessoa}.`,
           sub: `Você já usou ${Utils.pct(util)} da sua receita`,
@@ -691,7 +706,7 @@ const App = (function () {
     if (categoryDelta && categoryDelta.change >= 0.20) {
       return {
         tone: 'atencao_categoria',
-        icon: '📈',
+        icon: icon('trending-up',{size:16}),
         hero: {
           title: `Bom controle, ${currentPessoa} — mas atenção.`,
           sub: `${categoryDelta.label} subiu ${Math.round(categoryDelta.change * 100)}% este mês`,
@@ -712,7 +727,7 @@ const App = (function () {
         : 'Continue assim.';
       return {
         tone: 'celebracao',
-        icon: '🎉',
+        icon: icon('party-popper',{size:16}),
         hero: {
           title: `Excelente, ${currentPessoa}!`,
           sub: 'Você está bem dentro do seu limite — ótimo controle',
@@ -731,7 +746,7 @@ const App = (function () {
       ? ` Maior gasto: ${categoryDelta.label} (${catPctOfTotal}% do total).` : '';
     return {
       tone: 'controle',
-      icon: '✓',
+      icon: icon('check',{size:16}),
       hero: {
         title: `Bom trabalho, ${currentPessoa}.`,
         sub: 'Saldo positivo este mês — continue assim',
@@ -1373,7 +1388,9 @@ ${renderPrevisaoCaixa(saldo)}
     requestAnimationFrame(() => {
       // Coach inline — abre painel ao clicar em "Ver análise"
       document.getElementById('btnCoachInlineVer')?.addEventListener('click', () => {
-        document.getElementById('btnCoach')?.click();
+        const prompt = `Análise geral do meu mês: como estou em receitas, despesas, comprometimento, poder de escolha e principais alertas.`;
+        if (window.FFCoach?.ask) window.FFCoach.ask(prompt);
+        else document.getElementById('btnCoach')?.click();
       });
 
       // ── ICP daily widget — "Responder" abre o modal da categoria,
@@ -1558,7 +1575,7 @@ ${filtered.map(d => {
   return `<tr class="row-clickable${(d.year||0)*12+(d.month||0) > year*12+month ? '" style="opacity:0.55"' : '"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
   <td>
-    <div>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length > 1 ? ` <span class="badge badge-accent" style="font-size:10px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">👥 ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</div>
+    <div>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length > 1 ? ` <span class="badge badge-accent" style="font-size:10px;display:inline-flex;align-items:center;gap:3px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">${icon('users',{size:10})} ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</div>
     ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
   </td>
   <td><span class="lancamentos-cat-pill" style="background:${catBg};color:${catColor}">${catLabel}</span></td>
@@ -1567,7 +1584,7 @@ ${filtered.map(d => {
   <td class="num negative">${Utils.currency(d.amount)}</td>
   <td>${statusBadge}</td>
   <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card);width:42px">
-    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago ✓ (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
+    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?icon('check',{size:14}):paidState==='auto'?icon('circle-dot',{size:14}):icon('circle',{size:14})}</button>` : ''}
   </td>
 </tr>`;}).join('')}
 </tbody>
@@ -1603,7 +1620,7 @@ ${filtered.map(r => {
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${c.label}">${icon('file-text',{size:10})} ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap;width:42px">
-    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido ✓':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
+    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?icon('check',{size:14}):paidState==='auto'?icon('circle-dot',{size:14}):icon('circle',{size:14})}</button>` : ''}
   </td>
 </tr>`;}).join('')}
 </tbody>
@@ -2076,7 +2093,8 @@ ${coachInlineHTML({
   titulo: _recCoach.titulo,
   texto: _recCoach.texto,
   tone: _recCoach.tone,
-  acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+  acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+    prompt: `Faça uma análise das minhas receitas em ${Utils.monthsFull[month-1]} de ${year}: fontes principais, tendência vs mês anterior, oportunidades de diversificar ou ampliar.` }],
 })}
 
 <div class="kpi-grid mb-6">
@@ -2188,6 +2206,7 @@ ${(() => {
     texto: 'Aqui você vai cadastrar como dinheiro entra na sua vida — salário, freelas, aluguéis, qualquer fonte. Quanto mais completo, melhor consigo te orientar.',
     ctaLabel: '+ Adicionar primeira receita',
     ctaId: 'btnCoachEmptyRec',
+    showImportCta: true,
   });
 })()}
 
@@ -2551,7 +2570,8 @@ ${coachInlineHTML({
   titulo: _despCoach.titulo,
   texto: _despCoach.texto,
   tone: _despCoach.tone,
-  acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+  acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+    prompt: `Análise das minhas despesas em ${Utils.monthsFull[month-1]} de ${year}: categorias dominantes, anomalias vs meses anteriores, onde posso cortar sem dor.` }],
 })}
 
 <div class="filter-header mb-4">
@@ -2635,6 +2655,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
   texto: 'Aqui você vai cadastrar o que sai todo mês. Começa pelas despesas fixas (aluguel, contas) — o resto a gente refina depois.',
   ctaLabel: '+ Adicionar primeira despesa',
   ctaId: 'btnCoachEmptyDesp',
+  showImportCta: true,
 }) : ''}
 
 <div class="card">
@@ -3484,7 +3505,7 @@ ${indicadores.length === 0 ? '' : `
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:24px">
   ${indicadores.map(m => {
     const perf = Store.getMetaPerformance(m.id, year, month);
-    const t = TYPE_META[m.type] || { icon:'📌', label:m.type };
+    const t = TYPE_META[m.type] || { icon: icon('pin',{size:16}), label:m.type };
     const color = STATUS_CLASS[perf.status] || 'accent';
     const isAnual = m.period === 'anual';
     return `
@@ -3675,9 +3696,22 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
 </div>` : ''}`;
 
     document.getElementById('btnAddMeta')?.addEventListener('click', () => openMetaModal(null, container));
-    document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => document.getElementById('btnCoach')?.click());
-    document.getElementById('btnMetasAlocar')?.addEventListener('click', () => document.getElementById('btnCoach')?.click());
-    document.getElementById('btnSpotlightCoach')?.addEventListener('click', e => { e.stopPropagation(); document.getElementById('btnCoach')?.click(); });
+    document.getElementById('btnMetasCoachVer')?.addEventListener('click', () => {
+      const p = `Análise das minhas metas: quais estão no alvo, atrasadas ou críticas, e estratégia pra acelerar as principais.`;
+      if (window.FFCoach?.ask) window.FFCoach.ask(p);
+      else document.getElementById('btnCoach')?.click();
+    });
+    document.getElementById('btnMetasAlocar')?.addEventListener('click', () => {
+      const p = `Sugestão de alocação do meu Poder de Escolha atual entre as metas ativas: priorize por prazo, valor faltante e relevância. Calcule aporte por meta.`;
+      if (window.FFCoach?.ask) window.FFCoach.ask(p);
+      else document.getElementById('btnCoach')?.click();
+    });
+    document.getElementById('btnSpotlightCoach')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const p = `Análise da minha meta principal em destaque: progresso atual, ritmo necessário pra atingir no prazo e ajustes recomendados.`;
+      if (window.FFCoach?.ask) window.FFCoach.ask(p);
+      else document.getElementById('btnCoach')?.click();
+    });
 
     container.querySelectorAll('[data-edit-meta]').forEach(card => {
       card.addEventListener('click', e => {
@@ -3903,7 +3937,8 @@ ${(() => {
     titulo: cc.titulo,
     texto: cc.texto,
     tone: cc.tone,
-    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+      prompt: `Análise dos meus compromissos em ${Utils.monthsFull[month-1]} de ${year}: quanto da receita está comprometido, dívidas vs recorrentes, próximas parcelas críticas e recomendações de renegociação.` }],
   });
 })()}
 
@@ -4000,7 +4035,7 @@ ${contratos.length === 0 ? `
       ${filtered.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:var(--text-4);padding:24px">Nenhum contrato para este filtro</td></tr>` :
         filtered.map(({c, perf, status}) => {
           const isRec = c.kind === 'receita';
-          const cat = Store.CATEGORIES[c.category] || { label: c.category, icon: '📄' };
+          const cat = Store.CATEGORIES[c.category] || { label: c.category, icon: 'file-text' };
           const pctW = Math.round(perf.pctValor * 100);
           const linked = (isRec ? allData.receitas : allData.despesas)
             .filter(x => x.contratoId === c.id)
@@ -5011,7 +5046,8 @@ ${(() => {
     titulo: pc.titulo,
     texto: pc.texto,
     tone: pc.tone,
-    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+      prompt: `Análise do meu patrimônio: distribuição entre renda fixa/variável/imóveis/veículos, rendimento estimado vs CDI, oportunidades de diversificação e rebalanceamento.` }],
   });
 })()}
 
@@ -5105,7 +5141,7 @@ ${investimentos.length === 0
       ${ganho !== 0 ? `<div><div style="color:var(--text-4)">Ganho</div><div style="font-weight:600;color:${ganho>=0?'var(--green)':'var(--red)'}">${ganho>=0?'+':''}${Utils.currency(ganho)}</div></div>` : ''}
       ${liq ? `<div style="grid-column:1/-1"><div style="color:var(--text-4)">Rend. Líq. Est./ano</div><div style="font-weight:700;color:var(--green)">${Utils.currency(liq)}</div></div>` : ''}
     </div>
-    ${r.carencia ? `<div style="font-size:11px;color:var(--text-4);margin-top:4px">🔒 Carência: ${new Date(r.carencia+'T12:00:00').toLocaleDateString('pt-BR')}</div>` : ''}
+    ${r.carencia ? `<div style="font-size:11px;color:var(--text-4);margin-top:4px;display:flex;align-items:center;gap:4px">${icon('lock',{size:11})} <span>Carência: ${new Date(r.carencia+'T12:00:00').toLocaleDateString('pt-BR')}</span></div>` : ''}
   </div>`;
   }).join('')}
 </div>`}
@@ -5334,7 +5370,7 @@ ${passivos.length === 0
           <td>
             <div style="font-weight:600;color:var(--text-1)">${desc}</div>
             ${p.notes ? `<div style="font-size:11px;color:var(--text-4)">${p.notes}</div>` : ''}
-            ${p.contratoId ? `<div style="font-size:11px;color:var(--accent)">📋 Compromisso gerado</div>` : ''}
+            ${p.contratoId ? `<div style="font-size:11px;color:var(--accent);display:flex;align-items:center;gap:4px">${icon('clipboard-list',{size:11})} <span>Compromisso gerado</span></div>` : ''}
           </td>
           <td style="color:var(--text-3)">${tipo}</td>
           <td style="color:var(--text-2)">${p.responsavel||'—'}</td>
@@ -5357,8 +5393,8 @@ ${passivos.length === 0
     </table>
   </div>
   <div style="font-size:11px;color:var(--text-4);margin-top:8px;display:flex;gap:16px">
-    <span>📋 = gerar contrato parcelado</span>
-    <span>💸 = lançar pagamento avulso em despesas</span>
+    <span style="display:inline-flex;align-items:center;gap:4px">${icon('clipboard-list',{size:11})} = gerar contrato parcelado</span>
+    <span style="display:inline-flex;align-items:center;gap:4px">${icon('receipt',{size:11})} = lançar pagamento avulso em despesas</span>
   </div>
 </div>`}`;
 })()}
@@ -6641,7 +6677,7 @@ ${topCats.length ? `
       <div id="eDDescontoOpts" style="display:${d.desconto?'block':'none'};grid-column:1/-1" class="form-group">
         <label class="form-label">Valor Original (R$)</label>
         <input class="form-input" id="eDValorOriginal" type="number" step="0.01" value="${d.valorOriginal||''}"/>
-        <div style="font-size:11px;color:var(--green);margin-top:4px" id="eDEconomia">${d.economia?'💰 Economia: '+Utils.currency(d.economia):''}</div>
+        <div style="font-size:11px;color:var(--green);margin-top:4px" id="eDEconomia">${d.economia?'Economia: '+Utils.currency(d.economia):''}</div>
       </div>
       ${splitSectionHTML().replace(/fD/g, 'fD')}
       ${(() => {
@@ -6906,7 +6942,8 @@ ${(() => {
     titulo: tc.titulo,
     texto: tc.texto,
     tone: tc.tone,
-    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+      prompt: `Estou na aba ${cur.label} do Simulador. Me ajuda a entender as opções, comparar produtos e sugerir a melhor pra minha situação atual.` }],
   });
 })()}
 
@@ -7471,7 +7508,7 @@ ${reservas.length > 0 ? `
         window.FFCoach.ask(pergunta);
         if (respEl) {
           setTimeout(() => {
-            respEl.innerHTML = `<span style="color:var(--text-3);font-size:12px">✓ Pergunta enviada ao Coach — veja o painel à direita →</span>`;
+            respEl.innerHTML = `<span style="color:var(--text-3);font-size:12px;display:inline-flex;align-items:center;gap:4px">${icon('check',{size:12})} Pergunta enviada ao Coach — veja o painel à direita →</span>`;
           }, 400);
         }
       } else {
@@ -7542,7 +7579,7 @@ ${reservas.length > 0 ? `
 
       resultEl.innerHTML = `
 <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px 18px;margin-bottom:16px">
-  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:4px">⚠️ Custo real da taxa de ${taxaFundo}% a.a. em ${anos} anos</div>
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:4px;display:flex;align-items:center;gap:6px">${icon('alert-triangle',{size:13})} <span>Custo real da taxa de ${taxaFundo}% a.a. em ${anos} anos</span></div>
   <div style="font-size:13px;color:var(--text-2);line-height:1.6">
     Capital de <strong style="color:var(--text-1)">${Utils.currency(capital)}</strong> rendendo com retorno bruto de <strong style="color:var(--text-1)">${retornoBruto.toFixed(1)}% a.a.</strong>:
     no fundo com taxa <strong style="color:var(--red)">${taxaFundo}%</strong> → <strong style="color:var(--text-1)">${Utils.currency(vFundo)}</strong>.
@@ -8007,7 +8044,7 @@ ${fins.length === 0
   <thead><tr><th>#</th><th class="num">Parcela</th><th class="num">Juros</th><th class="num">Amortização</th><th class="num">Saldo</th></tr></thead>
   <tbody>${rows.map(r => `
     <tr style="${r.pago?'opacity:0.5':''}">
-      <td>${r.k}${r.pago?' ✓':''}</td>
+      <td>${r.k}${r.pago?' '+icon('check',{size:11}):''}</td>
       <td class="num">${Utils.currency(r.parcela)}</td>
       <td class="num negative">${Utils.currency(r.juros)}</td>
       <td class="num positive">${Utils.currency(r.amort)}</td>
@@ -8217,7 +8254,7 @@ ${_embed ? '' : `<div class="page-head mb-4">
   </div>
 </div>
 <div style="padding:8px 16px;font-size:10px;color:var(--text-4);border-top:1px solid var(--border);background:var(--bg-elevated)">
-  ${rates.fallback ? '⚠️ Fonte BCB indisponível — usando valores de referência fixos.' : `Fonte: Banco Central do Brasil · atualizado ${dt}`}
+  ${rates.fallback ? `<span style="display:inline-flex;align-items:center;gap:4px">${icon('alert-triangle',{size:11})} Fonte BCB indisponível — usando valores de referência fixos.</span>` : `Fonte: Banco Central do Brasil · atualizado ${dt}`}
 </div>`;
     });
 
@@ -8871,7 +8908,7 @@ ${reservaTotal > 0 ? `
   <span class="alert-icon">${jaCompleta ? Utils.icon.check : Utils.icon.info}</span>
   <div class="alert-text">
     <div class="alert-title">Você já tem ${Utils.currency(reservaTotal)} guardado</div>
-    <div class="alert-sub">Cobre ${cobertura.toFixed(1)} meses de despesa atual. ${jaCompleta ? 'Meta já atingida! 🎉' : `Falta ${Utils.currency(falta)} para completar ${multi} meses.`}</div>
+    <div class="alert-sub">Cobre ${cobertura.toFixed(1)} meses de despesa atual. ${jaCompleta ? 'Meta já atingida!' : `Falta ${Utils.currency(falta)} para completar ${multi} meses.`}</div>
   </div>
 </div>` : ''}
 <div class="kpi-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
@@ -8879,7 +8916,7 @@ ${reservaTotal > 0 ? `
     <div class="kpi-body"><div class="kpi-label">Valor alvo</div><div class="kpi-value accent" style="font-size:20px">${Utils.currency(alvo)}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
-    <div class="kpi-body"><div class="kpi-label">Tempo para completar</div><div class="kpi-value" style="color:var(--teal);font-size:20px">${jaCompleta ? '✓' : meses + ' meses'}</div></div>
+    <div class="kpi-body"><div class="kpi-label">Tempo para completar</div><div class="kpi-value" style="color:var(--teal);font-size:20px">${jaCompleta ? icon('check',{size:20}) : meses + ' meses'}</div></div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
     <div class="kpi-body"><div class="kpi-label">Rendimento estimado</div><div class="kpi-value green" style="font-size:18px">${Utils.currency(Math.max(0, alvo - reservaTotal - aporte*meses))}</div></div>
@@ -9504,7 +9541,8 @@ ${(() => {
       titulo: 'Visão familiar ainda em construção',
       texto: `Só uma pessoa com movimento neste mês. Convide o seu cônjuge ou registre a receita/despesa dele(a) pra ver o equilíbrio entre os dois.`,
       tone: 'neutral',
-      acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+      acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+        prompt: `Como começo a usar o Painel da Família? Estou sozinho aqui no app. Explica como convidar familiares e os benefícios.` }],
     });
   }
   const sorted = [...memberData].sort((a,b) => b.receita - a.receita);
@@ -9533,7 +9571,8 @@ ${(() => {
     texto,
     tone,
     acoes: [
-      { label: 'Ver análise completa', action: 'open-coach' },
+      { label: 'Ver análise completa', action: 'open-coach',
+        prompt: `Análise da minha família em ${monthLabel}: equilíbrio entre membros (quem ganha mais vs quem gasta mais), contribuições proporcionais, metas compartilhadas e sugestões pra otimizar alocação familiar.` },
       ...(metasFamilia.length ? [{ label: 'Ir para metas', href: '#metas' }] : []),
     ],
   });
@@ -9932,7 +9971,8 @@ ${!isEmpty ? (() => {
     titulo: tc.titulo,
     texto: tc.texto,
     tone: tc.tone,
-    acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+    acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+      prompt: `Análise tributária de ${ano}: planejamento dos tributos, deduções possíveis, otimizações fiscais e alertas de prazo.` }],
   });
 })() : ''}
 
@@ -10249,7 +10289,7 @@ ${outrs.length ? `
       <div class="table-section mb-6">
         <div class="card-header"><span class="card-title">Pendentes de pagamento</span></div>
         ${pendentes.length === 0
-          ? `<div style="padding:32px;text-align:center;color:var(--text-4);font-size:13px">Nenhum reembolso pendente 🎉</div>`
+          ? `<div style="padding:32px;text-align:center;color:var(--text-4);font-size:13px">Nenhum reembolso pendente</div>`
           : `<div class="table-wrap"><table class="data-table">
               <thead><tr>
                 <th>Despesa</th>
@@ -10637,7 +10677,7 @@ ${outrs.length ? `
       if (!recados.length) return `
 <div class="card widget-card" data-widget="coach">
   <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Coach</span></div>
-  <div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Nenhum recado novo. O Coach vai se manifestar em breve 😊</p></div>
+  <div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Nenhum recado novo. O Coach vai se manifestar em breve.</p></div>
 </div>`;
       return `
 <div class="card widget-card" data-widget="coach">
@@ -10854,7 +10894,8 @@ ${outrs.length ? `
       return coachInlineHTML({
         contexto: `Meu Painel · ${monthLabel}`,
         titulo, texto, tone,
-        acoes: [{ label: 'Ver análise completa', action: 'open-coach' }],
+        acoes: [{ label: 'Ver análise completa', action: 'open-coach',
+          prompt: `Análise do meu painel pessoal em ${monthLabel}: meu Poder de Escolha, reembolsos pendentes, minhas metas individuais e sugestões pra otimizar.` }],
       });
     }
 
@@ -11897,7 +11938,7 @@ ${personalities.map(p => `
         <div style="font-size:14px;font-weight:700;color:${current===p.key?'var(--haile-indigo-deep)':'var(--text-1)'}">${p.label}</div>
         <div style="font-size:11px;color:var(--text-3)">${p.short}</div>
       </div>
-      ${current === p.key ? '<div style="margin-left:auto;font-size:11px;color:var(--haile-indigo);font-weight:600">✓ Ativa</div>' : ''}
+      ${current === p.key ? `<div style="margin-left:auto;font-size:11px;color:var(--haile-indigo);font-weight:600;display:inline-flex;align-items:center;gap:4px">${icon('check',{size:12,color:'var(--haile-indigo)'})} Ativa</div>` : ''}
     </div>
     <div style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px">${p.desc}</div>
     <div style="font-size:11px;color:var(--text-3);font-style:italic;line-height:1.5;padding-top:10px;border-top:1px dashed var(--border)">
@@ -12322,7 +12363,7 @@ ${isConnected && isAdmin ? `
       setTimeout(() => location.reload(), 600);
     });
     document.getElementById('btnDoClear').addEventListener('click', () => {
-      if (!confirm('⚠ Apagar TODOS os dados? Esta ação não pode ser desfeita.')) return;
+      if (!confirm('Apagar TODOS os dados? Esta ação não pode ser desfeita.')) return;
       if (!confirm('Tem certeza? Você vai começar do zero, sem dados de exemplo.')) return;
       Store.clearAll();
       toast('Todos os dados foram apagados — recarregando…', 'success');
@@ -13936,7 +13977,7 @@ ${isConnected && isAdmin ? `
     <button class="btn-primary" id="btnSavePerfil">Salvar</button>
     <button class="btn-secondary" id="btnRefazerOnboarding">Refazer configuração inicial</button>
   </div>
-  <div id="perfilMsg" style="display:none;margin-top:10px;font-size:13px;color:var(--green)">✓ Perfil salvo</div>
+  <div id="perfilMsg" style="display:none;margin-top:10px;font-size:13px;color:var(--green);align-items:center;gap:6px">${icon('check',{size:14})} <span>Perfil salvo</span></div>
 </div>
 
 ${(() => {
@@ -14360,7 +14401,7 @@ ${(() => {
   <div style="margin-top:16px">
     <button class="btn-primary" id="btnSaveSenha">Alterar Senha</button>
   </div>
-  <div id="csSuccess" style="display:none;margin-top:10px;font-size:13px;color:var(--green)">✓ Senha alterada. Será pedida no próximo login.</div>
+  <div id="csSuccess" style="display:none;margin-top:10px;font-size:13px;color:var(--green);align-items:center;gap:6px">${icon('check',{size:14})} <span>Senha alterada. Será pedida no próximo login.</span></div>
 </div>`;
 
     document.getElementById('btnSaveSenha').addEventListener('click', async () => {
@@ -14463,7 +14504,7 @@ ${(() => {
 <div class="section-header mb-4"><div><div class="section-title">Sobre</div></div></div>
 <div class="card mb-4">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
-    <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px">📊</div>
+    <div style="width:48px;height:48px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent)">${icon('bar-chart-2',{size:24})}</div>
     <div>
       <div style="font-size:18px;font-weight:800">Haile</div>
       <div style="font-size:12px;color:var(--text-3)">Versão <strong style="color:var(--text-2)">DINO</strong> · Gestão financeira familiar</div>

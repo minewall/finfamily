@@ -2534,7 +2534,7 @@ const Store = (function () {
     if (!label) throw new Error('Nome obrigatório');
     let key = _slugKey(label);
     while (_data.categorias[key]) key = key + '_' + Math.random().toString(36).slice(2, 4);
-    _data.categorias[key] = { label, icon: icon || '📁', color: color || '#7C6EF8' };
+    _data.categorias[key] = { label, icon: icon || 'folder', color: color || '#7C6EF8' };
     _data.subcategorias[key] = [];
     _syncEditableConfig(); persist();
     return key;
