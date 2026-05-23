@@ -818,6 +818,20 @@ const App = (function () {
   function renderDashboard(container) {
     const month = getMonth(), year = getYear();
     const data  = Store.get();
+
+    // Normalização defensiva: dashboard agrega de várias entidades; um único campo undefined
+    // dentro de IIFE template literal causa TypeError silencioso e tela em branco.
+    // Garante mínimos para despesas/receitas usadas direto e indiretamente (Store.*).
+    (data.despesas || []).forEach(d => {
+      if (typeof d.amount !== 'number') d.amount = parseFloat(d.amount) || 0;
+      if (typeof d.desc !== 'string') d.desc = '';
+      if (typeof d.category !== 'string') d.category = '';
+    });
+    (data.receitas || []).forEach(r => {
+      if (typeof r.amount !== 'number') r.amount = parseFloat(r.amount) || 0;
+      if (typeof r.person !== 'string' || !r.person.length) r.person = '—';
+    });
+
     const receita   = Store.sumReceitas(month, year);
     const despesa   = Store.sumDespesas(month, year);
     const saldo     = receita - despesa;
@@ -1458,8 +1472,23 @@ ${renderPrevisaoCaixa(saldo)}
     const period = localStorage.getItem('ff_lanc_period') || 'mes';
     const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
 
-    const despesas = Store.get().despesas.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
-    const receitas = Store.get().receitas.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
+    // Normalização defensiva: despesas/receitas com schema variado podem quebrar a tela.
+    // Risco principal: d.date undefined → d.date.localeCompare() throw TypeError silencioso
+    // dentro de template literal (que aborta o render). d.desc undefined → toLowerCase() idem.
+    const _allDesp = Store.get().despesas || [];
+    const _allRec  = Store.get().receitas || [];
+    _allDesp.forEach(d => {
+      if (typeof d.date !== 'string') d.date = '';
+      if (typeof d.desc !== 'string') d.desc = '';
+      if (typeof d.amount !== 'number') d.amount = parseFloat(d.amount) || 0;
+    });
+    _allRec.forEach(r => {
+      if (typeof r.date !== 'string') r.date = '';
+      if (typeof r.desc !== 'string') r.desc = '';
+      if (typeof r.amount !== 'number') r.amount = parseFloat(r.amount) || 0;
+    });
+    const despesas = _allDesp.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
+    const receitas = _allRec.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
 
     let sortDir = 'asc';
     let activeTab = localStorage.getItem('ff_lanc_tab') || 'desp';
@@ -1538,7 +1567,7 @@ ${renderPrevisaoCaixa(saldo)}
     }
 
     function pessoaAvatarHtml(person) {
-      if (!person) return '<span style="color:var(--text-4)">—</span>';
+      if (!person || typeof person !== 'string' || !person.length) return '<span style="color:var(--text-4)">—</span>';
       const colors = { Roberto: 'var(--haile-indigo)', Mariana: 'var(--green)', Manuela: 'var(--amber)', Família: 'var(--haile-teal)' };
       const bg = colors[person] || Utils.personColor(person);
       const ini = person[0].toUpperCase();
@@ -1929,6 +1958,17 @@ ${filtered.map(r => {
     const year = getYear(), month = getMonth();
     const period = localStorage.getItem('ff_rec_period') || 'mes';
     const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
+
+    // Normalização defensiva: receitas com schema variado podem quebrar a tela.
+    // Risco: r.date undefined → localeCompare throw; r.desc/r.person undefined → toLowerCase/toUpperCase throw;
+    // r.amount como string vira NaN nos reduce.
+    (Store.get().receitas || []).forEach(r => {
+      if (typeof r.date !== 'string') r.date = '';
+      if (typeof r.desc !== 'string') r.desc = '';
+      if (typeof r.person !== 'string' || !r.person.length) r.person = '—';
+      if (typeof r.amount !== 'number') r.amount = parseFloat(r.amount) || 0;
+    });
+
     const yrRec = Store.yearlyMonthly(year, 'receita');
     const totalAno = yrRec.reduce((a,b) => a+b, 0);
     const media = totalAno / 12;
@@ -2407,6 +2447,17 @@ ${(() => {
     const month = getMonth(), year = getYear();
     const period = localStorage.getItem('ff_desp_period') || 'mes';
     const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
+
+    // Normalização defensiva: despesas com schema variado podem quebrar a tela.
+    // Risco: d.date undefined → localeCompare throw dentro de buildDespTable; d.desc/d.person undefined →
+    // toLowerCase/toUpperCase throw; d.amount como string vira NaN nos reduce.
+    (Store.get().despesas || []).forEach(d => {
+      if (typeof d.date !== 'string') d.date = '';
+      if (typeof d.desc !== 'string') d.desc = '';
+      if (typeof d.person !== 'string' || !d.person.length) d.person = '—';
+      if (typeof d.amount !== 'number') d.amount = parseFloat(d.amount) || 0;
+      if (typeof d.category !== 'string') d.category = '';
+    });
 
     const despesas = Store.get().despesas.filter(d => d.year === year && d.month >= mStart && d.month <= mEnd);
     const catMap = {};
@@ -3831,10 +3882,28 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
   const _contratoExpanded = new Set();
 
   function renderContratos(container) {
-    const contratos = Store.getContratos();
+    const contratos = Store.getContratos() || [];
     const month = getMonth(), year = getYear();
     const today = new Date().toISOString().slice(0, 10);
     const allData = Store.get();
+
+    // Normalização defensiva: compromissos e suas parcelas vinculadas (receitas/despesas)
+    // com schema variado podem quebrar a tela. Risco principal:
+    // - c.dataInicio/c.dataFim como undefined → toLocaleDateString gera "Invalid Date" silencioso
+    // - x.date undefined → x.date < today comparação coerce sem throw, mas sort por parcelaNum (NaN) bagunça ordem
+    // - c.label undefined → exibido como "undefined"
+    contratos.forEach(c => {
+      if (typeof c.label !== 'string') c.label = 'Compromisso';
+      if (!c.kind) c.kind = 'despesa';
+    });
+    (allData.receitas || []).forEach(x => {
+      if (typeof x.date !== 'string') x.date = '';
+      if (typeof x.amount !== 'number') x.amount = parseFloat(x.amount) || 0;
+    });
+    (allData.despesas || []).forEach(x => {
+      if (typeof x.date !== 'string') x.date = '';
+      if (typeof x.amount !== 'number') x.amount = parseFloat(x.amount) || 0;
+    });
 
     function calcStatus(c, perf) {
       if (c.status === 'quitado') return 'quitado';
@@ -6236,8 +6305,20 @@ ${passivos.length === 0
     const cor = Utils.personColor(eu);
 
     // ── Dados filtrados por pessoa ────────────────────────────────
-    const todasDesp = Store.get().despesas;
-    const todasRec  = Store.get().receitas;
+    const todasDesp = Store.get().despesas || [];
+    const todasRec  = Store.get().receitas || [];
+
+    // Normalização defensiva: sort por date.localeCompare quebra se date undefined.
+    todasDesp.forEach(d => {
+      if (typeof d.date !== 'string') d.date = '';
+      if (typeof d.amount !== 'number') d.amount = parseFloat(d.amount) || 0;
+      if (typeof d.desc !== 'string') d.desc = '';
+    });
+    todasRec.forEach(r => {
+      if (typeof r.date !== 'string') r.date = '';
+      if (typeof r.amount !== 'number') r.amount = parseFloat(r.amount) || 0;
+      if (typeof r.desc !== 'string') r.desc = '';
+    });
 
     // Despesas do mês atribuídas a esta pessoa (split ou responsavel)
     function despPessoa(m, y) {
@@ -7535,7 +7616,7 @@ ${reservas.length > 0 ? `
     </tr>`).join('')}</tbody>
 </table></div>
 <div style="font-size:11px;color:var(--text-3);margin-top:8px">
-  "Poder de compra" desconta inflação de ${inflPct}% a.a. — mostra quanto seu dinheiro valeria em poder aquisitivo de hoje.
+  "Poder de compra" desconta inflação de ${(+inflPct || 0).toFixed(1)}% a.a. — mostra quanto seu dinheiro valeria em poder aquisitivo de hoje.
 </div>`;
       if (window._chartInvComp) window._chartInvComp.destroy();
       window._chartInvComp = Charts.Line(document.getElementById('chartInvComp'),
@@ -7658,12 +7739,12 @@ ${reservas.length > 0 ? `
       const labels = Array.from({length: anos}, (_,i) => `${i+1}a`);
       const dssets = [
         {
-          label: `Fundo (${taxaFundo}% taxa)`,
+          label: `Fundo (${(+taxaFundo || 0).toFixed(1)}% taxa)`,
           values: labels.map((_,i) => parseFloat(valorFinal(capital, taxaFundo, i+1).toFixed(0))),
           color: '#EF4444',
         },
         ...rows.map(b => ({
-          label: `${b.nome} (${b.taxa}% taxa)`,
+          label: `${b.nome} (${(+b.taxa || 0).toFixed(1)}% taxa)`,
           values: labels.map((_,i) => parseFloat(valorFinal(capital, b.taxa, i+1).toFixed(0))),
           color: b.color,
           dashed: true,
@@ -7672,14 +7753,14 @@ ${reservas.length > 0 ? `
 
       resultEl.innerHTML = `
 <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px 18px;margin-bottom:16px">
-  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:4px;display:flex;align-items:center;gap:6px">${icon('alert-triangle',{size:13})} <span>Custo real da taxa de ${taxaFundo}% a.a. em ${anos} anos</span></div>
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--red);margin-bottom:4px;display:flex;align-items:center;gap:6px">${icon('alert-triangle',{size:13})} <span>Custo real da taxa de ${(+taxaFundo || 0).toFixed(1)}% a.a. em ${anos} anos</span></div>
   <div style="font-size:13px;color:var(--text-2);line-height:1.6">
     Capital de <strong style="color:var(--text-1)">${Utils.currency(capital)}</strong> rendendo com retorno bruto de <strong style="color:var(--text-1)">${retornoBruto.toFixed(1)}% a.a.</strong>:
-    no fundo com taxa <strong style="color:var(--red)">${taxaFundo}%</strong> → <strong style="color:var(--text-1)">${Utils.currency(vFundo)}</strong>.
+    no fundo com taxa <strong style="color:var(--red)">${(+taxaFundo || 0).toFixed(1)}%</strong> → <strong style="color:var(--text-1)">${Utils.currency(vFundo)}</strong>.
     A diferença para alternativas de baixo custo pode passar de <strong style="color:var(--red)">${Utils.currency(rows[0].economia)}</strong>.
   </div>
 </div>
-<div class="chart-wrap mb-4" style="min-height:300px;display:flex;align-items:stretch"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="300" style="max-height:340px"></canvas></div>
+<div class="chart-wrap mb-4" style="min-height:380px;display:flex;align-items:stretch"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="380" style="max-height:420px"></canvas></div>
 <div class="table-wrap">
   <table class="data-table">
     <thead><tr>
@@ -7710,7 +7791,7 @@ ${reservas.length > 0 ? `
 </div>`;
       if (window._chartFeeAnalyzer) window._chartFeeAnalyzer.destroy();
       window._chartFeeAnalyzer = Charts.Line(document.getElementById('chartFeeAnalyzer'),
-        { labels, datasets: dssets }, { height: 300 });
+        { labels, datasets: dssets }, { height: 380 });
     }
     _autoCalcInv(['feeCapital','feeTaxaFundo','feeAnos'], 'btnFeeAnalyzer');
     document.getElementById('btnFeeAnalyzer')?.addEventListener('click', calcFeeAnalyzer);
@@ -7753,7 +7834,7 @@ ${reservas.length > 0 ? `
       if (!resultEl) return;
 
       resultEl.innerHTML = `
-<div class="chart-wrap mb-4" style="min-height:320px;display:flex;align-items:stretch"><canvas id="chartCenarios" class="chart-canvas" height="320" style="max-height:380px"></canvas></div>
+<div class="chart-wrap mb-4" style="min-height:400px;display:flex;align-items:stretch"><canvas id="chartCenarios" class="chart-canvas" height="400" style="max-height:440px"></canvas></div>
 <div class="table-wrap">
   <table class="data-table">
     <thead><tr><th>Cenário</th><th class="num">Capital</th><th class="num">Aporte/mês</th><th class="num">Taxa</th><th class="num">Horizonte</th><th class="num">Valor Final</th></tr></thead>
@@ -7774,7 +7855,7 @@ ${reservas.length > 0 ? `
 </div>`;
       if (window._chartCenarios) window._chartCenarios.destroy();
       window._chartCenarios = Charts.Line(document.getElementById('chartCenarios'),
-        { labels, datasets }, { height: 320 });
+        { labels, datasets }, { height: 400 });
     }
 
     // Auto-calc cenários: re-calcula ao mudar qualquer input
@@ -9374,7 +9455,20 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   function currentPessoa() {
     const ctx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
     if (ctx?.pessoaName) return ctx.pessoaName;
-    return Store.getProfile()?.name || Store.PESSOAS[0] || 'Usuário';
+    // Resolve o nome usado nos lançamentos (data.pessoas) — match inteligente:
+    // 1) profile.firstName se existir em PESSOAS
+    // 2) primeiro nome do profile.name se existir em PESSOAS
+    // 3) profile.name completo se existir em PESSOAS
+    // 4) primeiro PESSOAS como fallback
+    const profile = Store.getProfile() || {};
+    const pessoas = Store.PESSOAS || [];
+    if (profile.firstName && pessoas.includes(profile.firstName)) return profile.firstName;
+    if (profile.name) {
+      const first = profile.name.split(' ')[0];
+      if (pessoas.includes(first)) return first;
+      if (pessoas.includes(profile.name)) return profile.name;
+    }
+    return pessoas[0] || profile.name || 'Usuário';
   }
 
   function _updateAnomaliasBadge(count) {
@@ -11041,8 +11135,10 @@ ${outrs.length ? `
     }
 
     // ── Coach inline contextual do "Meu Painel" ──────────────────
+    // Banner estreito teal (fiel ao protótipo Haile Meu Painel.html):
+    // [avatar Hai 30x30] [tag "Para você"] [texto curto inline] [X]
     function buildCoachInline() {
-      // Compara com mês anterior para gerar mensagem contextual
+      // Compara com mês anterior para gerar mensagem contextual curta
       const prevM = month > 1 ? month - 1 : 12;
       const prevY = month > 1 ? year : year - 1;
       const prevPoderPessoal = (() => {
@@ -11057,34 +11153,47 @@ ${outrs.length ? `
         return rec - desp;
       })();
       const delta = poderPessoal - prevPoderPessoal;
+      const prevMonth = Utils.monthsFull[prevM-1];
 
-      let tone = 'neutral', titulo, texto;
+      // Mensagem inline curta (1 frase, sem título separado)
+      let mensagem;
       if (receitaPessoal === 0 && despesaPessoal === 0) {
-        titulo = 'Comece a registrar suas movimentações';
-        texto = `Ainda não tem nada lançado em <strong>${monthLabel}</strong> com sua pessoa. Adicione uma receita ou despesa pra eu começar a calcular seu Poder de Escolha pessoal.`;
-        tone = 'neutral';
+        mensagem = `Ainda não tem nada lançado em <strong style="color:#fff">${monthLabel}</strong> com sua pessoa. Adicione uma receita ou despesa pra eu calcular seu Poder de Escolha.`;
       } else if (poderPessoal < 0) {
-        tone = 'attention';
-        titulo = 'Você gastou mais do que recebeu este mês';
-        texto = `Seu Poder de Escolha pessoal ficou em <strong style="color:var(--red)">-${Utils.currency(Math.abs(poderPessoal))}</strong>. Vale revisar onde dá pra segurar e proteger sua reserva.`;
+        mensagem = `Seu Poder de Escolha pessoal está em <strong style="color:var(--red)">−${Utils.currency(Math.abs(poderPessoal))}</strong> — você gastou mais do que recebeu. Vale revisar onde dá pra segurar.`;
       } else if (delta > 0) {
-        tone = 'positive';
-        titulo = 'Seu Poder de Escolha cresceu vs mês anterior';
-        texto = `Seu Poder pessoal subiu <strong style="color:var(--green)">+${Utils.currency(delta)}</strong> vs ${Utils.monthsFull[prevM-1]}. Está no caminho — considere aumentar um aporte ou acelerar uma meta.`;
+        mensagem = `Seu Poder de Escolha pessoal cresceu <strong style="color:var(--green)">+${Utils.currency(delta)}</strong> vs ${prevMonth}. Está no caminho — considere aumentar aporte em uma meta.`;
       } else if (delta < 0) {
-        tone = 'neutral';
-        titulo = 'Seu Poder de Escolha caiu um pouco';
-        texto = `Você fechou ${Utils.currency(poderPessoal)} livres — <strong style="color:var(--amber)">${Utils.currency(Math.abs(delta))}</strong> abaixo de ${Utils.monthsFull[prevM-1]}. Vamos olhar juntos onde ajustar?`;
+        mensagem = `Seu Poder de Escolha caiu <strong style="color:var(--amber)">${Utils.currency(Math.abs(delta))}</strong> vs ${prevMonth}. Vamos olhar juntos onde ajustar?`;
       } else {
-        tone = 'positive';
-        titulo = 'Mês equilibrado pra você';
-        texto = `Você está com <strong style="color:var(--green)">${Utils.currency(poderPessoal)}</strong> de Poder de Escolha pessoal. Bom momento pra reforçar uma meta ou abrir espaço pra novos planos.`;
+        mensagem = `Mês equilibrado: você está com <strong style="color:#fff">${Utils.currency(poderPessoal)}</strong> de Poder de Escolha pessoal. Bom momento pra reforçar uma meta.`;
       }
-      return coachInlineHTML({
-        contexto: `Meu Painel · ${monthLabel}`,
-        titulo, texto, tone,
-        acoes: [{ label: 'Ver análise completa', action: 'open-coach',
-          prompt: `Análise do meu painel pessoal em ${monthLabel}: meu Poder de Escolha, reembolsos pendentes, minhas metas individuais e sugestões pra otimizar.` }],
+
+      const _id = 'mpCoachInline_' + Math.random().toString(36).slice(2,7);
+      return `
+<div id="${_id}" class="mp-coach-banner" style="border-radius:14px;padding:13px 18px;background:linear-gradient(135deg,#0b2828 0%,#092236 100%);border:1px solid rgba(45,207,192,0.2);display:flex;align-items:center;gap:12px">
+  <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--teal-coach,#2dcfc0),var(--blue,#4aa8ff));display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">Hai</div>
+  <span style="font-size:11px;font-weight:700;color:var(--teal-coach,#2dcfc0);white-space:nowrap;letter-spacing:.04em">Para você</span>
+  <span style="font-size:12.5px;color:rgba(195,235,235,0.82);line-height:1.5;flex:1">${mensagem}</span>
+  <button type="button" data-mp-coach-open style="background:rgba(45,207,192,.12);border:1px solid rgba(45,207,192,.3);color:var(--teal-coach,#2dcfc0);border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;flex-shrink:0">Analisar</button>
+  <button type="button" data-mp-coach-dismiss="${_id}" style="background:none;border:none;padding:0 2px;display:flex;cursor:pointer;color:var(--text-3);flex-shrink:0">${icon('x',{size:13})}</button>
+</div>`;
+    }
+
+    // Liga handlers do banner Coach do Meu Painel
+    function bindMpCoach(scope) {
+      scope.querySelectorAll('[data-mp-coach-dismiss]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const el = document.getElementById(btn.dataset.mpCoachDismiss);
+          if (el) el.style.display = 'none';
+        });
+      });
+      scope.querySelectorAll('[data-mp-coach-open]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const prompt = `Análise do meu painel pessoal em ${monthLabel}: meu Poder de Escolha, reembolsos pendentes, minhas metas individuais e sugestões pra otimizar.`;
+          if (window.FFCoach?.ask) window.FFCoach.ask(prompt);
+          else document.getElementById('btnCoach')?.click();
+        });
       });
     }
 
@@ -11129,8 +11238,8 @@ ${outrs.length ? `
     </p>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
-    <button class="btn-secondary" id="btnPersonalizarPainel" style="display:inline-flex;align-items:center;gap:6px">${icon('sliders-horizontal',{size:14})} Personalizar</button>
-    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px">${icon('plus',{size:13, color:'#fff'})} Novo Lançamento</a>
+    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;padding:9px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(107,94,245,.32)">${icon('plus',{size:13, color:'#fff'})} Novo Lançamento</a>
+    <button class="btn-secondary btn-sm" id="btnPersonalizarPainel" title="Personalizar painel" style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px">${icon('sliders-horizontal',{size:14})}</button>
   </div>
 </div>
 
@@ -11164,8 +11273,8 @@ ${renderPageMonthPicker(container)}
       document.getElementById('painelOverlay')?.remove();
     }
 
-    // Liga botões de dismiss/ação do Coach inline
-    bindCoachInline(container);
+    // Liga botões do Coach banner (dismiss + analisar)
+    bindMpCoach(container);
   }
 
   // ══════════════════════════════════════════════════════════════
