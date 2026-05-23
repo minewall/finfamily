@@ -2025,10 +2025,12 @@ ${(() => {
     <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
     <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
   </div>` : ''}
-</div>
+</div>`;
+})()}
 
 ${(() => {
   // Cards "Receita por pessoa" — bloco separado abaixo do hero.
+  const recsHero = Store.get().receitas.filter(r => r.year === year && r.month === month);
   const _byPerson = {};
   recsHero.forEach(r => {
     if (!_byPerson[r.person]) _byPerson[r.person] = { amt: 0, count: 0 };
@@ -2490,10 +2492,13 @@ ${(() => {
     <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
     <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
   </div>` : ''}
-</div>
+</div>`;
+})()}
 
 ${(() => {
   // Cards "Despesa por pessoa" — bloco separado.
+  const despMesAtual = Store.get().despesas.filter(d => d.year === year && d.month === month).reduce((s,d) => s + d.amount, 0);
+  const despHero = Store.get().despesas.filter(d => d.year === year && d.month === month);
   const _byPersonD = {};
   despHero.forEach(d => {
     if (!_byPersonD[d.person]) _byPersonD[d.person] = { amt: 0, count: 0 };
