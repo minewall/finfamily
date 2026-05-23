@@ -6848,22 +6848,23 @@ ${_embed ? '' : `<div class="page-head mb-4">
   </div>
 </div>
 
-<!-- Donut + Evolução patrimonial (Figma: dois charts lado a lado) -->
+<!-- ═══════════════════════ SUA CARTEIRA ═══════════════════════════ -->
 ${reservas.length > 0 ? `
-<div class="chart-grid mb-6" style="grid-template-columns:1fr 2fr;align-items:start;gap:16px">
-  <div class="card">
-    <div class="card-header"><span class="card-title">Distribuição do Portfólio</span></div>
-    <div style="display:flex;justify-content:center;padding:8px 0">
-      <canvas id="chartInvDonut" width="180" height="180"></canvas>
+<div class="dash-section-tag mt-6 mb-2">SUA CARTEIRA</div>
+<div class="mb-6" style="display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px;align-items:stretch">
+  <div class="card" style="display:flex;flex-direction:column">
+    <div class="card-header"><span class="card-title">Distribuição</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:8px 0">
+      <canvas id="chartInvDonut" width="220" height="220"></canvas>
     </div>
-    <div id="invDonutLegend" style="display:flex;flex-direction:column;gap:6px;padding:0 4px 4px"></div>
+    <div id="invDonutLegend" style="display:flex;flex-direction:column;gap:6px;padding:4px 0 0"></div>
   </div>
-  <div class="card">
+  <div class="card" style="display:flex;flex-direction:column;min-width:0">
     <div class="card-header">
       <span class="card-title">Evolução Patrimonial — ${getYear()}</span>
       <span style="font-size:11px;color:var(--text-4)">reservas + saldo acumulado</span>
     </div>
-    <div class="chart-wrap"><canvas id="chartInvEvolucao" class="chart-canvas" height="200"></canvas></div>
+    <div class="chart-wrap" style="flex:1;min-height:260px"><canvas id="chartInvEvolucao" class="chart-canvas" height="260"></canvas></div>
   </div>
 </div>
 
@@ -6904,15 +6905,24 @@ ${reservas.length > 0 ? `
   <div style="font-size:12px;color:var(--text-4)">Adicione em <a href="#patrimonio" onclick="Router.navigate('patrimonio')" style="color:var(--accent)">Reserva & Patrimônio</a> para ver seu portfólio aqui</div>
 </div>`}
 
-<!-- Header de taxas -->
+<!-- ═══════════════════════ REFERÊNCIAS DE MERCADO ═════════════════ -->
+<div class="dash-section-tag mt-6 mb-2">REFERÊNCIAS DE MERCADO</div>
 <div class="rates-strip card mb-6" id="invRatesStrip">
   <div style="padding:14px;font-size:12px;color:var(--text-3)">Carregando taxas de referência…</div>
 </div>
 
-<!-- Comparador -->
-<div class="chart-grid mb-6" style="grid-template-columns:380px 1fr;align-items:start">
+<!-- ═══════════════════════ SIMULAR ════════════════════════════════ -->
+<div class="dash-section-tag mt-6 mb-2">SIMULAR</div>
+<div class="view-tabs mb-4" id="simSubTabs">
+  <button class="view-tab view-tab--accent active" data-sim-tab="comparar">${icon('layers',{size:12})} Comparar produtos</button>
+  <button class="view-tab view-tab--green" data-sim-tab="reversa">${icon('target',{size:12})} Quanto aportar?</button>
+  <button class="view-tab view-tab--violet" data-sim-tab="cenarios">${icon('git-branch',{size:12})} Cenários "E se…?"</button>
+</div>
+
+<!-- Aba: Comparar produtos -->
+<div class="sim-tab-panel mb-6" data-sim-panel="comparar" style="display:grid;grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:16px;align-items:start">
   <div class="card">
-    <div class="card-header"><span class="card-title">Comparar produtos</span></div>
+    <div class="card-header"><span class="card-title">Premissas</span></div>
     <div class="form-grid" style="grid-template-columns:1fr">
       <div class="form-group"><label class="form-label">Capital inicial (R$)</label><input class="form-input" id="ivCap" type="number" step="100" value="${Math.round(totalInvestido || 1000)}"></div>
       <div class="form-group"><label class="form-label">Aporte mensal (R$)</label><input class="form-input" id="ivAporte" type="number" step="50" value="${saldoMedio}"><div style="font-size:11px;color:var(--text-3);margin-top:4px">Sugerido pelo saldo médio (${mesesUsados ? `${mesesUsados} meses` : 'sem dados'})</div></div>
@@ -6922,16 +6932,19 @@ ${reservas.length > 0 ? `
     </div>
     <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnCompInv">Comparar</button>
   </div>
-  <div id="ivCompResult" class="card" style="display:none">
+  <div id="ivCompResult" class="card" style="display:none;min-width:0">
     <div class="card-header"><span class="card-title">Evolução comparada</span></div>
     <div id="ivCompBody"></div>
   </div>
+  <div id="ivCompPlaceholder" class="card" style="min-width:0;display:flex;align-items:center;justify-content:center;color:var(--text-4);font-size:13px;min-height:200px;border:1.5px dashed var(--border);background:transparent">
+    Edite as premissas à esquerda para ver o gráfico
+  </div>
 </div>
 
-<!-- Calculadora reversa -->
-<div class="chart-grid mb-6" style="grid-template-columns:380px 1fr;align-items:start">
+<!-- Aba: Calculadora reversa -->
+<div class="sim-tab-panel mb-6" data-sim-panel="reversa" style="display:none;grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:16px;align-items:start">
   <div class="card">
-    <div class="card-header"><span class="card-title">Quanto preciso aportar?</span></div>
+    <div class="card-header"><span class="card-title">Meta</span></div>
     <div class="form-grid" style="grid-template-columns:1fr">
       <div class="form-group"><label class="form-label">Quero ter (R$)</label><input class="form-input" id="ivAlvo" type="number" step="1000" value="100000"></div>
       <div class="form-group"><label class="form-label">Em quantos anos?</label><input class="form-input" id="ivAlvoAnos" type="number" min="1" max="40" value="10"></div>
@@ -6939,11 +6952,17 @@ ${reservas.length > 0 ? `
     </div>
     <button class="btn-primary w-full" style="margin-top:16px;display:none" id="btnRevInv">Calcular aporte por produto</button>
   </div>
-  <div id="ivRevResult" class="card" style="display:none">
+  <div id="ivRevResult" class="card" style="display:none;min-width:0">
     <div class="card-header"><span class="card-title">Aporte mensal necessário</span></div>
     <div id="ivRevBody"></div>
   </div>
+  <div id="ivRevPlaceholder" class="card" style="min-width:0;display:flex;align-items:center;justify-content:center;color:var(--text-4);font-size:13px;min-height:200px;border:1.5px dashed var(--border);background:transparent">
+    Defina a meta à esquerda para ver o aporte por produto
+  </div>
 </div>
+
+<!-- ═══════════════════════ ANALISAR ═══════════════════════════════ -->
+<div class="dash-section-tag mt-6 mb-2">ANALISAR</div>
 
 <!-- ── FEE ANALYZER ─────────────────────────────────────────── -->
 <div class="card mb-6">
@@ -6951,7 +6970,7 @@ ${reservas.length > 0 ? `
     <span class="card-title">${icon('alert-triangle',{size:15})} Fee Analyzer — O Custo Invisível</span>
     <span style="font-size:11px;color:var(--text-4)">Quanto as taxas vão custar ao longo do tempo?</span>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:16px">
     <div class="form-group" style="margin-bottom:0">
       <label class="form-label">Capital investido (R$)</label>
       <input class="form-input" id="feeCapital" type="number" value="${Math.round(totalInvestido || 10000)}" min="1">
@@ -6964,9 +6983,9 @@ ${reservas.length > 0 ? `
       <label class="form-label">Horizonte (anos)</label>
       <input class="form-input" id="feeAnos" type="number" min="1" max="40" value="20">
     </div>
-    <button class="btn-primary" style="display:none" id="btnFeeAnalyzer">Calcular</button>
   </div>
   <div id="feeResult"></div>
+  <button class="btn-primary" style="display:none" id="btnFeeAnalyzer">Calcular</button>
 </div>
 
 <!-- ── COACH DO PORTFÓLIO ─────────────────────────────────────── -->
@@ -6995,13 +7014,12 @@ ${reservas.length > 0 ? `
   <div id="coachPortfolioResp" style="display:none;margin-top:14px;padding:14px;background:var(--surface-2);border-radius:10px;font-size:14px;line-height:1.65;color:var(--text-1)"></div>
 </div>
 
-<!-- ── COMPARADOR DE CENÁRIOS ────────────────────────────────── -->
-<div class="card mb-6">
-  <div class="card-header">
-    <span class="card-title">${icon('git-branch',{size:15})} Comparador de Cenários — E se…?</span>
-    <span style="font-size:11px;color:var(--text-4)">Compare até 3 cenários no mesmo gráfico</span>
+<!-- Aba: Comparador de Cenários (dentro de SIMULAR) -->
+<div class="sim-tab-panel mb-6" data-sim-panel="cenarios" style="display:none">
+  <div class="card-header" style="margin-bottom:12px">
+    <span class="card-title" style="font-size:13px;color:var(--text-3)">Compare até 3 cenários no mesmo gráfico</span>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:16px">
     ${[1,2,3].map(n => `
     <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface-2)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -7030,6 +7048,27 @@ ${reservas.length > 0 ? `
   <button style="display:none" id="btnCenarios">Calcular</button>
   <div id="cenariosResult"></div>
 </div>`;
+
+    // ── Sub-tabs do bloco SIMULAR ────────────────────────────────
+    requestAnimationFrame(() => {
+      const subTabsEl = container.querySelector('#simSubTabs');
+      if (subTabsEl) {
+        subTabsEl.addEventListener('click', e => {
+          const btn = e.target.closest('[data-sim-tab]');
+          if (!btn) return;
+          const tab = btn.getAttribute('data-sim-tab');
+          subTabsEl.querySelectorAll('[data-sim-tab]').forEach(b =>
+            b.classList.toggle('active', b.getAttribute('data-sim-tab') === tab));
+          container.querySelectorAll('[data-sim-panel]').forEach(p => {
+            const isActive = p.getAttribute('data-sim-panel') === tab;
+            // Comparar e Reversa usam display:grid, Cenários usa display:block
+            p.style.display = isActive
+              ? (tab === 'cenarios' ? 'block' : 'grid')
+              : 'none';
+          });
+        });
+      }
+    });
 
     // ── Donut + Evolução patrimonial ─────────────────────────────
     requestAnimationFrame(() => {
@@ -7145,6 +7184,7 @@ ${reservas.length > 0 ? `
       const melhor = resultados[0];
 
       document.getElementById('ivCompResult').style.display = '';
+      const _phComp = document.getElementById('ivCompPlaceholder'); if (_phComp) _phComp.style.display = 'none';
       const labels = Array.from({ length: anos }, (_, k) => `${k+1}a`);
       // Pega valor da série a cada 12 meses
       const datasetsLine = resultados.map(r => ({
@@ -7197,6 +7237,7 @@ ${reservas.length > 0 ? `
       const menor = linhas[0];
 
       document.getElementById('ivRevResult').style.display = '';
+      const _phRev = document.getElementById('ivRevPlaceholder'); if (_phRev) _phRev.style.display = 'none';
       document.getElementById('ivRevBody').innerHTML = `
 <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
   Para acumular <strong>${Utils.currency(alvo)}</strong> em <strong>${anos} anos</strong>${cap > 0 ? ` partindo de ${Utils.currency(cap)}` : ''}:
