@@ -1398,7 +1398,7 @@ ${renderPrevisaoCaixa(saldo)}
 
   function renderProximasParcelas() {
     const rows = Store.getProximasParcelas(30).slice(0, 6);
-    if (!rows.length) return '<div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Sem parcelas previstas para os próximos 30 dias.<br><a href="#contratos" style="color:var(--accent);font-size:12px">Cadastrar contratos recorrentes →</a></p></div>';
+    if (!rows.length) return '<div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Sem parcelas previstas para os próximos 30 dias.<br><a href="#compromissos" style="color:var(--accent);font-size:12px">Cadastrar compromissos recorrentes →</a></p></div>';
     const today = new Date(); today.setHours(0,0,0,0);
     return rows.map(p => {
       const c = Store.getContratoById(p.contratoId);
@@ -2114,6 +2114,18 @@ ${coachInlineHTML({
     <div class="filter-sep"></div>
     ${periodToggleHTML('ff_rec_period', period)}
     <div class="filter-row-1-actions">
+      <select class="form-select" id="recPessoaFilter" style="min-width:140px">
+        <option value="">Todas as pessoas</option>
+        ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <select class="form-select" id="recTipoFilter" style="min-width:140px">
+        <option value="">Todos os tipos</option>
+        <option value="salario">Salário</option>
+        <option value="contrato">Contrato</option>
+        <option value="pensao">Pensão</option>
+        <option value="emprestimo">Empréstimo</option>
+        <option value="outros">Outros</option>
+      </select>
       <button class="btn-primary" id="btnAddRec">+ Nova Receita</button>
     </div>
   </div>
@@ -2134,25 +2146,7 @@ ${(() => {
   <div class="card-header">
     <span class="card-title">Receitas — ${periodLabel}</span>
   </div>
-  <div class="table-wrap">
-    <table class="data-table">
-      <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th class="num">Valor</th><th></th></tr></thead>
-      <tbody>
-        ${Store.get().receitas.filter(r=>r.year===year && r.month>=mStart && r.month<=mEnd).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>{
-          const tipoLabel = ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||'';
-          const subLabel = r.sub || tipoLabel;
-          return `<tr class="row-clickable" data-row-rec="${r.id}">
-          <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
-          <td>
-            <div>${r.desc}</div>
-            ${subLabel ? `<div class="lancamentos-sub">${subLabel}</div>` : ''}
-          </td>
-          <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
-          <td class="num positive">${Utils.currency(r.amount)}</td>
-        </tr>`;}).join('')}
-      </tbody>
-    </table>
-  </div>
+  <div class="table-wrap" id="recTable"></div>
 </div>
 
 <div class="card mb-6">
@@ -2186,6 +2180,46 @@ ${(() => {
   })()}
 </div>`;
 
+
+    function buildRecPeriodoTable() {
+      const pessoaF = document.getElementById('recPessoaFilter')?.value || '';
+      const tipoF   = document.getElementById('recTipoFilter')?.value   || '';
+      let rows = Store.get().receitas
+        .filter(r => r.year === year && r.month >= mStart && r.month <= mEnd)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (pessoaF) rows = rows.filter(r => r.person === pessoaF);
+      if (tipoF)   rows = rows.filter(r => (r.type || 'outros') === tipoF);
+      const tot = rows.reduce((s, r) => s + r.amount, 0);
+      const el = document.getElementById('recTable');
+      if (!el) return;
+      if (!rows.length) {
+        el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-4);font-size:13px">Nenhuma receita encontrada com os filtros aplicados.</div>';
+        return;
+      }
+      el.innerHTML = `<table class="data-table">
+        <thead><tr><th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th class="num">Valor</th></tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const tipoLabel = ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||'';
+            const subLabel = r.sub || tipoLabel;
+            return `<tr class="row-clickable" data-row-rec="${r.id}">
+              <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
+              <td>
+                <div>${r.desc}</div>
+                ${subLabel ? `<div class="lancamentos-sub">${subLabel}</div>` : ''}
+              </td>
+              <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
+              <td class="muted">${tipoLabel}</td>
+              <td class="num positive">${Utils.currency(r.amount)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr><td colspan="4" class="fw-700">Total (${rows.length})</td><td class="num positive fw-700">${Utils.currency(tot)}</td></tr></tfoot>
+      </table>`;
+    }
+    buildRecPeriodoTable();
+    document.getElementById('recPessoaFilter')?.addEventListener('change', buildRecPeriodoTable);
+    document.getElementById('recTipoFilter')?.addEventListener('change', buildRecPeriodoTable);
 
     container.querySelectorAll('[data-del-rec]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2446,6 +2480,14 @@ ${coachInlineHTML({
     <div class="filter-sep"></div>
     ${periodToggleHTML('ff_desp_period', period)}
     <div class="filter-row-1-actions">
+      <select class="form-select" id="despPessoaFilter" style="min-width:140px">
+        <option value="">Todas as pessoas</option>
+        ${Store.PESSOAS.map(p=>`<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <select class="form-select" id="despCatFilter" style="min-width:160px">
+        <option value="">Todas as categorias</option>
+        ${Store.categoriesOrdered().filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+      </select>
       ${isMember
         ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
         : `<button class="btn-primary" id="btnAddDesp">+ Nova Despesa</button>`}
@@ -2519,16 +2561,6 @@ ${despesas.length === 0 ? coachEmptyHTML({
 <div class="card">
   <div class="card-header">
     <span class="card-title">Detalhamento — ${Utils.monthsFull[month-1]}</span>
-    <div style="display:flex;gap:8px">
-      <select class="form-select" id="despPessoaFilter" style="width:150px">
-        <option value="">Todas as pessoas</option>
-        ${Store.PESSOAS.map(p=>`<option value="${p}">${p}</option>`).join('')}
-      </select>
-      <select class="form-select" id="despCatFilter" style="width:180px">
-        <option value="">Todas as categorias</option>
-        ${Store.categoriesOrdered().filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
-      </select>
-    </div>
   </div>
   <div class="table-wrap" id="despTable">
     ${buildDespTable(despesas)}
@@ -7324,7 +7356,7 @@ ${reservas.length > 0 ? `
 <div class="page-head mb-4">
   <div>
     <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">
-      <a href="#contratos" onclick="Router.navigate('contratos')" style="color:var(--text-3);text-decoration:none">Compromissos</a>
+      <a href="#compromissos" onclick="Router.navigate('compromissos')" style="color:var(--text-3);text-decoration:none">Compromissos</a>
       <span style="opacity:0.5">/</span>
       <span style="color:var(--text-2)">Financiamentos</span>
     </div>
@@ -9928,7 +9960,7 @@ ${outrs.length ? `
       return `
 <div class="card widget-card" data-widget="parcelas">
   <div class="card-header"><span class="card-title">${icon('calendar-clock',{size:15})} Próximas Parcelas</span>
-    <a href="#contratos" onclick="Router.navigate('contratos')" style="font-size:11px;color:var(--accent)">Ver contratos →</a></div>
+    <a href="#compromissos" onclick="Router.navigate('compromissos')" style="font-size:11px;color:var(--accent)">Ver compromissos →</a></div>
   <div id="wpParcelasBody">${renderProximasParcelas()}</div>
 </div>`;
     }
@@ -12323,14 +12355,19 @@ ${isConnected && isAdmin ? `
     };
   }
 
-  function openICPModal(catId) {
+  function openICPModal(catId, perguntaId) {
     const st = _icpQuestionsState(catId);
     if (!st.total) {
       toast('Categoria sem perguntas disponíveis ainda.', 'info');
       return;
     }
     const prevAnswers = _icpGetAnsweredMap(catId);
-    const initialIdx  = st.isComplete ? 0 : st.firstPendingIdx;
+    // Se perguntaId foi passado, abre direto nessa pergunta (Sprint 4)
+    const targetIdx = perguntaId
+      ? st.allQs.findIndex(q => q.id === perguntaId) : -1;
+    const initialIdx = targetIdx >= 0
+      ? targetIdx
+      : (st.isComplete ? 0 : st.firstPendingIdx);
     _icpModal = {
       catId,
       qIdx: initialIdx,
@@ -12813,6 +12850,88 @@ ${isConnected && isAdmin ? `
     }, { once: true });
   }
 
+  // ─── ICP Sprint 4: Missão ativa + Onboarding inline ─────────────
+  // Decide qual é a "missão" estratégica do usuário agora em relação ao ICP.
+  // Prioridade:
+  //   1. Categoria iniciada (1+ resposta) mas incompleta → continuar essa
+  //   2. Nada respondido em lugar nenhum → começar por 'risk' (mais útil)
+  //   3. Tudo respondido → null (mostra estado de celebração)
+  function _icpComputeMission() {
+    try {
+      const cats = (typeof Store.getContextoCategories === 'function')
+        ? Store.getContextoCategories() : [];
+      if (!cats.length) return null;
+      const withBank = cats.filter(c => !!ICP_QUESTIONS[c.id]);
+      const incompleteStarted = withBank.find(c => c.answered > 0 && c.answered < c.total);
+      if (incompleteStarted) {
+        return { cat: incompleteStarted, reason: 'continue',
+          titulo: `Continue ${incompleteStarted.name}`,
+          texto: `${incompleteStarted.answered} de ${incompleteStarted.total} respondidas — faltam ${incompleteStarted.total - incompleteStarted.answered}.` };
+      }
+      const totalResp = cats.reduce((s, c) => s + c.answered, 0);
+      if (totalResp === 0) {
+        const risk = cats.find(c => c.id === 'risk');
+        if (risk) return { cat: risk, reason: 'start',
+          titulo: 'Comece por Tolerância a Risco',
+          texto: 'Como você reage a perdas e incertezas calibra todas as outras sugestões. 10 perguntas, leva poucos minutos.' };
+      }
+      // Tem algumas categorias completas, mas há outras zeradas — sugere a próxima
+      const zeroComplete = withBank.find(c => c.answered === 0);
+      if (zeroComplete) return { cat: zeroComplete, reason: 'next',
+        titulo: `Próximo: ${zeroComplete.name}`,
+        texto: zeroComplete.desc || 'Vamos avançar pra próxima categoria pra eu te conhecer melhor.' };
+      return null; // tudo completo
+    } catch (e) { return null; }
+  }
+
+  // ─── ICP Sprint 5: Achievements (6 conquistas) ─────────────────
+  // Cada achievement é function(cats, totalResp, icp) → boolean.
+  // Streak diário fica como TODO (precisa de timestamp persistente).
+  const _ICP_ACHIEVEMENTS = [
+    {
+      id: 'first_step', titulo: 'Primeiro passo', icon: 'footprints', color: '#4aa8ff',
+      desc: 'Você respondeu sua primeira pergunta.',
+      check: (cats, totalResp) => totalResp >= 1,
+    },
+    {
+      id: 'open_heart', titulo: 'De peito aberto', icon: 'heart', color: '#ff70b8',
+      desc: 'Completou uma categoria inteira pela primeira vez.',
+      check: (cats) => cats.some(c => c.total > 0 && c.answered >= c.total),
+    },
+    {
+      id: 'half_way', titulo: 'Metade do caminho', icon: 'flag', color: '#ffa930',
+      desc: 'Atingiu 50% no seu ICP.',
+      check: (cats, totalResp, icp) => icp >= 50,
+    },
+    {
+      id: 'risk_eye', titulo: 'Olho no risco', icon: 'scale', color: '#ff4a68',
+      desc: 'Concluiu a categoria Tolerância a Risco — o Coach agora calibra todas as sugestões com seu perfil.',
+      check: (cats) => {
+        const r = cats.find(c => c.id === 'risk');
+        return !!r && r.total > 0 && r.answered >= r.total;
+      },
+    },
+    {
+      id: 'four_cats', titulo: 'Mapa traçado', icon: 'compass', color: '#2dcfc0',
+      desc: 'Completou 4 categorias do ICP.',
+      check: (cats) => cats.filter(c => c.total > 0 && c.answered >= c.total).length >= 4,
+    },
+    {
+      id: 'confidant', titulo: 'Confidente', icon: 'sparkles', color: '#1dc97e',
+      desc: 'Atingiu o nível máximo do ICP (86%+). O Coach age como um mentor que te conhece de verdade.',
+      check: (cats, totalResp, icp) => icp >= 86,
+    },
+  ];
+
+  // 15 perguntas de onbo agrupadas em 5 blocos temáticos
+  const _ICP_ONBO_GROUPS = [
+    { id: 'motivacao',  titulo: 'Motivação & estado atual',  icon: 'compass',  ids: ['onbo_1','onbo_2','onbo_3','onbo_4'] },
+    { id: 'habitos',    titulo: 'Hábitos & comportamento',    icon: 'activity', ids: ['onbo_5','onbo_6','onbo_7'] },
+    { id: 'situacao',   titulo: 'Patrimônio & risco real',    icon: 'shield',   ids: ['onbo_8','onbo_9'] },
+    { id: 'decisao',    titulo: 'Decisão & influência',       icon: 'users',    ids: ['onbo_10','onbo_11'] },
+    { id: 'historico',  titulo: 'Histórico & meta',           icon: 'book-open',ids: ['onbo_12','onbo_13','onbo_14','onbo_15'] },
+  ];
+
   // ─────────────────────────────────────────────────────────────────
   function renderConfigPerfil(content) {
     const p = Store.getProfile();
@@ -12931,7 +13050,41 @@ ${(() => {
   <div class="icp-hero-glow icp-hero-glow-2"></div>
   <div class="icp-hero-grid">
     <div class="icp-hero-visual">
-      ${SvgCharts.gauge(icp, { size: 168, color: level.color, thickness: 14, bg: 'rgba(255,255,255,0.06)' })}
+      ${(() => {
+        const mode = (Store.get().settings || {}).icpVisual || 'ring';
+        if (mode === 'stacked') {
+          const W = 168, H = 168, gap = 3;
+          const barW = (W - (cats.length - 1) * gap) / cats.length;
+          return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block">
+            ${cats.map((c, i) => {
+              const pct = c.total > 0 ? c.answered / c.total : 0;
+              const h = Math.max(2, pct * H);
+              const x = i * (barW + gap);
+              const y = H - h;
+              return `<rect x="${x}" y="0" width="${barW}" height="${H}" rx="2" fill="${c.color}" opacity="0.08"/>
+                      <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${c.color}"><title>${c.name}: ${c.answered}/${c.total}</title></rect>`;
+            }).join('')}
+          </svg>`;
+        }
+        if (mode === 'constellation') {
+          const cx = 84, cy = 84, R = 56;
+          return `<svg width="168" height="168" viewBox="0 0 168 168" style="display:block">
+            <circle cx="${cx}" cy="${cy}" r="${R + 4}" fill="none" stroke="${level.color}33" stroke-width="1" stroke-dasharray="2 3"/>
+            ${cats.map((c, i) => {
+              const angle = (i / cats.length) * Math.PI * 2 - Math.PI / 2;
+              const x = cx + Math.cos(angle) * R;
+              const y = cy + Math.sin(angle) * R;
+              const pct = c.total > 0 ? c.answered / c.total : 0;
+              const r = 3 + pct * 9;
+              const opacity = 0.3 + pct * 0.7;
+              return `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.color}" opacity="${opacity}"><title>${c.name}: ${c.answered}/${c.total}</title></circle>
+                      ${pct >= 1 ? `<circle cx="${x}" cy="${y}" r="${r + 3}" fill="none" stroke="${c.color}" stroke-width="1.5" opacity="0.5"/>` : ''}`;
+            }).join('')}
+            <circle cx="${cx}" cy="${cy}" r="20" fill="${level.color}1a" stroke="${level.color}" stroke-width="1.5"/>
+          </svg>`;
+        }
+        return SvgCharts.gauge(icp, { size: 168, color: level.color, thickness: 14, bg: 'rgba(255,255,255,0.06)' });
+      })()}
       <div class="icp-hero-visual-label">
         <div class="icp-hero-pct" style="color:${level.color}">${icp}%</div>
         <div class="icp-hero-pct-cap">ICP</div>
@@ -12961,6 +13114,24 @@ ${(() => {
   </div>
 </div>
 
+<!-- ICP Sprint 8: Toggle de visualização -->
+${(() => {
+  const mode = (Store.get().settings || {}).icpVisual || 'ring';
+  const opts = [
+    { id: 'ring',          label: 'Anel',         icon: 'circle' },
+    { id: 'stacked',       label: 'Barras',       icon: 'bar-chart-2' },
+    { id: 'constellation', label: 'Constelação',  icon: 'sparkles' },
+  ];
+  return `
+<div style="display:flex;justify-content:flex-end;gap:4px;margin-top:-6px;margin-bottom:14px">
+  ${opts.map(o => `
+    <button class="btn-secondary" data-icp-visual="${o.id}" title="${o.label}" style="padding:5px 10px;font-size:11px;display:inline-flex;align-items:center;gap:5px;${mode === o.id ? 'background:var(--accent-dim);color:var(--accent);border-color:var(--accent)' : ''}">
+      ${icon(o.icon, {size:11})} ${o.label}
+    </button>
+  `).join('')}
+</div>`;
+})()}
+
 <!-- Coach inline — explicação da seção -->
 ${coachInlineHTML({
   id: 'icpCoachInfo',
@@ -12969,6 +13140,40 @@ ${coachInlineHTML({
   contexto: `${totalRespondidas}/${totalPerguntas} respondidas`,
   texto: 'Responda as perguntas de cada categoria pra eu entender melhor o seu perfil — quanto mais eu te conhecer, mais útil consigo ser. Suas respostas ficam salvas e você pode atualizá-las a qualquer momento.',
 })}
+
+<!-- ICP Sprint 4: Missão ativa -->
+${(() => {
+  const m = _icpComputeMission();
+  if (!m) return `
+<div class="icp-mission icp-mission--complete mt-4 mb-4" style="position:relative;border-radius:16px;padding:18px 20px;background:linear-gradient(135deg,#1dc97e1a 0%,#2dcfc008 50%,var(--bg-card) 100%);border:1px solid #1dc97e33;overflow:hidden">
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="width:38px;height:38px;border-radius:10px;background:#1dc97e22;color:#1dc97e;display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon('check-check',{size:18})}</div>
+    <div style="flex:1;min-width:240px">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:#1dc97e;text-transform:uppercase;margin-bottom:4px">Missão concluída</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-1);line-height:1.35">Já sei o suficiente sobre você. Quando algo mudar na sua vida, atualize as respostas a qualquer momento.</div>
+    </div>
+  </div>
+</div>`;
+  const c = m.cat;
+  const remaining = c.total - c.answered;
+  return `
+<div class="icp-mission mt-4 mb-4" style="position:relative;border-radius:16px;padding:18px 20px;background:linear-gradient(135deg,${c.color}1a 0%,${c.color}08 50%,var(--bg-card) 100%);border:1px solid ${c.color}33;overflow:hidden">
+  <div style="position:absolute;top:0;right:0;width:180px;height:100%;background:radial-gradient(circle at 80% 50%,${c.color}26 0%,transparent 70%);pointer-events:none"></div>
+  <div style="position:relative;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+    <div style="width:42px;height:42px;border-radius:11px;background:${c.color}1f;color:${c.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(c.icon || 'target',{size:20})}</div>
+    <div style="flex:1;min-width:240px">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:${c.color};text-transform:uppercase;margin-bottom:4px">Missão ativa · próximo passo</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text-1);line-height:1.3;margin-bottom:4px">${m.titulo}</div>
+      <div style="font-size:12.5px;color:var(--text-3);line-height:1.45">${m.texto}</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;align-items:center;align-self:center">
+      <button class="btn-primary" data-icp-mission-go="${c.id}" style="padding:8px 16px;font-size:12.5px;background:${c.color};border-color:${c.color}">${m.reason === 'continue' ? 'Continuar' : 'Começar'}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>`;
+})()}
 
 <!-- CategoryGrid -->
 <div class="dash-section-tag mt-6 mb-2">CATEGORIAS DE CONTEXTO</div>
@@ -13005,6 +13210,106 @@ ${coachInlineHTML({
     </div>`;
   }).join('')}
 </div>
+
+<!-- ICP Sprint 5: Achievements (6 conquistas) -->
+${(() => {
+  const gamif = (Store.get().settings || {}).icpGamif || 'subtle';
+  if (gamif === 'off') return '';
+  const unlocked = _ICP_ACHIEVEMENTS.filter(a => {
+    try { return a.check(cats, totalRespondidas, icp); } catch (e) { return false; }
+  });
+  const locked = _ICP_ACHIEVEMENTS.filter(a => !unlocked.includes(a));
+  const unlockedCount = unlocked.length;
+  return `
+<div class="dash-section-tag mt-6 mb-2" style="display:flex;justify-content:space-between;align-items:center">
+  <span>CONQUISTAS · ${unlockedCount}/${_ICP_ACHIEVEMENTS.length}</span>
+  <div style="display:flex;gap:4px;font-size:10px">
+    ${['subtle','full','off'].map(mode => {
+      const labels = {subtle:'Sutil', full:'Completo', off:'Desligado'};
+      return `<button class="btn-secondary" data-icp-gamif="${mode}" style="padding:3px 9px;font-size:10px;text-transform:none;letter-spacing:0;${gamif===mode?'background:var(--accent-dim);color:var(--accent);border-color:var(--accent)':''}">${labels[mode]}</button>`;
+    }).join('')}
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(${gamif === 'full' ? '180' : '150'}px,1fr));gap:10px">
+  ${[...unlocked, ...(gamif === 'full' ? locked : [])].map(a => {
+    const isUnlocked = unlocked.includes(a);
+    return `
+    <div style="position:relative;border-radius:12px;padding:14px;background:${isUnlocked ? `linear-gradient(135deg,${a.color}1c,${a.color}06)` : 'var(--bg-card)'};border:1px solid ${isUnlocked ? `${a.color}33` : 'var(--border)'};opacity:${isUnlocked ? '1' : '0.5'};transition:opacity .2s" title="${a.desc}">
+      <div style="width:34px;height:34px;border-radius:9px;background:${isUnlocked ? `${a.color}22` : 'rgba(255,255,255,.04)'};color:${isUnlocked ? a.color : 'var(--text-4)'};display:flex;align-items:center;justify-content:center;margin-bottom:8px">${icon(a.icon,{size:16})}</div>
+      <div style="font-size:12px;font-weight:700;color:${isUnlocked ? 'var(--text-1)' : 'var(--text-3)'};margin-bottom:2px">${a.titulo}</div>
+      <div style="font-size:10.5px;color:var(--text-4);line-height:1.35">${a.desc}</div>
+      ${isUnlocked ? `<div style="position:absolute;top:10px;right:10px;color:${a.color}">${icon('check-circle',{size:12})}</div>` : `<div style="position:absolute;top:10px;right:10px;color:var(--text-4)">${icon('lock',{size:11})}</div>`}
+    </div>`;
+  }).join('')}
+</div>
+
+`;
+})()}
+
+<!-- ICP Sprint 4: Onboarding inicial inline (15 perguntas em 5 grupos) -->
+${(() => {
+  const onboCat = cats.find(c => c.id === 'onbo');
+  if (!onboCat || !ICP_QUESTIONS.onbo) return '';
+  const respostas = (typeof Store.getContextoRespostas === 'function')
+    ? Store.getContextoRespostas('onbo') : [];
+  const respMap = {};
+  respostas.forEach(r => { respMap[r.perguntaId] = r; });
+  const qById = {};
+  ICP_QUESTIONS.onbo.forEach(q => { qById[q.id] = q; });
+  // Calcula completion por grupo
+  const groups = _ICP_ONBO_GROUPS.map(g => {
+    const qs = g.ids.map(id => qById[id]).filter(Boolean);
+    const answered = qs.filter(q => respMap[q.id]).length;
+    return { ...g, qs, answered, total: qs.length };
+  });
+  const totalOnbo = ICP_QUESTIONS.onbo.length;
+  const respondidasOnbo = respostas.length;
+  return `
+<div class="dash-section-tag mt-6 mb-2">ONBOARDING INICIAL · ${respondidasOnbo}/${totalOnbo}</div>
+<div class="card" style="padding:0;overflow:hidden">
+  ${groups.map((g, idx) => {
+    const pct = g.total > 0 ? Math.round((g.answered / g.total) * 100) : 0;
+    const isOpen = idx === 0 && g.answered < g.total; // Abre o primeiro pendente
+    return `
+    <details class="icp-onbo-group" ${isOpen ? 'open' : ''} style="border-bottom:1px solid var(--border);${idx === groups.length - 1 ? 'border-bottom:none' : ''}">
+      <summary style="display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;list-style:none;user-select:none">
+        <div style="width:30px;height:30px;border-radius:8px;background:#4aa8ff1a;color:#4aa8ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(g.icon,{size:14})}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">${g.titulo}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;max-width:140px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${g.answered === g.total ? '#1dc97e' : '#4aa8ff'};border-radius:2px"></div>
+            </div>
+            <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);font-weight:600">${g.answered}/${g.total}</span>
+          </div>
+        </div>
+        <svg class="icp-onbo-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-4);flex-shrink:0;transition:transform .2s"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div style="padding:0 18px 14px">
+        ${g.qs.map(q => {
+          const r = respMap[q.id];
+          const op = r ? q.opcoes.find(o => o.id === r.opcaoId) : null;
+          const respText = op ? op.label : (r?.resposta || null);
+          return `
+          <div class="icp-onbo-item" data-icp-onbo-edit="${q.id}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:3px;line-height:1.4">${q.pergunta}</div>
+              <div style="font-size:12.5px;font-weight:${respText ? '600' : '400'};color:${respText ? 'var(--text-1)' : 'var(--text-4)'};line-height:1.4">
+                ${respText ? `${respText}${op?.sub ? ` <span style="color:var(--text-4);font-weight:400">· ${op.sub}</span>` : ''}` : '— sem resposta'}
+              </div>
+            </div>
+            <div style="flex-shrink:0;color:${respText ? '#1dc97e' : 'var(--text-4)'};margin-top:2px">
+              ${respText ? icon('check-circle',{size:14}) : icon('plus-circle',{size:14})}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </details>`;
+  }).join('')}
+</div>
+
+`;
+})()}
 
 `;
 })()}`;
@@ -13056,6 +13361,42 @@ ${coachInlineHTML({
           e.preventDefault();
           openICPModal(card.dataset.icpOpen);
         }
+      });
+    });
+
+    // ICP Sprint 4 — Missão ativa: CTA "Começar/Continuar"
+    document.querySelectorAll('[data-icp-mission-go]').forEach(btn => {
+      btn.addEventListener('click', () => openICPModal(btn.getAttribute('data-icp-mission-go')));
+    });
+
+    // ICP Sprint 4 — Onboarding inline: clique em pergunta abre o modal nela
+    document.querySelectorAll('[data-icp-onbo-edit]').forEach(item => {
+      item.addEventListener('click', () => {
+        openICPModal('onbo', item.getAttribute('data-icp-onbo-edit'));
+      });
+    });
+
+    // ICP Sprint 5 — Toggle de gamificação (subtle / full / off)
+    document.querySelectorAll('[data-icp-gamif]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-icp-gamif');
+        const data = Store.get();
+        if (!data.settings) data.settings = {};
+        data.settings.icpGamif = mode;
+        Store.persist?.();
+        renderConfigPerfil(content);
+      });
+    });
+
+    // ICP Sprint 8 — Toggle de visualização (ring / stacked / constellation)
+    document.querySelectorAll('[data-icp-visual]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-icp-visual');
+        const data = Store.get();
+        if (!data.settings) data.settings = {};
+        data.settings.icpVisual = mode;
+        Store.persist?.();
+        renderConfigPerfil(content);
       });
     });
 
@@ -13383,9 +13724,12 @@ ${coachInlineHTML({
     Router.register('compromissos',  renderContratos); // alias do redesign
     Router.register('reserva',       renderReserva);
     Router.register('metas',         renderMetas);
-    Router.register('investimentos', renderInvestimentos);
+    // Investimentos e Simulações agora vivem dentro do Simulador (sub-nav)
+    // Mantemos as rotas registradas como aliases para retrocompatibilidade —
+    // qualquer link antigo cai no wrapper unificado.
+    Router.register('investimentos', renderSimulador);
+    Router.register('simulacoes',    renderSimulador);
     Router.register('financiamentos', renderFinanciamentos);
-    Router.register('simulacoes',    renderSimulacoes);
     Router.register('simulador',     renderSimulador); // wrapper redesign 2026-05
     Router.register('patrimonio',    renderPatrimonio);
     Router.register('comparativo',   renderComparativo);
