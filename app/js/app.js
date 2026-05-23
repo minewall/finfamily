@@ -2993,8 +2993,21 @@ ${despesas.length === 0 ? coachEmptyHTML({
         </div>
       </div>
       ${splitSectionHTML()}
+      <div class="form-group form-full" style="grid-column:1/-1">
+        <label class="form-label">Anexar recibo (opcional)</label>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-elevated)">
+          <input type="file" id="fDAnexoInput" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" style="display:none"/>
+          <button type="button" class="btn-secondary" id="fDAnexoBtn" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px">
+            ${icon('paperclip',{size:13})} Escolher arquivo
+          </button>
+          <div id="fDAnexoInfo" style="flex:1;font-size:12px;color:var(--text-4);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nenhum arquivo selecionado</div>
+          <button type="button" id="fDAnexoClear" style="display:none;background:none;border:0;color:var(--red);cursor:pointer;padding:4px">${icon('x',{size:14})}</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-4);margin-top:4px">Imagens (JPG, PNG, WEBP, HEIC) ou PDF, até 5MB. Salvo de forma segura na nuvem.</div>
+      </div>
     </div>`;
     let splitApi = null;
+    let _stagedAnexoFile = null; // arquivo aguardando upload após save
     Modal.open('Nova Despesa', html, () => {
       const desc          = document.getElementById('fDDesc').value.trim();
       const amount        = parseFloat(document.getElementById('fDAmt').value);
@@ -3025,13 +3038,28 @@ ${despesas.length === 0 ? coachEmptyHTML({
       if (temReembolso) extraFields.reembolso = {
         para: currentPessoa(), de: reembolsoDe, valor: reembolsoVal, status: 'pendente', criadoEm: new Date().toISOString().slice(0,10)
       };
+      let createdEntry = null;
       if (parcelado && parcelas > 1) {
         Store.addDespesaParcelada({ desc, amount: parseFloat((amount / parcelas).toFixed(2)), date, category: cat, sub, pay, parcelas, ...extraFields });
         toast(`${parcelas} parcelas lançadas!`, 'success');
       } else {
         const d = new Date(date);
-        Store.addDespesa({ desc, amount, date, category: cat, sub, pay, month: d.getMonth()+1, year: d.getFullYear(), ...extraFields });
+        createdEntry = Store.addDespesa({ desc, amount, date, category: cat, sub, pay, month: d.getMonth()+1, year: d.getFullYear(), ...extraFields });
         toast('Despesa adicionada!', 'success');
+      }
+      // Upload do anexo (se houver) — só pra despesa NÃO parcelada por enquanto.
+      if (createdEntry && _stagedAnexoFile && typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected?.()) {
+        SupabaseSync.uploadAnexo(_stagedAnexoFile, createdEntry.id).then(res => {
+          if (res.error) { toast('Erro ao anexar: ' + res.error, 'error'); return; }
+          // Patch despesa com attachment metadata
+          const d = Store.get().despesas.find(x => x.id === createdEntry.id);
+          if (d) {
+            d.attachment = { path: res.path, name: res.name, size: res.size, mime: res.mime };
+            Store.persist?.();
+            renderDespesas(refreshContainer);
+            toast('Recibo anexado', 'success');
+          }
+        });
       }
       Modal.close();
       updateReembolsosBadge();
@@ -3053,6 +3081,29 @@ ${despesas.length === 0 ? coachEmptyHTML({
       splitApi = setupSplitUI('fDAmt', null);
       document.getElementById('fDCat')?.addEventListener('change', updateSubs);
       updateSubs();
+      // Anexo: wire do botão e input
+      const aBtn   = document.getElementById('fDAnexoBtn');
+      const aIn    = document.getElementById('fDAnexoInput');
+      const aInfo  = document.getElementById('fDAnexoInfo');
+      const aClear = document.getElementById('fDAnexoClear');
+      aBtn?.addEventListener('click', () => aIn?.click());
+      aIn?.addEventListener('change', () => {
+        const f = aIn.files?.[0];
+        if (!f) return;
+        if (f.size > (SupabaseSync?.ANEXO_MAX_BYTES || 5*1024*1024)) {
+          toast('Arquivo muito grande (máx 5MB)', 'error'); aIn.value = ''; return;
+        }
+        _stagedAnexoFile = f;
+        const kb = (f.size / 1024).toFixed(1);
+        if (aInfo) { aInfo.textContent = `${f.name} (${kb} KB)`; aInfo.style.color = 'var(--text-1)'; }
+        if (aClear) aClear.style.display = 'inline-flex';
+      });
+      aClear?.addEventListener('click', () => {
+        _stagedAnexoFile = null;
+        if (aIn) aIn.value = '';
+        if (aInfo) { aInfo.textContent = 'Nenhum arquivo selecionado'; aInfo.style.color = 'var(--text-4)'; }
+        aClear.style.display = 'none';
+      });
       document.getElementById('fDParcelado')?.addEventListener('change', e => {
         const opts = document.getElementById('fDParceladoOpts');
         if (opts) opts.style.display = e.target.checked ? 'grid' : 'none';

@@ -454,6 +454,70 @@ const SupabaseSync = (function () {
   }
   async function pushToCloud(data) { return _pushToCloud(data); }
 
+  // ── STORAGE: anexos de despesas (bucket 'recibos') ───────────────
+  // Estrutura de paths: {user_id}/{despesa_id}/{filename}.
+  // RLS garante isolamento pelo primeiro segmento do path.
+  // Limite: 5MB, mime types: imagens + PDF.
+
+  const ANEXO_BUCKET = 'recibos';
+  const ANEXO_MAX_BYTES = 5 * 1024 * 1024;
+  const ANEXO_MIMES = ['image/jpeg','image/png','image/webp','image/heic','application/pdf'];
+
+  /**
+   * Upload um arquivo como anexo de uma despesa.
+   * @returns {{path, name, size, mime}|{error}}
+   */
+  async function uploadAnexo(file, despesaId) {
+    if (!_client || !_user) return { error: 'Não conectado ao Supabase' };
+    if (!file) return { error: 'Sem arquivo' };
+    if (!despesaId) return { error: 'despesaId obrigatório' };
+    if (file.size > ANEXO_MAX_BYTES) return { error: `Arquivo muito grande (máx ${ANEXO_MAX_BYTES/1024/1024}MB)` };
+    if (!ANEXO_MIMES.includes(file.type)) return { error: `Tipo não suportado (${file.type})` };
+
+    // Sanitiza nome do arquivo: remove caracteres especiais
+    const safeName = (file.name || 'anexo').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${_user.id}/${despesaId}/${Date.now()}-${safeName}`;
+    try {
+      const { error } = await _client.storage.from(ANEXO_BUCKET).upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      });
+      if (error) return { error: error.message };
+      return { path, name: file.name, size: file.size, mime: file.type };
+    } catch (e) {
+      return { error: e.message || String(e) };
+    }
+  }
+
+  /**
+   * Retorna URL assinada (expira em 1h) pra exibir/baixar o anexo.
+   * @returns {string|null}
+   */
+  async function getAnexoUrl(path, expiresIn = 3600) {
+    if (!_client || !_user || !path) return null;
+    try {
+      const { data, error } = await _client.storage.from(ANEXO_BUCKET)
+        .createSignedUrl(path, expiresIn);
+      if (error) { console.warn('getAnexoUrl:', error.message); return null; }
+      return data?.signedUrl || null;
+    } catch (e) {
+      console.warn('getAnexoUrl falhou:', e);
+      return null;
+    }
+  }
+
+  async function deleteAnexo(path) {
+    if (!_client || !_user || !path) return { error: 'inválido' };
+    try {
+      const { error } = await _client.storage.from(ANEXO_BUCKET).remove([path]);
+      if (error) return { error: error.message };
+      return { ok: true };
+    } catch (e) {
+      return { error: e.message || String(e) };
+    }
+  }
+
   return {
     init, whenAuthReady, schedulePush, pullFromCloud, pushToCloud,
     signUp, signIn, signOut,
@@ -462,5 +526,7 @@ const SupabaseSync = (function () {
     createOrGetFamilyGroup, getFamilyGroup, getFamilyMembers, inviteStatus,
     inviteMember, removeMember, resendInvite, acceptPendingInvite,
     resolveFamilyContext, getFamilyContext, ensureFamilyIdLinked,
+    uploadAnexo, getAnexoUrl, deleteAnexo,
+    ANEXO_MAX_BYTES, ANEXO_MIMES,
   };
 })();
