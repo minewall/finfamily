@@ -962,11 +962,22 @@ ${(() => {
 <!-- Greeting -->
 <div class="dash-greeting mb-4">
   <div>
-    <h1 class="dash-greeting-title">Olá, ${(() => {
+    <h1 class="dash-greeting-title">${(() => {
+      // Cadeia de fallback: firstName explícito → primeiro nome → e-mail (parte antes do @) → cumprimento sem nome
       const p = Store.getProfile();
-      const name = (p?.name && p.name !== 'Usuário') ? p.name.split(' ')[0] : 'você';
-      return name;
-    })()}.</h1>
+      let nome = null;
+      if (p?.firstName && p.firstName.trim()) nome = p.firstName.trim();
+      else if (p?.name && p.name !== 'Usuário') nome = p.name.split(' ')[0].trim();
+      if (!nome && typeof SupabaseSync !== 'undefined') {
+        const email = SupabaseSync.getUser?.()?.email;
+        if (email) {
+          const local = email.split('@')[0].split(/[._-]/)[0];
+          if (local && local.length >= 2) nome = local.charAt(0).toUpperCase() + local.slice(1);
+        }
+      }
+      // Sem nome conhecido: usa só o cumprimento do horário (mais elegante que "Olá, você")
+      return nome ? `Olá, ${nome}.` : `${heroGreeting}.`;
+    })()}</h1>
     <p class="dash-greeting-sub">Equilíbrio entre receitas e despesas · ${monthLabel}</p>
   </div>
   ${isMemberHero ? '' : `
@@ -9913,26 +9924,89 @@ ${outrs.length ? `
   }
 
   // ══════════════════════════════════════════════════════════════
-  // PAGE: MEU PAINEL (widgets customizáveis)
+  // PAGE: MEU PAINEL (visão pessoal individual)
+  // Refator 2026-05 — aderente ao protótipo Haile Meu Painel.html
+  // Foco: Poder de Escolha PESSOAL, MINHAS metas, MEUS reembolsos.
   // ══════════════════════════════════════════════════════════════
   function renderMeuPainel(container) {
     const month = getMonth(), year = getYear();
+    const monthLabel = `${Utils.monthsFull[month-1]} ${year}`;
     const data  = Store.get();
-    const receita  = Store.sumReceitas(month, year);
-    const despesa  = Store.sumDespesas(month, year);
-    const saldo    = receita - despesa;
+
+    // ── Pessoa "eu" ────────────────────────────────────────────────
+    const eu = currentPessoa();
+    const corEu = Utils.personColor(eu);
+    const iniEu = Utils.personInitial(eu);
+
+    // ── Dados pessoais (filtra por person = eu) ───────────────────
+    const recAll  = Store.receitasByMonth(month, year);
+    const despAll = Store.despesasByMonth(month, year);
+    const minhasReceitas = recAll.filter(r => r.person === eu);
+    // Despesas pessoais: respeita split se existir; senão usa person
+    const minhasDespesas = despAll.map(d => {
+      if (Array.isArray(d.split) && d.split.length) {
+        const sl = d.split.find(x => x.person === eu);
+        return sl ? { ...d, amount: sl.valor || 0 } : null;
+      }
+      return d.person === eu ? d : null;
+    }).filter(Boolean);
+
+    const receitaPessoal = minhasReceitas.reduce((s, r) => s + r.amount, 0);
+    const despesaPessoal = minhasDespesas.reduce((s, d) => s + d.amount, 0);
+    const poderPessoal   = receitaPessoal - despesaPessoal;
+    const saudePct       = receitaPessoal > 0 ? (despesaPessoal / receitaPessoal) * 100 : 0;
+    const pctPoder       = receitaPessoal > 0 ? (poderPessoal / receitaPessoal) * 100 : 0;
+
+    // ── Reembolsos (do eu) ────────────────────────────────────────
+    const reembolsosAll = (data.despesas || []).filter(d => d.reembolso);
+    const meusReembolsos = reembolsosAll.filter(d => {
+      const r = d.reembolso || {};
+      return r.status === 'pendente' && (r.de === eu || r.para === eu || d.person === eu);
+    });
+    const aReceber = meusReembolsos
+      .filter(d => d.reembolso.para === eu || (d.person === eu && d.reembolso.de !== eu))
+      .reduce((s, d) => s + (d.reembolso.valor || d.amount), 0);
+    const aPagar   = meusReembolsos
+      .filter(d => d.reembolso.de === eu && d.reembolso.para !== eu)
+      .reduce((s, d) => s + (d.reembolso.valor || d.amount), 0);
+
+    // ── Patrimônio / passivos consolidados ───────────────────────
     const patrimonio = Store.totalAtivos();
 
-    // ── Config de widgets ─────────────────────────────────────────
+    // ── Metas (todas ativas, ordenadas por % concluído) ──────────
+    const minhasMetas = (data.metas || [])
+      .filter(m => m.active !== false && !m.concluida)
+      .slice(0, 3);
+
+    // ── Trend dos últimos 5 meses (Poder de Escolha pessoal) ─────
+    const trendMeses = [];
+    for (let k = 4; k >= 0; k--) {
+      let m2 = month - k, y2 = year;
+      while (m2 <= 0) { m2 += 12; y2 -= 1; }
+      const rec = Store.receitasByMonth(m2, y2).filter(r => r.person === eu).reduce((s,r)=>s+r.amount,0);
+      const desp = Store.despesasByMonth(m2, y2).map(d => {
+        if (Array.isArray(d.split) && d.split.length) {
+          const sl = d.split.find(x => x.person === eu);
+          return sl ? (sl.valor || 0) : 0;
+        }
+        return d.person === eu ? d.amount : 0;
+      }).reduce((s,v)=>s+v,0);
+      trendMeses.push({ m: m2, y: y2, val: rec - desp, label: Utils.months[m2-1] });
+    }
+    const trendMax = Math.max(...trendMeses.map(t => Math.abs(t.val)), 1);
+    const trendDelta = trendMeses[4].val - trendMeses[0].val;
+
+    // ── Config de widgets (aderente ao protótipo) ─────────────────
     const WIDGETS_DEF = [
-      { id: 'saldo_mes',      label: 'Saldo do Mês',         icon: 'trending-up',    default: true },
-      { id: 'patrimonio',     label: 'Patrimônio',           icon: 'landmark',       default: true },
-      { id: 'metas',          label: 'Metas em Andamento',   icon: 'target',         default: true },
-      { id: 'coach',          label: 'Recados do Coach',     icon: 'sparkles',       default: true },
-      { id: 'desp_cat',       label: 'Despesas por Categoria', icon: 'pie-chart',    default: true },
-      { id: 'parcelas',       label: 'Próximas Parcelas',    icon: 'calendar-clock', default: true },
-      { id: 'transacoes',     label: 'Últimas Transações',   icon: 'list',           default: true },
-      { id: 'poder_escolha',  label: 'Poder de Escolha',     icon: 'zap',            default: false },
+      { id: 'poder_pessoal',  label: 'Poder de Escolha Pessoal', icon: 'zap',            default: true },
+      { id: 'reembolsos',     label: 'Reembolsos',               icon: 'arrow-right-left', default: true },
+      { id: 'metas',          label: 'Minhas Metas',             icon: 'target',         default: true },
+      { id: 'transacoes',     label: 'Meus Lançamentos',         icon: 'list',           default: true },
+      { id: 'trend',          label: 'Evolução do Poder de Escolha', icon: 'trending-up', default: true },
+      { id: 'patrimonio',     label: 'Patrimônio',               icon: 'landmark',       default: false },
+      { id: 'desp_cat',       label: 'Despesas por Categoria',   icon: 'pie-chart',      default: false },
+      { id: 'parcelas',       label: 'Próximas Parcelas',        icon: 'calendar-clock', default: false },
+      { id: 'coach',          label: 'Recados do Coach',         icon: 'sparkles',       default: false },
     ];
     const savedVis = JSON.parse(localStorage.getItem('painel_widgets') || 'null');
     const vis = {}; // widget visibility
@@ -9941,6 +10015,11 @@ ${outrs.length ? `
     });
 
     function saveVis() { localStorage.setItem('painel_widgets', JSON.stringify(vis)); }
+
+    // Variáveis legadas usadas por widgets opcionais
+    const receita  = Store.sumReceitas(month, year);
+    const despesa  = Store.sumDespesas(month, year);
+    const saldo    = receita - despesa;
 
     // ── Render helpers ────────────────────────────────────────────
     function wSaldoMes() {
