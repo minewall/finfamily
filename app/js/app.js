@@ -10509,7 +10509,9 @@ ${section === 'perfil' ? '' : `
       ['categorias', 'folder-tree',     'Categorias',      'Gerencie categorias e subcategorias'],
       ['tipos',      'tag',             'Tipos',           'Comportamento Minewall'],
       ['pessoas',    'users',           'Grupo Familiar',  'Membros e permissões'],
-      ['cotacoes',   'arrow-left-right','Cotações',        'USD, EUR e outras moedas'],
+      // ['cotacoes', ...] — oculto temporariamente. Aba existe (renderConfigCotacoes)
+      // mas o refino visual foi backlogado. Coach responde cotações sob demanda
+      // via tool getCotacoes; buildContext injeta valores atuais no system prompt.
       { group: 'PERSONALIZAÇÃO' },
       ['coach',      'sparkles',        'Haile Coach',     'Personalidade e preferências da IA'],
       ['aparencia',  'palette',         'Aparência',       'Tema claro/escuro'],
@@ -14941,6 +14943,22 @@ ${recFutStr}
 === ANOMALIAS DETECTADAS ===
 ${anomStr}
 
+=== COTAÇÕES DE MOEDA (BRL) ===
+${(() => {
+  const s = data.settings || {};
+  const ts = typeof Store.cotacoesUpdatedAt === 'function' ? Store.cotacoesUpdatedAt() : null;
+  const ageH = ts ? ((Date.now() - new Date(ts).getTime()) / 3600000).toFixed(1) : null;
+  const linhas = [
+    `USD R$ ${(s.usdBrl||0).toFixed(2)}`,
+    `EUR R$ ${(s.eurBrl||0).toFixed(2)}`,
+    `USDT R$ ${(s.usdtBrl||0).toFixed(2)}`,
+    `BTC R$ ${(s.btcBrl||0).toFixed(2)}`,
+  ];
+  const idade = ts ? `atualizado há ${ageH}h` : 'nunca atualizado via API';
+  return `${linhas.join(' · ')} (${idade}).
+Diretriz: quando o usuário perguntar sobre cotação, use os valores acima diretamente se ${ageH ? `idade <2h pra cripto OU <24h pra fiat` : 'forem recentes'}. Se estiver mais velho, ou se o usuário pedir "valor atual/agora/em tempo real", chame a tool getCotacoes (sem confirmação — é query).`;
+})()}
+
 === CONTEXTO PESSOAL DO USUÁRIO (ICP — quanto você o conhece) ===
 ${(() => {
   // Injeta as respostas do ICP (Perfil & Contexto Pessoal) no system prompt
@@ -15187,6 +15205,16 @@ FORMATO DA RESPOSTA (importante):
         },
       },
       {
+        name: 'getCotacoes',
+        description: 'Buscar/atualizar cotações de USD, EUR, USDT e BTC em BRL via APIs públicas (AwesomeAPI + CoinGecko). Use quando o usuário perguntar valor atual de uma moeda OU quando o contexto inicial indicar que as cotações estão desatualizadas (>24h pra fiat, >2h pra cripto).',
+        input_schema: {
+          type: 'object',
+          properties: {
+            forcar: { type: 'boolean', description: 'Forçar busca via API mesmo se valores no contexto parecem recentes. Default false.' },
+          },
+        },
+      },
+      {
         name: 'bulkAddReceitas',
         description: 'Criar várias receitas de uma vez (ideal para importar extratos). Cada item segue o schema de addReceita.',
         input_schema: {
@@ -15285,6 +15313,34 @@ FORMATO DA RESPOSTA (importante):
           result: `Criadas ${created.length} despesas — total R$ ${total.toFixed(2)}. IDs: ${created.map(e => e.id).join(', ')}`,
           undo: () => { created.forEach(e => Store.deleteDespesa?.(e.id)); },
           summary: `${created.length} despesas · R$ ${total.toFixed(2)}`,
+        };
+      },
+      getCotacoes: async (input) => {
+        // Lê valores atuais do Store. Decide se chama API com base na idade
+        // e no flag 'forcar' do Coach.
+        const s = Store.get().settings || {};
+        const ts = Store.cotacoesUpdatedAt?.();
+        const ageH = ts ? (Date.now() - new Date(ts).getTime()) / 3600000 : Infinity;
+        // Fresco: <2h cripto + <24h fiat → retorna do cache sem chamar API
+        const muitoVelho = ageH > 24;
+        const precisaRefresh = input?.forcar || muitoVelho || !ts;
+        if (precisaRefresh) {
+          try {
+            const res = await Store.refreshCotacoes();
+            return {
+              result: `Cotações atualizadas agora via API: USD R$ ${res.usdBrl?.toFixed(2) || s.usdBrl?.toFixed(2)} · EUR R$ ${res.eurBrl?.toFixed(2) || s.eurBrl?.toFixed(2)} · USDT R$ ${res.usdtBrl?.toFixed(2) || s.usdtBrl?.toFixed(2)} · BTC R$ ${(res.btcBrl || s.btcBrl)?.toFixed(2)}.${res.warnings?.length ? ' Avisos: ' + res.warnings.join('; ') : ''}`,
+              undo: null, summary: null,
+            };
+          } catch (e) {
+            return {
+              result: `Falha ao buscar via API (${e.message}). Valores em cache (${ageH.toFixed(1)}h de idade): USD R$ ${s.usdBrl?.toFixed(2)} · EUR R$ ${s.eurBrl?.toFixed(2)} · USDT R$ ${s.usdtBrl?.toFixed(2)} · BTC R$ ${s.btcBrl?.toFixed(2)}.`,
+              undo: null, summary: null,
+            };
+          }
+        }
+        return {
+          result: `Cotações em cache (${ageH.toFixed(1)}h, ainda frescas): USD R$ ${s.usdBrl?.toFixed(2)} · EUR R$ ${s.eurBrl?.toFixed(2)} · USDT R$ ${s.usdtBrl?.toFixed(2)} · BTC R$ ${s.btcBrl?.toFixed(2)}. Para forçar busca em tempo real, passe forcar:true.`,
+          undo: null, summary: null,
         };
       },
       bulkAddReceitas: (input) => {
@@ -15453,8 +15509,11 @@ FORMATO DA RESPOSTA (importante):
                 content: `Tool desconhecida: ${tu.name}` });
               continue;
             }
-            // Confirmação inline
-            const answer = await _renderToolConfirmCard(tu.name, tu.input || {});
+            // Tools de leitura/atualização-de-cache não precisam de confirmação
+            const SKIP_CONFIRM = new Set(['getCotacoes']);
+            const answer = SKIP_CONFIRM.has(tu.name)
+              ? 'confirm'
+              : await _renderToolConfirmCard(tu.name, tu.input || {});
             if (answer === 'cancel') {
               toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: false,
                 content: 'Usuário cancelou esta ação. Não execute nem ofereça novamente sem novo pedido.' });
@@ -15462,7 +15521,7 @@ FORMATO DA RESPOSTA (importante):
             }
             // Executa
             try {
-              const out = handler(tu.input || {});
+              const out = await handler(tu.input || {});
               toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: false,
                 content: out.result });
               if (out.undo && out.summary) _showUndoToast(`${tu.name}: ${out.summary}`, out.undo);
