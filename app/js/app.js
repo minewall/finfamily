@@ -12335,23 +12335,79 @@ ${isConnected && isAdmin ? `
   }
 
   function renderConfigAparencia(content) {
+    const currentPref = localStorage.getItem('haile_theme') || 'auto';
+    const opts = [
+      { id: 'light', label: 'Claro',      icon: 'sun',         desc: 'Fundo claro, texto escuro' },
+      { id: 'dark',  label: 'Escuro',     icon: 'moon',        desc: 'Padrão Haile — reduz fadiga em sessões longas' },
+      { id: 'auto',  label: 'Automático', icon: 'monitor-cog', desc: 'Segue a preferência do sistema operacional' },
+    ];
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Aparência</div>
   <div class="section-sub">Tema visual da aplicação</div></div>
 </div>
 <div class="card" style="padding:18px 20px">
-  <div style="display:flex;align-items:flex-start;gap:14px">
-    <div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-    </div>
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px">
+    <div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)">${icon('palette',{size:18})}</div>
     <div style="flex:1">
-      <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px">Tema escuro (padrão)</div>
-      <div style="font-size:12px;color:var(--text-3);line-height:1.55">O Haile foi desenhado com tema escuro para reduzir cansaço visual em sessões prolongadas. Tema claro está no roadmap.</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px">Tema visual</div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.55">Escolha entre tema claro, escuro ou seguir a preferência do seu sistema.</div>
     </div>
   </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+    ${opts.map(o => {
+      const sel = currentPref === o.id;
+      return `
+      <button type="button" data-theme-pref="${o.id}" style="background:${sel?'var(--accent-dim)':'var(--bg-elevated)'};border:1.5px solid ${sel?'var(--accent)':'var(--border)'};border-radius:12px;padding:14px 14px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px;transition:all .15s">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:30px;height:30px;border-radius:8px;background:${sel?'var(--accent)':'var(--bg-card)'};color:${sel?'#fff':'var(--text-2)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(o.icon,{size:14})}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-1);flex:1">${o.label}</div>
+          ${sel ? `<div style="color:var(--accent)">${icon('check-circle',{size:14})}</div>` : ''}
+        </div>
+        <div style="font-size:11.5px;color:var(--text-3);line-height:1.4">${o.desc}</div>
+      </button>`;
+    }).join('')}
+  </div>
+  <div style="margin-top:14px;padding:10px 12px;background:var(--bg-elevated);border-radius:8px;font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:8px">
+    ${icon('info',{size:13, color:'var(--text-3)'})}
+    Preferência salva localmente. Sincronização cross-device pela conta vem em update futuro.
+  </div>
 </div>`;
+    // Wire dos botões
+    content.querySelectorAll('[data-theme-pref]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pref = btn.getAttribute('data-theme-pref');
+        applyThemePreference(pref);
+        renderConfigAparencia(content); // re-render pra atualizar visual selected
+      });
+    });
   }
+
+  // ─── Theme handling (anti-FOUC + reactive) ──────────────────────
+  // O script anti-FOUC já roda no <head> do app.html antes do CSS.
+  // Aqui só lidamos com mudanças durante a sessão.
+  function applyThemePreference(pref) {
+    if (!['light','dark','auto'].includes(pref)) pref = 'auto';
+    localStorage.setItem('haile_theme', pref);
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const effective = pref === 'auto' ? (systemDark ? 'dark' : 'light') : pref;
+    document.documentElement.setAttribute('data-theme', effective);
+    document.documentElement.setAttribute('data-theme-pref', pref);
+  }
+
+  // Listener: quando em modo auto, reage a mudanças no sistema operacional
+  (function _initThemeMediaListener() {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      if ((localStorage.getItem('haile_theme') || 'auto') === 'auto') {
+        applyThemePreference('auto');
+      }
+    };
+    // addEventListener é padrão moderno; addListener é fallback Safari antigo
+    if (mq.addEventListener) mq.addEventListener('change', handler);
+    else if (mq.addListener) mq.addListener(handler);
+  })();
 
   const AVATAR_OPTIONS = ['👤','👨','👩','🧑','👨‍💼','👩‍💼','🧔','👱','🧑‍💻','👨‍💻','👩‍💻'];
   const TIMEZONES = [

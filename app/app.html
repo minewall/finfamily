@@ -10,11 +10,25 @@
   <link rel="icon" type="image/svg+xml" href="../assets/svg/haile-mark-indigo.svg" />
   <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon-180.png" />
   <link rel="manifest" href="../manifest.webmanifest" />
+  <!-- Anti-FOUC: aplica tema (dark/light/auto) ANTES do CSS carregar -->
+  <script>
+    (function () {
+      try {
+        var pref = localStorage.getItem('haile_theme') || 'auto';
+        var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var effective = pref === 'auto' ? (systemDark ? 'dark' : 'light') : pref;
+        document.documentElement.setAttribute('data-theme', effective);
+        document.documentElement.setAttribute('data-theme-pref', pref);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css?v=24" />
+  <link rel="stylesheet" href="css/main.css?v=25" />
 </head>
 <body>
 <script>
@@ -322,7 +336,7 @@
 <script src="js/store.js?v=121"></script>
 <script src="js/charts.js?v=71"></script>
 <script src="js/svg-charts.js?v=1"></script>
-<script src="js/app.js?v=180"></script>
+<script src="js/app.js?v=181"></script>
 
 </body>
 </html>

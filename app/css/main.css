@@ -136,26 +136,86 @@ svg { display: block; flex-shrink: 0; }
   --mono: 'DM Sans', system-ui, -apple-system, sans-serif;
 }
 
-/* Light theme — Vuexy light palette */
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME — spec do design (Mai/2026)
+   Mantém identidade visual (hero roxo, Coach teal, semânticos)
+   variando intensidade + contraste pra fundo claro.
+   ═══════════════════════════════════════════════════════════════ */
 [data-theme="light"] {
-  --bg-base:     #F8F7FA;
-  --bg-surface:  #FFFFFF;
-  --bg-card:     #FFFFFF;
-  --bg-elevated: #F1F0F7;
-  --bg-hover:    #EEEDF6;
-  --bg-active:   #E5E3F3;
-  --border:      rgba(47,41,78,.08);
-  --border-2:    rgba(47,41,78,.12);
-  --border-3:    rgba(47,41,78,.18);
-  --text-1: #2F2B52;
-  --text-2: #5E596E;
-  --text-3: #9092A5;
-  --text-4: #BAB9C8;
-  --accent-dim: rgba(115,103,240,.10);
-  --shadow-sm: 0 2px 6px rgba(47,41,78,.10);
-  --shadow-md: 0 4px 18px 0 rgba(47,41,78,.12);
-  --shadow-lg: 0 8px 32px rgba(47,41,78,.14);
-  --shadow-accent: 0 4px 18px rgba(115,103,240,.3);
+  /* Backgrounds */
+  --bg-base:     #f4f6fb;        /* app bg */
+  --bg-sidebar:  #ffffff;        /* sidebar/topbar bg */
+  --bg-surface:  #ffffff;
+  --bg-card:     #ffffff;
+  --bg-elevated: #eef0f7;
+  --bg-hover:    #eef0f7;
+  --bg-active:   #e5e7f0;
+
+  /* Borders */
+  --border:      rgba(15,18,40,.08);
+  --border-2:    rgba(15,18,40,.12);
+  --border-3:    rgba(15,18,40,.18);
+
+  /* Text — primário escuro, secundários graduais */
+  --text-1: #161a30;
+  --text-2: #5a607c;
+  --text-3: #8b91ab;
+  --text-4: #b8bcd2;
+
+  /* Brand purple — escurece pra AA sobre branco */
+  --accent:      #5a4ee0;
+  --accent-2:    #6b5ef5;
+  --accent-dim:  rgba(107,94,245,.10);
+  --accent-glow: rgba(107,94,245,.25);
+  --accent-grad: linear-gradient(72.47deg, #5a4ee0 22.16%, rgba(90,78,224,.7) 76.47%);
+
+  /* Semânticos — versões mais escuras pra AA em branco */
+  --green:       #16a868;
+  --green-dim:   rgba(22,168,104,.12);
+  --red:         #e63957;
+  --red-dim:     rgba(230,57,87,.10);
+  --amber:       #e08816;
+  --amber-dim:   rgba(224,136,22,.12);
+  --blue:        #2f8be8;
+  --blue-dim:    rgba(47,139,232,.10);
+  --teal:        #0fb3a3;
+  --teal-dim:    rgba(15,179,163,.12);
+  --pink:        #e85ba3;
+  --pink-dim:    rgba(232,91,163,.10);
+  --orange:      #e08816;
+  --orange-dim:  rgba(224,136,22,.12);
+
+  /* Shadows — light usa sombras (no dark, bordas finas substituem) */
+  --shadow-sm:     0 1px 3px rgba(15,18,40,.06);
+  --shadow-md:     0 4px 14px rgba(15,18,40,.08);
+  --shadow-lg:     0 12px 32px rgba(15,18,40,.10);
+  --shadow-accent: 0 4px 18px rgba(107,94,245,.20);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Scrollbar custom — adapta por tema
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(15,18,40,.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15,18,40,.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Print mode — força light independente do tema da UI
+   ═══════════════════════════════════════════════════════════════ */
+@media print {
+  :root, [data-theme="dark"], [data-theme="light"] {
+    --bg-base: #fff;
+    --bg-card: #fff;
+    --bg-surface: #fff;
+    --bg-sidebar: #fff;
+    --text-1: #000;
+    --text-2: #333;
+    --text-3: #666;
+    color-scheme: light;
+  }
 }
 
 /* ── LAYOUT ─────────────────────────────────────────────────────── */
