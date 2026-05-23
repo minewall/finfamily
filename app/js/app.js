@@ -5620,7 +5620,9 @@ ${passivos.length === 0
           <input type="checkbox" id="fPD_quitar"/> Marcar passivo como Quitado após lançamento
         </label>
       </div>
+      ${anexoFieldHTML('fPD', null).replace('Anexar recibo (opcional)', 'Anexar comprovante (opcional)')}
     </div>`;
+    let pagamentoAnexoApi = null;
     Modal.open('Lançar Pagamento em Despesas', html, () => {
       const val  = parseFloat(document.getElementById('fPD_val').value);
       const data = document.getElementById('fPD_data').value;
@@ -5628,18 +5630,36 @@ ${passivos.length === 0
       const quitar = document.getElementById('fPD_quitar').checked;
       if (!val || !data) return toast('Preencha valor e data', 'error');
       const d = new Date(data+'T12:00:00');
-      Store.addDespesa({
+      const created = Store.addDespesa({
         desc: `Pgto: ${passivo.desc}`,
         amount: val, date: data,
         month: d.getMonth() + 1, year: d.getFullYear(),
         category: 'financeiro', sub: 'Acordo de Dívida',
         pay, split: [],
       });
+      // Upload do comprovante (se houver) — pós-save porque precisa do id
+      const stagedFile = pagamentoAnexoApi?.getStaged?.();
+      if (created && stagedFile && typeof SupabaseSync !== 'undefined' && SupabaseSync.isConnected?.()) {
+        SupabaseSync.uploadAnexo(stagedFile, created.id).then(res => {
+          if (res.error) { toast('Erro ao anexar comprovante: ' + res.error, 'error'); return; }
+          const dd = Store.get().despesas.find(x => x.id === created.id);
+          if (dd) {
+            dd.attachment = { path: res.path, name: res.name, size: res.size, mime: res.mime };
+            // Se quitou, também vincula o anexo ao passivo pra histórico fácil
+            if (quitar) {
+              Store.updatePassivo(passivo.id, { attachment: dd.attachment });
+            }
+            Store.persist?.();
+            toast('Comprovante anexado', 'success');
+          }
+        });
+      }
       if (quitar) Store.updatePassivo(passivo.id, { status: 'quitado' });
       Modal.close();
       onSaved();
       toast('Despesa lançada' + (quitar ? ' e passivo quitado!' : '!'), 'success');
     });
+    setTimeout(() => { pagamentoAnexoApi = bindAnexoField('fPD', null, null); }, 0);
   }
 
   // Alias para compatibilidade com rotas existentes
