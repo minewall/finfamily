@@ -227,6 +227,7 @@ const App = (function () {
       simulacoes:    'Simulações',
       patrimonio:    'Patrimônio & Investimentos',
       comparativo:   'Comparativo Mensal',
+      meupainel:     'Meu Painel',
       config:        'Configurações',
     },
     init() {
