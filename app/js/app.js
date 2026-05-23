@@ -1409,7 +1409,7 @@ ${renderPrevisaoCaixa(saldo)}
       return `
       <div class="stat-row">
         <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text-1)">📑 ${p.desc}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-1);display:inline-flex;align-items:center;gap:6px">${icon('file-text',{size:12})} ${p.desc}</div>
           <div style="font-size:11px;color:var(--text-3)">${c?.label || '—'} · ${d.toLocaleDateString('pt-BR')} <span style="color:var(--${urgent?'red':'text-4'})">(${dias===0?'hoje':dias===1?'amanhã':`em ${dias}d`})</span></div>
         </div>
         <div class="stat-row-value ${isRec?'green':'red'}">${Utils.currency(p.amount)}</div>
@@ -1584,7 +1584,7 @@ ${filtered.map(r => {
   <td>${r.desc}</td>
   <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
   <td class="muted">${r.sub || ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
-  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${c.label}">📑 ${c.label}</span>` : '<span class="muted">—</span>'}</td>
+  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${c.label}">${icon('file-text',{size:10})} ${c.label}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap;width:42px">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido ✓':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?'✓':paidState==='auto'?'◐':'○'}</button>` : ''}
@@ -3069,7 +3069,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
         const amt = parseFloat(document.getElementById('fDAmt')?.value) || 0;
         const orig = parseFloat(document.getElementById('fDValorOriginal')?.value) || 0;
         const el = document.getElementById('fDEconomia');
-        if (el) el.textContent = orig > amt ? `💰 Economia: ${Utils.currency(orig - amt)}` : '';
+        if (el) el.textContent = orig > amt ? `Economia: ${Utils.currency(orig - amt)}` : '';
       }
       document.getElementById('fDValorOriginal')?.addEventListener('input', updateEconomia);
       document.getElementById('fDAmt')?.addEventListener('input', () => { updateParcelaInfo(); updateEconomia(); });
@@ -3107,7 +3107,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
         if (suggestion) {
           const catLabel = catLabels[suggestion.category] || suggestion.category;
           chip.innerHTML = `<button type="button" class="ia-suggest-btn" data-cat="${suggestion.category}" data-sub="${suggestion.sub || ''}">
-            💡 ${catLabel}${suggestion.sub ? ' › ' + suggestion.sub : ''} <span style="opacity:.6;font-size:11px">— confirmar</span>
+            ${icon('lightbulb',{size:12})} ${catLabel}${suggestion.sub ? ' › ' + suggestion.sub : ''} <span style="opacity:.6;font-size:11px">— confirmar</span>
           </button>`;
           chip.style.display = 'block';
           chip.querySelector('.ia-suggest-btn')?.addEventListener('click', () => {
@@ -3155,7 +3155,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
       objetivo:    { icon: icon('target',        {size:16}), label: 'Objetivo' },
     };
     const STATUS_CLASS = { ok: 'green', warn: 'amber', over: 'red', neutral: 'accent' };
-    const STATUS_BADGE = { ok: '✓ No alvo', warn: '⚠ Atenção', over: '✗ Crítico', neutral: '○ Sem dados' };
+    const STATUS_BADGE = { ok: 'No alvo', warn: 'Atenção', over: 'Crítico', neutral: 'Sem dados' };
 
     const objetivos = metas.filter(m => m.type === 'objetivo');
     const indicadores = metas.filter(m => m.type !== 'objetivo');
@@ -3172,22 +3172,22 @@ ${despesas.length === 0 ? coachEmptyHTML({
       if (criticas.length > 0) {
         const c = criticas[0];
         const perf = Store.getMetaPerformance(c.id, year, month);
-        return { icon:'⚠️', tone:'warn', titulo: `${c.label} ultrapassou o limite`,
+        return { icon: icon('alert-triangle',{size:14}), tone:'warn', titulo: `${c.label} ultrapassou o limite`,
           texto: `${Utils.currency(perf.current)} atual vs ${Utils.currency(perf.target)} de meta — ${((perf.pct-1)*100).toFixed(0)}% acima. ${criticas.length > 1 ? `Mais ${criticas.length-1} indicador(es) também em alerta.` : 'Revise seus gastos nesta categoria.'}` };
       }
       if (atencao.length > 0) {
-        return { icon:'📊', tone:'neutral', titulo: `${atencao.length} indicador(es) pedindo atenção`,
+        return { icon: icon('bar-chart-2',{size:14}), tone:'neutral', titulo: `${atencao.length} indicador(es) pedindo atenção`,
           texto: `${atencao.map(m => m.label).join(', ')} ${atencao.length === 1 ? 'está' : 'estão'} próximo(s) do limite. ${noAlvo.length > 0 ? `${noAlvo.length} no alvo.` : ''} Veja o Coach para recomendações.` };
       }
       if (objsOk.length > 0) {
-        return { icon:'🎉', tone:'pos', titulo: `${objsOk.length} objetivo${objsOk.length > 1 ? 's' : ''} atingido${objsOk.length > 1 ? 's' : ''}!`,
+        return { icon: icon('party-popper',{size:14}), tone:'pos', titulo: `${objsOk.length} objetivo${objsOk.length > 1 ? 's' : ''} atingido${objsOk.length > 1 ? 's' : ''}!`,
           texto: `${objsOk.map(({m}) => m.label).join(', ')} ${objsOk.length === 1 ? 'foi concluído' : 'foram concluídos'}. Excelente disciplina financeira — considere criar um novo objetivo.` };
       }
       if (topObj) {
-        return { icon:'🎯', tone:'neutral', titulo: `${topObj.m.label}: ${(topObj.p.pct*100).toFixed(0)}% concluído`,
+        return { icon: icon('target',{size:14}), tone:'neutral', titulo: `${topObj.m.label}: ${(topObj.p.pct*100).toFixed(0)}% concluído`,
           texto: `${Utils.currency(topObj.p.current)} de ${Utils.currency(topObj.p.target)}. ${topObj.p.pct < 0.5 ? 'Você está na metade do caminho — continue!' : 'Quase lá! Faltam ' + Utils.currency(Math.max(0, topObj.p.target - topObj.p.current)) + '.'}` };
       }
-      return { icon:'💡', tone:'neutral', titulo: 'Defina suas metas financeiras',
+      return { icon: icon('lightbulb',{size:14}), tone:'neutral', titulo: 'Defina suas metas financeiras',
         texto: 'Adicione limites de despesa, metas de receita, reservas e objetivos para que o Coach acompanhe sua evolução automaticamente.' };
     })();
 
@@ -3504,17 +3504,17 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
       <div class="form-group">
         <label class="form-label">Tipo</label>
         <select class="form-select" id="fMType">
-          <option value="limite_desp" ${m.type==='limite_desp'?'selected':''}>🛑 Limite de Despesa</option>
-          <option value="min_receita" ${m.type==='min_receita'?'selected':''}>💰 Receita Mínima</option>
-          <option value="reserva"     ${m.type==='reserva'?'selected':''}>🏦 Reserva (auto)</option>
-          <option value="objetivo"    ${(m.type==='objetivo'||!isEdit)?'selected':''}>🎯 Objetivo Único</option>
+          <option value="limite_desp" ${m.type==='limite_desp'?'selected':''}>Limite de Despesa</option>
+          <option value="min_receita" ${m.type==='min_receita'?'selected':''}>Receita Mínima</option>
+          <option value="reserva"     ${m.type==='reserva'?'selected':''}>Reserva (auto)</option>
+          <option value="objetivo"    ${(m.type==='objetivo'||!isEdit)?'selected':''}>Objetivo Único</option>
         </select>
       </div>
       <div class="form-group" id="fMPeriodGroup">
         <label class="form-label">Período</label>
         <select class="form-select" id="fMPeriod">
-          <option value="mensal" ${m.period==='mensal'||!m.period?'selected':''}>📅 Mensal</option>
-          <option value="anual"  ${m.period==='anual'?'selected':''}>📆 Anual</option>
+          <option value="mensal" ${m.period==='mensal'||!m.period?'selected':''}>Mensal</option>
+          <option value="anual"  ${m.period==='anual'?'selected':''}>Anual</option>
         </select>
       </div>
       <div class="form-group form-full" id="fMCatGroup">
@@ -6257,7 +6257,7 @@ ${topCats.length ? `
         const amt = parseFloat(document.getElementById('nAmt')?.value) || 0;
         const orig = parseFloat(document.getElementById('nValorOriginal')?.value) || 0;
         const el = document.getElementById('nEconomia');
-        if (el) el.textContent = orig > amt ? `💰 Economia: ${Utils.currency(orig - amt)}` : '';
+        if (el) el.textContent = orig > amt ? `Economia: ${Utils.currency(orig - amt)}` : '';
       }
       document.getElementById('nValorOriginal')?.addEventListener('input', updateNEconomia);
       document.getElementById('nParcelas')?.addEventListener('change', updateParcelaInfo);
@@ -6520,7 +6520,7 @@ ${topCats.length ? `
         const amt  = parseFloat(document.getElementById('eDAmt')?.value) || 0;
         const orig = parseFloat(document.getElementById('eDValorOriginal')?.value) || 0;
         const el   = document.getElementById('eDEconomia');
-        if (el) el.textContent = orig > amt ? `💰 Economia: ${Utils.currency(orig - amt)}` : '';
+        if (el) el.textContent = orig > amt ? `Economia: ${Utils.currency(orig - amt)}` : '';
       }
       document.getElementById('eDValorOriginal')?.addEventListener('input', updateEd);
       document.getElementById('eDAmt')?.addEventListener('input', updateEd);
