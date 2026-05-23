@@ -15108,6 +15108,57 @@ FORMATO DA RESPOSTA (importante):
           required: ['label', 'type', 'target'],
         },
       },
+      {
+        name: 'bulkAddDespesas',
+        description: 'Criar várias despesas de uma vez (ideal para importar extratos). Cada item segue o schema de addDespesa. Use apenas após parsear um extrato e mapear categorias.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            itens: {
+              type: 'array',
+              description: 'Lista de despesas a criar',
+              items: {
+                type: 'object',
+                properties: {
+                  descricao: { type: 'string' },
+                  valor:     { type: 'number' },
+                  data:      { type: 'string', description: 'YYYY-MM-DD' },
+                  pessoa:    { type: 'string' },
+                  categoria: { type: 'string' },
+                  sub:       { type: 'string' },
+                  pay:       { type: 'string' },
+                },
+                required: ['descricao','valor','data','pessoa','categoria'],
+              },
+            },
+          },
+          required: ['itens'],
+        },
+      },
+      {
+        name: 'bulkAddReceitas',
+        description: 'Criar várias receitas de uma vez (ideal para importar extratos). Cada item segue o schema de addReceita.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            itens: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  descricao: { type: 'string' },
+                  valor:     { type: 'number' },
+                  data:      { type: 'string' },
+                  pessoa:    { type: 'string' },
+                  type:      { type: 'string', enum: ['salario','contrato','pensao','emprestimo','outros'] },
+                },
+                required: ['descricao','valor','data','pessoa'],
+              },
+            },
+          },
+          required: ['itens'],
+        },
+      },
     ];
 
     // Handlers: cada um retorna { result: <texto pro Coach>, undo: fn }
@@ -15159,6 +15210,52 @@ FORMATO DA RESPOSTA (importante):
           result: `Meta criada: "${entry.label}" (${entry.type}) — alvo R$ ${entry.target.toFixed(2)}. ID: ${entry.id}`,
           undo: () => { _data?.metas && Store.get()?.metas?.splice?.(Store.get().metas.findIndex(m => m.id === entry.id), 1); Store.persist?.(); },
           summary: `${entry.label} · R$ ${entry.target.toFixed(2)}`,
+        };
+      },
+      bulkAddDespesas: (input) => {
+        const itens = Array.isArray(input.itens) ? input.itens : [];
+        const created = [];
+        for (const it of itens) {
+          const entry = Store.addDespesa({
+            desc: it.descricao,
+            amount: it.valor,
+            date: it.data,
+            person: it.pessoa,
+            category: it.categoria,
+            sub: it.sub || null,
+            pay: it.pay || null,
+            year:  parseInt(it.data.slice(0, 4), 10),
+            month: parseInt(it.data.slice(5, 7), 10),
+          });
+          created.push(entry);
+        }
+        const total = created.reduce((s, e) => s + e.amount, 0);
+        return {
+          result: `Criadas ${created.length} despesas — total R$ ${total.toFixed(2)}. IDs: ${created.map(e => e.id).join(', ')}`,
+          undo: () => { created.forEach(e => Store.deleteDespesa?.(e.id)); },
+          summary: `${created.length} despesas · R$ ${total.toFixed(2)}`,
+        };
+      },
+      bulkAddReceitas: (input) => {
+        const itens = Array.isArray(input.itens) ? input.itens : [];
+        const created = [];
+        for (const it of itens) {
+          const entry = Store.addReceita({
+            desc: it.descricao,
+            amount: it.valor,
+            date: it.data,
+            person: it.pessoa,
+            type: it.type || 'outros',
+            year:  parseInt(it.data.slice(0, 4), 10),
+            month: parseInt(it.data.slice(5, 7), 10),
+          });
+          created.push(entry);
+        }
+        const total = created.reduce((s, e) => s + e.amount, 0);
+        return {
+          result: `Criadas ${created.length} receitas — total R$ ${total.toFixed(2)}. IDs: ${created.map(e => e.id).join(', ')}`,
+          undo: () => { created.forEach(e => Store.deleteReceita?.(e.id)); },
+          summary: `${created.length} receitas · R$ ${total.toFixed(2)}`,
         };
       },
     };
@@ -15221,7 +15318,7 @@ FORMATO DA RESPOSTA (importante):
       document.body.appendChild(t);
     }
 
-    async function sendMessage(text) {
+    async function sendMessage(text, opts = {}) {
       if (!text.trim() || isLoading) return;
 
       lastActivity = Date.now();
@@ -15231,7 +15328,7 @@ FORMATO DA RESPOSTA (importante):
       statusEl.style.color = 'var(--amber)';
 
       history.push({ role: 'user', content: text });
-      appendMsg('user', text);
+      if (!opts.skipUserAppend) appendMsg('user', text);
       input.value = '';
       input.style.height = 'auto';
       showTyping();
@@ -15340,6 +15437,64 @@ FORMATO DA RESPOSTA (importante):
         isLoading = false;
         sendBtn.disabled = false;
       }
+    }
+
+    // ── Attach handler — sobe extrato CSV/OFX, parseia local, envia summary ao Coach
+    const attachBtn   = document.getElementById('coachAttachBtn');
+    const attachInput = document.getElementById('coachAttachInput');
+    if (attachBtn && attachInput) {
+      attachBtn.addEventListener('click', () => attachInput.click());
+      attachInput.addEventListener('change', async () => {
+        const file = attachInput.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+          toast('Arquivo grande demais (máx 2MB)', 'error');
+          attachInput.value = '';
+          return;
+        }
+        try {
+          // Leitura: tenta UTF-8, fallback latin1 se contém caracteres inválidos
+          let conteudo = await file.text();
+          if (conteudo.includes('�')) {
+            conteudo = await new Promise((resolve, reject) => {
+              const r = new FileReader();
+              r.onload  = () => resolve(r.result);
+              r.onerror = () => reject(r.error);
+              r.readAsText(file, 'windows-1252');
+            });
+          }
+          const parsed = Store.parseExtrato({ tipo: 'auto', conteudo });
+          if (!parsed.ok || !parsed.transacoes?.length) {
+            toast(`Não foi possível ler o arquivo (${parsed.errors?.join('; ') || 'sem transações'})`, 'error');
+            attachInput.value = '';
+            return;
+          }
+          // Mostra anexo na tela como user message
+          const kb = (file.size / 1024).toFixed(1);
+          appendMsg('user', `Anexei o arquivo ${file.name} (${kb} KB · ${parsed.formato}). Por favor analise, sugira categorias e me ajude a importar.`);
+          // Monta mensagem pro Coach: instrução + summary + transações compactas
+          const userTrigger = [
+            `O usuário anexou um extrato bancário. Foram detectadas ${parsed.transacoes.length} transações no formato ${parsed.formato}.`,
+            ``,
+            `RESUMO DO EXTRATO:`,
+            `- Período: ${parsed.summary.periodo.inicio} a ${parsed.summary.periodo.fim}`,
+            `- Total despesas: R$ ${parsed.summary.totalDespesas.toFixed(2)}`,
+            `- Total receitas: R$ ${parsed.summary.totalReceitas.toFixed(2)}`,
+            `- Saldo líquido: R$ ${parsed.summary.saldoLiquido.toFixed(2)}`,
+            parsed.warnings?.length ? `- Avisos: ${parsed.warnings.join('; ')}` : '',
+            ``,
+            `TRANSAÇÕES (data | descrição | valor | tipo | sugestão):`,
+            ...parsed.transacoes.map(t => `- ${t.data} | ${t.descricao} | R$ ${t.valor.toFixed(2)} | ${t.tipo} | ${t.sugestaoCategoria || '—'}`),
+            ``,
+            `INSTRUÇÃO: 1) Analise a lista. 2) Mapeie cada transação pra uma das categorias reais do usuário (use a lista de CATEGORIAS DISPONÍVEIS no seu contexto). 3) Use bulkAddDespesas pra criar as despesas e bulkAddReceitas pra receitas, em chamadas SEPARADAS. 4) Antes de chamar, mostre um breve resumo (quantas por categoria) pra eu confirmar.`,
+          ].filter(Boolean).join('\n');
+          // Limpa o input e dispara sendMessage com o trigger interno (não passa pelo appendMsg user de novo)
+          attachInput.value = '';
+          await sendMessage(userTrigger, { skipUserAppend: true });
+        } catch (err) {
+          toast('Erro ao processar arquivo: ' + err.message, 'error');
+        }
+      });
     }
 
     // ── Input handlers ────────────────────────────────────────────
