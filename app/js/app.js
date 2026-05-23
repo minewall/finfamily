@@ -15055,6 +15055,172 @@ FORMATO DA RESPOSTA (importante):
     const COACH_PROXY_URL = 'https://lpudgulhnfuwdttetwdn.supabase.co/functions/v1/claude-proxy';
     const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
 
+    // ── Tool use: catálogo de ferramentas (Sprint Coach Tool Use) ──
+    // Schema JSON consumido pela API Anthropic. Cada tool tem handler
+    // em COACH_TOOL_HANDLERS abaixo. Toda mutação passa por confirmação
+    // inline antes de executar.
+    const COACH_TOOLS = [
+      {
+        name: 'addReceita',
+        description: 'Adicionar uma nova receita (entrada de dinheiro) ao registro do usuário. Use quando o usuário pedir explicitamente para registrar/lançar/criar uma receita.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            descricao: { type: 'string', description: 'Descrição curta da receita (ex: Salário, Freelance Cliente X)' },
+            valor:     { type: 'number', description: 'Valor em reais, positivo' },
+            data:      { type: 'string', description: 'Data no formato YYYY-MM-DD' },
+            pessoa:    { type: 'string', description: 'Nome da pessoa que recebeu (deve estar na lista PESSOAS do contexto)' },
+            type:      { type: 'string', enum: ['salario','contrato','pensao','emprestimo','outros'], description: 'Tipo de receita' },
+          },
+          required: ['descricao', 'valor', 'data', 'pessoa'],
+        },
+      },
+      {
+        name: 'addDespesa',
+        description: 'Adicionar uma nova despesa (saída de dinheiro). Use quando o usuário pedir para registrar/lançar/criar uma despesa.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            descricao: { type: 'string', description: 'Descrição curta (ex: Mercado, Uber, Plano de saúde)' },
+            valor:     { type: 'number', description: 'Valor em reais, positivo' },
+            data:      { type: 'string', description: 'Data no formato YYYY-MM-DD' },
+            pessoa:    { type: 'string', description: 'Nome da pessoa responsável (deve estar em PESSOAS)' },
+            categoria: { type: 'string', description: 'Chave da categoria (ex: moradia, alimentacao, transporte) — veja CATEGORIAS no contexto' },
+            sub:       { type: 'string', description: 'Subcategoria opcional' },
+            pay:       { type: 'string', description: 'Forma de pagamento opcional (PIX, Débito, Crédito, Boleto)' },
+          },
+          required: ['descricao', 'valor', 'data', 'pessoa', 'categoria'],
+        },
+      },
+      {
+        name: 'addMeta',
+        description: 'Criar uma nova meta financeira (objetivo, limite de despesa, receita mínima ou reserva).',
+        input_schema: {
+          type: 'object',
+          properties: {
+            label:     { type: 'string', description: 'Nome da meta' },
+            type:      { type: 'string', enum: ['objetivo','limite_desp','min_receita','reserva'], description: 'Tipo da meta' },
+            target:    { type: 'number', description: 'Valor alvo em reais' },
+            period:    { type: 'string', enum: ['mensal','anual'], description: 'Período (apenas pra limite_desp/min_receita)' },
+            category:  { type: 'string', description: 'Categoria associada (opcional)' },
+            deadline:  { type: 'string', description: 'Data alvo YYYY-MM-DD (apenas para objetivo)' },
+          },
+          required: ['label', 'type', 'target'],
+        },
+      },
+    ];
+
+    // Handlers: cada um retorna { result: <texto pro Coach>, undo: fn }
+    const COACH_TOOL_HANDLERS = {
+      addReceita: (input) => {
+        const entry = Store.addReceita({
+          desc: input.descricao,
+          amount: input.valor,
+          date: input.data,
+          person: input.pessoa,
+          type: input.type || 'outros',
+          year:  parseInt(input.data.slice(0, 4), 10),
+          month: parseInt(input.data.slice(5, 7), 10),
+        });
+        return {
+          result: `Receita criada: "${entry.desc}" de R$ ${entry.amount.toFixed(2)} em ${entry.date} (${entry.person}). ID: ${entry.id}`,
+          undo: () => { Store.deleteReceita?.(entry.id); },
+          summary: `${entry.desc} · R$ ${entry.amount.toFixed(2)} · ${entry.date}`,
+        };
+      },
+      addDespesa: (input) => {
+        const entry = Store.addDespesa({
+          desc: input.descricao,
+          amount: input.valor,
+          date: input.data,
+          person: input.pessoa,
+          category: input.categoria,
+          sub: input.sub || null,
+          pay: input.pay || null,
+          year:  parseInt(input.data.slice(0, 4), 10),
+          month: parseInt(input.data.slice(5, 7), 10),
+        });
+        return {
+          result: `Despesa criada: "${entry.desc}" de R$ ${entry.amount.toFixed(2)} em ${entry.date} (${entry.person} · ${entry.category}). ID: ${entry.id}`,
+          undo: () => { Store.deleteDespesa?.(entry.id); },
+          summary: `${entry.desc} · R$ ${entry.amount.toFixed(2)} · ${entry.date}`,
+        };
+      },
+      addMeta: (input) => {
+        const entry = Store.addMeta({
+          label:    input.label,
+          type:     input.type,
+          target:   input.target,
+          period:   input.period || (input.type === 'objetivo' ? null : 'mensal'),
+          category: input.category || null,
+          deadline: input.deadline || null,
+        });
+        return {
+          result: `Meta criada: "${entry.label}" (${entry.type}) — alvo R$ ${entry.target.toFixed(2)}. ID: ${entry.id}`,
+          undo: () => { _data?.metas && Store.get()?.metas?.splice?.(Store.get().metas.findIndex(m => m.id === entry.id), 1); Store.persist?.(); },
+          summary: `${entry.label} · R$ ${entry.target.toFixed(2)}`,
+        };
+      },
+    };
+
+    // Renderiza card de confirmação inline e retorna Promise<'confirm'|'cancel'>
+    function _renderToolConfirmCard(toolName, toolInput) {
+      const TOOL_LABELS = {
+        addReceita: { titulo: 'Criar receita',  cor: 'var(--green)', icone: 'trending-up' },
+        addDespesa: { titulo: 'Criar despesa',  cor: 'var(--red)',   icone: 'trending-down' },
+        addMeta:    { titulo: 'Criar meta',     cor: 'var(--accent)', icone: 'target' },
+      };
+      const meta = TOOL_LABELS[toolName] || { titulo: toolName, cor: 'var(--text-3)', icone: 'sparkles' };
+      return new Promise(resolve => {
+        const id = 'toolconf-' + Math.random().toString(36).slice(2, 8);
+        const fields = Object.entries(toolInput).map(([k, v]) =>
+          `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12px"><span style="color:var(--text-4);text-transform:capitalize">${k}</span><span style="color:var(--text-1);font-weight:600;text-align:right;max-width:60%;word-break:break-word">${typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v}</span></div>`).join('');
+        const card = document.createElement('div');
+        card.className = 'coach-msg assistant';
+        card.id = id;
+        card.innerHTML = `
+          <div class="coach-msg-avatar coach-msg-avatar--ai"><img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:14px;height:auto;display:block"></div>
+          <div class="coach-bubble" style="border:1.5px solid ${meta.cor}44;background:linear-gradient(135deg,${meta.cor}10,transparent);padding:14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:${meta.cor};font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em">${icon(meta.icone,{size:14})} ${meta.titulo}</div>
+            <div style="margin-bottom:12px">${fields}</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn-secondary" data-conf-cancel style="padding:6px 12px;font-size:12px">Cancelar</button>
+              <button class="btn-primary" data-conf-ok style="padding:6px 14px;font-size:12px;background:${meta.cor};border-color:${meta.cor}">Confirmar</button>
+            </div>
+          </div>`;
+        msgs.appendChild(card);
+        msgs.scrollTop = msgs.scrollHeight;
+        const done = (answer) => {
+          // desabilita os botões e marca status visual
+          card.querySelector('[data-conf-ok]').disabled = true;
+          card.querySelector('[data-conf-cancel]').disabled = true;
+          const status = document.createElement('div');
+          status.style.cssText = `margin-top:8px;font-size:11px;color:${answer === 'confirm' ? meta.cor : 'var(--text-4)'};font-weight:600`;
+          status.textContent = answer === 'confirm' ? 'Confirmado' : 'Cancelado pelo usuário';
+          card.querySelector('.coach-bubble').appendChild(status);
+          resolve(answer);
+        };
+        card.querySelector('[data-conf-ok]').addEventListener('click', () => done('confirm'));
+        card.querySelector('[data-conf-cancel]').addEventListener('click', () => done('cancel'));
+      });
+    }
+
+    // Toast com undo de 8s
+    function _showUndoToast(label, undoFn) {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1a1d2e;border:1px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.4);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-1);min-width:280px';
+      t.innerHTML = `<span style="flex:1">${label}</span><button style="background:var(--accent);color:white;border:0;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Desfazer</button>`;
+      const btn = t.querySelector('button');
+      const close = () => { t.remove(); clearTimeout(tm); };
+      const tm = setTimeout(close, 8000);
+      btn.addEventListener('click', () => {
+        try { undoFn(); toast('Ação desfeita', 'info'); }
+        catch (e) { toast('Erro ao desfazer: ' + e.message, 'error'); }
+        close();
+      });
+      document.body.appendChild(t);
+    }
+
     async function sendMessage(text) {
       if (!text.trim() || isLoading) return;
 
@@ -15071,46 +15237,103 @@ FORMATO DA RESPOSTA (importante):
       showTyping();
 
       try {
-        let res;
-        try {
-          res = await fetch(COACH_PROXY_URL, {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              'authorization': `Bearer ${SUPABASE_ANON}`,
-            },
-            body: JSON.stringify({
-              model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
-              max_tokens: 1024,
-              system: buildContext(),
-              messages: history,
-            }),
-          });
-        } catch (netErr) {
-          throw new Error(`Sem conexão com o servidor. Verifique sua internet. (${netErr.message})`);
-        }
+        // Loop tool use: continua até stop_reason !== 'tool_use' ou cancelamento
+        let safetyCounter = 0;
+        const MAX_LOOPS = 8; // proteção contra loop infinito
+        while (true) {
+          if (++safetyCounter > MAX_LOOPS) throw new Error('Excedeu limite de ciclos de tool use');
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          const msg = err.error?.message || err.error || `HTTP ${res.status}`;
-          if (res.status === 401) throw new Error('Edge Function não autorizada. Verifique o deploy.');
-          if (res.status === 402 || res.status === 529) throw new Error('Conta Anthropic sem créditos. Adicione em console.anthropic.com.');
-          if (res.status === 429) throw new Error('Limite de requisições atingido. Aguarde um momento.');
-          if (res.status === 500 && msg.includes('ANTHROPIC_API_KEY')) throw new Error('Chave Anthropic não configurada na Edge Function. Configure o secret ANTHROPIC_API_KEY no Supabase.');
-          throw new Error(msg);
-        }
+          let res;
+          try {
+            res = await fetch(COACH_PROXY_URL, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'authorization': `Bearer ${SUPABASE_ANON}`,
+              },
+              body: JSON.stringify({
+                model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
+                max_tokens: 2048,
+                system: buildContext(),
+                messages: history,
+                tools: COACH_TOOLS,
+              }),
+            });
+          } catch (netErr) {
+            throw new Error(`Sem conexão com o servidor. Verifique sua internet. (${netErr.message})`);
+          }
 
-        const data = await res.json();
-        const reply = data.content?.[0]?.text || '(sem resposta)';
-        history.push({ role: 'assistant', content: reply });
-        removeTyping();
-        appendMsg('assistant', reply);
-        statusEl.textContent = 'Pronto para ajudar';
-        statusEl.style.color = 'var(--accent)';
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            const msg = err.error?.message || err.error || `HTTP ${res.status}`;
+            if (res.status === 401) throw new Error('Edge Function não autorizada. Verifique o deploy.');
+            if (res.status === 402 || res.status === 529) throw new Error('Conta Anthropic sem créditos. Adicione em console.anthropic.com.');
+            if (res.status === 429) throw new Error('Limite de requisições atingido. Aguarde um momento.');
+            if (res.status === 500 && msg.includes('ANTHROPIC_API_KEY')) throw new Error('Chave Anthropic não configurada na Edge Function. Configure o secret ANTHROPIC_API_KEY no Supabase.');
+            throw new Error(msg);
+          }
+
+          const data = await res.json();
+          const blocks = Array.isArray(data.content) ? data.content : [];
+          const textBlocks = blocks.filter(b => b.type === 'text');
+          const toolUseBlocks = blocks.filter(b => b.type === 'tool_use');
+
+          // Remove typing indicator antes de mostrar conteúdo
+          removeTyping();
+
+          // Mostra texto da resposta (se houver) — pode vir junto com tool_use
+          for (const tb of textBlocks) {
+            if (tb.text && tb.text.trim()) appendMsg('assistant', tb.text);
+          }
+
+          // Push do assistant message no history (com blocks completos pra preservar tool_use IDs)
+          history.push({ role: 'assistant', content: blocks });
+
+          // Sem tool_use → fim
+          if (data.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
+            statusEl.textContent = 'Pronto para ajudar';
+            statusEl.style.color = 'var(--accent)';
+            break;
+          }
+
+          // Tem tool_use → processar cada bloco (confirmar + executar)
+          const toolResults = [];
+          for (const tu of toolUseBlocks) {
+            const handler = COACH_TOOL_HANDLERS[tu.name];
+            if (!handler) {
+              toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: true,
+                content: `Tool desconhecida: ${tu.name}` });
+              continue;
+            }
+            // Confirmação inline
+            const answer = await _renderToolConfirmCard(tu.name, tu.input || {});
+            if (answer === 'cancel') {
+              toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: false,
+                content: 'Usuário cancelou esta ação. Não execute nem ofereça novamente sem novo pedido.' });
+              continue;
+            }
+            // Executa
+            try {
+              const out = handler(tu.input || {});
+              toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: false,
+                content: out.result });
+              if (out.undo && out.summary) _showUndoToast(`${tu.name}: ${out.summary}`, out.undo);
+            } catch (execErr) {
+              toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: true,
+                content: `Erro ao executar: ${execErr.message}` });
+            }
+          }
+
+          // Envia tool_results como nova mensagem user
+          history.push({ role: 'user', content: toolResults });
+          showTyping(); // novo typing pra próximo ciclo
+        }
       } catch (e) {
         removeTyping();
-        appendMsg('assistant', `❌ Erro ao conectar com o Claude: ${e.message}`);
-        history.pop();
+        appendMsg('assistant', `Erro ao conectar com o Coach: ${e.message}`);
+        // Remove qualquer mensagem inválida no fim do history
+        while (history.length && history[history.length - 1].role !== 'user') history.pop();
+        if (history.length && typeof history[history.length - 1].content !== 'string') history.pop();
         statusEl.textContent = 'Erro na conexão';
         statusEl.style.color = 'var(--red)';
       } finally {
