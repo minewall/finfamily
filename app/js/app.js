@@ -4769,11 +4769,22 @@ ${(() => {
       <span class="page-head-meta-sep">·</span>
       <span class="page-head-meta-total">${investimentos.length} investimento${investimentos.length!==1?'s':''}</span>
       <span class="page-head-meta-sep">·</span>
-      <span style="color:var(--text-3)">USD R$ ${usdBrl} · EUR R$ ${eurBrl}</span>
+      <span style="color:var(--text-3)">USD R$ ${usdBrl.toFixed(2)} · EUR R$ ${eurBrl.toFixed(2)}${Store.get().settings.usdtBrl ? ` · USDT R$ ${Store.get().settings.usdtBrl.toFixed(2)}` : ''}${Store.get().settings.btcBrl ? ` · BTC R$ ${(Store.get().settings.btcBrl/1000).toFixed(1)}k` : ''}</span>
+      ${(() => {
+        const ts = Store.cotacoesUpdatedAt?.();
+        if (!ts) return ` <span style="color:var(--text-4);font-size:11px">· nunca atualizado</span>`;
+        const diffMs = Date.now() - new Date(ts).getTime();
+        const hours = Math.floor(diffMs / 3600000);
+        const days = Math.floor(hours / 24);
+        const ago = days >= 1 ? `${days}d` : hours >= 1 ? `${hours}h` : 'agora';
+        const stale = days > 7;
+        return ` <span style="color:${stale ? 'var(--amber)' : 'var(--text-4)'};font-size:11px">· atualizado há ${ago}</span>`;
+      })()}
     </p>
   </div>
   <div class="flex gap-2">
-    <button class="btn-secondary" id="btnEditRates">${icon('pencil', {size:14})} Cotações</button>
+    <button class="btn-secondary" id="btnRefreshRates" title="Buscar cotações em tempo real (AwesomeAPI)">${icon('refresh-cw', {size:14})} Atualizar</button>
+    <button class="btn-secondary" id="btnEditRates" title="Editar manualmente">${icon('pencil', {size:14})} Cotações</button>
     <button class="btn-primary"   id="btnAddInv">+ Novo Investimento</button>
   </div>
 </div>
@@ -5237,14 +5248,45 @@ ${passivos.length === 0
       if (alug) { const im = Store.getImoveis().find(x => x.id === alug.dataset.progAlug); if (im) _programarCustoImovel(im, 'aluguel', re); return; }
     });
     document.getElementById('btnEditRates')?.addEventListener('click', () => {
+      const _s = Store.get().settings;
       const html = `<div class="form-grid">
-        <div class="form-group"><label class="form-label">USD → BRL</label><input class="form-input" id="fUSD" type="number" step="0.01" value="${usdBrl}"/></div>
-        <div class="form-group"><label class="form-label">EUR → BRL</label><input class="form-input" id="fEUR" type="number" step="0.01" value="${eurBrl}"/></div>
+        <div class="form-group"><label class="form-label">USD → BRL</label><input class="form-input" id="fUSD" type="number" step="0.01" value="${_s.usdBrl}"/></div>
+        <div class="form-group"><label class="form-label">EUR → BRL</label><input class="form-input" id="fEUR" type="number" step="0.01" value="${_s.eurBrl}"/></div>
+        <div class="form-group"><label class="form-label">USDT → BRL</label><input class="form-input" id="fUSDT" type="number" step="0.01" value="${_s.usdtBrl || 5.85}"/></div>
+        <div class="form-group"><label class="form-label">BTC → BRL</label><input class="form-input" id="fBTC" type="number" step="1" value="${_s.btcBrl || 550000}"/></div>
       </div>`;
       Modal.open('Atualizar Cotações', html, () => {
-        Store.updateSettings({ usdBrl: parseFloat(document.getElementById('fUSD').value), eurBrl: parseFloat(document.getElementById('fEUR').value) });
+        Store.updateSettings({
+          usdBrl:  parseFloat(document.getElementById('fUSD').value),
+          eurBrl:  parseFloat(document.getElementById('fEUR').value),
+          usdtBrl: parseFloat(document.getElementById('fUSDT').value),
+          btcBrl:  parseFloat(document.getElementById('fBTC').value),
+        });
         Modal.close(); re(); toast('Cotações atualizadas!', 'success');
       });
+    });
+
+    // Refresh via API: AwesomeAPI (USD/EUR) + CoinGecko (USDT/BTC)
+    document.getElementById('btnRefreshRates')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btnRefreshRates');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `${icon('loader-2', {size:14})} Buscando...`;
+      try {
+        const res = await Store.refreshCotacoes();
+        const partes = [];
+        if (res.usdBrl)  partes.push(`USD ${res.usdBrl.toFixed(2)}`);
+        if (res.eurBrl)  partes.push(`EUR ${res.eurBrl.toFixed(2)}`);
+        if (res.usdtBrl) partes.push(`USDT ${res.usdtBrl.toFixed(2)}`);
+        if (res.btcBrl)  partes.push(`BTC R$ ${(res.btcBrl/1000).toFixed(1)}k`);
+        const aviso = (res.warnings && res.warnings.length) ? ` (parcial: ${res.warnings.join('; ')})` : '';
+        toast(`Cotações: ${partes.join(' · ')}${aviso}`, res.warnings?.length ? 'warning' : 'success');
+        re();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        toast('Erro ao buscar cotações: ' + err.message, 'error');
+      }
     });
 
     // Investimentos + Ativos: clique direto
@@ -11371,26 +11413,62 @@ ${isConnected && isAdmin ? `
 
   function renderConfigCotacoes(content) {
     const s = Store.get().settings;
+    const ts = Store.cotacoesUpdatedAt?.();
+    const tsLabel = ts
+      ? `Atualizado em ${new Date(ts).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' })}`
+      : 'Cotações ainda nunca foram atualizadas via API.';
     content.innerHTML = `
 <div class="section-header mb-4">
   <div><div class="section-title">Cotações de Moeda</div>
-  <div class="section-sub">Conversão de ativos em USD e EUR para BRL no Patrimônio</div></div>
+  <div class="section-sub">Conversão de ativos em USD, EUR e GBP para BRL no Patrimônio</div></div>
 </div>
 <div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:var(--bg-elevated);font-size:12px;color:var(--text-3)">
+    <span>${tsLabel}</span>
+    <button class="btn-secondary" id="btnRefreshConfigRates" style="padding:6px 12px;font-size:12px">${icon('refresh-cw',{size:12})} Buscar agora</button>
+  </div>
   <div class="form-grid">
     <div class="form-group"><label class="form-label">USD → BRL</label><input class="form-input" id="fUsd" type="number" step="0.0001" value="${s.usdBrl}"/></div>
     <div class="form-group"><label class="form-label">EUR → BRL</label><input class="form-input" id="fEur" type="number" step="0.0001" value="${s.eurBrl}"/></div>
+    <div class="form-group"><label class="form-label">USDT → BRL</label><input class="form-input" id="fUsdt" type="number" step="0.0001" value="${s.usdtBrl || 5.85}"/></div>
+    <div class="form-group"><label class="form-label">BTC → BRL</label><input class="form-input" id="fBtc" type="number" step="1" value="${s.btcBrl || 550000}"/></div>
   </div>
   <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
     <button class="btn-primary" id="btnSaveRates">Salvar</button>
   </div>
+  <div style="margin-top:10px;font-size:11px;color:var(--text-4);line-height:1.5">
+    "Buscar agora" usa AwesomeAPI (USD, EUR) + CoinGecko (USDT, BTC) — ambas gratuitas, sem chave. Você também pode editar manualmente nos campos acima.
+  </div>
 </div>`;
     document.getElementById('btnSaveRates').addEventListener('click', () => {
-      const usdBrl = parseFloat(document.getElementById('fUsd').value);
-      const eurBrl = parseFloat(document.getElementById('fEur').value);
-      if (!usdBrl || !eurBrl) return toast('Informe valores válidos', 'error');
-      Store.updateSettings({ usdBrl, eurBrl });
+      const usdBrl  = parseFloat(document.getElementById('fUsd').value);
+      const eurBrl  = parseFloat(document.getElementById('fEur').value);
+      const usdtBrl = parseFloat(document.getElementById('fUsdt').value);
+      const btcBrl  = parseFloat(document.getElementById('fBtc').value);
+      if (!usdBrl || !eurBrl || !usdtBrl || !btcBrl) return toast('Informe valores válidos', 'error');
+      Store.updateSettings({ usdBrl, eurBrl, usdtBrl, btcBrl });
       toast('Cotações atualizadas', 'success');
+    });
+    document.getElementById('btnRefreshConfigRates')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `${icon('loader-2',{size:12})} Buscando...`;
+      try {
+        const res = await Store.refreshCotacoes();
+        const partes = [];
+        if (res.usdBrl)  partes.push(`USD ${res.usdBrl.toFixed(2)}`);
+        if (res.eurBrl)  partes.push(`EUR ${res.eurBrl.toFixed(2)}`);
+        if (res.usdtBrl) partes.push(`USDT ${res.usdtBrl.toFixed(2)}`);
+        if (res.btcBrl)  partes.push(`BTC R$ ${(res.btcBrl/1000).toFixed(1)}k`);
+        const aviso = (res.warnings && res.warnings.length) ? ` (parcial: ${res.warnings.join('; ')})` : '';
+        toast(`Cotações via API: ${partes.join(' · ')}${aviso}`, res.warnings?.length ? 'warning' : 'success');
+        renderConfigCotacoes(content);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        toast('Erro: ' + err.message, 'error');
+      }
     });
   }
 

@@ -716,7 +716,7 @@ const Store = (function () {
     const settings = {
       ano: 2026, moeda: 'BRL', mesAtual: 4,
       metaReceita: 20000, limiteGasto: 0.70,
-      usdBrl: 5.85, eurBrl: 6.40,
+      usdBrl: 5.85, eurBrl: 6.40, usdtBrl: 5.85, btcBrl: 550000,
       tema: 'dark',
     };
 
@@ -3507,5 +3507,60 @@ const Store = (function () {
     applyMemberFilter,
     syncFromCloud,
     persist,
+    refreshCotacoes, cotacoesUpdatedAt,
   };
+
+  // ─── Cotações automáticas (fiat + cripto) ───────────────────────
+  // Fiat: AwesomeAPI (USD, EUR — sem chave, retorna direto em BRL).
+  // Cripto: CoinGecko free (USDT, BTC — sem chave, ~30 req/min).
+  // Usa Promise.allSettled pra que falha em uma API não bloqueie a outra.
+  async function refreshCotacoes() {
+    const fiatUrl   = 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL';
+    const cryptoUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,tether&vs_currencies=brl';
+    const [fiatRes, cryptoRes] = await Promise.allSettled([
+      fetch(fiatUrl).then(r => r.ok ? r.json() : Promise.reject(new Error('AwesomeAPI ' + r.status))),
+      fetch(cryptoUrl).then(r => r.ok ? r.json() : Promise.reject(new Error('CoinGecko ' + r.status))),
+    ]);
+    if (!_data.settings) _data.settings = {};
+    const out = {};
+    const errors = [];
+    if (fiatRes.status === 'fulfilled') {
+      const j = fiatRes.value;
+      if (j.USDBRL && j.EURBRL) {
+        const usdBrl = parseFloat(j.USDBRL.ask);
+        const eurBrl = parseFloat(j.EURBRL.ask);
+        if (usdBrl && eurBrl) {
+          _data.settings.usdBrl = usdBrl;
+          _data.settings.eurBrl = eurBrl;
+          out.usdBrl = usdBrl;
+          out.eurBrl = eurBrl;
+        } else errors.push('Fiat: valores inválidos');
+      } else errors.push('Fiat: resposta inesperada');
+    } else errors.push('Fiat: ' + fiatRes.reason.message);
+    if (cryptoRes.status === 'fulfilled') {
+      const j = cryptoRes.value;
+      if (j.tether && j.bitcoin) {
+        const usdtBrl = parseFloat(j.tether.brl);
+        const btcBrl  = parseFloat(j.bitcoin.brl);
+        if (usdtBrl && btcBrl) {
+          _data.settings.usdtBrl = usdtBrl;
+          _data.settings.btcBrl  = btcBrl;
+          out.usdtBrl = usdtBrl;
+          out.btcBrl  = btcBrl;
+        } else errors.push('Cripto: valores inválidos');
+      } else errors.push('Cripto: resposta inesperada');
+    } else errors.push('Cripto: ' + cryptoRes.reason.message);
+    if (!Object.keys(out).length) {
+      throw new Error(errors.join(' · ') || 'Nenhuma cotação atualizada');
+    }
+    _data.settings.cotacoesUpdatedAt = new Date().toISOString();
+    persist();
+    out.updatedAt = _data.settings.cotacoesUpdatedAt;
+    out.warnings = errors;
+    return out;
+  }
+
+  function cotacoesUpdatedAt() {
+    return _data?.settings?.cotacoesUpdatedAt || null;
+  }
 })();
