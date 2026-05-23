@@ -4499,10 +4499,23 @@ ${contratos.length === 0 ? `
 
   function renderContas(container, mode = 'all') {
     const cartoes = Store.get().cartoes || [];
-    // Normalização defensiva: cartões criados em versões antigas podem não ter
-    // o campo `parcelas`. Sem isso, qualquer cc.parcelas.reduce() abaixo quebra
-    // a tela inteira de Cartões com TypeError silencioso.
-    cartoes.forEach(cc => { if (!Array.isArray(cc.parcelas)) cc.parcelas = []; });
+    // Normalização defensiva: cartões e parcelas com schema variado
+    // - cc.parcelas pode ser undefined (cartões legados)
+    // - p.inicio pode estar como p.start; p.qtd como p.totalParcelas
+    //   (seed de teste ou versões antigas usam aliases). Sem isso,
+    //   p.inicio.split() ou idx<p.qtd dão TypeError silencioso que
+    //   aborta o render inteiro da tela de Cartões.
+    cartoes.forEach(cc => {
+      if (!Array.isArray(cc.parcelas)) cc.parcelas = [];
+      cc.parcelas.forEach(p => {
+        if (!p.inicio && p.start) p.inicio = p.start;
+        if (!p.inicio) p.inicio = new Date().toISOString().slice(0, 7);
+        if (p.qtd == null && p.totalParcelas != null) p.qtd = p.totalParcelas;
+        if (p.qtd == null) p.qtd = 1;
+        if (typeof p.parcela !== 'number') p.parcela = parseFloat(p.parcela) || 0;
+        if (typeof p.total !== 'number') p.total = (p.parcela || 0) * (p.qtd || 1);
+      });
+    });
     const allContas = Store.get().contas || [];
     const month = getMonth(), year = getYear();
     const showContas  = mode === 'all' || mode === 'contas';
