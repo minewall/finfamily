@@ -16252,7 +16252,10 @@ FORMATO DA RESPOSTA (importante):
     }
 
     async function sendMessage(text, opts = {}) {
-      if (!text.trim() || isLoading) return;
+      // Modo normal: text é string + history ganha {role:'user', content:text}
+      // Modo pré-construído: opts.message é mensagem inteira (suporta documents/images)
+      if (isLoading) return;
+      if (!opts.message && (!text || !text.trim())) return;
 
       lastActivity = Date.now();
       isLoading = true;
@@ -16260,10 +16263,14 @@ FORMATO DA RESPOSTA (importante):
       statusEl.textContent = 'Pensando…';
       statusEl.style.color = 'var(--amber)';
 
-      history.push({ role: 'user', content: text });
-      if (!opts.skipUserAppend) appendMsg('user', text);
-      input.value = '';
-      input.style.height = 'auto';
+      if (opts.message) {
+        history.push(opts.message);
+      } else {
+        history.push({ role: 'user', content: text });
+        if (!opts.skipUserAppend) appendMsg('user', text);
+        input.value = '';
+        input.style.height = 'auto';
+      }
       showTyping();
 
       try {
@@ -16375,7 +16382,9 @@ FORMATO DA RESPOSTA (importante):
       }
     }
 
-    // ── Attach handler — sobe extrato CSV/OFX, parseia local, envia summary ao Coach
+    // ── Attach handler — sobe extrato CSV/OFX/PDF
+    // CSV/OFX/TXT: parseia local (sem token), envia summary estruturado pro Coach
+    // PDF: envia pro Claude como document block (Claude lê PDF nativamente)
     const attachBtn   = document.getElementById('coachAttachBtn');
     const attachInput = document.getElementById('coachAttachInput');
     if (attachBtn && attachInput) {
@@ -16383,50 +16392,91 @@ FORMATO DA RESPOSTA (importante):
       attachInput.addEventListener('change', async () => {
         const file = attachInput.files?.[0];
         if (!file) return;
-        if (file.size > 2 * 1024 * 1024) {
-          toast('Arquivo grande demais (máx 2MB)', 'error');
+        const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        const maxBytes = isPdf ? 10 * 1024 * 1024 : 2 * 1024 * 1024; // 10MB pra PDF, 2MB pra texto
+        if (file.size > maxBytes) {
+          toast(`Arquivo grande demais (máx ${maxBytes/1024/1024}MB)`, 'error');
           attachInput.value = '';
           return;
         }
         try {
-          // Leitura: tenta UTF-8, fallback latin1 se contém caracteres inválidos
-          let conteudo = await file.text();
-          if (conteudo.includes('�')) {
-            conteudo = await new Promise((resolve, reject) => {
+          if (isPdf) {
+            // ── PDF: encaminha ao Claude como document block ────────────
+            const kb = (file.size / 1024).toFixed(1);
+            const base64 = await new Promise((resolve, reject) => {
               const r = new FileReader();
-              r.onload  = () => resolve(r.result);
+              r.onload  = () => {
+                // readAsDataURL retorna "data:application/pdf;base64,XYZ" — pega só XYZ
+                const result = r.result;
+                const idx = result.indexOf(',');
+                resolve(idx >= 0 ? result.slice(idx + 1) : result);
+              };
               r.onerror = () => reject(r.error);
-              r.readAsText(file, 'windows-1252');
+              r.readAsDataURL(file);
             });
-          }
-          const parsed = Store.parseExtrato({ tipo: 'auto', conteudo });
-          if (!parsed.ok || !parsed.transacoes?.length) {
-            toast(`Não foi possível ler o arquivo (${parsed.errors?.join('; ') || 'sem transações'})`, 'error');
+            appendMsg('user', `Anexei o PDF ${file.name} (${kb} KB). Por favor analise, extraia as transações, sugira categorias e me ajude a importar.`);
+            // Mensagem multimodal: document + texto de instrução
             attachInput.value = '';
-            return;
+            const userMessage = {
+              role: 'user',
+              content: [
+                {
+                  type: 'document',
+                  source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+                  title: file.name,
+                },
+                {
+                  type: 'text',
+                  text: `O usuário anexou um extrato bancário em PDF (${file.name}). Por favor:
+
+1. Leia o PDF e identifique TODAS as transações (data, descrição, valor, tipo despesa/receita).
+2. Mostre um breve resumo: período coberto, totais, quantidade por tipo.
+3. Mapeie cada transação pra uma categoria real do usuário (use CATEGORIAS DISPONÍVEIS do contexto).
+4. Use bulkAddDespesas e bulkAddReceitas em chamadas SEPARADAS para criar os lançamentos.
+5. Antes de chamar as tools, mostre um resumo agregado (quantas por categoria) pra eu confirmar.
+
+Se o PDF for de poupança/conta corrente e tiver poucos movimentos, pode pular o resumo agregado e ir direto ao plano de import.`,
+                },
+              ],
+            };
+            await sendMessage(null, { message: userMessage });
+          } else {
+            // ── CSV/OFX/TXT: parseia local (caminho original) ────────────
+            let conteudo = await file.text();
+            if (conteudo.includes('�')) {
+              conteudo = await new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload  = () => resolve(r.result);
+                r.onerror = () => reject(r.error);
+                r.readAsText(file, 'windows-1252');
+              });
+            }
+            const parsed = Store.parseExtrato({ tipo: 'auto', conteudo });
+            if (!parsed.ok || !parsed.transacoes?.length) {
+              toast(`Não foi possível ler o arquivo (${parsed.errors?.join('; ') || 'sem transações'})`, 'error');
+              attachInput.value = '';
+              return;
+            }
+            const kb = (file.size / 1024).toFixed(1);
+            appendMsg('user', `Anexei o arquivo ${file.name} (${kb} KB · ${parsed.formato}). Por favor analise, sugira categorias e me ajude a importar.`);
+            const userTrigger = [
+              `O usuário anexou um extrato bancário. Foram detectadas ${parsed.transacoes.length} transações no formato ${parsed.formato}.`,
+              ``,
+              `RESUMO DO EXTRATO:`,
+              `- Período: ${parsed.summary.periodo.inicio} a ${parsed.summary.periodo.fim}`,
+              `- Total despesas: R$ ${parsed.summary.totalDespesas.toFixed(2)}`,
+              `- Total receitas: R$ ${parsed.summary.totalReceitas.toFixed(2)}`,
+              `- Saldo líquido: R$ ${parsed.summary.saldoLiquido.toFixed(2)}`,
+              parsed.warnings?.length ? `- Avisos: ${parsed.warnings.join('; ')}` : '',
+              ``,
+              `TRANSAÇÕES (data | descrição | valor | tipo | sugestão):`,
+              ...parsed.transacoes.map(t => `- ${t.data} | ${t.descricao} | R$ ${t.valor.toFixed(2)} | ${t.tipo} | ${t.sugestaoCategoria || '—'}`),
+              ``,
+              `INSTRUÇÃO: 1) Analise a lista. 2) Mapeie cada transação pra uma das categorias reais do usuário (use a lista de CATEGORIAS DISPONÍVEIS no seu contexto). 3) Use bulkAddDespesas pra criar as despesas e bulkAddReceitas pra receitas, em chamadas SEPARADAS. 4) Antes de chamar, mostre um breve resumo (quantas por categoria) pra eu confirmar.`,
+            ].filter(Boolean).join('\n');
+            attachInput.value = '';
+            await sendMessage(userTrigger, { skipUserAppend: true });
           }
-          // Mostra anexo na tela como user message
-          const kb = (file.size / 1024).toFixed(1);
-          appendMsg('user', `Anexei o arquivo ${file.name} (${kb} KB · ${parsed.formato}). Por favor analise, sugira categorias e me ajude a importar.`);
-          // Monta mensagem pro Coach: instrução + summary + transações compactas
-          const userTrigger = [
-            `O usuário anexou um extrato bancário. Foram detectadas ${parsed.transacoes.length} transações no formato ${parsed.formato}.`,
-            ``,
-            `RESUMO DO EXTRATO:`,
-            `- Período: ${parsed.summary.periodo.inicio} a ${parsed.summary.periodo.fim}`,
-            `- Total despesas: R$ ${parsed.summary.totalDespesas.toFixed(2)}`,
-            `- Total receitas: R$ ${parsed.summary.totalReceitas.toFixed(2)}`,
-            `- Saldo líquido: R$ ${parsed.summary.saldoLiquido.toFixed(2)}`,
-            parsed.warnings?.length ? `- Avisos: ${parsed.warnings.join('; ')}` : '',
-            ``,
-            `TRANSAÇÕES (data | descrição | valor | tipo | sugestão):`,
-            ...parsed.transacoes.map(t => `- ${t.data} | ${t.descricao} | R$ ${t.valor.toFixed(2)} | ${t.tipo} | ${t.sugestaoCategoria || '—'}`),
-            ``,
-            `INSTRUÇÃO: 1) Analise a lista. 2) Mapeie cada transação pra uma das categorias reais do usuário (use a lista de CATEGORIAS DISPONÍVEIS no seu contexto). 3) Use bulkAddDespesas pra criar as despesas e bulkAddReceitas pra receitas, em chamadas SEPARADAS. 4) Antes de chamar, mostre um breve resumo (quantas por categoria) pra eu confirmar.`,
-          ].filter(Boolean).join('\n');
-          // Limpa o input e dispara sendMessage com o trigger interno (não passa pelo appendMsg user de novo)
-          attachInput.value = '';
-          await sendMessage(userTrigger, { skipUserAppend: true });
         } catch (err) {
           toast('Erro ao processar arquivo: ' + err.message, 'error');
         }
