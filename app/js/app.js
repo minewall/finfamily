@@ -1970,66 +1970,97 @@ ${filtered.map(r => {
 </div>
 
 ${(() => {
-  const _TREC_COLOR = {salario:'#10b981',contrato:'#2dcfc0',pensao:'#6b5ef5',emprestimo:'#f59e0b',outros:'#64748b'};
+  // Hero monocromático verde translúcido — fiel ao spec Figma.
+  // Receita do mês + delta (pill) + breakdown por tipo (stacked bar fino).
+  const _TREC_COLOR = {salario:'#1dc97e',contrato:'#2dcfc0',pensao:'#6b5ef5',emprestimo:'#f59e0b',outros:'#64748b'};
   const _TREC_LABEL = {salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'};
   const recsHero = Store.get().receitas.filter(r => r.year === year && r.month === month);
-  const _byType = {}, _byPerson = {};
+  const _byType = {};
   recsHero.forEach(r => {
     const t = r.type || 'outros';
-    _byType[t]    = (_byType[t]    || 0) + r.amount;
-    _byPerson[r.person] = (_byPerson[r.person] || 0) + r.amount;
+    _byType[t] = (_byType[t] || 0) + r.amount;
   });
   const _dir   = recChg >= 5 ? 'up' : recChg <= -5 ? 'down' : 'flat';
-  const _dClr  = _dir === 'up' ? '#10b981' : _dir === 'down' ? '#ef4444' : '#64748b';
-  const _dIco  = _dir === 'up' ? '↑'       : _dir === 'down' ? '↓'       : '→';
+  const _dClr  = _dir === 'down' ? '#ef4444' : '#1dc97e';
+  const _dBg   = _dir === 'down' ? 'rgba(239,68,68,.18)' : 'rgba(29,201,126,.18)';
+  const _dSign = recChg > 0 ? '+' : '';
+  const _diff  = recMesAtual - recMesAnt;
+  const _prevMonth = Utils.monthsFull[(month-2+12)%12];
   const _barSegs = Object.entries(_byType).filter(([,v]) => v > 0).map(([t, v]) => {
     const pct = recMesAtual > 0 ? (v / recMesAtual * 100) : 0;
-    return `<div style="width:${pct.toFixed(1)}%;background:${_TREC_COLOR[t]||'#64748b'};height:100%;border-radius:2px;transition:width .3s" title="${_TREC_LABEL[t]||t}: ${Utils.currency(v)}"></div>`;
+    return `<div style="width:${pct.toFixed(1)}%;background:${_TREC_COLOR[t]||'#64748b'};height:100%" title="${_TREC_LABEL[t]||t}: ${Utils.currency(v)}"></div>`;
   }).join('');
-  const _legend = Object.entries(_byType).filter(([,v]) => v > 0).map(([t, v]) => `
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
-      <span style="width:8px;height:8px;border-radius:50%;background:${_TREC_COLOR[t]||'#64748b'};flex-shrink:0"></span>
-      <span>${_TREC_LABEL[t]||t}</span>
-      <span style="color:var(--text-2);font-weight:600;font-family:var(--mono);margin-left:2px">${Utils.currency(v)}</span>
-    </div>`).join('');
-  const _persons = Object.entries(_byPerson).sort((a, b) => b[1] - a[1]).map(([p, v]) => {
+  const _legend = Object.entries(_byType).filter(([,v]) => v > 0).map(([t, v]) => {
     const pct = recMesAtual > 0 ? (v / recMesAtual * 100) : 0;
-    return `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05)">
-      ${Utils.personAvatarHtml(p, {size:32, fontSize:13})}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px">
-          <span style="font-size:12px;color:var(--text-2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p}</span>
-          <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:#10b981;white-space:nowrap">${Utils.currency(v)}</span>
-        </div>
-        <div style="height:3px;background:rgba(255,255,255,.07);border-radius:2px;display:flex">
-          <div style="height:100%;width:${pct.toFixed(1)}%;background:#10b981;border-radius:2px"></div>
-        </div>
-      </div>
-      <span style="font-size:11px;color:var(--text-3);width:32px;text-align:right;flex-shrink:0">${pct.toFixed(0)}%</span>
+    return `<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:7px;height:7px;border-radius:2px;background:${_TREC_COLOR[t]||'#64748b'}"></div>
+      <span style="font-size:11px;color:rgba(220,250,235,.7)">${_TREC_LABEL[t]||t} · <span style="color:#fff;font-weight:600">${pct.toFixed(0)}%</span></span>
     </div>`;
   }).join('');
   return `
-<div style="position:relative;border-radius:18px;background:linear-gradient(135deg,#061812 0%,#0a1f14 40%,#1a1e2e 100%);margin-bottom:16px">
-  <div style="position:absolute;inset:0;border-radius:18px;background:radial-gradient(ellipse at 15% 45%,rgba(16,185,129,.20) 0%,transparent 62%);pointer-events:none"></div>
-  <div style="position:relative;padding:24px">
-    <div style="margin-bottom:${recMesAtual > 0 ? '20px' : '0'}">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.09em;color:rgba(16,185,129,.65);text-transform:uppercase;margin-bottom:6px">${Utils.monthsFull[month-1]} ${year}</div>
-      <div style="font-size:44px;font-weight:800;font-family:var(--mono);color:#10b981;line-height:1;letter-spacing:-1.5px">${Utils.currency(recMesAtual)}</div>
-      ${recMesAnt > 0
-        ? `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;font-size:13px;color:${_dClr};font-weight:600">
-             <span>${_dIco}</span><span>${Math.abs(recChg).toFixed(1)}% vs mês anterior</span>
-           </div>`
-        : `<div style="margin-top:8px;font-size:12px;color:var(--text-4)">Primeiro mês registrado</div>`}
+<div style="position:relative;border-radius:18px;padding:22px 24px;background:linear-gradient(145deg,rgba(29,201,126,.18) 0%,rgba(29,201,126,.08) 60%,rgba(29,201,126,.04) 100%);border:1px solid rgba(29,201,126,.24);overflow:hidden;margin-bottom:16px;display:flex;flex-direction:column;gap:18px">
+  <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(29,201,126,.28) 0%,transparent 68%);pointer-events:none"></div>
+  <div style="position:relative;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:11px;background:rgba(29,201,126,.22);display:flex;align-items:center;justify-content:center;color:#1dc97e;flex-shrink:0">${icon('trending-up',{size:16})}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:9.5px;font-weight:700;color:rgba(180,235,210,.7);letter-spacing:.1em;text-transform:uppercase">Receita do Mês</div>
+      <div style="font-size:13px;font-weight:600;color:rgba(220,250,235,.85)">${Utils.monthsFull[month-1]} ${year} · ${recsHero.length} lançamento${recsHero.length===1?'':'s'}</div>
     </div>
-    ${recMesAtual > 0 ? `
-    <div style="margin-bottom:10px">
-      <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.06);display:flex;gap:2px">${_barSegs}</div>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:7px 14px${_persons ? ';margin-bottom:4px' : ''}">${_legend}</div>
-    ${_persons ? `<div>${_persons}</div>` : ''}
-    ` : `<div style="color:var(--text-4);font-size:13px;margin-top:4px">Nenhuma receita registrada neste mês.</div>`}
   </div>
+  <div style="position:relative">
+    <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${Utils.currency(recMesAtual)}</div>
+    ${recMesAnt > 0 ? `
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
+        ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
+        ${_dSign}${recChg.toFixed(1)}%
+      </span>
+      <span style="font-size:12px;color:rgba(220,250,235,.55)">vs. ${_prevMonth} · ${_diff>=0?'+':''}${Utils.currency(_diff)}</span>
+    </div>` : `
+    <div style="font-size:12px;color:rgba(220,250,235,.55);margin-top:12px">Primeiro mês registrado</div>`}
+  </div>
+  ${recMesAtual > 0 && _barSegs ? `
+  <div style="margin-top:auto">
+    <div style="font-size:10px;font-weight:600;color:rgba(220,250,235,.55);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">Por tipo de fonte</div>
+    <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
+  </div>` : ''}
+</div>
+
+${(() => {
+  // Cards "Receita por pessoa" — bloco separado abaixo do hero.
+  const _byPerson = {};
+  recsHero.forEach(r => {
+    if (!_byPerson[r.person]) _byPerson[r.person] = { amt: 0, count: 0 };
+    _byPerson[r.person].amt += r.amount;
+    _byPerson[r.person].count++;
+  });
+  const _personRows = Object.entries(_byPerson).sort((a,b) => b[1].amt - a[1].amt);
+  if (!_personRows.length) return '';
+  return `
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px">
+  ${_personRows.map(([p, info]) => {
+    const pct = recMesAtual > 0 ? (info.amt / recMesAtual * 100) : 0;
+    const pColor = Utils.personColor ? Utils.personColor(p) : '#1dc97e';
+    const initial = (p[0]||'?').toUpperCase();
+    return `
+    <div style="background:var(--surface-2);border-radius:12px;padding:13px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${pColor},${pColor}cc);color:#fff;box-shadow:0 4px 12px ${pColor}30;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${initial}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:13.5px;font-weight:600;color:var(--text-1)">${p}</span>
+          <span style="font-size:11px;color:var(--text-3)">· ${info.count} lançamento${info.count===1?'':'s'}</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:7px">
+          <div style="width:${pct.toFixed(1)}%;height:100%;background:${pColor};border-radius:3px"></div>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-3);margin-top:4px">${pct.toFixed(1)}% do total</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:17px;font-weight:700;color:var(--text-1);letter-spacing:-0.4px">${Utils.currency(info.amt)}</div>
+      </div>
+    </div>`;
+  }).join('')}
 </div>`;
 })()}
 
@@ -2396,78 +2427,105 @@ ${(() => {
 </div>
 
 ${(() => {
+  // Hero monocromático vermelho translúcido — fiel ao spec Figma.
+  // Despesa do mês + delta (pill — queda=verde, alta=vermelho) +
+  // breakdown por categoria (top 5 + Outras).
   const despMesAtual = Store.get().despesas.filter(d => d.year === year && d.month === month).reduce((s,d) => s + d.amount, 0);
   const _py = month > 1 ? year : year - 1;
   const _pm = month > 1 ? month - 1 : 12;
+  const despHero = Store.get().despesas.filter(d => d.year === year && d.month === month);
   const despMesAnt = Store.get().despesas.filter(d => d.year === _py && d.month === _pm).reduce((s,d) => s + d.amount, 0);
   const despChg = despMesAnt > 0 ? ((despMesAtual - despMesAnt) / despMesAnt * 100) : 0;
-  // Para despesas: aumento = ruim (amber/red), queda = bom (green)
+  // Pra despesa: aumento = ruim (vermelho), queda = bom (verde)
   const _dir   = despChg <= -5 ? 'down' : despChg >= 5 ? 'up' : 'flat';
-  const _dClr  = _dir === 'down' ? '#10b981' : _dir === 'up' ? '#ef4444' : '#64748b';
-  const _dIco  = _dir === 'down' ? '↓'       : _dir === 'up' ? '↑'       : '→';
-  // breakdown por categoria (mês atual), top 5 + Outros
+  const _dClr  = _dir === 'down' ? '#1dc97e' : '#ef4444';
+  const _dBg   = _dir === 'down' ? 'rgba(29,201,126,.18)' : 'rgba(239,68,68,.18)';
+  const _dSign = despChg > 0 ? '+' : '';
+  const _diff  = despMesAtual - despMesAnt;
+  const _prevMonth = Utils.monthsFull[(month-2+12)%12];
+  // breakdown top 5 categorias + Outras
   const _catH = {};
-  Store.get().despesas.filter(d => d.year === year && d.month === month).forEach(d => {
-    _catH[d.category] = (_catH[d.category] || 0) + d.amount;
-  });
+  despHero.forEach(d => { _catH[d.category] = (_catH[d.category] || 0) + d.amount; });
   const _catSortedH = Object.entries(_catH).sort((a,b) => b[1] - a[1]);
   const _top5 = _catSortedH.slice(0, 5);
   const _rest = _catSortedH.slice(5).reduce((s, [,v]) => s + v, 0);
   const _segs = _top5.map(([c, v]) => ({c, v, color: (Store.CATEGORIES[c]||{}).color || '#7C6EF8', label: (Store.CATEGORIES[c]||{}).label || c}));
   if (_rest > 0) _segs.push({c:'__rest', v:_rest, color:'#64748b', label:'Outras'});
-  // por pessoa (mês atual)
-  const _byPersonD = {};
-  Store.get().despesas.filter(d => d.year === year && d.month === month).forEach(d => {
-    _byPersonD[d.person] = (_byPersonD[d.person] || 0) + d.amount;
-  });
   const _barSegs = _segs.filter(s => s.v > 0).map(s => {
     const pct = despMesAtual > 0 ? (s.v / despMesAtual * 100) : 0;
-    return `<div style="width:${pct.toFixed(1)}%;background:${s.color};height:100%;border-radius:2px;transition:width .3s" title="${s.label}: ${Utils.currency(s.v)}"></div>`;
+    return `<div style="width:${pct.toFixed(1)}%;background:${s.color};height:100%" title="${s.label}: ${Utils.currency(s.v)}"></div>`;
   }).join('');
-  const _legend = _segs.filter(s => s.v > 0).map(s => `
-    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-3)">
-      <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
-      <span>${s.label}</span>
-      <span style="color:var(--text-2);font-weight:600;font-family:var(--mono);margin-left:2px">${Utils.currency(s.v)}</span>
-    </div>`).join('');
-  const _persons = Object.entries(_byPersonD).sort((a, b) => b[1] - a[1]).map(([p, v]) => {
-    const pct = despMesAtual > 0 ? (v / despMesAtual * 100) : 0;
-    return `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05)">
-      ${Utils.personAvatarHtml(p, {size:32, fontSize:13})}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:4px">
-          <span style="font-size:12px;color:var(--text-2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p}</span>
-          <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:#ef4444;white-space:nowrap">${Utils.currency(v)}</span>
-        </div>
-        <div style="height:3px;background:rgba(255,255,255,.07);border-radius:2px;display:flex">
-          <div style="height:100%;width:${pct.toFixed(1)}%;background:#ef4444;border-radius:2px"></div>
-        </div>
-      </div>
-      <span style="font-size:11px;color:var(--text-3);width:32px;text-align:right;flex-shrink:0">${pct.toFixed(0)}%</span>
+  const _legend = _segs.filter(s => s.v > 0).map(s => {
+    const pct = despMesAtual > 0 ? (s.v / despMesAtual * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:7px;height:7px;border-radius:2px;background:${s.color}"></div>
+      <span style="font-size:11px;color:rgba(250,220,220,.7)">${s.label} · <span style="color:#fff;font-weight:600">${pct.toFixed(0)}%</span></span>
     </div>`;
   }).join('');
   return `
-<div style="position:relative;border-radius:18px;background:linear-gradient(135deg,#1a0a0a 0%,#1f1208 40%,#1a1e2e 100%);margin-bottom:16px">
-  <div style="position:absolute;inset:0;border-radius:18px;background:radial-gradient(ellipse at 15% 45%,rgba(239,68,68,.18) 0%,transparent 62%);pointer-events:none"></div>
-  <div style="position:relative;padding:24px">
-    <div style="margin-bottom:${despMesAtual > 0 ? '20px' : '0'}">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.09em;color:rgba(239,68,68,.65);text-transform:uppercase;margin-bottom:6px">${Utils.monthsFull[month-1]} ${year}</div>
-      <div style="font-size:44px;font-weight:800;font-family:var(--mono);color:#ef4444;line-height:1;letter-spacing:-1.5px">${Utils.currency(despMesAtual)}</div>
-      ${despMesAnt > 0
-        ? `<div style="display:flex;align-items:center;gap:5px;margin-top:8px;font-size:13px;color:${_dClr};font-weight:600">
-             <span>${_dIco}</span><span>${Math.abs(despChg).toFixed(1)}% vs mês anterior</span>
-           </div>`
-        : `<div style="margin-top:8px;font-size:12px;color:var(--text-4)">Primeiro mês registrado</div>`}
+<div style="position:relative;border-radius:18px;padding:22px 24px;background:linear-gradient(145deg,rgba(239,68,68,.18) 0%,rgba(239,68,68,.08) 60%,rgba(239,68,68,.04) 100%);border:1px solid rgba(239,68,68,.24);overflow:hidden;margin-bottom:16px;display:flex;flex-direction:column;gap:18px">
+  <div style="position:absolute;top:-80px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(239,68,68,.28) 0%,transparent 68%);pointer-events:none"></div>
+  <div style="position:relative;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:11px;background:rgba(239,68,68,.22);display:flex;align-items:center;justify-content:center;color:#ef4444;flex-shrink:0">${icon('trending-down',{size:16})}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:9.5px;font-weight:700;color:rgba(235,180,180,.7);letter-spacing:.1em;text-transform:uppercase">Despesa do Mês</div>
+      <div style="font-size:13px;font-weight:600;color:rgba(250,220,220,.85)">${Utils.monthsFull[month-1]} ${year} · ${despHero.length} lançamento${despHero.length===1?'':'s'}</div>
     </div>
-    ${despMesAtual > 0 ? `
-    <div style="margin-bottom:10px">
-      <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.06);display:flex;gap:2px">${_barSegs}</div>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:7px 14px${_persons ? ';margin-bottom:4px' : ''}">${_legend}</div>
-    ${_persons ? `<div>${_persons}</div>` : ''}
-    ` : `<div style="color:var(--text-4);font-size:13px;margin-top:4px">Nenhuma despesa registrada neste mês.</div>`}
   </div>
+  <div style="position:relative">
+    <div style="font-size:44px;font-weight:700;color:#fff;letter-spacing:-2px;line-height:1;white-space:nowrap">${Utils.currency(despMesAtual)}</div>
+    ${despMesAnt > 0 ? `
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:4px;background:${_dBg};color:${_dClr};font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
+        ${icon(_dir === 'down' ? 'trending-down' : 'trending-up', {size:11, color:_dClr})}
+        ${_dSign}${despChg.toFixed(1)}%
+      </span>
+      <span style="font-size:12px;color:rgba(250,220,220,.55)">vs. ${_prevMonth} · ${_diff>=0?'+':''}${Utils.currency(_diff)}</span>
+    </div>` : `
+    <div style="font-size:12px;color:rgba(250,220,220,.55);margin-top:12px">Primeiro mês registrado</div>`}
+  </div>
+  ${despMesAtual > 0 && _barSegs ? `
+  <div style="margin-top:auto">
+    <div style="font-size:10px;font-weight:600;color:rgba(250,220,220,.55);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">Por categoria</div>
+    <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
+  </div>` : ''}
+</div>
+
+${(() => {
+  // Cards "Despesa por pessoa" — bloco separado.
+  const _byPersonD = {};
+  despHero.forEach(d => {
+    if (!_byPersonD[d.person]) _byPersonD[d.person] = { amt: 0, count: 0 };
+    _byPersonD[d.person].amt += d.amount;
+    _byPersonD[d.person].count++;
+  });
+  const _personRows = Object.entries(_byPersonD).sort((a,b) => b[1].amt - a[1].amt);
+  if (!_personRows.length) return '';
+  return `
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px">
+  ${_personRows.map(([p, info]) => {
+    const pct = despMesAtual > 0 ? (info.amt / despMesAtual * 100) : 0;
+    const pColor = Utils.personColor ? Utils.personColor(p) : '#ef4444';
+    const initial = (p[0]||'?').toUpperCase();
+    return `
+    <div style="background:var(--surface-2);border-radius:12px;padding:13px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${pColor},${pColor}cc);color:#fff;box-shadow:0 4px 12px ${pColor}30;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${initial}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:13.5px;font-weight:600;color:var(--text-1)">${p}</span>
+          <span style="font-size:11px;color:var(--text-3)">· ${info.count} lançamento${info.count===1?'':'s'}</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:7px">
+          <div style="width:${pct.toFixed(1)}%;height:100%;background:${pColor};border-radius:3px"></div>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-3);margin-top:4px">${pct.toFixed(1)}% do total</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:17px;font-weight:700;color:var(--text-1);letter-spacing:-0.4px">${Utils.currency(info.amt)}</div>
+      </div>
+    </div>`;
+  }).join('')}
 </div>`;
 })()}
 
