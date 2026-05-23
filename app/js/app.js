@@ -4498,7 +4498,11 @@ ${contratos.length === 0 ? `
   }
 
   function renderContas(container, mode = 'all') {
-    const cartoes = Store.get().cartoes;
+    const cartoes = Store.get().cartoes || [];
+    // Normalização defensiva: cartões criados em versões antigas podem não ter
+    // o campo `parcelas`. Sem isso, qualquer cc.parcelas.reduce() abaixo quebra
+    // a tela inteira de Cartões com TypeError silencioso.
+    cartoes.forEach(cc => { if (!Array.isArray(cc.parcelas)) cc.parcelas = []; });
     const allContas = Store.get().contas || [];
     const month = getMonth(), year = getYear();
     const showContas  = mode === 'all' || mode === 'contas';
@@ -5028,6 +5032,67 @@ ${(() => {
 </div>
 
 ${(() => {
+  // ─── Hero "Patrimônio Total" no padrão Figma ─────────────────
+  // Cores: classes principais com cor distinta + Outras agrupado
+  const _imoveisHero = (typeof Store.getImoveis === 'function' ? Store.getImoveis() : []);
+  const _veiculosHero = (typeof Store.getVeiculos === 'function' ? Store.getVeiculos() : []);
+  const _totImovel = _imoveisHero.reduce((s, im) => s + (Store.imovelValorEstimado ? Store.imovelValorEstimado(im) : (im.valorAtual || im.valorCompra || 0)), 0);
+  const _totVeiculo = _veiculosHero.reduce((s, v) => s + (Store.veiculoValorEstimado ? Store.veiculoValorEstimado(v) : (v.valorAtual || v.valorCompra || 0)), 0);
+  const _totalPat = (totalInv || 0) + (totalAtiv || 0) + _totImovel + _totVeiculo;
+  const _CLASS_COLORS = {
+    'Investimentos': '#1dc97e',
+    'Imóveis':       '#6b5ef5',
+    'Veículos':      '#f59e0b',
+    'Outros Ativos': '#2dcfc0',
+  };
+  const _segs = [
+    { lbl: 'Investimentos', v: totalInv,    c: _CLASS_COLORS['Investimentos'] },
+    { lbl: 'Imóveis',       v: _totImovel,  c: _CLASS_COLORS['Imóveis'] },
+    { lbl: 'Veículos',      v: _totVeiculo, c: _CLASS_COLORS['Veículos'] },
+    { lbl: 'Outros Ativos', v: totalAtiv,   c: _CLASS_COLORS['Outros Ativos'] },
+  ].filter(s => s.v > 0);
+  const _barSegs = _segs.map(s => {
+    const pct = _totalPat > 0 ? (s.v / _totalPat * 100) : 0;
+    return `<div style="width:${pct.toFixed(1)}%;background:${s.c};height:100%" title="${s.lbl}: ${Utils.currency(s.v)}"></div>`;
+  }).join('');
+  const _legend = _segs.map(s => {
+    const pct = _totalPat > 0 ? (s.v / _totalPat * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:7px;height:7px;border-radius:2px;background:${s.c}"></div>
+      <span class="hero-legend-text">${s.lbl} · <span class="hero-legend-strong">${pct.toFixed(0)}%</span></span>
+    </div>`;
+  }).join('');
+  return _totalPat > 0 ? `
+<div class="hero-mono is-poder mb-4">
+  <div class="hero-mono-glow"></div>
+  <div style="position:relative;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:11px;background:rgba(107,94,245,.22);display:flex;align-items:center;justify-content:center;color:#8a7ef8;flex-shrink:0">${icon('landmark',{size:16})}</div>
+    <div style="flex:1;min-width:0">
+      <div class="hero-eyebrow">Patrimônio Total</div>
+      <div class="hero-sub">${new Date().getFullYear()} · ${_segs.length} classe${_segs.length===1?'':'s'} de ativos</div>
+    </div>
+  </div>
+  <div style="position:relative">
+    <div class="hero-value">${Utils.currency(_totalPat)}</div>
+    ${rendimento > 0 ? `
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:4px;background:rgba(29,201,126,.18);color:#1dc97e;font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
+        ${icon('trending-up',{size:11, color:'#1dc97e'})}
+        ${Utils.currency(rendimento)}/ano
+      </span>
+      <span class="hero-mute">rendimento estimado líquido (${totalInv > 0 ? (rendimento/totalInv*100).toFixed(1) : 0}% a.a.)</span>
+    </div>` : ''}
+  </div>
+  ${_barSegs ? `
+  <div style="margin-top:auto">
+    <div class="hero-caption">Por classe de ativo</div>
+    <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;gap:2px">${_barSegs}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:9px">${_legend}</div>
+  </div>` : ''}
+</div>` : '';
+})()}
+
+${(() => {
   // Coach inline contextual — Patrimônio
   const pctRend = totalInv > 0 ? (rendimento / totalInv * 100) : 0;
   const concentrado = Object.values(byType).sort((a,b)=>b-a)[0] || 0;
@@ -5096,21 +5161,23 @@ ${(() => {
   </div>` : ''}
 </div>
 
-<!-- Charts -->
-<div class="chart-grid mb-6" style="grid-template-columns:1fr 1.6fr">
-  <div class="card">
+<!-- Charts: distribuição + evolução (responsivo + proporcionado) -->
+<div class="mb-6" style="display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:16px;align-items:stretch">
+  <div class="card" style="display:flex;flex-direction:column">
     <div class="card-header"><span class="card-title">Distribuição do Portfólio</span></div>
-    <div class="chart-with-legend">
-      <canvas id="chartPatDonut"></canvas>
-      <div class="donut-legend" id="patLegend" style="width:100%;margin-top:8px"></div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:16px 0;flex:1">
+      <canvas id="chartPatDonut" width="240" height="240" style="max-width:100%;height:auto"></canvas>
     </div>
+    <div class="donut-legend" id="patLegend" style="width:100%;padding:10px 0 0;border-top:1px solid var(--border)"></div>
   </div>
-  <div class="card">
+  <div class="card" style="display:flex;flex-direction:column;min-width:0">
     <div class="card-header">
       <span class="card-title">Evolução Patrimonial ${getYear()}</span>
       <span class="badge badge-accent">Estimado</span>
     </div>
-    <div class="chart-wrap"><canvas id="chartPatEvolucao" class="chart-canvas"></canvas></div>
+    <div class="chart-wrap" style="flex:1;display:flex;align-items:stretch;min-height:340px">
+      <canvas id="chartPatEvolucao" class="chart-canvas" height="340" style="max-height:380px"></canvas>
+    </div>
   </div>
 </div>
 
@@ -7586,7 +7653,7 @@ ${reservas.length > 0 ? `
     A diferença para alternativas de baixo custo pode passar de <strong style="color:var(--red)">${Utils.currency(rows[0].economia)}</strong>.
   </div>
 </div>
-<div class="chart-wrap mb-4"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="200"></canvas></div>
+<div class="chart-wrap mb-4" style="min-height:300px;display:flex;align-items:stretch"><canvas id="chartFeeAnalyzer" class="chart-canvas" height="300" style="max-height:340px"></canvas></div>
 <div class="table-wrap">
   <table class="data-table">
     <thead><tr>
@@ -7617,7 +7684,7 @@ ${reservas.length > 0 ? `
 </div>`;
       if (window._chartFeeAnalyzer) window._chartFeeAnalyzer.destroy();
       window._chartFeeAnalyzer = Charts.Line(document.getElementById('chartFeeAnalyzer'),
-        { labels, datasets: dssets }, { height: 200 });
+        { labels, datasets: dssets }, { height: 300 });
     }
     _autoCalcInv(['feeCapital','feeTaxaFundo','feeAnos'], 'btnFeeAnalyzer');
     document.getElementById('btnFeeAnalyzer')?.addEventListener('click', calcFeeAnalyzer);
@@ -7660,7 +7727,7 @@ ${reservas.length > 0 ? `
       if (!resultEl) return;
 
       resultEl.innerHTML = `
-<div class="chart-wrap mb-4"><canvas id="chartCenarios" class="chart-canvas" height="220"></canvas></div>
+<div class="chart-wrap mb-4" style="min-height:320px;display:flex;align-items:stretch"><canvas id="chartCenarios" class="chart-canvas" height="320" style="max-height:380px"></canvas></div>
 <div class="table-wrap">
   <table class="data-table">
     <thead><tr><th>Cenário</th><th class="num">Capital</th><th class="num">Aporte/mês</th><th class="num">Taxa</th><th class="num">Horizonte</th><th class="num">Valor Final</th></tr></thead>
@@ -7681,7 +7748,7 @@ ${reservas.length > 0 ? `
 </div>`;
       if (window._chartCenarios) window._chartCenarios.destroy();
       window._chartCenarios = Charts.Line(document.getElementById('chartCenarios'),
-        { labels, datasets }, { height: 220 });
+        { labels, datasets }, { height: 320 });
     }
 
     // Auto-calc cenários: re-calcula ao mudar qualquer input
@@ -7703,11 +7770,13 @@ ${reservas.length > 0 ? `
     const fins = Store.getFinanciamentos();
     const totalDevedor = Store.totalFinanciamentosDevedor();
     const TIPO_LABEL = { imovel: 'Imóvel', veiculo: 'Veículo', pessoal: 'Pessoal', estudantil: 'Estudantil', empresarial: 'Empresarial' };
-    const TIPO_COLOR = { imovel: 'var(--teal)', veiculo: 'var(--accent)', pessoal: 'var(--amber)', estudantil: 'var(--green)', empresarial: 'var(--red)' };
+    const TIPO_COLOR = { imovel: '#14B8A6', veiculo: '#7367F0', pessoal: '#F59E0B', estudantil: '#22C55E', empresarial: '#EF4444' };
+    const TIPO_ICON  = { imovel: 'home', veiculo: 'car', pessoal: 'user', estudantil: 'graduation-cap', empresarial: 'briefcase' };
 
     // Calcular KPIs adicionais
     const totalPagoGlobal = fins.reduce((s, f) => s + Store.financiamentoTotalPago(f), 0);
     const totalJurosGlobal = fins.reduce((s, f) => s + Store.financiamentoTotalJuros(f), 0);
+    const totalContratado = fins.reduce((s, f) => s + (f.valorFinanciado || 0), 0);
     const mediaJuros = fins.length > 0
       ? fins.reduce((s, f) => s + (f.taxaMensal || 0), 0) / fins.length
       : 0;
@@ -7715,6 +7784,10 @@ ${reservas.length > 0 ? `
       const k = Math.min((f.parcelasPagas || 0) + 1, f.prazo || 0);
       return s + (k > 0 ? Store.financiamentoParcelaNa(f, k) : 0);
     }, 0);
+    const totalContratoComJuros = totalContratado + totalJurosGlobal;
+    const pctQuitado = totalContratoComJuros > 0 ? (totalPagoGlobal / totalContratoComJuros) * 100 : 0;
+    const receitaMes = Store.sumReceitas(getMonth(), getYear());
+    const pctReceita = receitaMes > 0 ? (proxParcelaMes / receitaMes) * 100 : 0;
 
     container.innerHTML = `
 <div class="page-head mb-4">
@@ -7735,22 +7808,60 @@ ${reservas.length > 0 ? `
 </div>
 
 ${fins.length > 0 ? `
-<div class="kpi-grid mb-6">
-  <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Saldo Devedor Total</div><div class="kpi-value red">${Utils.currency(totalDevedor)}</div><div class="kpi-sub">${fins.length} financiamento${fins.length>1?'s':''} ativo${fins.length>1?'s':''}</div></div>
+<!-- Hero translúcido — Saldo Devedor Total -->
+<div class="hero-mono is-despesa" style="margin-bottom:16px">
+  <div class="hero-mono-glow"></div>
+  <div style="position:relative;display:flex;align-items:center;gap:12px">
+    <div style="width:34px;height:34px;border-radius:11px;background:rgba(239,68,68,.22);display:flex;align-items:center;justify-content:center;color:#ef4444;flex-shrink:0">${icon('landmark',{size:16})}</div>
+    <div style="flex:1;min-width:0">
+      <div class="hero-eyebrow">Saldo Devedor Total</div>
+      <div class="hero-sub">${fins.length} financiamento${fins.length===1?'':'s'} ativo${fins.length===1?'':'s'} · sistema SAC/Price</div>
+    </div>
   </div>
+  <div style="position:relative">
+    <div class="hero-value">${Utils.currency(totalDevedor)}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.18);color:#86efac;font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px">
+        ${icon('check', {size:11, color:'#86efac'})}
+        ${pctQuitado.toFixed(0)}% quitado
+      </span>
+      <span class="hero-mute">de ${Utils.currency(totalContratoComJuros)} (capital + juros)</span>
+    </div>
+  </div>
+  ${totalContratado > 0 ? `
+  <div style="margin-top:auto">
+    <div class="hero-caption" style="margin-bottom:7px">Progresso de quitação</div>
+    <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.08)">
+      <div style="width:${pctQuitado.toFixed(1)}%;background:linear-gradient(90deg,#22C55E,#86efac)"></div>
+    </div>
+  </div>` : ''}
+</div>
+
+<!-- 3 KPIs secundários -->
+<div class="kpi-grid mb-6">
   <div class="kpi-card" style="--kpi-color:var(--accent);--kpi-bg:var(--accent-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Parcela Mensal</div><div class="kpi-value accent">${Utils.currency(proxParcelaMes)}</div><div class="kpi-sub">soma das próximas parcelas</div></div>
+    <div class="kpi-icon">${icon('clock', {size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Parcela Mensal</div>
+      <div class="kpi-value accent">${Utils.currency(proxParcelaMes)}</div>
+      <div class="kpi-sub">${pctReceita > 0 ? `${pctReceita.toFixed(0)}% da receita do mês` : 'soma das próximas parcelas'}</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 7 22 7 22 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Total Já Pago</div><div class="kpi-value green">${Utils.currency(totalPagoGlobal)}</div><div class="kpi-sub">capital amortizado + juros pagos</div></div>
+    <div class="kpi-icon">${icon('trending-up', {size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Total Já Pago</div>
+      <div class="kpi-value green">${Utils.currency(totalPagoGlobal)}</div>
+      <div class="kpi-sub">capital amortizado + juros pagos</div>
+    </div>
   </div>
   <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim,#F59E0B18)">
-    <div class="kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="kpi-body"><div class="kpi-label">Média de Juros</div><div class="kpi-value" style="color:var(--amber)">${mediaJuros.toFixed(2)}% a.m.</div><div class="kpi-sub">total de juros no contrato: ${Utils.currency(totalJurosGlobal)}</div></div>
+    <div class="kpi-icon">${icon('percent', {size:22})}</div>
+    <div class="kpi-body">
+      <div class="kpi-label">Média de Juros</div>
+      <div class="kpi-value" style="color:var(--amber)">${mediaJuros.toFixed(2)}% a.m.</div>
+      <div class="kpi-sub">total de juros: ${Utils.currency(totalJurosGlobal)}</div>
+    </div>
   </div>
 </div>
 
@@ -7780,33 +7891,65 @@ ${fins.length === 0
       const totalJuros = Store.financiamentoTotalJuros(f);
       const cet = Store.financiamentoCETAnual(f);
       const progresso = f.prazo ? ((f.parcelasPagas||0) / f.prazo) * 100 : 0;
-      const cor = TIPO_COLOR[f.type] || 'var(--accent)';
+      const cor = TIPO_COLOR[f.type] || '#7367F0';
+      const ico = TIPO_ICON[f.type] || 'file-text';
+      const quitado = progresso >= 100;
+      // Cor da barra de quitação: verde ≥70%, cor do tipo entre 30-70%, amber <30%
+      const barColor = progresso >= 70 ? '#22C55E' : progresso >= 30 ? cor : '#F59E0B';
       return `
-    <div class="card row-clickable" style="border-top:3px solid ${cor};position:relative;cursor:pointer" data-edit-fin="${f.id}">
-      <div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${TIPO_LABEL[f.type] || f.type} · ${f.sistema === 'sac' ? 'SAC' : 'Price'}</div>
-      <div style="font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:2px">${f.label}</div>
-      ${f.banco ? `<div style="font-size:11px;color:var(--text-4);margin-bottom:10px">${f.banco}</div>` : '<div style="margin-bottom:10px"></div>'}
+    <div class="card row-clickable" style="position:relative;cursor:pointer;padding:18px" data-edit-fin="${f.id}">
+      <!-- Header: avatar gradient + título + badges -->
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px">
+        <div style="width:44px;height:44px;border-radius:13px;flex-shrink:0;background:linear-gradient(135deg,${cor},${cor}cc);color:#fff;box-shadow:0 4px 12px ${cor}40;display:flex;align-items:center;justify-content:center">
+          ${icon(ico, {size:20, color:'#fff'})}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-size:10px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.06em">${TIPO_LABEL[f.type] || f.type}</span>
+            <span style="font-size:10px;color:var(--text-4)">·</span>
+            <span style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">${f.sistema === 'sac' ? 'SAC' : 'Price'}</span>
+            ${quitado ? `<span style="font-size:9.5px;font-weight:700;background:rgba(34,197,94,.18);color:#22C55E;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.05em">Quitado</span>` : ''}
+          </div>
+          <div style="font-size:15.5px;font-weight:700;color:var(--text-1);line-height:1.25">${f.label}</div>
+          ${f.banco ? `<div style="font-size:11.5px;color:var(--text-4);margin-top:2px">${f.banco}</div>` : ''}
+        </div>
+      </div>
 
-      <div class="progress-bar" style="margin-bottom:6px"><div class="progress-fill" style="width:${progresso}%;background:${cor}"></div></div>
+      <!-- Barra de quitação colorida -->
+      <div style="height:7px;border-radius:4px;overflow:hidden;background:var(--surface-2);margin-bottom:6px">
+        <div style="width:${progresso}%;height:100%;background:${barColor};border-radius:4px;transition:width .3s"></div>
+      </div>
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:14px">
         <span>${f.parcelasPagas||0}/${f.prazo} pagas (${progresso.toFixed(0)}%)</span>
-        <span>Taxa ${(f.taxaMensal||0).toFixed(2)}% a.m. · CET ${cet.toFixed(2)}% a.a.</span>
+        <span>${(f.taxaMensal||0).toFixed(2)}% a.m. · CET ${cet.toFixed(2)}% a.a.</span>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;font-size:12px;margin-bottom:12px">
-        <div><div style="color:var(--text-4)">Próxima parcela</div><div style="font-weight:700;color:var(--text-1);font-family:var(--mono)">${Utils.currency(proxParcela)}</div></div>
-        <div><div style="color:var(--text-4)">Parcela inicial</div><div style="font-weight:600;font-family:var(--mono)">${Utils.currency(parcelaInicial)}</div></div>
-        <div><div style="color:var(--text-4)">Saldo devedor</div><div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(saldo)}</div></div>
-        <div><div style="color:var(--text-4)">Já pago</div><div style="font-weight:600;color:var(--green);font-family:var(--mono)">${Utils.currency(totalPago)}</div></div>
-        <div><div style="color:var(--text-4)">Falta pagar (nominal)</div><div style="font-weight:600;font-family:var(--mono)">${Utils.currency(totalRestante)}</div></div>
-        <div><div style="color:var(--text-4)">Total juros do contrato</div><div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(totalJuros)}</div></div>
-      </div>
-
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn-xs" data-pagar-fin="${f.id}">+1 parcela paga</button>
-        <button class="btn-xs" data-tabela-fin="${f.id}">Ver tabela</button>
-        <button class="btn-xs" data-antec-fin="${f.id}">Simular antecipação</button>
-        <button class="btn-xs" data-prog-fin-c="${f.id}">Programar lançamento</button>
+      <!-- Métricas em grid 2x3 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;font-size:12px">
+        <div>
+          <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Próxima parcela</div>
+          <div style="font-weight:700;color:var(--text-1);font-family:var(--mono);font-size:13.5px">${Utils.currency(proxParcela)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Parcela inicial</div>
+          <div style="font-weight:600;color:var(--text-2);font-family:var(--mono);font-size:13px">${Utils.currency(parcelaInicial)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo devedor</div>
+          <div style="font-weight:700;color:var(--red);font-family:var(--mono);font-size:13.5px">${Utils.currency(saldo)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Já pago</div>
+          <div style="font-weight:600;color:var(--green);font-family:var(--mono);font-size:13px">${Utils.currency(totalPago)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Falta (nominal)</div>
+          <div style="font-weight:600;color:var(--text-2);font-family:var(--mono);font-size:13px">${Utils.currency(totalRestante)}</div>
+        </div>
+        <div>
+          <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Juros do contrato</div>
+          <div style="font-weight:700;color:var(--red);font-family:var(--mono);font-size:13px">${Utils.currency(totalJuros)}</div>
+        </div>
       </div>
     </div>`;
     }).join('')}
@@ -7913,25 +8056,16 @@ ${fins.length === 0
       });
     }
 
+    // Padrão "clique direto": card inteiro abre o modal de edição,
+    // onde ficam todas as ações (ver tabela, antecipar, programar, +1 parcela paga, excluir).
     container.addEventListener('click', e => {
-      // Ignora clique se foi em um botão interno (ações de estado)
-      if (e.target.closest('button')) {
-        const pagBtn = e.target.closest('[data-pagar-fin]');
-        if (pagBtn) {
-          const f = fins.find(x => x.id === pagBtn.dataset.pagarFin);
-          if (f) { Store.updateFinanciamento(f.id, { parcelasPagas: Math.min((f.parcelasPagas||0)+1, f.prazo) }); re(); toast('Parcela contabilizada', 'success'); }
-          return;
-        }
-        const tabBtn = e.target.closest('[data-tabela-fin]');
-        if (tabBtn) { const f = fins.find(x => x.id === tabBtn.dataset.tabelaFin); if (f) _showTabelaFinanciamento(f); return; }
-        const antBtn = e.target.closest('[data-antec-fin]');
-        if (antBtn) { const f = fins.find(x => x.id === antBtn.dataset.antecFin); if (f) _showAntecipacaoModal(f, re); return; }
-        const progBtn = e.target.closest('[data-prog-fin-c]');
-        if (progBtn) { const f = fins.find(x => x.id === progBtn.dataset.progFinC); if (f) _programarParcelaFin(f, re); return; }
-        return;
-      }
+      // Não capturar cliques no botão "+ Novo Financiamento" (page-head)
+      if (e.target.closest('#btnAddFin')) return;
       const editCard = e.target.closest('[data-edit-fin]');
-      if (editCard) { const f = fins.find(x => x.id === editCard.dataset.editFin); if (f) openFinanciamentoModal(f, re); return; }
+      if (editCard) {
+        const f = fins.find(x => x.id === editCard.dataset.editFin);
+        if (f) openFinanciamentoModal(f, re);
+      }
     });
   }
 
@@ -7945,7 +8079,16 @@ ${fins.length === 0
     const tipoAtual = f.tipo || (STORE_TIPOS[0] && STORE_TIPOS[0].id) || '';
     const tipoInfo  = STORE_TIPOS.find(t => t.id === tipoAtual) || STORE_TIPOS[0] || null;
     const hoje = new Date().toISOString().slice(0, 10);
+    const quitado = isEdit && (f.parcelasPagas||0) >= (f.prazo||0);
+    const acoesBar = isEdit ? `
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;padding:12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border)">
+  <button type="button" class="btn-secondary" data-fin-act="pagar" ${quitado?'disabled':''} style="flex:1;min-width:140px;font-size:12px">${icon('check-circle',{size:13})} +1 parcela paga</button>
+  <button type="button" class="btn-secondary" data-fin-act="tabela" style="flex:1;min-width:120px;font-size:12px">${icon('table',{size:13})} Ver tabela</button>
+  <button type="button" class="btn-secondary" data-fin-act="antec" ${quitado?'disabled':''} style="flex:1;min-width:140px;font-size:12px">${icon('zap',{size:13})} Antecipar</button>
+  <button type="button" class="btn-secondary" data-fin-act="prog" ${quitado?'disabled':''} style="flex:1;min-width:160px;font-size:12px">${icon('calendar-plus',{size:13})} Programar lançamento</button>
+</div>` : '';
     const html = `
+${acoesBar}
 <div class="form-grid">
   <div class="form-group form-full"><label class="form-label">Tipo de financiamento</label>
     <select class="form-select" id="fFNTipoNovo">${STORE_TIPOS.map(t=>`<option value="${t.id}"${tipoAtual===t.id?' selected':''}>${t.label}</option>`).join('')}</select>
@@ -8008,19 +8151,41 @@ ${fins.length === 0
       toast('Financiamento removido', 'success');
       if (onSaved) onSaved();
     } : null);
-    // Atualiza descrição + range ao trocar tipo
+    // Atualiza descrição + range ao trocar tipo + ações rápidas (modo edit)
     setTimeout(() => {
       const sel  = document.getElementById('fFNTipoNovo');
       const desc = document.getElementById('fFNTipoDesc');
       const rng  = document.getElementById('fFNTipoRange');
-      if (!sel) return;
-      sel.addEventListener('change', () => {
-        const t = STORE_TIPOS.find(x => x.id === sel.value);
-        if (t) {
-          if (desc) desc.textContent = t.desc || '';
-          if (rng)  rng.textContent  = `Taxa típica a.a.: ${t.taxaMin}% – ${t.taxaMax}%`;
-        }
-      });
+      if (sel) {
+        sel.addEventListener('change', () => {
+          const t = STORE_TIPOS.find(x => x.id === sel.value);
+          if (t) {
+            if (desc) desc.textContent = t.desc || '';
+            if (rng)  rng.textContent  = `Taxa típica a.a.: ${t.taxaMin}% – ${t.taxaMax}%`;
+          }
+        });
+      }
+      // Ações rápidas (apenas em edição)
+      if (isEdit) {
+        document.querySelectorAll('[data-fin-act]').forEach(btn => {
+          btn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            const act = btn.dataset.finAct;
+            if (act === 'pagar') {
+              Store.updateFinanciamento(financiamento.id, { parcelasPagas: Math.min((financiamento.parcelasPagas||0)+1, financiamento.prazo) });
+              Modal.close();
+              toast('Parcela contabilizada', 'success');
+              if (onSaved) onSaved();
+            } else if (act === 'tabela') {
+              _showTabelaFinanciamento(financiamento);
+            } else if (act === 'antec') {
+              _showAntecipacaoModal(financiamento, onSaved);
+            } else if (act === 'prog') {
+              _programarParcelaFin(financiamento, onSaved);
+            }
+          });
+        });
+      }
     }, 50);
   }
 
@@ -10514,24 +10679,22 @@ ${outrs.length ? `
   <!-- Reembolsos -->
   <div class="card" style="padding:15px 17px;display:flex;flex-direction:column;gap:11px">
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text-1)">
-        ${icon('arrow-right-left',{size:14})} Reembolsos
-      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-1)">Reembolsos</div>
       <span style="font-size:11px;color:var(--text-3)">${meusReembolsos.length} aberto${meusReembolsos.length===1?'':'s'}</span>
     </div>
     <div style="display:flex;gap:10px">
       <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(29,201,126,0.3);border-radius:9px">
         <div style="font-size:9.5px;font-weight:700;color:var(--green);letter-spacing:0.08em;text-transform:uppercase">A receber</div>
-        <div style="font-size:17px;font-weight:700;color:var(--green);letter-spacing:-0.4px;margin-top:2px;font-variant-numeric:tabular-nums">+${Utils.currency(aReceber)}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--green);letter-spacing:-0.4px;margin-top:2px;font-variant-numeric:tabular-nums">+${Utils.currency(aReceber)}</div>
       </div>
       <div style="flex:1;padding:10px 11px;background:var(--surface-2);border:1px solid rgba(239,68,68,0.3);border-radius:9px">
         <div style="font-size:9.5px;font-weight:700;color:var(--red);letter-spacing:0.08em;text-transform:uppercase">A pagar</div>
-        <div style="font-size:17px;font-weight:700;color:var(--red);letter-spacing:-0.4px;margin-top:2px;font-variant-numeric:tabular-nums">−${Utils.currency(aPagar)}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--red);letter-spacing:-0.4px;margin-top:2px;font-variant-numeric:tabular-nums">−${Utils.currency(aPagar)}</div>
       </div>
     </div>
     <a href="#reembolsos" onclick="Router.navigate('reembolsos')" style="padding:9px 11px;background:var(--surface-2);border-radius:8px;font-size:11px;color:var(--text-2);display:flex;align-items:center;gap:7px;text-decoration:none">
       ${icon('arrow-right',{size:11, color: liqReembolso>=0?'var(--green)':'var(--red)'})}
-      <span>Líquido</span>
+      <span>Líquido a receber:</span>
       <strong style="color:${liqReembolso>=0?'var(--green)':'var(--red)'};margin-left:auto;font-variant-numeric:tabular-nums">${liqReembolso>=0?'+':'−'}${Utils.currency(Math.abs(liqReembolso))}</strong>
     </a>
   </div>
@@ -10624,7 +10787,7 @@ ${outrs.length ? `
           </div>
           <div style="font-size:14px;font-weight:700;color:${cor};letter-spacing:-0.3px">${pct.toFixed(0)}%</div>
         </div>
-        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden">
+        <div style="height:4px;border-radius:2px;background:var(--border);overflow:hidden">
           <div style="width:${pct}%;height:100%;background:${cor};border-radius:2px"></div>
         </div>
       </div>`;
@@ -10645,14 +10808,14 @@ ${outrs.length ? `
       <div style="font-size:11px;color:var(--text-3);margin-top:2px">${trendMeses[0].label} – ${trendMeses[4].label} · ganho líquido <strong style="color:${deltaCor}">${deltaStr}</strong></div>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;align-items:end;min-height:140px;margin-top:14px">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;align-items:end;min-height:120px;margin-top:14px">
     ${trendMeses.map((t, i) => {
       const isLast = i === trendMeses.length - 1;
-      const h = (Math.abs(t.val) / trendMax) * 100;
+      const h = (Math.abs(t.val) / trendMax) * 90;
       const isNeg = t.val < 0;
       const cor = isLast
         ? (isNeg ? 'var(--red)' : 'linear-gradient(180deg, var(--accent-2), var(--accent))')
-        : 'rgba(255,255,255,0.07)';
+        : 'var(--surface-2, rgba(255,255,255,0.07))';
       const valLabel = (Math.abs(t.val) >= 1000)
         ? `R$ ${(t.val/1000).toFixed(1)}k`
         : `R$ ${Math.round(t.val)}`;
@@ -10903,12 +11066,13 @@ ${outrs.length ? `
     function buildPainel() {
       // Ordem aderente ao protótipo:
       //   1. Hero pessoal + Reembolsos (linha única, grid interno)
-      //   2. Coach inline (sempre — mas se desligado em vis.coach, esconde)
+      //   2. Coach inline contextual (entre hero e grid de metas/lanc)
       //   3. Metas + Lançamentos (2 colunas)
       //   4. Evolução do Poder de Escolha (trend)
       //   5. Widgets opcionais (saldo, patrimônio, desp/cat, parcelas, coach feed)
       const parts = [];
       if (vis.poder_pessoal) parts.push(wPoderPessoal());
+      parts.push(buildCoachInline());
       if (vis.metas || vis.transacoes) parts.push(wMetasTransacoesGrid());
       if (vis.trend) parts.push(wTrend());
       // Opcionais (visão expandida)
@@ -10928,19 +11092,23 @@ ${outrs.length ? `
     <p class="page-head-meta" style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span class="page-head-meta-total">${monthLabel}</span>
       <span class="page-head-meta-sep">·</span>
-      <span style="color:var(--text-3)">visão pessoal individual</span>
+      <span style="color:var(--green);display:inline-flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        Sincronizado
+      </span>
       <span class="page-head-meta-sep">·</span>
       <a href="#familia" onclick="Router.navigate('familia')" style="color:${corEu};text-decoration:none;display:inline-flex;align-items:center;gap:4px">
         ${icon('users',{size:11})} Ver painel da família ${icon('arrow-right',{size:10})}
       </a>
     </p>
   </div>
-  <button class="btn-secondary" id="btnPersonalizarPainel">${icon('sliders-horizontal',{size:14})} Personalizar</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
+    <button class="btn-secondary" id="btnPersonalizarPainel" style="display:inline-flex;align-items:center;gap:6px">${icon('sliders-horizontal',{size:14})} Personalizar</button>
+    <a href="#lancamentos" onclick="Router.navigate('lancamentos')" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px">${icon('plus',{size:13, color:'#fff'})} Novo Lançamento</a>
+  </div>
 </div>
 
 ${renderPageMonthPicker(container)}
-
-${buildCoachInline()}
 
 <div id="painelWidgetsArea" style="display:flex;flex-direction:column;gap:14px">
   ${buildPainel()}
