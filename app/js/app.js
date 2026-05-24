@@ -71,13 +71,19 @@ const App = (function () {
       const title = opts.title || name;
       // Se houver foto custom em settings.pessoaAvatars[name], usa
       const custom = Utils.personAvatar(name);
+      // [C1] name/title/initial vêm de input do user (Configurações.pessoaAvatars,
+      // PESSOAS, dataset compartilhado por família). Escapar atributos é crítico.
+      const safeTitle   = Utils.escapeHtml(title);
+      const safeName    = Utils.escapeHtml(name);
+      const safeInitial = Utils.escapeHtml(initial);
+      const safeCustom  = Utils.escapeHtml(custom || '');
       if (custom) {
         // [C2] Avatar fallback antes usava onerror="...createTextNode('${initial}')..." inline.
         // Era vetor de XSS: se name começasse com '), alert(1)//' (via importação de extrato), executava.
         // Agora: data-fallback-initial + listener global delegado (registrado uma vez no init).
-        return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" title="${title}"><img src="${custom}" alt="${name}" style="width:100%;height:100%;object-fit:cover" loading="lazy" data-fallback-initial="${initial}"></span>`;
+        return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" title="${safeTitle}"><img src="${safeCustom}" alt="${safeName}" style="width:100%;height:100%;object-fit:cover" loading="lazy" data-fallback-initial="${safeInitial}"></span>`;
       }
-      return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${fontSize}px;font-weight:700;letter-spacing:0" title="${title}">${initial}</span>`;
+      return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${fontSize}px;font-weight:700;letter-spacing:0" title="${safeTitle}">${safeInitial}</span>`;
     },
     fmtDate(dateStr) {
       const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -120,7 +126,7 @@ const App = (function () {
     const el = document.createElement('div');
     el.className = `toast ${type}`;
     const icons = { success: Utils.icon.check, error: Utils.icon.warn, info: Utils.icon.info };
-    el.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span>${msg}</span>`;
+    el.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span>${Utils.escapeHtml(msg)}</span>`;
     document.getElementById('toastContainer').appendChild(el);
     setTimeout(() => {
       el.classList.add('leaving');
@@ -518,7 +524,7 @@ const App = (function () {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${a.color};flex-shrink:0"></span>
-            <span style="font-size:13px;font-weight:600;color:var(--text-1)">${a.label}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text-1)">${Utils.escapeHtml(a.label)}</span>
             <span class="badge badge-amber" style="font-size:10px">+${(a.delta*100).toFixed(0)}%</span>
           </div>
           <div style="text-align:right;font-size:12px">
@@ -650,7 +656,7 @@ const App = (function () {
         const isRec = e.kind === 'receita';
         return `<div class="stat-row" style="padding:6px 0;border-bottom:1px solid var(--border)">
           <div>
-            <div style="font-size:12px;font-weight:500;color:var(--text-1)">${e.desc}</div>
+            <div style="font-size:12px;font-weight:500;color:var(--text-1)">${Utils.escapeHtml(e.desc)}</div>
             <div style="font-size:10px;color:var(--text-4)">${e.day.date.toLocaleDateString('pt-BR')} · ${dias===0?'hoje':dias===1?'amanhã':`em ${dias}d`}</div>
           </div>
           <div style="font-size:12px;font-weight:600;color:${isRec?'var(--green)':'var(--red)'}">${isRec?'+':'-'}${Utils.currency(e.amount)}</div>
@@ -676,7 +682,7 @@ const App = (function () {
         .filter(d => d.year === prevY && d.month === prevM && d.category === key)
         .reduce((a, d) => a + d.amount, 0);
       const change = prevVal > 0 ? ((value - prevVal) / prevVal) : null;
-      categoryDelta = { key, value, change, label: Store.CATEGORIES[key]?.label || key };
+      categoryDelta = { key, value, change, label: Utils.escapeHtml(Store.CATEGORIES[key]?.label || key) };
     }
 
     const catPctOfTotal = categoryDelta && despesa > 0
@@ -905,7 +911,7 @@ const App = (function () {
     // Estado do mês (fonte única — heroMood + coachInsight derivam daqui)
     const monthState = buildMonthState({
       receita, despesa, saldo, util, limitePct, topCats,
-      prevY, prevM, poder, month, currentPessoa: currentPessoa(),
+      prevY, prevM, poder, month, currentPessoa: Utils.escapeHtml(currentPessoa()),
     });
     const heroMood = {
       title: monthState.hero.title,
@@ -1035,7 +1041,7 @@ ${(() => {
         }
       }
       // Sem nome conhecido: usa só o cumprimento do horário (mais elegante que "Olá, você")
-      return nome ? `Olá, ${nome}.` : `${heroGreeting}.`;
+      return nome ? `Olá, ${Utils.escapeHtml(nome)}.` : `${heroGreeting}.`;
     })()}</h1>
     <p class="dash-greeting-sub">Equilíbrio entre receitas e despesas · ${monthLabel}</p>
   </div>
@@ -1257,8 +1263,8 @@ ${(() => {
       ${icon(cat.icon || 'sparkles', { size: 18 })}
     </div>
     <div style="flex:1;min-width:240px">
-      <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:${cat.color};text-transform:uppercase;margin-bottom:4px">Pergunta do dia · ${cat.name}</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text-1);line-height:1.35">${q.pergunta}</div>
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:${cat.color};text-transform:uppercase;margin-bottom:4px">Pergunta do dia · ${Utils.escapeHtml(cat.name)}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-1);line-height:1.35">${Utils.escapeHtml(q.pergunta)}</div>
     </div>
     <div style="display:flex;gap:8px;flex-shrink:0;align-items:center">
       <button class="btn-secondary" data-icp-daily-snooze style="padding:7px 12px;font-size:12px">Pular hoje</button>
@@ -1294,7 +1300,7 @@ ${(() => {
           ${catData.map(d => `
             <div class="dash-dist-legend-item">
               <span class="dash-dist-dot" style="background:${d.color}"></span>
-              <span class="dash-dist-lbl">${d.label}</span>
+              <span class="dash-dist-lbl">${Utils.escapeHtml(d.label)}</span>
               <span class="dash-dist-val">${d.value >= 1000 ? 'R$ ' + (d.value/1000).toFixed(1) + 'k' : Utils.currency(d.value)}</span>
             </div>
           `).join('')}
@@ -1330,7 +1336,7 @@ ${(() => {
         ${series.map(s => `
           <div class="dash-dist-legend-item" style="flex:0 0 auto">
             <span class="dash-dist-dot" style="background:${s.c};border-radius:50%;width:7px;height:7px"></span>
-            <span class="dash-dist-lbl">${s.name}</span>
+            <span class="dash-dist-lbl">${Utils.escapeHtml(s.name)}</span>
           </div>
         `).join('')}
       </div>
@@ -1481,8 +1487,8 @@ ${renderPrevisaoCaixa(saldo)}
       return `
       <div class="stat-row">
         <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text-1);display:inline-flex;align-items:center;gap:6px">${icon('file-text',{size:12})} ${p.desc}</div>
-          <div style="font-size:11px;color:var(--text-3)">${c?.label || '—'} · ${d.toLocaleDateString('pt-BR')} <span style="color:var(--${urgent?'red':'text-4'})">(${dias===0?'hoje':dias===1?'amanhã':`em ${dias}d`})</span></div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-1);display:inline-flex;align-items:center;gap:6px">${icon('file-text',{size:12})} ${Utils.escapeHtml(p.desc)}</div>
+          <div style="font-size:11px;color:var(--text-3)">${Utils.escapeHtml(c?.label || '—')} · ${d.toLocaleDateString('pt-BR')} <span style="color:var(--${urgent?'red':'text-4'})">(${dias===0?'hoje':dias===1?'amanhã':`em ${dias}d`})</span></div>
         </div>
         <div class="stat-row-value ${isRec?'green':'red'}">${Utils.currency(p.amount)}</div>
       </div>`;
@@ -1552,7 +1558,7 @@ ${renderPrevisaoCaixa(saldo)}
     <div class="filter-row-1-actions">
       <select class="form-select" id="filterPessoa" style="min-width:140px">
         <option value="">Todas as pessoas</option>
-        ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+        ${Store.PESSOAS.map(p => `<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('')}
       </select>
       <button class="btn-secondary" id="btnSort" title="Ordenar por data" style="white-space:nowrap;padding:6px 10px;font-size:12px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1567,7 +1573,7 @@ ${renderPrevisaoCaixa(saldo)}
     </div>
     <select class="form-select" id="filterCat" style="min-width:155px">
       <option value="">Todas as categorias</option>
-      ${Store.categoriesOrdered().filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
+      ${Store.categoriesOrdered().filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${Utils.escapeHtml(k)}">${Utils.escapeHtml(v.label)}</option>`).join('')}
     </select>
     <select class="form-select" id="filterSub" style="min-width:150px">
       <option value="">Todas as sub-categorias</option>
@@ -1698,7 +1704,7 @@ ${filtered.map(r => {
       if (!subSel) return;
       const subs = (cat && Store.SUBCATEGORIES[cat]) || [];
       subSel.innerHTML = `<option value="">Todas as sub-categorias</option>` +
-        subs.map(s => `<option value="${s}">${s}</option>`).join('');
+        subs.map(s => `<option value="${Utils.escapeHtml(s)}">${Utils.escapeHtml(s)}</option>`).join('');
       subSel.disabled = subs.length === 0;
     }
 
@@ -1903,7 +1909,7 @@ ${filtered.map(r => {
       document.getElementById('filterCat').innerHTML =
         `<option value="">Todas as categorias</option>` +
         Store.categoriesOrdered().filter(([k]) => k !== 'receita')
-          .map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
+          .map(([k,v]) => `<option value="${Utils.escapeHtml(k)}">${Utils.escapeHtml(v.label)}</option>`).join('');
       updateSubFilter('');
       showDespFilters(true);
       refilter();
@@ -1917,7 +1923,7 @@ ${filtered.map(r => {
       document.getElementById('filterBar').style.display = '';
       document.getElementById('filterCat').innerHTML =
         `<option value="">Todas as pessoas</option>` +
-        Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('');
+        Store.PESSOAS.map(p => `<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('');
       showDespFilters(false);
       refilter();
     });
@@ -1968,7 +1974,7 @@ ${filtered.map(r => {
       document.getElementById('btnTabDesp').classList.remove('active');
       document.getElementById('filterCat').innerHTML =
         `<option value="">Todas as pessoas</option>` +
-        Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('');
+        Store.PESSOAS.map(p => `<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('');
       showDespFilters(false);
       refilter();
     } else {
@@ -2134,10 +2140,10 @@ ${(() => {
     const initial = (p[0]||'?').toUpperCase();
     return `
     <div style="background:var(--surface-2);border-radius:12px;padding:13px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:12px">
-      <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${pColor},${pColor}cc);color:#fff;box-shadow:0 4px 12px ${pColor}30;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${initial}</div>
+      <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${pColor},${pColor}cc);color:#fff;box-shadow:0 4px 12px ${pColor}30;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${Utils.escapeHtml(initial)}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:13.5px;font-weight:600;color:var(--text-1)">${p}</span>
+          <span style="font-size:13.5px;font-weight:600;color:var(--text-1)">${Utils.escapeHtml(p)}</span>
           <span style="font-size:11px;color:var(--text-3)">· ${info.count} lançamento${info.count===1?'':'s'}</span>
         </div>
         <div style="height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:7px">
@@ -2227,7 +2233,7 @@ ${coachInlineHTML({
       </tr></thead>
       <tbody>
         ${Object.entries(byPerson).map(([p, vals]) => `<tr>
-          <td><span class="person-chip">${Utils.personAvatarHtml(p, { size: 22, fontSize: 10 })}${p}</span></td>
+          <td><span class="person-chip">${Utils.personAvatarHtml(p, { size: 22, fontSize: 10 })}${Utils.escapeHtml(p)}</span></td>
           ${vals.map(v => `<td class="num ${v>0?'positive':'muted'}">${v>0?Utils.currency(v):'—'}</td>`).join('')}
           <td class="num positive fw-700">${Utils.currency(vals.reduce((a,b)=>a+b,0))}</td>
         </tr>`).join('')}
@@ -2248,7 +2254,7 @@ ${coachInlineHTML({
     <div class="filter-row-1-actions">
       <select class="form-select" id="recPessoaFilter" style="min-width:140px">
         <option value="">Todas as pessoas</option>
-        ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+        ${Store.PESSOAS.map(p => `<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('')}
       </select>
       <select class="form-select" id="recTipoFilter" style="min-width:140px">
         <option value="">Todos os tipos</option>
@@ -2300,8 +2306,8 @@ ${(() => {
       return `
       <div class="stat-row">
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text-1)">${rf.descricao || rf.desc}</div>
-          <div style="font-size:11px;color:var(--text-3)">${d.toLocaleDateString('pt-BR')} · ${rf.responsavel || rf.person || '—'}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-1)">${Utils.escapeHtml(rf.descricao || rf.desc)}</div>
+          <div style="font-size:11px;color:var(--text-3)">${d.toLocaleDateString('pt-BR')} · ${Utils.escapeHtml(rf.responsavel || rf.person || '—')}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div class="stat-row-value green">${Utils.currency(rf.valor || rf.amount)}</div>
@@ -2396,9 +2402,9 @@ ${(() => {
       <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fRfDesc" placeholder="Ex: PLR, Reembolso, Venda Y"/></div>
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fRfAmt" type="number" step="0.01"/></div>
       <div class="form-group"><label class="form-label">Data prevista</label><input class="form-input" id="fRfDate" type="date" value="${today}"/></div>
-      <div class="form-group"><label class="form-label">Responsável</label><select class="form-select" id="fRfPerson">${Store.PESSOAS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Responsável</label><select class="form-select" id="fRfPerson">${Store.PESSOAS.map(p=>`<option>${Utils.escapeHtml(p)}</option>`).join('')}</select></div>
       <div class="form-group"><label class="form-label">Subcategoria</label><select class="form-select" id="fRfSub">
-        ${Store.SUBCATEGORIES.receita.map(s => `<option value="${s}"${s==='Outros'?' selected':''}>${s}</option>`).join('')}
+        ${Store.SUBCATEGORIES.receita.map(s => `<option value="${Utils.escapeHtml(s)}"${s==='Outros'?' selected':''}>${Utils.escapeHtml(s)}</option>`).join('')}
       </select></div>
     </div>`;
     Modal.open('Novo Recebimento Futuro', html, () => {
@@ -2433,9 +2439,9 @@ ${(() => {
       </div>
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fRecAmt" type="number" step="0.01" placeholder="0,00"/></div>
       <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="fRecDate" type="date" value="${new Date().toISOString().slice(0,10)}"/></div>
-      <div class="form-group"><label class="form-label">Pessoa</label><select class="form-select" id="fRecPerson">${Store.PESSOAS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Pessoa</label><select class="form-select" id="fRecPerson">${Store.PESSOAS.map(p=>`<option>${Utils.escapeHtml(p)}</option>`).join('')}</select></div>
       <div class="form-group"><label class="form-label">Subcategoria</label><select class="form-select" id="fRecSub">
-        ${Store.SUBCATEGORIES.receita.map(s => `<option value="${s}">${s}</option>`).join('')}
+        ${Store.SUBCATEGORIES.receita.map(s => `<option value="${Utils.escapeHtml(s)}">${Utils.escapeHtml(s)}</option>`).join('')}
       </select></div>
     </div>`;
     Modal.open('Nova Receita', html, () => {
@@ -2504,9 +2510,9 @@ ${(() => {
         texto: 'Comece registrando seus gastos para o Coach analisar padrões e categorias.' };
       const topCat = catSorted[0];
       const topPct = total > 0 ? (topCat[1] / total * 100) : 0;
-      const catLabel = Store.CATEGORIES[topCat[0]]?.label || topCat[0];
+      const catLabel = Utils.escapeHtml(Store.CATEGORIES[topCat[0]]?.label || topCat[0]);
       if (anomalias.length >= 2) return { tone: 'critical', titulo: `${anomalias.length} categorias com salto detectado`,
-        texto: `O Coach identificou aumentos significativos em <strong>${anomalias.slice(0,2).map(a => Store.CATEGORIES[a.cat]?.label || a.cat).join(', ')}</strong> este mês. Vale revisar antes de virar comprometimento.` };
+        texto: `O Coach identificou aumentos significativos em <strong>${anomalias.slice(0,2).map(a => Utils.escapeHtml(Store.CATEGORIES[a.cat]?.label || a.cat)).join(', ')}</strong> este mês. Vale revisar antes de virar comprometimento.` };
       if (topPct >= 50) return { tone: 'attention', titulo: `${catLabel} concentra ${topPct.toFixed(0)}% das despesas`,
         texto: `${Utils.currency(topCat[1])} foi em <strong>${catLabel}</strong>. Uma única categoria com mais de metade dos gastos vale uma revisão por subcategoria.` };
       if (topPct >= 35) return { tone: 'attention', titulo: 'Concentração em uma categoria',
@@ -2555,13 +2561,13 @@ ${(() => {
   if (_rest > 0) _segs.push({c:'__rest', v:_rest, color:'#64748b', label:'Outras'});
   const _barSegs = _segs.filter(s => s.v > 0).map(s => {
     const pct = despMesAtual > 0 ? (s.v / despMesAtual * 100) : 0;
-    return `<div style="width:${pct.toFixed(1)}%;background:${s.color};height:100%" title="${s.label}: ${Utils.currency(s.v)}"></div>`;
+    return `<div style="width:${pct.toFixed(1)}%;background:${s.color};height:100%" title="${Utils.escapeHtml(s.label)}: ${Utils.currency(s.v)}"></div>`;
   }).join('');
   const _legend = _segs.filter(s => s.v > 0).map(s => {
     const pct = despMesAtual > 0 ? (s.v / despMesAtual * 100) : 0;
     return `<div style="display:flex;align-items:center;gap:6px">
       <div style="width:7px;height:7px;border-radius:2px;background:${s.color}"></div>
-      <span class="hero-legend-text">${s.label} · <span class="hero-legend-strong">${pct.toFixed(0)}%</span></span>
+      <span class="hero-legend-text">${Utils.escapeHtml(s.label)} · <span class="hero-legend-strong">${pct.toFixed(0)}%</span></span>
     </div>`;
   }).join('');
   return `
@@ -2615,10 +2621,10 @@ ${(() => {
     const initial = (p[0]||'?').toUpperCase();
     return `
     <div style="background:var(--surface-2);border-radius:12px;padding:13px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:12px">
-      <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${pColor},${pColor}cc);color:#fff;box-shadow:0 4px 12px ${pColor}30;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${initial}</div>
+      <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${pColor},${pColor}cc);color:#fff;box-shadow:0 4px 12px ${pColor}30;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">${Utils.escapeHtml(initial)}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:13.5px;font-weight:600;color:var(--text-1)">${p}</span>
+          <span style="font-size:13.5px;font-weight:600;color:var(--text-1)">${Utils.escapeHtml(p)}</span>
           <span style="font-size:11px;color:var(--text-3)">· ${info.count} lançamento${info.count===1?'':'s'}</span>
         </div>
         <div style="height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:7px">
@@ -2657,11 +2663,11 @@ ${coachInlineHTML({
     <div class="filter-row-1-actions">
       <select class="form-select" id="despPessoaFilter" style="min-width:140px">
         <option value="">Todas as pessoas</option>
-        ${Store.PESSOAS.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        ${Store.PESSOAS.map(p=>`<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('')}
       </select>
       <select class="form-select" id="despCatFilter" style="min-width:160px">
         <option value="">Todas as categorias</option>
-        ${Store.categoriesOrdered().filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+        ${Store.categoriesOrdered().filter(([k])=>k!=='receita').map(([k,v])=>`<option value="${Utils.escapeHtml(k)}">${Utils.escapeHtml(v.label)}</option>`).join('')}
       </select>
       ${isMember
         ? `<button class="btn-primary" id="btnAddDesp">+ Lançar Despesa</button>`
@@ -2708,7 +2714,7 @@ ${coachInlineHTML({
             const info = Store.CATEGORIES[cat] || {};
             const total = vals.reduce((a,b) => a+b, 0);
             return `<tr>
-              <td><span class="badge" style="background:${(info.color||'#7C6EF8')+'20'};color:${info.color||'#7C6EF8'};white-space:nowrap">${info.label||cat}</span></td>
+              <td><span class="badge" style="background:${(info.color||'#7C6EF8')+'20'};color:${info.color||'#7C6EF8'};white-space:nowrap">${Utils.escapeHtml(info.label||cat)}</span></td>
               ${vals.map(v => `<td class="num ${v>0?'negative':'muted'}" style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;padding:8px 6px">${v>0?Utils.currency(v):'—'}</td>`).join('')}
               <td class="num negative fw-700" style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;padding:8px 6px">${Utils.currency(total)}</td>
             </tr>`;
@@ -2755,7 +2761,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
   // Pessoa principal: split[0] (pagador) ou d.person
   const mainPerson = d.split && d.split.length ? d.split[0].person : (d.person || null);
   const splitInfo = d.split && d.split.length > 1
-    ? ` <span class="badge badge-accent" style="font-size:10px;margin-left:4px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">+${d.split.length-1}</span>`
+    ? ` <span class="badge badge-accent" style="font-size:10px;margin-left:4px" title="${Utils.escapeHtml(d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · '))}">+${d.split.length-1}</span>`
     : '';
   return`<tr class="row-clickable${isFut?' style="opacity:0.55"':'"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
@@ -2800,7 +2806,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
         document.getElementById('despPessoaLegend').innerHTML = donutPessoa.map(d => `
           <div class="donut-legend-item">
             <div class="donut-legend-dot" style="background:${d.color}"></div>
-            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-label">${Utils.escapeHtml(d.label)}</span>
             <span class="donut-legend-pct">${totalP > 0 ? ((d.value/totalP)*100).toFixed(0) : 0}%</span>
             <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
           </div>`).join('');
@@ -3019,7 +3025,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
         const step = mode === 'valor' ? '0.01' : '0.1';
         return `<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center" data-row="${i}">
           <select class="form-select" data-field="person" style="flex:1">
-            ${Store.PESSOAS.map(p => `<option ${r.person===p?'selected':''}>${p}</option>`).join('')}
+            ${Store.PESSOAS.map(p => `<option ${r.person===p?'selected':''}>${Utils.escapeHtml(p)}</option>`).join('')}
           </select>
           <div style="display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden">
             <input class="form-input" data-field="valor" type="number" step="${step}" min="0" value="${v}"
@@ -3210,14 +3216,14 @@ ${despesas.length === 0 ? coachEmptyHTML({
       <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fDAmt" type="number" step="0.01" placeholder="0,00"/></div>
       <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="fDDate" type="date" value="${new Date().toISOString().slice(0,10)}"/></div>
       <div class="form-group"><label class="form-label">Categoria</label>
-        <select class="form-select" id="fDCat">${cats.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select>
+        <select class="form-select" id="fDCat">${cats.map(([k,v])=>`<option value="${Utils.escapeHtml(k)}">${Utils.escapeHtml(v.label)}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Sub-categoria</label><select class="form-select" id="fDSub"></select></div>
       <div class="form-group"><label class="form-label">Pagamento</label>
-        <select class="form-select" id="fDPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select>
+        <select class="form-select" id="fDPay">${Store.PAYMENT_METHODS.map(m=>`<option>${Utils.escapeHtml(m)}</option>`).join('')}</select>
       </div>
       <div class="form-group" id="fDCartaoRow" style="display:none"><label class="form-label">Cartão</label>
-        <select class="form-select" id="fDCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+        <select class="form-select" id="fDCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${Utils.escapeHtml(c.id)}">${Utils.escapeHtml(c.name)}</option>`).join('')}</select>
       </div>
       <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:4px 0">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -3252,7 +3258,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
         </label>
         <div id="fDReembolsoOpts" style="display:none;display:flex;gap:8px;margin-top:4px">
           <select class="form-select" id="fDReembolsoDe" style="flex:1">
-            ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+            ${Store.PESSOAS.map(p => `<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('')}
             <option value="Família">Família (grupo)</option>
           </select>
           <input class="form-input" type="number" id="fDReembolsoValor" step="0.01" placeholder="Valor a reembolsar" style="flex:1"/>
@@ -3340,7 +3346,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
       const cat = document.getElementById('fDCat')?.value;
       const subs = Store.SUBCATEGORIES[cat] || [];
       const sel = document.getElementById('fDSub');
-      if (sel) sel.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+      if (sel) sel.innerHTML = subs.map(s=>`<option>${Utils.escapeHtml(s)}</option>`).join('');
     }
     function updateParcelaInfo() {
       const amt = parseFloat(document.getElementById('fDAmt')?.value) || 0;
@@ -3406,8 +3412,8 @@ ${despesas.length === 0 ? coachEmptyHTML({
         const suggestion = suggestCategory(e.target.value);
         if (suggestion) {
           const catLabel = catLabels[suggestion.category] || suggestion.category;
-          chip.innerHTML = `<button type="button" class="ia-suggest-btn" data-cat="${suggestion.category}" data-sub="${suggestion.sub || ''}">
-            ${icon('lightbulb',{size:12})} ${catLabel}${suggestion.sub ? ' › ' + suggestion.sub : ''} <span style="opacity:.6;font-size:11px">— confirmar</span>
+          chip.innerHTML = `<button type="button" class="ia-suggest-btn" data-cat="${Utils.escapeHtml(suggestion.category)}" data-sub="${Utils.escapeHtml(suggestion.sub || '')}">
+            ${icon('lightbulb',{size:12})} ${Utils.escapeHtml(catLabel)}${suggestion.sub ? ' › ' + Utils.escapeHtml(suggestion.sub) : ''} <span style="opacity:.6;font-size:11px">— confirmar</span>
           </button>`;
           chip.style.display = 'block';
           chip.querySelector('.ia-suggest-btn')?.addEventListener('click', () => {
@@ -3472,19 +3478,19 @@ ${despesas.length === 0 ? coachEmptyHTML({
       if (criticas.length > 0) {
         const c = criticas[0];
         const perf = Store.getMetaPerformance(c.id, year, month);
-        return { icon: icon('alert-triangle',{size:14}), tone:'warn', titulo: `${c.label} ultrapassou o limite`,
+        return { icon: icon('alert-triangle',{size:14}), tone:'warn', titulo: `${Utils.escapeHtml(c.label)} ultrapassou o limite`,
           texto: `${Utils.currency(perf.current)} atual vs ${Utils.currency(perf.target)} de meta — ${((perf.pct-1)*100).toFixed(0)}% acima. ${criticas.length > 1 ? `Mais ${criticas.length-1} indicador(es) também em alerta.` : 'Revise seus gastos nesta categoria.'}` };
       }
       if (atencao.length > 0) {
         return { icon: icon('bar-chart-2',{size:14}), tone:'neutral', titulo: `${atencao.length} indicador(es) pedindo atenção`,
-          texto: `${atencao.map(m => m.label).join(', ')} ${atencao.length === 1 ? 'está' : 'estão'} próximo(s) do limite. ${noAlvo.length > 0 ? `${noAlvo.length} no alvo.` : ''} Veja o Coach para recomendações.` };
+          texto: `${atencao.map(m => Utils.escapeHtml(m.label)).join(', ')} ${atencao.length === 1 ? 'está' : 'estão'} próximo(s) do limite. ${noAlvo.length > 0 ? `${noAlvo.length} no alvo.` : ''} Veja o Coach para recomendações.` };
       }
       if (objsOk.length > 0) {
         return { icon: icon('party-popper',{size:14}), tone:'pos', titulo: `${objsOk.length} objetivo${objsOk.length > 1 ? 's' : ''} atingido${objsOk.length > 1 ? 's' : ''}!`,
-          texto: `${objsOk.map(({m}) => m.label).join(', ')} ${objsOk.length === 1 ? 'foi concluído' : 'foram concluídos'}. Excelente disciplina financeira — considere criar um novo objetivo.` };
+          texto: `${objsOk.map(({m}) => Utils.escapeHtml(m.label)).join(', ')} ${objsOk.length === 1 ? 'foi concluído' : 'foram concluídos'}. Excelente disciplina financeira — considere criar um novo objetivo.` };
       }
       if (topObj) {
-        return { icon: icon('target',{size:14}), tone:'neutral', titulo: `${topObj.m.label}: ${(topObj.p.pct*100).toFixed(0)}% concluído`,
+        return { icon: icon('target',{size:14}), tone:'neutral', titulo: `${Utils.escapeHtml(topObj.m.label)}: ${(topObj.p.pct*100).toFixed(0)}% concluído`,
           texto: `${Utils.currency(topObj.p.current)} de ${Utils.currency(topObj.p.target)}. ${topObj.p.pct < 0.5 ? 'Você está na metade do caminho — continue!' : 'Quase lá! Faltam ' + Utils.currency(Math.max(0, topObj.p.target - topObj.p.current)) + '.'}` };
       }
       return { icon: icon('lightbulb',{size:14}), tone:'neutral', titulo: 'Defina suas metas financeiras',
@@ -3590,8 +3596,8 @@ ${indicadores.length === 0 ? '' : `
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:18px">${t.icon}</span>
           <div>
-            <div style="font-size:14px;font-weight:700;color:var(--text-1)">${m.label}</div>
-            <div style="font-size:11px;color:var(--text-4)">${t.label} · ${isAnual?'Anual':'Mensal'}${m.category?' · '+(Store.CATEGORIES[m.category]?.label||m.category):''}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-1)">${Utils.escapeHtml(m.label)}</div>
+            <div style="font-size:11px;color:var(--text-4)">${Utils.escapeHtml(t.label)} · ${isAnual?'Anual':'Mensal'}${m.category?' · '+Utils.escapeHtml(Store.CATEGORIES[m.category]?.label||m.category):''}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px">
@@ -3683,7 +3689,7 @@ ${spotlightEntry ? (() => {
       </div>
     </div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.label}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(m.label)}</div>
       <div style="font-size:13px;color:var(--text-3);margin-bottom:10px">${Utils.currency(p.current)} <span style="color:var(--text-4)">de</span> ${Utils.currency(p.target)}${deadlineStr ? ` <span style="color:var(--text-4)">· prazo ${deadlineStr}</span>` : ''}</div>
       <div style="font-size:12px;color:${gaugeColor};font-weight:600">Faltam ${Utils.currency(falta)}</div>
     </div>
@@ -3712,7 +3718,7 @@ ${spotlightEntry ? (() => {
           Objetivo
         </div>
       </div>
-      <div class="meta-card-name">${m.label}</div>
+      <div class="meta-card-name">${Utils.escapeHtml(m.label)}</div>
       <div class="meta-card-body">
         <div class="meta-card-left">
           <div class="meta-card-value">${Utils.currency(perf.current)}</div>
@@ -3755,7 +3761,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
         const perf = Store.getMetaPerformance(m.id, year, month);
         const isLimit = m.type === 'limite_desp';
         return `<tr>
-          <td><strong>${m.label}</strong><div style="font-size:10px;color:var(--text-4)">${m.period==='anual'?'Anual':'Mensal'}</div></td>
+          <td><strong>${Utils.escapeHtml(m.label)}</strong><div style="font-size:10px;color:var(--text-4)">${m.period==='anual'?'Anual':'Mensal'}</div></td>
           ${perf.byMonth.map((v) => {
             const cmp = m.period === 'mensal' ? perf.target : (perf.target / 12);
             const okv = isLimit ? v <= cmp : v >= cmp;
@@ -3813,7 +3819,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     const m = meta || {};
     const cats = Store.categoriesOrdered();
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome da Meta</label><input class="form-input" id="fMLabel" placeholder="Ex: Limite Lazer, Receita Mín. Mensal" value="${m.label||''}"/></div>
+      <div class="form-group form-full"><label class="form-label">Nome da Meta</label><input class="form-input" id="fMLabel" placeholder="Ex: Limite Lazer, Receita Mín. Mensal" value="${Utils.escapeHtml(m.label||'')}"/></div>
       <div class="form-group">
         <label class="form-label">Tipo</label>
         <select class="form-select" id="fMType">
@@ -3834,7 +3840,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
         <label class="form-label">Categoria (opcional, p/ limites por categoria)</label>
         <select class="form-select" id="fMCat">
           <option value="">— Todas —</option>
-          ${cats.filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${k}" ${m.category===k?'selected':''}>${v.label}</option>`).join('')}
+          ${cats.filter(([k]) => k !== 'receita').map(([k,v]) => `<option value="${Utils.escapeHtml(k)}" ${m.category===k?'selected':''}>${Utils.escapeHtml(v.label)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group"><label class="form-label" id="fMTargetLabel">Valor Alvo (R$)</label><input class="form-input" id="fMTarget" type="number" step="100" value="${m.target||''}"/></div>
@@ -4154,7 +4160,7 @@ ${contratos.length === 0 ? `
             return `<tr class="parcelas-detail-row" data-detail-for="${c.id}">
               <td colspan="9" style="padding:0;background:var(--surface-2)">
                 <div style="padding:12px 16px 16px">
-                  <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Parcelas — ${c.label}</div>
+                  <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Parcelas — ${Utils.escapeHtml(c.label)}</div>
                   <table style="width:100%;border-collapse:collapse;font-size:12px">
                     <thead>
                       <tr style="border-bottom:1px solid var(--border)">
@@ -4175,7 +4181,7 @@ ${contratos.length === 0 ? `
                           <td style="padding:5px 8px;color:var(--text-3)">${p.parcelaNum||'—'}</td>
                           <td style="padding:5px 8px;color:var(--text-2);font-family:var(--mono)">${dt}</td>
                           <td style="padding:5px 8px;text-align:right;font-family:var(--mono);font-weight:600;color:${isRec?'var(--green)':'var(--text-1)'}">${Utils.currency(p.amount)}</td>
-                          <td style="padding:5px 8px;color:var(--text-3)">${p.pay||'—'}</td>
+                          <td style="padding:5px 8px;color:var(--text-3)">${Utils.escapeHtml(p.pay||'—')}</td>
                           <td style="padding:5px 8px"><span style="font-size:11px;font-weight:600;color:${ps.color}">${ps.label}</span></td>
                           <td style="padding:5px 8px;font-family:var(--mono);color:${p.paid===true?'var(--green)':'var(--text-4)'}">${paidAt}</td>
                         </tr>`;
@@ -4201,16 +4207,16 @@ ${contratos.length === 0 ? `
             <td>
               <span class="badge" style="background:${isRec?'var(--green-dim)':'var(--red-dim)'};color:${isRec?'var(--green)':'var(--red)'}">${isRec?'Receita':'Despesa'}</span>
               <div style="margin-top:4px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:5px;background:${tc.bg};color:${tc.color}">${icon(tc.icon, { size: 10 })} ${tc.label}</span></div>
-              ${llpTipo ? `<div style="margin-top:4px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:5px;background:${llpTipo.color}1a;color:${llpTipo.color};border:1px solid ${llpTipo.color}33" title="${llpTipo.desc||''}"><span style="width:6px;height:6px;border-radius:50%;background:${llpTipo.color};display:inline-block"></span>${llpTipo.label}</span></div>` : ''}
+              ${llpTipo ? `<div style="margin-top:4px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:5px;background:${llpTipo.color}1a;color:${llpTipo.color};border:1px solid ${llpTipo.color}33" title="${Utils.escapeHtml(llpTipo.desc||'')}"><span style="width:6px;height:6px;border-radius:50%;background:${llpTipo.color};display:inline-block"></span>${Utils.escapeHtml(llpTipo.label)}</span></div>` : ''}
             </td>
             <td>
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block"></span>
-                <span style="font-weight:600;color:var(--text-1)">${c.label}</span>
+                <span style="font-weight:600;color:var(--text-1)">${Utils.escapeHtml(c.label)}</span>
               </div>
-              <div style="font-size:11px;color:var(--text-4);display:inline-flex;align-items:center;gap:4px">${icon(cat.icon||'tag', { size: 12, color: cat.color })} ${cat.label}${c.sub?' / '+c.sub:''} · ${iniStr}→${fimStr}</div>
+              <div style="font-size:11px;color:var(--text-4);display:inline-flex;align-items:center;gap:4px">${icon(cat.icon||'tag', { size: 12, color: cat.color })} ${Utils.escapeHtml(cat.label)}${c.sub?' / '+Utils.escapeHtml(c.sub):''} · ${iniStr}→${fimStr}</div>
             </td>
-            <td style="color:var(--text-2)">${c.responsavel||'—'}</td>
+            <td style="color:var(--text-2)">${Utils.escapeHtml(c.responsavel||'—')}</td>
             <td class="num fw-700" style="font-family:var(--mono)">${Utils.currency(c.valorParcela)}</td>
             <td class="num fw-700" style="font-family:var(--mono);color:${isRec?'var(--green)':'var(--accent)'}">${Utils.currency(perf.valorCumprido)}</td>
             <td class="num" style="font-family:var(--mono);color:var(--text-3)">${Utils.currency(perf.valorTotal)}</td>
@@ -4298,7 +4304,7 @@ ${contratos.length === 0 ? `
     const cats = Store.categoriesOrdered();
     const today = new Date().toISOString().slice(0,10);
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Compromisso Bridge" value="${c.label||''}"/></div>
+      <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fCLabel" placeholder="Ex: Aluguel Apto, Compromisso Bridge" value="${Utils.escapeHtml(c.label||'')}"/></div>
       <div class="form-group"><label class="form-label">Tipo</label>
         <select class="form-select" id="fCKind">
           <option value="despesa" ${c.kind==='despesa'||!isEdit?'selected':''}>Despesa</option>
@@ -4320,12 +4326,12 @@ ${contratos.length === 0 ? `
       </div>
       <div class="form-group"><label class="form-label">Responsável</label>
         <select class="form-select" id="fCResp">
-          ${Store.PESSOAS.map(p => `<option ${c.responsavel===p?'selected':''}>${p}</option>`).join('')}
+          ${Store.PESSOAS.map(p => `<option ${c.responsavel===p?'selected':''}>${Utils.escapeHtml(p)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group"><label class="form-label">Categoria</label>
         <select class="form-select" id="fCCat">
-          ${cats.map(([k,v]) => `<option value="${k}" ${c.category===k?'selected':''}>${v.label}</option>`).join('')}
+          ${cats.map(([k,v]) => `<option value="${Utils.escapeHtml(k)}" ${c.category===k?'selected':''}>${Utils.escapeHtml(v.label)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group" id="fCSubGroup"><label class="form-label">Subcategoria</label>
@@ -4339,10 +4345,10 @@ ${contratos.length === 0 ? `
       <div class="form-group"><label class="form-label">Dia de Vencimento</label><input class="form-input" id="fCDia" type="number" min="1" max="31" value="${c.diaVencimento||5}"/></div>
       <div class="form-group" id="fCPayGroup"><label class="form-label">Método</label>
         <select class="form-select" id="fCPay">
-          ${Store.PAYMENT_METHODS.map(p => `<option ${c.pay===p?'selected':''}>${p}</option>`).join('')}
+          ${Store.PAYMENT_METHODS.map(p => `<option ${c.pay===p?'selected':''}>${Utils.escapeHtml(p)}</option>`).join('')}
         </select>
       </div>
-      <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fCNotes" value="${c.notes||''}"/></div>
+      <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fCNotes" value="${Utils.escapeHtml(c.notes||'')}"/></div>
     </div>`;
     Modal.open(isEdit ? 'Editar Compromisso' : 'Novo Compromisso', html, () => {
       const data = {
@@ -4397,7 +4403,7 @@ ${contratos.length === 0 ? `
       function fillSub() {
         const cat = catSel.value;
         const subs = Store.SUBCATEGORIES[cat] || [];
-        subSel.innerHTML = subs.map(s => `<option ${c.sub===s?'selected':''}>${s}</option>`).join('') || '<option value="">—</option>';
+        subSel.innerHTML = subs.map(s => `<option ${c.sub===s?'selected':''}>${Utils.escapeHtml(s)}</option>`).join('') || '<option value="">—</option>';
       }
       function updateKindUI() {
         const isDesp = kindSel.value === 'despesa';
@@ -4443,7 +4449,7 @@ ${contratos.length === 0 ? `
     const COLORS = ['#7C6EF8','#22C55E','#3B82F6','#F59E0B','#EC4899','#14B8A6','#EF4444','#F97316'];
     let selectedColor = ct.cor || COLORS[0];
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome da conta</label><input class="form-input" id="fCtNomeE" value="${ct.nome||''}" placeholder="Ex: Conta Principal"/></div>
+      <div class="form-group form-full"><label class="form-label">Nome da conta</label><input class="form-input" id="fCtNomeE" value="${Utils.escapeHtml(ct.nome||'')}" placeholder="Ex: Conta Principal"/></div>
       <div class="form-group"><label class="form-label">Categoria</label>
         <select class="form-select" id="fCtCategoriaE">
           <option value="bancaria" ${(ct.categoria||'bancaria')==='bancaria'?'selected':''}>Bancária</option>
@@ -4452,11 +4458,11 @@ ${contratos.length === 0 ? `
         </select>
       </div>
       <div class="form-group"><label class="form-label">Banco / Wallet</label>
-        <input class="form-input" id="fCtBancoE" list="bankListCE" value="${ct.banco||''}" placeholder="Itaú, Nubank…"/>
-        <datalist id="bankListCE">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
+        <input class="form-input" id="fCtBancoE" list="bankListCE" value="${Utils.escapeHtml(ct.banco||'')}" placeholder="Itaú, Nubank…"/>
+        <datalist id="bankListCE">${Store.BANKS.map(b=>`<option>${Utils.escapeHtml(b)}</option>`).join('')}</datalist>
       </div>
       <div class="form-group"><label class="form-label">Tipo</label>
-        <select class="form-select" id="fCtTipoE">${Store.ACCOUNT_TYPES.map(t=>`<option ${ct.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
+        <select class="form-select" id="fCtTipoE">${Store.ACCOUNT_TYPES.map(t=>`<option ${ct.tipo===t?'selected':''}>${Utils.escapeHtml(t)}</option>`).join('')}</select>
       </div>
       <div class="form-group form-full"><label class="form-label">Saldo (R$)</label><input class="form-input" id="fCtSaldoE" type="number" step="0.01" value="${ct.saldo!=null?ct.saldo:0}"/></div>
       <div class="form-group form-full"><label class="form-label">Cor</label>
@@ -4514,13 +4520,13 @@ ${contratos.length === 0 ? `
     ).join('');
 
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome do cartão</label><input class="form-input" id="fCcNomeE" value="${c.name||''}" placeholder="Ex: Itaú Click, VR Alimentação…"/></div>
+      <div class="form-group form-full"><label class="form-label">Nome do cartão</label><input class="form-input" id="fCcNomeE" value="${Utils.escapeHtml(c.name||'')}" placeholder="Ex: Itaú Click, VR Alimentação…"/></div>
       <div class="form-group"><label class="form-label">Tipo</label>
         <select class="form-select" id="fCcTipoE">${tipoOpts}</select>
       </div>
       <div class="form-group"><label class="form-label">Banco / Emissor</label>
-        <input class="form-input" id="fCcBancoE" list="bankListCCE" value="${c.banco||''}" placeholder="Itaú, Nubank…"/>
-        <datalist id="bankListCCE">${Store.BANKS.map(b=>`<option>${b}</option>`).join('')}</datalist>
+        <input class="form-input" id="fCcBancoE" list="bankListCCE" value="${Utils.escapeHtml(c.banco||'')}" placeholder="Itaú, Nubank…"/>
+        <datalist id="bankListCCE">${Store.BANKS.map(b=>`<option>${Utils.escapeHtml(b)}</option>`).join('')}</datalist>
       </div>
       <!-- Campos só pra cartões que geram fatura (Crédito / Múltiplo) -->
       <div class="form-group" id="fCcGrpLimit"><label class="form-label">Limite (R$)</label><input class="form-input" id="fCcLimitE" type="number" step="100" value="${c.limit||''}"/></div>
@@ -4735,9 +4741,9 @@ ${(() => {
 ${contas.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:32px">
   ${contas.map(ct => `
   <div class="card" data-edit-conta="${ct.id}" style="border-top:3px solid ${ct.cor}">
-    <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${ct.banco}</div>
-    <div style="font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:2px">${ct.nome}</div>
-    <div style="font-size:11px;color:var(--text-4);margin-bottom:12px">${ct.tipo}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px">${Utils.escapeHtml(ct.banco)}</div>
+    <div style="font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:2px">${Utils.escapeHtml(ct.nome)}</div>
+    <div style="font-size:11px;color:var(--text-4);margin-bottom:12px">${Utils.escapeHtml(ct.tipo)}</div>
     <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">Saldo</div>
     <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:${ct.cor}">${Utils.currency(ct.saldo)}</div>
   </div>`).join('')}
@@ -4793,7 +4799,7 @@ ${cartoes.length ? (() => {
       return `<div class="cards-timeline-item">
         <div class="cards-timeline-dot" style="background:${urgent ? 'var(--amber)' : it.cor};box-shadow:0 0 0 3px var(--bg-card),0 0 0 4px ${urgent ? 'rgba(255,169,48,0.35)' : 'rgba(255,255,255,0.05)'}"></div>
         <div class="cards-timeline-day" style="color:${urgent ? 'var(--amber)' : 'var(--text-3)'}">DIA ${it.due}</div>
-        <div class="cards-timeline-name">${it.nome.length > 12 ? it.nome.slice(0,12)+'…' : it.nome}</div>
+        <div class="cards-timeline-name">${Utils.escapeHtml(it.nome.length > 12 ? it.nome.slice(0,12)+'…' : it.nome)}</div>
         <div class="cards-timeline-amt">${it.fatura >= 1000 ? 'R$ ' + (it.fatura/1000).toFixed(1) + 'k' : 'R$ ' + it.fatura.toFixed(0)}</div>
         <div class="cards-timeline-dias">${past ? 'venceu' : it.dias === 1 ? 'amanhã' : it.dias + ' dias'}</div>
       </div>`;
@@ -4853,8 +4859,8 @@ ${(() => {
     <div class="cc-card ${cardClass}" data-edit-cartao="${cc.id}">
       <div class="cc-top">
         <div class="cc-bank-block">
-          <div class="cc-bank">${cc.banco}</div>
-          <div class="cc-name">${cc.name}</div>
+          <div class="cc-bank">${Utils.escapeHtml(cc.banco)}</div>
+          <div class="cc-name">${Utils.escapeHtml(cc.name)}</div>
         </div>
         <div class="cc-chip"></div>
       </div>
@@ -4880,7 +4886,7 @@ ${(() => {
   <div class="card-header"><span class="card-title">Parcelamentos Ativos</span></div>
   ${cartoes.map(cc => `
     <div style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border)">${cc.name}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border)">${Utils.escapeHtml(cc.name)}</div>
       ${cc.parcelas.length ? cc.parcelas.map(p => {
         const [sy, sm] = p.inicio.split('-').map(Number);
         const now  = year * 12 + month;
@@ -4892,7 +4898,7 @@ ${(() => {
         <div class="timeline-item row-clickable" style="cursor:pointer" data-edit-parcela data-cc="${cc.id}" data-pid="${p.id}">
           <div class="timeline-dot" style="background:${cc.color==='gold'?'var(--amber)':'var(--accent)'}"></div>
           <div style="flex:1">
-            <div class="timeline-desc">${p.desc}</div>
+            <div class="timeline-desc">${Utils.escapeHtml(p.desc)}</div>
             <div class="timeline-meta">${parcPaga}/${p.qtd} parcelas · ${restantes} restantes · Total: ${Utils.currency(p.total)}</div>
             <div class="progress-bar" style="margin-top:6px"><div class="progress-fill" style="width:${Math.round(pct*100)}%"></div></div>
           </div>
@@ -4910,7 +4916,7 @@ ${(() => {
   <div class="card-header"><span class="card-title">Impacto por Mês — Próximos 6 Meses</span></div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Mês</th>${cartoes.map(cc=>`<th class="num">${cc.name}</th>`).join('')}<th class="num">Total</th></tr></thead>
+      <thead><tr><th>Mês</th>${cartoes.map(cc=>`<th class="num">${Utils.escapeHtml(cc.name)}</th>`).join('')}<th class="num">Total</th></tr></thead>
       <tbody>
         ${Array.from({length:6},(_,i)=>{
           const m = ((month-1+i)%12)+1;
@@ -4970,7 +4976,7 @@ ${(() => {
         const p  = cc?.parcelas.find(p => p.id === row.dataset.pid);
         if (!p) return;
         const html = `<div class="form-grid">
-          <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPDesc" value="${p.desc}"/></div>
+          <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPDesc" value="${Utils.escapeHtml(p.desc)}"/></div>
           <div class="form-group"><label class="form-label">Total (R$)</label><input class="form-input" id="fPTotal" type="number" step="0.01" value="${p.total}"/></div>
           <div class="form-group"><label class="form-label">Parcelas</label><input class="form-input" id="fPQtd" type="number" min="1" max="60" value="${p.qtd}"/></div>
           <div class="form-group"><label class="form-label">Valor/parcela (R$)</label><input class="form-input" id="fPParcela" type="number" step="0.01" value="${p.parcela}"/></div>
@@ -5317,8 +5323,8 @@ ${investimentos.length === 0
   <div class="card" data-edit-inv="${r.id}" style="border-top:3px solid ${tagColor}">
     <div class="card-header">
       <div>
-        <div style="font-weight:700;font-size:14px;color:var(--text-1)">${r.nome}</div>
-        <div style="font-size:11px;color:var(--text-4);margin-top:2px">${r.tipo||''}</div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-1)">${Utils.escapeHtml(r.nome)}</div>
+        <div style="font-size:11px;color:var(--text-4);margin-top:2px">${Utils.escapeHtml(r.tipo||'')}</div>
       </div>
     </div>
     <div style="margin:12px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
@@ -5347,13 +5353,13 @@ ${ativos.length > 0 ? `
       const col = TYPE_COLORS[a.type] || '#7C6EF8';
       return `
       <div class="asset-row" data-edit-ativo="${a.id}" style="cursor:pointer">
-        <div class="asset-logo" style="border-color:${col}20;color:${col}">${a.platform.slice(0,3).toUpperCase()}</div>
+        <div class="asset-logo" style="border-color:${col}20;color:${col}">${Utils.escapeHtml(a.platform.slice(0,3).toUpperCase())}</div>
         <div>
-          <div class="asset-name">${a.platform}</div>
-          <div class="asset-type">${a.type} · Atualiz: ${a.updated}</div>
+          <div class="asset-name">${Utils.escapeHtml(a.platform)}</div>
+          <div class="asset-type">${Utils.escapeHtml(a.type)} · Atualiz: ${Utils.escapeHtml(a.updated)}</div>
         </div>
         <div>
-          <div class="asset-qty">${a.qty.toLocaleString('pt-BR')} @ ${a.unitPrice} ${a.currency}</div>
+          <div class="asset-qty">${a.qty.toLocaleString('pt-BR')} @ ${a.unitPrice} ${Utils.escapeHtml(a.currency)}</div>
           <div class="asset-qty">${pct}% do portfólio</div>
         </div>
         <div>
@@ -5555,13 +5561,13 @@ ${passivos.length === 0
           : '';
         return `<tr class="row-clickable" data-action="edit-passivo" data-id="${p.id}">
           <td>
-            <div style="font-weight:600;color:var(--text-1)">${desc}</div>
-            ${p.notes ? `<div style="font-size:11px;color:var(--text-4)">${p.notes}</div>` : ''}
+            <div style="font-weight:600;color:var(--text-1)">${Utils.escapeHtml(desc)}</div>
+            ${p.notes ? `<div style="font-size:11px;color:var(--text-4)">${Utils.escapeHtml(p.notes)}</div>` : ''}
             ${p.contratoId ? `<div style="font-size:11px;color:var(--accent);display:flex;align-items:center;gap:4px">${icon('clipboard-list',{size:11})} <span>Compromisso gerado</span></div>` : ''}
           </td>
-          <td style="color:var(--text-3)">${tipo}</td>
-          <td style="color:var(--text-2)">${p.responsavel||'—'}</td>
-          <td style="color:var(--text-2)">${p.credor||'—'}</td>
+          <td style="color:var(--text-3)">${Utils.escapeHtml(tipo)}</td>
+          <td style="color:var(--text-2)">${Utils.escapeHtml(p.responsavel||'—')}</td>
+          <td style="color:var(--text-2)">${Utils.escapeHtml(p.credor||'—')}</td>
           <td class="num" style="font-family:var(--mono);color:var(--red)">${Utils.currency(p.valorOriginal||0)}</td>
           <td class="num" style="font-family:var(--mono);color:var(--amber)">${p.valorProposta ? Utils.currency(p.valorProposta) : '—'}</td>
           <td class="num" style="font-family:var(--mono);color:var(--green)">
@@ -5602,7 +5608,7 @@ ${passivos.length === 0
         legend.innerHTML = donutData.map(d=>`
           <div class="donut-legend-item">
             <div class="donut-legend-dot" style="background:${d.color}"></div>
-            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-label">${Utils.escapeHtml(d.label)}</span>
             <span class="donut-legend-pct">${((d.value/tot2)*100).toFixed(1)}%</span>
             <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
           </div>`).join('');
@@ -5768,7 +5774,7 @@ ${passivos.length === 0
     const STATUS_LABEL = { pendente:'Pendente', em_negociacao:'Em Negociação', acordado:'Acordado', quitado:'Quitado' };
     const html = `<div class="form-grid">
       <div class="form-group form-full"><label class="form-label">Descrição</label>
-        <input class="form-input" id="fPDesc" placeholder="Ex: Cartão XP atrasado, Dívida Banco Itaú" value="${p.desc||''}"/>
+        <input class="form-input" id="fPDesc" placeholder="Ex: Cartão XP atrasado, Dívida Banco Itaú" value="${Utils.escapeHtml(p.desc||'')}"/>
       </div>
       <div class="form-group"><label class="form-label">Tipo</label>
         <select class="form-select" id="fPTipo">
@@ -5777,11 +5783,11 @@ ${passivos.length === 0
       </div>
       <div class="form-group"><label class="form-label">Responsável</label>
         <select class="form-select" id="fPResp">
-          ${Store.PESSOAS.map(ps => `<option value="${ps}" ${p.responsavel===ps?'selected':''}>${ps}</option>`).join('')}
+          ${Store.PESSOAS.map(ps => `<option value="${Utils.escapeHtml(ps)}" ${p.responsavel===ps?'selected':''}>${Utils.escapeHtml(ps)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group"><label class="form-label">Credor</label>
-        <input class="form-input" id="fPCreedor" placeholder="Nome do banco, pessoa ou empresa" value="${p.credor||''}"/>
+        <input class="form-input" id="fPCreedor" placeholder="Nome do banco, pessoa ou empresa" value="${Utils.escapeHtml(p.credor||'')}"/>
       </div>
       <div class="form-group"><label class="form-label">Valor Original (R$)</label>
         <input class="form-input" id="fPValOrig" type="number" step="0.01" placeholder="0,00" value="${p.valorOriginal||''}"/>
@@ -5801,7 +5807,7 @@ ${passivos.length === 0
         <input class="form-input" id="fPData" type="date" value="${p.dataRef||''}"/>
       </div>
       <div class="form-group form-full"><label class="form-label">Observações</label>
-        <input class="form-input" id="fPNotes" placeholder="Número do processo, contrato, etc." value="${p.notes||''}"/>
+        <input class="form-input" id="fPNotes" placeholder="Número do processo, contrato, etc." value="${Utils.escapeHtml(p.notes||'')}"/>
       </div>
     </div>`;
     Modal.open(isEdit ? 'Editar Passivo' : 'Novo Passivo', html, () => {
@@ -5837,7 +5843,7 @@ ${passivos.length === 0
     const html = `<div class="form-grid">
       <div class="form-group form-full">
         <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px;font-size:13px;color:var(--text-2)">
-          Passivo: <strong>${passivo.desc}</strong> — ${Utils.currency(passivo.valorOriginal)}
+          Passivo: <strong>${Utils.escapeHtml(passivo.desc)}</strong> — ${Utils.currency(passivo.valorOriginal)}
           ${passivo.valorAcordado ? ` → Acordado: <strong style="color:var(--green)">${Utils.currency(passivo.valorAcordado)}</strong>` : ''}
         </div>
       </div>
@@ -5855,7 +5861,7 @@ ${passivos.length === 0
       </div>
       <div class="form-group"><label class="form-label">Método</label>
         <select class="form-select" id="fPC_pay">
-          ${Store.PAYMENT_METHODS.map(m => `<option>${m}</option>`).join('')}
+          ${Store.PAYMENT_METHODS.map(m => `<option>${Utils.escapeHtml(m)}</option>`).join('')}
         </select>
       </div>
     </div>`;
@@ -5892,7 +5898,7 @@ ${passivos.length === 0
     const html = `<div class="form-grid">
       <div class="form-group form-full">
         <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px;font-size:13px;color:var(--text-2)">
-          Lançar pagamento de: <strong>${passivo.desc}</strong>
+          Lançar pagamento de: <strong>${Utils.escapeHtml(passivo.desc)}</strong>
         </div>
       </div>
       <div class="form-group"><label class="form-label">Valor (R$)</label>
@@ -5961,9 +5967,9 @@ ${passivos.length === 0
   function openInvModal(res, onSaved) {
     const isEdit = !!res;
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome / Descrição</label><input class="form-input" id="fRNome" placeholder="Ex: CDB Nubank 110% CDI" value="${isEdit?res.nome:''}"/></div>
+      <div class="form-group form-full"><label class="form-label">Nome / Descrição</label><input class="form-input" id="fRNome" placeholder="Ex: CDB Nubank 110% CDI" value="${Utils.escapeHtml(isEdit?res.nome:'')}"/></div>
       <div class="form-group form-full"><label class="form-label">Tipo de Produto</label>
-        <select class="form-select" id="fRTipo">${RESERVA_TIPOS.map(t=>`<option value="${t}" ${isEdit&&res.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
+        <select class="form-select" id="fRTipo">${RESERVA_TIPOS.map(t=>`<option value="${Utils.escapeHtml(t)}" ${isEdit&&res.tipo===t?'selected':''}>${Utils.escapeHtml(t)}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Valor Investido (R$)</label><input class="form-input" id="fRInv" type="number" step="100" placeholder="0" value="${isEdit?res.valorInvestido:''}"/></div>
       <div class="form-group"><label class="form-label">Valor Atual (R$)</label><input class="form-input" id="fRAtual" type="number" step="100" placeholder="0" value="${isEdit&&res.valorAtual?res.valorAtual:''}"/></div>
@@ -6005,12 +6011,12 @@ ${passivos.length === 0
     const hoje = new Date().toISOString().slice(0, 10);
     const html = `
 <div class="form-grid">
-  <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="fVMarca" placeholder="Ex.: Toyota" value="${v.marca||''}"></div>
-  <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="fVModelo" placeholder="Ex.: Corolla XEi" value="${v.modelo||''}"></div>
-  <div class="form-group"><label class="form-label">Apelido (opcional)</label><input class="form-input" id="fVApelido" placeholder="Ex.: Carro da Mari" value="${v.apelido||''}"></div>
+  <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="fVMarca" placeholder="Ex.: Toyota" value="${Utils.escapeHtml(v.marca||'')}"></div>
+  <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="fVModelo" placeholder="Ex.: Corolla XEi" value="${Utils.escapeHtml(v.modelo||'')}"></div>
+  <div class="form-group"><label class="form-label">Apelido (opcional)</label><input class="form-input" id="fVApelido" placeholder="Ex.: Carro da Mari" value="${Utils.escapeHtml(v.apelido||'')}"></div>
   <div class="form-group"><label class="form-label">Ano</label><input class="form-input" id="fVAno" type="number" value="${v.ano || new Date().getFullYear()}" min="1980" max="${new Date().getFullYear()+1}"></div>
-  <div class="form-group"><label class="form-label">Placa (opcional)</label><input class="form-input" id="fVPlaca" placeholder="ABC-1D23" value="${v.placa||''}"></div>
-  <div class="form-group"><label class="form-label">Cor (opcional)</label><input class="form-input" id="fVCor" placeholder="Branca" value="${v.cor||''}"></div>
+  <div class="form-group"><label class="form-label">Placa (opcional)</label><input class="form-input" id="fVPlaca" placeholder="ABC-1D23" value="${Utils.escapeHtml(v.placa||'')}"></div>
+  <div class="form-group"><label class="form-label">Cor (opcional)</label><input class="form-input" id="fVCor" placeholder="Branca" value="${Utils.escapeHtml(v.cor||'')}"></div>
   <div class="form-group"><label class="form-label">Valor de compra (R$)</label><input class="form-input" id="fVValor" type="number" step="100" value="${v.valorCompra||''}"></div>
   <div class="form-group"><label class="form-label">Data da compra</label><input class="form-input" id="fVData" type="date" value="${v.dataCompra||hoje}"></div>
   <div class="form-group"><label class="form-label">Valor atual (R$) — opcional</label><input class="form-input" id="fVValorAtual" type="number" step="100" value="${v.valorAtual||''}" placeholder="Calcula auto se vazio"></div>
@@ -6018,7 +6024,7 @@ ${passivos.length === 0
   <div class="form-group"><label class="form-label">IPVA anual (R$)</label><input class="form-input" id="fVIPVA" type="number" step="50" value="${v.ipvaAnual||''}"></div>
   <div class="form-group"><label class="form-label">Seguro anual (R$)</label><input class="form-input" id="fVSeguro" type="number" step="50" value="${v.seguroAnual||''}"></div>
   <div class="form-group"><label class="form-label">Manutenção mensal estimada (R$)</label><input class="form-input" id="fVManut" type="number" step="50" value="${v.manutencaoMensal||''}"></div>
-  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fVNotes" value="${v.notes||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fVNotes" value="${Utils.escapeHtml(v.notes||'')}"></div>
 </div>`;
     Modal.open(isEdit ? 'Editar Veículo' : 'Novo Veículo', html, () => {
       const data = {
@@ -6103,8 +6109,8 @@ ${passivos.length === 0
   <div class="form-group"><label class="form-label">Tipo</label>
     <select class="form-select" id="fIMTipo">${TIPOS.map(([v,l])=>`<option value="${v}"${im.tipo===v?' selected':''}>${l}</option>`).join('')}</select>
   </div>
-  <div class="form-group"><label class="form-label">Apelido</label><input class="form-input" id="fIMApelido" placeholder="Ex.: Casa da família" value="${im.apelido||''}"></div>
-  <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="fIMEnd" placeholder="Rua, número, cidade" value="${im.endereco||''}"></div>
+  <div class="form-group"><label class="form-label">Apelido</label><input class="form-input" id="fIMApelido" placeholder="Ex.: Casa da família" value="${Utils.escapeHtml(im.apelido||'')}"></div>
+  <div class="form-group form-full"><label class="form-label">Endereço</label><input class="form-input" id="fIMEnd" placeholder="Rua, número, cidade" value="${Utils.escapeHtml(im.endereco||'')}"></div>
   <div class="form-group"><label class="form-label">Valor de compra (R$)</label><input class="form-input" id="fIMValor" type="number" step="1000" value="${im.valorCompra||''}"></div>
   <div class="form-group"><label class="form-label">Data da compra</label><input class="form-input" id="fIMData" type="date" value="${im.dataCompra||hoje}"></div>
   <div class="form-group"><label class="form-label">Valor atual (R$) — opcional</label><input class="form-input" id="fIMValorAtual" type="number" step="1000" value="${im.valorAtual||''}" placeholder="Calcula auto se vazio"></div>
@@ -6129,7 +6135,7 @@ ${passivos.length === 0
   </div>
   <div class="form-group form-full"><label class="form-label">Aluguel mensal recebido (R$)</label><input class="form-input" id="fIMAluguel" type="number" step="50" value="${im.aluguelMensal||''}"></div>
 
-  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fIMNotes" value="${im.notes||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fIMNotes" value="${Utils.escapeHtml(im.notes||'')}"></div>
 </div>`;
     Modal.open(isEdit ? 'Editar Imóvel' : 'Novo Imóvel', html, () => {
       const data = {
@@ -6177,7 +6183,7 @@ ${passivos.length === 0
     const labelPeriodo = cfg.period === 'anual' ? 'Ano' : 'Mês';
     const html = `
 <div class="form-grid">
-  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPILabel" value="${cfg.label}"></div>
+  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fPILabel" value="${Utils.escapeHtml(cfg.label)}"></div>
   <div class="form-group"><label class="form-label">Valor (R$/${cfg.period==='anual'?'ano':'mês'})</label><input class="form-input" id="fPIValor" type="number" step="50" value="${cfg.valor}"></div>
   ${cfg.period === 'anual'
     ? `<div class="form-group"><label class="form-label">Mês de cobrança</label><select class="form-input" id="fPIMes">${Utils.monthsFull.map((m,i)=>`<option value="${i+1}"${i===hoje.getMonth()?' selected':''}>${m}</option>`).join('')}</select></div>`
@@ -6236,19 +6242,19 @@ ${passivos.length === 0
 
     const subOptions = (catId) => {
       const arr = SUBS[catId] || [];
-      return arr.map(s => `<option value="${s}"${s===subAtual?' selected':''}>${s}</option>`).join('');
+      return arr.map(s => `<option value="${Utils.escapeHtml(s)}"${s===subAtual?' selected':''}>${Utils.escapeHtml(s)}</option>`).join('');
     };
 
     const html = `
 <div class="form-grid">
   <div class="form-group" style="grid-column:1/-1">
     <label class="form-label">Nome / Plataforma</label>
-    <input class="form-input" id="fAP" placeholder="Ex: Bitcoin, Wise" value="${isEdit?ativo.platform:''}"/>
+    <input class="form-input" id="fAP" placeholder="Ex: Bitcoin, Wise" value="${Utils.escapeHtml(isEdit?ativo.platform:'')}"/>
   </div>
   <div class="form-group form-full">
     <label class="form-label">Categoria de investimento</label>
     <select class="form-select" id="fACat">${CATS.map(c=>`<option value="${c.id}"${catAtual===c.id?' selected':''}>${c.label}</option>`).join('')}</select>
-    <div id="fACatDesc" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.45">${catInfo ? catInfo.desc : ''}</div>
+    <div id="fACatDesc" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.45">${catInfo ? Utils.escapeHtml(catInfo.desc) : ''}</div>
     <div id="fACatBadges" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
       ${catInfo ? riscoBadge(catInfo.risco) + liqBadge(catInfo.liquidez) : ''}
     </div>
@@ -6259,11 +6265,11 @@ ${passivos.length === 0
   </div>
   <div class="form-group">
     <label class="form-label">Tipo</label>
-    <select class="form-select" id="fAT">${TYPES.map(t=>`<option${isEdit&&t===ativo.type?' selected':''}>${t}</option>`).join('')}</select>
+    <select class="form-select" id="fAT">${TYPES.map(t=>`<option${isEdit&&t===ativo.type?' selected':''}>${Utils.escapeHtml(t)}</option>`).join('')}</select>
   </div>
   <div class="form-group">
     <label class="form-label">Moeda</label>
-    <select class="form-select" id="fACur">${CURRENCIES.map(c=>`<option${isEdit&&c===ativo.currency?' selected':''}>${c}</option>`).join('')}</select>
+    <select class="form-select" id="fACur">${CURRENCIES.map(c=>`<option${isEdit&&c===ativo.currency?' selected':''}>${Utils.escapeHtml(c)}</option>`).join('')}</select>
   </div>
   <div class="form-group">
     <label class="form-label">Quantidade</label>
@@ -6312,7 +6318,7 @@ ${passivos.length === 0
       if (!selCat) return;
       selCat.addEventListener('change', () => {
         const c = CATS.find(x => x.id === selCat.value);
-        if (selSub) selSub.innerHTML = (SUBS[selCat.value] || []).map(s => `<option value="${s}">${s}</option>`).join('');
+        if (selSub) selSub.innerHTML = (SUBS[selCat.value] || []).map(s => `<option value="${Utils.escapeHtml(s)}">${Utils.escapeHtml(s)}</option>`).join('');
         if (c) {
           if (desc)   desc.textContent = c.desc || '';
           if (badges) badges.innerHTML = riscoBadge(c.risco) + liqBadge(c.liquidez);
@@ -6442,7 +6448,7 @@ ${passivos.length === 0
     <div class="kpi-body">
       <div class="kpi-label">Maior Gasto do Mês</div>
       <div class="kpi-value" style="color:var(--amber)">${topDesp ? Utils.currency(topDesp.split?.find(s=>s.person===eu)?.valor ?? topDesp.amount) : '—'}</div>
-      <div class="kpi-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp ? topDesp.desc + ' · ' + (Store.CATEGORIES[topDesp.category]?.label||topDesp.category) : 'Sem despesas'}</div>
+      <div class="kpi-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDesp ? Utils.escapeHtml(topDesp.desc) + ' · ' + Utils.escapeHtml(Store.CATEGORIES[topDesp.category]?.label||topDesp.category) : 'Sem despesas'}</div>
     </div>
   </div>
 </div>
@@ -6472,7 +6478,7 @@ ${topCats.length ? `
     ${recentRec.length ? `<div style="display:flex;flex-direction:column;gap:0">
       ${recentRec.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text-1)">${r.desc}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-1)">${Utils.escapeHtml(r.desc)}</div>
           <div style="font-size:11px;color:var(--text-4)">${Utils.fmtDate(r.date)}</div>
         </div>
         <span style="font-size:14px;font-weight:700;color:var(--green)">${Utils.currency(r.amount)}</span>
@@ -6491,8 +6497,8 @@ ${topCats.length ? `
         const cat = Store.CATEGORIES[d.category];
         return `<tr>
           <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
-          <td>${d.desc}${d.split?.length ? ` <span class="badge badge-accent" style="font-size:10px">rateio</span>` : ''}</td>
-          <td><span class="badge" style="background:${cat?.color+'20'};color:${cat?.color}">${cat?.label||d.category}</span></td>
+          <td>${Utils.escapeHtml(d.desc)}${d.split?.length ? ` <span class="badge badge-accent" style="font-size:10px">rateio</span>` : ''}</td>
+          <td><span class="badge" style="background:${cat?.color+'20'};color:${cat?.color}">${Utils.escapeHtml(cat?.label||d.category)}</span></td>
           <td class="num negative">${Utils.currency(val)}</td>
         </tr>`;
       }).join('')}
@@ -6560,7 +6566,7 @@ ${topCats.length ? `
         document.getElementById('meuDonutLegend').innerHTML = donutData.map(d => `
           <div class="donut-legend-item">
             <div class="donut-legend-dot" style="background:${d.color}"></div>
-            <span class="donut-legend-label">${d.label}</span>
+            <span class="donut-legend-label">${Utils.escapeHtml(d.label)}</span>
             <span class="donut-legend-pct">${((d.value/td)*100).toFixed(0)}%</span>
             <span class="donut-legend-val">${Charts.fmt(d.value, true)}</span>
           </div>`).join('');
@@ -6595,11 +6601,11 @@ ${topCats.length ? `
   </div>
   <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="nAmt" type="number" step="0.01"/></div>
   <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="nDate" type="date" value="${today}"/></div>
-  <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="nCat">${cats.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></div>
+  <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="nCat">${cats.map(([k,v])=>`<option value="${Utils.escapeHtml(k)}">${Utils.escapeHtml(v.label)}</option>`).join('')}</select></div>
   <div class="form-group"><label class="form-label">Sub-categoria</label><select class="form-select" id="nSub"></select></div>
-  <div class="form-group"><label class="form-label">Pagamento</label><select class="form-select" id="nPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select></div>
+  <div class="form-group"><label class="form-label">Pagamento</label><select class="form-select" id="nPay">${Store.PAYMENT_METHODS.map(m=>`<option>${Utils.escapeHtml(m)}</option>`).join('')}</select></div>
   <div class="form-group" id="nCartaoRow" style="display:none"><label class="form-label">Cartão</label>
-    <select class="form-select" id="nCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    <select class="form-select" id="nCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${Utils.escapeHtml(c.id)}">${Utils.escapeHtml(c.name)}</option>`).join('')}</select>
   </div>
   <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:2px 0">
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -6638,7 +6644,7 @@ ${topCats.length ? `
   </div>
   <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="nRAmt" type="number" step="0.01"/></div>
   <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="nRDate" type="date" value="${today}"/></div>
-  <div class="form-group"><label class="form-label">Pessoa</label><select class="form-select" id="nRPerson">${Store.PESSOAS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+  <div class="form-group"><label class="form-label">Pessoa</label><select class="form-select" id="nRPerson">${Store.PESSOAS.map(p=>`<option>${Utils.escapeHtml(p)}</option>`).join('')}</select></div>
   <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="nRType">
     <option value="salario">Salário</option><option value="contrato">Contrato</option>
     <option value="pensao">Pensão</option><option value="outros">Outros</option>
@@ -6691,7 +6697,7 @@ ${topCats.length ? `
         const cat = document.getElementById('nCat')?.value;
         const subs = Store.SUBCATEGORIES[cat]||[];
         const sel = document.getElementById('nSub');
-        if (sel) sel.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+        if (sel) sel.innerHTML = subs.map(s=>`<option>${Utils.escapeHtml(s)}</option>`).join('');
       };
       const updateParcelaInfo = () => {
         const amt = parseFloat(document.getElementById('nAmt')?.value) || 0;
@@ -6761,7 +6767,7 @@ ${topCats.length ? `
     const html = `
 <div style="margin-bottom:12px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:6px">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-  Lançamento como <strong>${pessoaName}</strong> — visível para toda a família
+  Lançamento como <strong>${Utils.escapeHtml(pessoaName)}</strong> — visível para toda a família
 </div>
 <div class="form-grid">
   <div class="form-group form-full">
@@ -6771,11 +6777,11 @@ ${topCats.length ? `
   <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="fMAmt" type="number" step="0.01" placeholder="0,00"/></div>
   <div class="form-group"><label class="form-label">Data</label><input class="form-input" id="fMDate" type="date" value="${new Date().toISOString().slice(0,10)}"/></div>
   <div class="form-group"><label class="form-label">Categoria</label>
-    <select class="form-select" id="fMCat">${cats.map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select>
+    <select class="form-select" id="fMCat">${cats.map(([k,v])=>`<option value="${Utils.escapeHtml(k)}">${Utils.escapeHtml(v.label)}</option>`).join('')}</select>
   </div>
   <div class="form-group"><label class="form-label">Sub-categoria</label><select class="form-select" id="fMSub"></select></div>
   <div class="form-group"><label class="form-label">Pagamento</label>
-    <select class="form-select" id="fMPay">${Store.PAYMENT_METHODS.map(m=>`<option>${m}</option>`).join('')}</select>
+    <select class="form-select" id="fMPay">${Store.PAYMENT_METHODS.map(m=>`<option>${Utils.escapeHtml(m)}</option>`).join('')}</select>
   </div>
   ${anexoFieldHTML('fM', null)}
 </div>`;
@@ -6821,7 +6827,7 @@ ${topCats.length ? `
       const updateSubs = () => {
         const subs = Store.SUBCATEGORIES[document.getElementById('fMCat')?.value] || [];
         const sel  = document.getElementById('fMSub');
-        if (sel) sel.innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+        if (sel) sel.innerHTML = subs.map(s=>`<option>${Utils.escapeHtml(s)}</option>`).join('');
       };
       updateSubs();
       document.getElementById('fMCat')?.addEventListener('change', updateSubs);
@@ -6839,7 +6845,7 @@ ${topCats.length ? `
     const html = `<div class="form-grid">
       <div class="form-group form-full">
         <label class="form-label">Descrição</label>
-        <input class="form-input" id="eDDesc" value="${d.desc.replace(/"/g,'&quot;')}"/>
+        <input class="form-input" id="eDDesc" value="${Utils.escapeHtml(d.desc)}"/>
       </div>
       <div class="form-group">
         <label class="form-label">Valor (R$)</label>
@@ -6852,19 +6858,19 @@ ${topCats.length ? `
       <div class="form-group">
         <label class="form-label">Categoria</label>
         <select class="form-select" id="eDCat">
-          ${cats.map(([k,v]) => `<option value="${k}"${k===d.category?' selected':''}>${v.label}</option>`).join('')}
+          ${cats.map(([k,v]) => `<option value="${Utils.escapeHtml(k)}"${k===d.category?' selected':''}>${Utils.escapeHtml(v.label)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Sub-categoria</label>
         <select class="form-select" id="eDSub">
-          ${(Store.SUBCATEGORIES[d.category]||[]).map(s => `<option${s===d.sub?' selected':''}>${s}</option>`).join('')}
+          ${(Store.SUBCATEGORIES[d.category]||[]).map(s => `<option${s===d.sub?' selected':''}>${Utils.escapeHtml(s)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Pagamento</label>
         <select class="form-select" id="eDPay">
-          ${Store.PAYMENT_METHODS.map(m => `<option${m===d.pay?' selected':''}>${m}</option>`).join('')}
+          ${Store.PAYMENT_METHODS.map(m => `<option${m===d.pay?' selected':''}>${Utils.escapeHtml(m)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:2px 0">
@@ -6886,8 +6892,8 @@ ${topCats.length ? `
       <div class="form-group form-full" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--bg-elevated)">
         <label class="form-label" style="margin-bottom:6px">Tipo deste lançamento <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:normal;font-size:11px">(opcional — sobrescreve o tipo da subcategoria)</span></label>
         <select class="form-select" id="eDTipoOverride">
-          <option value="">Herdar da subcategoria (${(Store.getTipoById && Store.getTipoById(tipoEfetivo)?.label) || tipoEfetivo || '—'})</option>
-          ${tipos.map(t => `<option value="${t.id}" ${d.tipoOverride===t.id?'selected':''}>${t.label}</option>`).join('')}
+          <option value="">Herdar da subcategoria (${Utils.escapeHtml((Store.getTipoById && Store.getTipoById(tipoEfetivo)?.label) || tipoEfetivo || '—')})</option>
+          ${tipos.map(t => `<option value="${Utils.escapeHtml(t.id)}" ${d.tipoOverride===t.id?'selected':''}>${Utils.escapeHtml(t.label)}</option>`).join('')}
         </select>
       </div>`;
       })()}
@@ -6917,7 +6923,7 @@ ${topCats.length ? `
             <div>
               <label class="form-label">Quem reembolsa</label>
               <select class="form-select" id="eDReembolsoDe">
-                ${Store.PESSOAS.map(p => `<option${p===(d.reembolso?.de||'')?' selected':''}>${p}</option>`).join('')}
+                ${Store.PESSOAS.map(p => `<option${p===(d.reembolso?.de||'')?' selected':''}>${Utils.escapeHtml(p)}</option>`).join('')}
                 <option${'Família'===(d.reembolso?.de||'')?' selected':''}>Família</option>
               </select>
             </div>
@@ -6988,7 +6994,7 @@ ${topCats.length ? `
       document.getElementById('eDCat')?.addEventListener('change', () => {
         const cat = document.getElementById('eDCat').value;
         const sel = document.getElementById('eDSub');
-        if (sel) sel.innerHTML = (Store.SUBCATEGORIES[cat]||[]).map(s=>`<option>${s}</option>`).join('');
+        if (sel) sel.innerHTML = (Store.SUBCATEGORIES[cat]||[]).map(s=>`<option>${Utils.escapeHtml(s)}</option>`).join('');
       });
       document.getElementById('eDDesconto')?.addEventListener('change', e => {
         document.getElementById('eDDescontoOpts').style.display = e.target.checked ? 'block' : 'none';
@@ -7025,7 +7031,7 @@ ${topCats.length ? `
     const html = `<div class="form-grid">
       <div class="form-group form-full">
         <label class="form-label">Descrição</label>
-        <input class="form-input" id="eRDesc" value="${r.desc.replace(/"/g,'&quot;')}"/>
+        <input class="form-input" id="eRDesc" value="${Utils.escapeHtml(r.desc)}"/>
       </div>
       <div class="form-group">
         <label class="form-label">Valor (R$)</label>
@@ -7038,7 +7044,7 @@ ${topCats.length ? `
       <div class="form-group">
         <label class="form-label">Pessoa</label>
         <select class="form-select" id="eRPerson">
-          ${Store.PESSOAS.map(p => `<option${p===r.person?' selected':''}>${p}</option>`).join('')}
+          ${Store.PESSOAS.map(p => `<option${p===r.person?' selected':''}>${Utils.escapeHtml(p)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -7313,10 +7319,10 @@ ${reservas.length > 0 ? `
       return `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface-2);position:relative">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${tipoColor};flex-shrink:0"></span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tipoColor}">${r.tipo||'Aplicação'}</span>
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tipoColor}">${Utils.escapeHtml(r.tipo||'Aplicação')}</span>
           <span style="margin-left:auto;font-size:10px;color:var(--text-4)">${pctPortfolio}%</span>
         </div>
-        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.nome||r.label||'—'}">${r.nome||r.label||'—'}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${Utils.escapeHtml(r.nome||r.label||'—')}">${Utils.escapeHtml(r.nome||r.label||'—')}</div>
         <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1)">${Utils.currency(valAtual)}</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
           <span style="font-size:11px;color:${ganhoR>=0?'var(--green)':'var(--red)'}">${ganhoR>=0?'+':''}${Utils.currency(ganhoR)} (${rendR.toFixed(1)}%)</span>
@@ -7516,7 +7522,7 @@ ${reservas.length > 0 ? `
           legend.innerHTML = donutData.map(d=>`
             <div class="donut-legend-item">
               <div class="donut-legend-dot" style="background:${d.color}"></div>
-              <span class="donut-legend-label">${d.label}</span>
+              <span class="donut-legend-label">${Utils.escapeHtml(d.label)}</span>
               <span class="donut-legend-pct">${((d.value/tot)*100).toFixed(1)}%</span>
               <span class="donut-legend-val">${Charts.fmt(d.value,true)}</span>
             </div>`).join('');
@@ -7625,14 +7631,14 @@ ${reservas.length > 0 ? `
       document.getElementById('ivCompBody').innerHTML = `
 <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
   Em <strong>${anos} anos</strong> com capital ${Utils.currency(pv)} + aporte ${Utils.currency(pmt)}/mês:
-  o melhor produto é <strong style="color:${melhor.color}">${melhor.nome}</strong>, acumulando <strong>${Utils.currency(melhor.totalLiq)}</strong> líquidos.
+  o melhor produto é <strong style="color:${melhor.color}">${Utils.escapeHtml(melhor.nome)}</strong>, acumulando <strong>${Utils.currency(melhor.totalLiq)}</strong> líquidos.
 </div>
 <div class="chart-wrap" style="margin-bottom:16px"><canvas id="chartInvComp" class="chart-canvas" height="240"></canvas></div>
 <div class="table-wrap"><table class="data-table">
   <thead><tr><th>Produto</th><th class="num">Taxa</th><th class="num">Total aportado</th><th class="num">Bruto</th><th class="num">Líquido (após IR)</th><th class="num">Poder de compra</th></tr></thead>
   <tbody>${resultados.map(r => `
     <tr style="${r === melhor ? 'background:rgba(34,197,94,0.06)' : ''}">
-      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span><strong>${r.nome}</strong>${r.isento ? ' <span style="font-size:10px;color:var(--green)">isento IR</span>' : ''}</td>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span><strong>${Utils.escapeHtml(r.nome)}</strong>${r.isento ? ' <span style="font-size:10px;color:var(--green)">isento IR</span>' : ''}</td>
       <td class="num">${r.taxa.toFixed(2)}% a.a.</td>
       <td class="num">${Utils.currency(r.totalAportado)}</td>
       <td class="num">${Utils.currency(r.saldoBruto)}</td>
@@ -7670,13 +7676,13 @@ ${reservas.length > 0 ? `
       document.getElementById('ivRevBody').innerHTML = `
 <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
   Para acumular <strong>${Utils.currency(alvo)}</strong> em <strong>${anos} anos</strong>${cap > 0 ? ` partindo de ${Utils.currency(cap)}` : ''}:
-  o menor aporte é com <strong style="color:${menor.color}">${menor.nome}</strong> = <strong>${Utils.currency(menor.pmt)}/mês</strong>.
+  o menor aporte é com <strong style="color:${menor.color}">${Utils.escapeHtml(menor.nome)}</strong> = <strong>${Utils.currency(menor.pmt)}/mês</strong>.
 </div>
 <div class="table-wrap"><table class="data-table">
   <thead><tr><th>Produto</th><th class="num">Taxa</th><th class="num">Aporte mensal</th><th class="num">Total aportado</th></tr></thead>
   <tbody>${linhas.map(l => `
     <tr style="${l === menor ? 'background:rgba(34,197,94,0.06)' : ''}">
-      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${l.color};margin-right:8px;vertical-align:middle"></span><strong>${l.nome}</strong></td>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${l.color};margin-right:8px;vertical-align:middle"></span><strong>${Utils.escapeHtml(l.nome)}</strong></td>
       <td class="num">${l.taxa.toFixed(2)}% a.a.</td>
       <td class="num positive fw-700">${Utils.currency(l.pmt)}</td>
       <td class="num">${Utils.currency(l.pmt * meses)}</td>
@@ -7769,7 +7775,7 @@ ${reservas.length > 0 ? `
           color: '#EF4444',
         },
         ...rows.map(b => ({
-          label: `${b.nome} (${(+b.taxa || 0).toFixed(1)}% taxa)`,
+          label: `${Utils.escapeHtml(b.nome)} (${(+b.taxa || 0).toFixed(1)}% taxa)`,
           values: labels.map((_,i) => parseFloat(valorFinal(capital, b.taxa, i+1).toFixed(0))),
           color: b.color,
           dashed: true,
@@ -7802,7 +7808,7 @@ ${reservas.length > 0 ? `
       </tr>
       ${rows.map(r => `
       <tr>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span>${r.nome}</td>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span>${Utils.escapeHtml(r.nome)}</td>
         <td class="num">${r.taxa.toFixed(2)}% a.a.</td>
         <td class="num positive fw-700">${Utils.currency(r.vAltern)}</td>
         <td class="num positive fw-700">+${Utils.currency(r.economia)}</td>
@@ -8042,8 +8048,8 @@ ${fins.length === 0
             <span style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">${f.sistema === 'sac' ? 'SAC' : 'Price'}</span>
             ${quitado ? `<span style="font-size:9.5px;font-weight:700;background:rgba(34,197,94,.18);color:#22C55E;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.05em">Quitado</span>` : ''}
           </div>
-          <div style="font-size:15.5px;font-weight:700;color:var(--text-1);line-height:1.25">${f.label}</div>
-          ${f.banco ? `<div style="font-size:11.5px;color:var(--text-4);margin-top:2px">${f.banco}</div>` : ''}
+          <div style="font-size:15.5px;font-weight:700;color:var(--text-1);line-height:1.25">${Utils.escapeHtml(f.label)}</div>
+          ${f.banco ? `<div style="font-size:11.5px;color:var(--text-4);margin-top:2px">${Utils.escapeHtml(f.banco)}</div>` : ''}
         </div>
       </div>
 
@@ -8164,7 +8170,7 @@ ${fins.length === 0
     const pctA = tot > 0 ? (amortData[i] / tot * 100) : 0;
     const pctJ = tot > 0 ? (jurosData[i] / tot * 100) : 0;
     return `<div style="margin-bottom:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px">${f.label}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px">${Utils.escapeHtml(f.label)}</div>
       <div style="display:flex;height:20px;border-radius:6px;overflow:hidden;background:var(--surface-2)">
         <div style="width:${pctA}%;background:#22C55E;display:flex;align-items:center;justify-content:center">
           ${pctA > 15 ? `<span style="font-size:10px;color:#fff;font-weight:600">${Utils.currency(amortData[i])}</span>` : ''}
@@ -8224,7 +8230,7 @@ ${acoesBar}
 <div class="form-grid">
   <div class="form-group form-full"><label class="form-label">Tipo de financiamento</label>
     <select class="form-select" id="fFNTipoNovo">${STORE_TIPOS.map(t=>`<option value="${t.id}"${tipoAtual===t.id?' selected':''}>${t.label}</option>`).join('')}</select>
-    <div id="fFNTipoDesc" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.45">${tipoInfo ? tipoInfo.desc : ''}</div>
+    <div id="fFNTipoDesc" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.45">${tipoInfo ? Utils.escapeHtml(tipoInfo.desc) : ''}</div>
     <div id="fFNTipoRange" style="font-size:11px;color:var(--text-4);margin-top:2px">${tipoInfo ? `Taxa típica a.a.: ${tipoInfo.taxaMin}% – ${tipoInfo.taxaMax}%` : ''}</div>
   </div>
   <div class="form-group"><label class="form-label">Categoria (legado)</label>
@@ -8236,14 +8242,14 @@ ${acoesBar}
       <option value="sac"${f.sistema==='sac'?' selected':''}>SAC (parcela decrescente)</option>
     </select>
   </div>
-  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fFNLabel" placeholder="Ex.: Apto Vila Mariana" value="${f.label||''}"></div>
-  <div class="form-group form-full"><label class="form-label">Banco / Credor</label><input class="form-input" id="fFNBanco" placeholder="Caixa, Itaú, Santander..." value="${f.banco||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fFNLabel" placeholder="Ex.: Apto Vila Mariana" value="${Utils.escapeHtml(f.label||'')}"></div>
+  <div class="form-group form-full"><label class="form-label">Banco / Credor</label><input class="form-input" id="fFNBanco" placeholder="Caixa, Itaú, Santander..." value="${Utils.escapeHtml(f.banco||'')}"></div>
   <div class="form-group"><label class="form-label">Valor financiado (R$)</label><input class="form-input" id="fFNValor" type="number" step="1000" value="${f.valorFinanciado||''}"></div>
   <div class="form-group"><label class="form-label">Taxa de juros mensal (%)</label><input class="form-input" id="fFNTaxa" type="number" step="0.01" value="${f.taxaMensal||''}" placeholder="Ex.: 0.8"></div>
   <div class="form-group"><label class="form-label">Prazo (meses)</label><input class="form-input" id="fFNPrazo" type="number" step="1" min="1" max="600" value="${f.prazo||''}" placeholder="Ex.: 360"></div>
   <div class="form-group"><label class="form-label">Parcelas já pagas</label><input class="form-input" id="fFNPagas" type="number" step="1" min="0" value="${f.parcelasPagas||0}"></div>
   <div class="form-group"><label class="form-label">Data do contrato</label><input class="form-input" id="fFNData" type="date" value="${f.dataInicio||hoje}"></div>
-  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fFNNotes" value="${f.notes||''}"></div>
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fFNNotes" value="${Utils.escapeHtml(f.notes||'')}"></div>
 </div>`;
     Modal.open(isEdit ? 'Editar Financiamento' : 'Novo Financiamento', html, () => {
       const tipoSel = document.getElementById('fFNTipoNovo').value;
@@ -9583,8 +9589,8 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     let titulo, texto, tipo;
     if (anomalias.length > 0) {
       const a = anomalias[0];
-      titulo = `Atenção: ${a.label} fora do padrão`;
-      texto = `${Utils.currency(a.current)} em ${a.label} este mês — ${Math.round(a.delta * 100)}% acima da média (${Utils.currency(a.avg)}). ${anomalias.length > 1 ? `Mais ${anomalias.length - 1} categoria(s) também merecem revisão.` : 'Vale entender o que mudou.'}`;
+      titulo = `Atenção: ${Utils.escapeHtml(a.label)} fora do padrão`;
+      texto = `${Utils.currency(a.current)} em ${Utils.escapeHtml(a.label)} este mês — ${Math.round(a.delta * 100)}% acima da média (${Utils.currency(a.avg)}). ${anomalias.length > 1 ? `Mais ${anomalias.length - 1} categoria(s) também merecem revisão.` : 'Vale entender o que mudou.'}`;
       tipo = 'alerta';
     } else {
       const receita = Store.sumReceitas(month, year);
@@ -9818,7 +9824,7 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
       ${(memberData.length ? memberData : pessoas.slice(0,3).map(p => ({person:p, color:Utils.personColor(p)}))).slice(0, 4).map((m, i) => `<div style="width:42px;height:42px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,${m.color},${m.color}cc);color:#fff;box-shadow:0 4px 12px ${m.color}40;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;margin-left:${i===0?0:-12}px;border:3px solid var(--bg);z-index:${10-i};position:relative">${Utils.personInitial(m.person)}</div>`).join('')}
     </div>
     <div style="min-width:0">
-      <h1 style="font-size:26px;font-weight:700;color:var(--text-1);letter-spacing:-0.8px;line-height:1;margin:0">${familyName}</h1>
+      <h1 style="font-size:26px;font-weight:700;color:var(--text-1);letter-spacing:-0.8px;line-height:1;margin:0">${Utils.escapeHtml(familyName)}</h1>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px;color:var(--text-3);font-size:12.5px;flex-wrap:wrap">
         <span>${memberData.length || pessoas.length} ${(memberData.length || pessoas.length) === 1 ? 'membro' : 'membros'}</span>
         <span style="width:3px;height:3px;border-radius:50%;background:var(--text-3)"></span>
@@ -9865,11 +9871,11 @@ ${(() => {
   if (poder.poderDeEscolha < 0) {
     tone = 'attention';
     titulo = 'A família gastou mais do que recebeu este mês';
-    texto = `O Poder de Escolha consolidado ficou em <strong style="color:var(--red)">-${Utils.currency(Math.abs(poder.poderDeEscolha))}</strong>. Vale conversar com ${top.person} e ${second.person} sobre quais compromissos podem ser revistos em conjunto.`;
+    texto = `O Poder de Escolha consolidado ficou em <strong style="color:var(--red)">-${Utils.currency(Math.abs(poder.poderDeEscolha))}</strong>. Vale conversar com ${Utils.escapeHtml(top.person)} e ${Utils.escapeHtml(second.person)} sobre quais compromissos podem ser revistos em conjunto.`;
   } else if (diffPct > 50 && poderTop > 0 && poderSecond > 0) {
     tone = 'attention';
-    titulo = `${top.person} tem Poder de Escolha bem maior que ${second.person}`;
-    texto = `${top.person} cobre <strong>${pctTop.toFixed(0)}%</strong> da receita familiar e sobra <strong style="color:var(--accent-2)">${Utils.currency(poderTop)}</strong> pra decidir. ${second.person} fica com <strong>${Utils.currency(poderSecond)}</strong>. Ajustar a divisão de despesas compartilhadas pode equilibrar isso sem culpa.`;
+    titulo = `${Utils.escapeHtml(top.person)} tem Poder de Escolha bem maior que ${Utils.escapeHtml(second.person)}`;
+    texto = `${Utils.escapeHtml(top.person)} cobre <strong>${pctTop.toFixed(0)}%</strong> da receita familiar e sobra <strong style="color:var(--accent-2)">${Utils.currency(poderTop)}</strong> pra decidir. ${Utils.escapeHtml(second.person)} fica com <strong>${Utils.currency(poderSecond)}</strong>. Ajustar a divisão de despesas compartilhadas pode equilibrar isso sem culpa.`;
   } else {
     tone = 'positive';
     titulo = 'Equilíbrio familiar saudável';
@@ -9926,14 +9932,14 @@ ${(() => {
         <span class="hero-caption">Contribuição ao Poder de Escolha</span>
       </div>
       <div class="hero-track">
-        ${memberData.filter(m => m.poder > 0).map(m => `<div style="width:${m.pctContribPoder.toFixed(1)}%;background:${m.color}" title="${m.person}: ${m.pctContribPoder.toFixed(0)}%"></div>`).join('') || `<div style="flex:1;background:rgba(138,126,248,.4)"></div>`}
+        ${memberData.filter(m => m.poder > 0).map(m => `<div style="width:${m.pctContribPoder.toFixed(1)}%;background:${m.color}" title="${Utils.escapeHtml(m.person)}: ${m.pctContribPoder.toFixed(0)}%"></div>`).join('') || `<div style="flex:1;background:rgba(138,126,248,.4)"></div>`}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:10px;gap:14px;flex-wrap:wrap">
         ${memberData.map(m => `
         <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:110px">
           <div style="width:22px;height:22px;border-radius:7px;flex-shrink:0;background:${m.color}26;color:${m.color};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${Utils.personInitial(m.person)}</div>
           <div style="flex:1;min-width:0">
-            <div class="hero-mute" style="font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.person}</div>
+            <div class="hero-mute" style="font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(m.person)}</div>
             <div class="hero-legend-strong" style="font-size:12px;font-variant-numeric:tabular-nums">${m.poder<0?'-':''}${Utils.currency(Math.abs(m.poder))}</div>
           </div>
         </div>`).join('')}
@@ -9949,7 +9955,7 @@ ${(() => {
           <div style="font-size:11px;color:var(--text-2);margin-bottom:4px">Receita líquida</div>
           <div style="font-size:20px;font-weight:700;color:var(--green);letter-spacing:-.5px;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums">${Utils.currency(receita)}</div>
           <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;background:rgba(255,255,255,.04)">
-            ${memberData.filter(m => m.receita > 0).map(m => `<div style="flex:${m.receita};background:${m.color}" title="${m.person}: ${Utils.currency(m.receita)}"></div>`).join('') || `<div style="flex:1;background:rgba(29,201,126,.4)"></div>`}
+            ${memberData.filter(m => m.receita > 0).map(m => `<div style="flex:${m.receita};background:${m.color}" title="${Utils.escapeHtml(m.person)}: ${Utils.currency(m.receita)}"></div>`).join('') || `<div style="flex:1;background:rgba(29,201,126,.4)"></div>`}
           </div>
         </div>
         <div>
@@ -9989,7 +9995,7 @@ ${(() => {
         <div style="width:36px;height:36px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,${m.color},${m.color}aa);color:#fff;box-shadow:0 4px 12px ${m.color}30;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${Utils.personInitial(m.person)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:600;color:var(--text-1);display:flex;align-items:center;gap:6px">
-            ${m.person}
+            ${Utils.escapeHtml(m.person)}
             ${m.isMe ? `<span style="font-size:8.5px;font-weight:700;letter-spacing:.05em;color:${m.color};background:${m.color}20;padding:1px 5px;border-radius:3px;text-transform:uppercase">Você</span>` : ''}
           </div>
           <div style="font-size:10.5px;color:var(--text-3)">${m.pctContribReceita.toFixed(0)}% da receita familiar</div>
@@ -10031,7 +10037,7 @@ ${memberData.length >= 2 && memberSeries.some(s => s.data.some(v => v > 0)) ? `
       ${SvgCharts.lineChart(memberSeries, balanceMonths.map(b => b.label), { width: 420, height: 160 })}
     </div>
     <div style="display:flex;gap:14px;flex-wrap:wrap">
-      ${memberSeries.map(s => `<div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${s.c}"></div><span style="font-size:11px;color:var(--text-3)">${s.name}</span></div>`).join('')}
+      ${memberSeries.map(s => `<div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${s.c}"></div><span style="font-size:11px;color:var(--text-3)">${Utils.escapeHtml(s.name)}</span></div>`).join('')}
     </div>
   </div>
 
@@ -10043,7 +10049,7 @@ ${memberData.length >= 2 && memberSeries.some(s => s.data.some(v => v > 0)) ? `
         <div style="font-size:11px;color:var(--text-3);margin-top:2px">Divisão de comprometimentos por categoria</div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
-        ${memberData.slice(0, 3).map(m => `<div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:2px;background:${m.color}"></div><span style="font-size:11px;color:var(--text-3)">${m.person}</span></div>`).join('')}
+        ${memberData.slice(0, 3).map(m => `<div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:2px;background:${m.color}"></div><span style="font-size:11px;color:var(--text-3)">${Utils.escapeHtml(m.person)}</span></div>`).join('')}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -10053,16 +10059,16 @@ ${memberData.length >= 2 && memberSeries.some(s => s.data.some(v => v > 0)) ? `
           const widthPct = maxTot > 0 ? (row.total / maxTot) * 100 : 0;
           return `<div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-              <span style="font-size:12px;color:var(--text-1);font-weight:500">${row.cat}</span>
+              <span style="font-size:12px;color:var(--text-1);font-weight:500">${Utils.escapeHtml(row.cat)}</span>
               <span style="font-size:12px;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums">${Utils.currency(row.total)}</span>
             </div>
             <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.05);width:${widthPct}%;gap:2px;min-width:30px">
-              ${row.contribs.map(([person, amt]) => `<div style="flex:${amt};background:${Utils.personColor(person)}" title="${person}: ${Utils.currency(amt)}"></div>`).join('')}
+              ${row.contribs.map(([person, amt]) => `<div style="flex:${amt};background:${Utils.personColor(person)}" title="${Utils.escapeHtml(person)}: ${Utils.currency(amt)}"></div>`).join('')}
             </div>
             <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
               ${row.contribs.map(([person, amt]) => {
                 const pct = row.total > 0 ? (amt / row.total) * 100 : 0;
-                return `<span style="font-size:10px;color:var(--text-3)"><span style="color:${Utils.personColor(person)};font-weight:600">${Utils.personInitial(person)}</span> ${pct.toFixed(0)}% · ${Utils.currency(amt)}</span>`;
+                return `<span style="font-size:10px;color:var(--text-3)"><span style="color:${Utils.personColor(person)};font-weight:600">${Utils.escapeHtml(Utils.personInitial(person))}</span> ${pct.toFixed(0)}% · ${Utils.currency(amt)}</span>`;
               }).join('')}
             </div>
           </div>`;
@@ -10092,8 +10098,8 @@ ${metasFamilia.length ? `
             <div style="position:relative">${icon('target',{size:14})}</div>
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:12.5px;font-weight:600;color:var(--text-1)">${m.label}</div>
-            <div style="font-size:10.5px;color:var(--text-3)">${Utils.currency(atual)} de ${Utils.currency(target)}${m.deadline ? ` · ETA ${m.deadline}` : ''}</div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text-1)">${Utils.escapeHtml(m.label)}</div>
+            <div style="font-size:10.5px;color:var(--text-3)">${Utils.currency(atual)} de ${Utils.currency(target)}${m.deadline ? ` · ETA ${Utils.escapeHtml(m.deadline)}` : ''}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:14px;font-weight:700;color:${mColor};letter-spacing:-.3px">${pct.toFixed(0)}%</div>
@@ -10125,10 +10131,10 @@ ${(compartilhadas.length || netList.length) ? `
         <tbody>
           ${compartilhadas.map(d => {
             const payer = d.person || '—';
-            const splitTxt = d.split.map(s => `<span style="color:${Utils.personColor(s.person)};font-weight:600">${Utils.personInitial(s.person)}</span> ${Utils.currency(s.valor || 0)}`).join(' · ');
+            const splitTxt = d.split.map(s => `<span style="color:${Utils.personColor(s.person)};font-weight:600">${Utils.escapeHtml(Utils.personInitial(s.person))}</span> ${Utils.currency(s.valor || 0)}`).join(' · ');
             return `<tr class="row-clickable" data-row-desp="${d.id}">
-              <td>${d.desc || d.sub || d.category || '—'}</td>
-              <td><span style="color:${Utils.personColor(payer)};font-weight:500">${payer}</span></td>
+              <td>${Utils.escapeHtml(d.desc || d.sub || d.category || '—')}</td>
+              <td><span style="color:${Utils.personColor(payer)};font-weight:500">${Utils.escapeHtml(payer)}</span></td>
               <td style="font-size:11px;color:var(--text-3)">${splitTxt}</td>
               <td class="num">${Utils.currency(d.amount)}</td>
             </tr>`;
@@ -10157,13 +10163,13 @@ ${(compartilhadas.length || netList.length) ? `
           const cColor = Utils.personColor(creditor);
           return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <div style="display:flex;align-items:center;gap:6px">
-              <div style="width:24px;height:24px;border-radius:50%;background:${dColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${Utils.personInitial(debtor)}</div>
-              <span style="font-size:12px;color:var(--text-1);font-weight:500">${debtor}</span>
+              <div style="width:24px;height:24px;border-radius:50%;background:${dColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${Utils.escapeHtml(Utils.personInitial(debtor))}</div>
+              <span style="font-size:12px;color:var(--text-1);font-weight:500">${Utils.escapeHtml(debtor)}</span>
             </div>
             <span style="color:var(--text-3);display:inline-flex">${icon('arrow-right',{size:12})}</span>
             <div style="display:flex;align-items:center;gap:6px">
-              <div style="width:24px;height:24px;border-radius:50%;background:${cColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${Utils.personInitial(creditor)}</div>
-              <span style="font-size:12px;color:var(--text-1);font-weight:500">${creditor}</span>
+              <div style="width:24px;height:24px;border-radius:50%;background:${cColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${Utils.escapeHtml(Utils.personInitial(creditor))}</div>
+              <span style="font-size:12px;color:var(--text-1);font-weight:500">${Utils.escapeHtml(creditor)}</span>
             </div>
             <span style="margin-left:auto;font-size:15px;font-weight:700;color:var(--amber);letter-spacing:-.3px;font-variant-numeric:tabular-nums">${Utils.currency(v)}</span>
           </div>`;
@@ -10273,7 +10279,7 @@ ${!isEmpty ? (() => {
   else if (irpf?.aPagar && (irpf.pagas || 0) < (irpf.totalParcelas || 1)) tc = { tone: 'attention', titulo: 'IRPF em parcelamento',
     texto: `${irpf.pagas || 0}/${irpf.totalParcelas} parcelas pagas. Próxima parcela: <strong>${Utils.currency((irpf.aPagar || 0) / irpf.totalParcelas)}</strong>. Mantenha o débito automático para evitar multa.` };
   else if (proximoItem) tc = { tone: 'attention', titulo: `Próximo vencimento: ${proximaCell.mes}/${proximaCell.ano}`,
-    texto: `${proximoItem.label} no dia ${proximoItem.dia} — <strong>${Utils.currency(proximoItem.valor)}</strong>. Programe pagamento ou débito automático.` };
+    texto: `${Utils.escapeHtml(proximoItem.label)} no dia ${proximoItem.dia} — <strong>${Utils.currency(proximoItem.valor)}</strong>. Programe pagamento ou débito automático.` };
   else tc = { tone: 'neutral', titulo: 'Calendário fiscal em dia',
     texto: `${allTribs.length} tributo${allTribs.length!==1?'s':''} cadastrado${allTribs.length!==1?'s':''} para ${ano}. Total a planejar: <strong>${totAno >= 0 ? Utils.currency(totAno) : Utils.currency(Math.abs(totAno)) + ' (recebimento líquido)'}</strong>.` };
   return coachInlineHTML({
@@ -10355,8 +10361,8 @@ ${iptus.length ? `
     <thead><tr><th>Imóvel</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th><th></th></tr></thead>
     <tbody>
       ${iptus.map(t => `<tr class="row-clickable" data-edit-trib="${t.id}">
-        <td>${t.label}</td>
-        <td>${t.pessoa || '—'}</td>
+        <td>${Utils.escapeHtml(t.label)}</td>
+        <td>${Utils.escapeHtml(t.pessoa || '—')}</td>
         <td class="num">${Utils.currency(t.valor || 0)}</td>
         <td class="num">${t.parcelas || 1}</td>
         <td class="num"><span class="badge ${t.pagas >= (t.parcelas || 1) ? 'badge-green' : 'badge-amber'}">${t.pagas || 0}/${t.parcelas || 1}</span></td>
@@ -10372,8 +10378,8 @@ ${ipvas.length ? `
     <thead><tr><th>Veículo</th><th>Responsável</th><th class="num">Valor</th><th class="num">Parcelas</th><th class="num">Pagas</th></tr></thead>
     <tbody>
       ${ipvas.map(t => `<tr class="row-clickable" data-edit-trib="${t.id}">
-        <td>${t.label}${t.placa ? `<div style="font-size:10px;color:var(--text-4);margin-top:2px;font-family:var(--mono)">${t.placa}</div>` : ''}</td>
-        <td>${t.pessoa || '—'}</td>
+        <td>${Utils.escapeHtml(t.label)}${t.placa ? `<div style="font-size:10px;color:var(--text-4);margin-top:2px;font-family:var(--mono)">${Utils.escapeHtml(t.placa)}</div>` : ''}</td>
+        <td>${Utils.escapeHtml(t.pessoa || '—')}</td>
         <td class="num">${Utils.currency(t.valor || 0)}</td>
         <td class="num">${t.parcelas || 1}</td>
         <td class="num"><span class="badge ${t.pagas >= (t.parcelas || 1) ? 'badge-green' : 'badge-amber'}">${t.pagas || 0}/${t.parcelas || 1}</span></td>
@@ -10389,8 +10395,8 @@ ${outrs.length ? `
     <thead><tr><th>Descrição</th><th>Responsável</th><th class="num">Valor</th></tr></thead>
     <tbody>
       ${outrs.map(t => `<tr class="row-clickable" data-edit-trib="${t.id}">
-        <td>${t.label}</td>
-        <td>${t.pessoa || '—'}</td>
+        <td>${Utils.escapeHtml(t.label)}</td>
+        <td>${Utils.escapeHtml(t.pessoa || '—')}</td>
         <td class="num">${Utils.currency(t.valor || 0)}</td>
       </tr>`).join('')}
     </tbody>
@@ -10407,8 +10413,8 @@ ${outrs.length ? `
         <div class="tributario-cal-items">
           ${c.items.map(it => `
             <div class="tributario-cal-item">
-              <span class="tributario-cal-tag tag-${it.tag}">${it.tag.toUpperCase()}</span>
-              <span class="tributario-cal-lbl">${it.label}</span>
+              <span class="tributario-cal-tag tag-${it.tag}">${Utils.escapeHtml(it.tag.toUpperCase())}</span>
+              <span class="tributario-cal-lbl">${Utils.escapeHtml(it.label)}</span>
               <span class="tributario-cal-val">${Utils.currency(it.valor)}</span>
             </div>
           `).join('')}
@@ -10452,7 +10458,7 @@ ${outrs.length ? `
         <input class="form-input" id="fTbAno" type="number" value="${t.ano || getYear()}"/>
       </div>
       <div class="form-group form-full"><label class="form-label">Descrição</label>
-        <input class="form-input" id="fTbLabel" placeholder="Ex: Casa Vila Madalena, Volvo XC60..." value="${(t.label||'').replace(/"/g,'&quot;')}"/>
+        <input class="form-input" id="fTbLabel" placeholder="Ex: Casa Vila Madalena, Volvo XC60..." value="${Utils.escapeHtml(t.label||'')}"/>
       </div>
       <div class="form-group"><label class="form-label">Valor (R$)</label>
         <input class="form-input" id="fTbValor" type="number" step="0.01" value="${t.valor || ''}"/>
@@ -10474,7 +10480,7 @@ ${outrs.length ? `
       <div class="form-group form-full"><label class="form-label">Responsável</label>
         <select class="form-select" id="fTbPessoa">
           <option value="">—</option>
-          ${pessoas.map(p=>`<option ${t.pessoa===p?'selected':''}>${p}</option>`).join('')}
+          ${pessoas.map(p=>`<option ${t.pessoa===p?'selected':''}>${Utils.escapeHtml(p)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group form-full irpf-only" style="display:${(t.tipo||'iptu')==='irpf'?'block':'none'}">
@@ -10563,10 +10569,10 @@ ${outrs.length ? `
       const val = r.valor || d.amount;
       return `<tr>
         <td>
-          <div style="font-weight:500">${d.desc}</div>
-          <div style="font-size:11px;color:var(--text-4)">${d.date} · ${d.category}</div>
+          <div style="font-weight:500">${Utils.escapeHtml(d.desc)}</div>
+          <div style="font-size:11px;color:var(--text-4)">${Utils.escapeHtml(d.date)} · ${Utils.escapeHtml(d.category)}</div>
         </td>
-        <td class="muted" style="font-size:12px">${r.para} → ${r.de}</td>
+        <td class="muted" style="font-size:12px">${Utils.escapeHtml(r.para)} → ${Utils.escapeHtml(r.de)}</td>
         <td class="num" style="color:var(--amber)">${Utils.currency(val)}</td>
         <td style="text-align:center">
           ${isPendente
@@ -10911,7 +10917,7 @@ ${outrs.length ? `
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">
           <div style="width:26px;height:26px;border-radius:7px;background:color-mix(in srgb, ${cor} 14%, transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${cor}">${icon(ico,{size:12})}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.label || m.desc || '—'}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(m.label || m.desc || '—')}</div>
             <div style="font-size:10px;color:var(--text-3)">${Utils.currency(atual)} de ${Utils.currency(target)}</div>
           </div>
           <div style="font-size:14px;font-weight:700;color:${cor};letter-spacing:-0.3px">${pct.toFixed(0)}%</div>
@@ -10983,7 +10989,7 @@ ${outrs.length ? `
           <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${tc.color}">${tc.label}</span>
         </div>
         <div style="font-size:13px;color:var(--text-1);line-height:1.4">${r.titulo}</div>
-        ${r.texto ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${r.texto.slice(0,90)}${r.texto.length>90?'…':''}</div>` : ''}
+        ${r.texto ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${r.texto.length>90?r.texto.slice(0,90)+'…':r.texto}</div>` : ''}
       </div>`;
     }).join('')}
   </div>
@@ -11011,7 +11017,7 @@ ${outrs.length ? `
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
           <span style="display:flex;align-items:center;gap:5px">
             <span style="width:8px;height:8px;border-radius:50%;background:${cat.color||'var(--accent)'};display:inline-block"></span>
-            ${cat.label}
+            ${Utils.escapeHtml(cat.label)}
           </span>
           <span style="font-family:var(--mono);color:var(--text-2)">${Utils.currency(v)} <span style="color:var(--text-4)">${pct}%</span></span>
         </div>
@@ -11060,8 +11066,8 @@ ${outrs.length ? `
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;${i < recent.length - 1?'border-bottom:1px solid var(--border)':''}">
         <div style="width:24px;height:24px;border-radius:6px;background:var(--surface-2);color:var(--text-3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${dia}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;color:var(--text-1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.desc||'—'}</div>
-          <div style="font-size:10px;color:var(--text-3)">${cat.label}</div>
+          <div style="font-size:12px;color:var(--text-1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(t.desc||'—')}</div>
+          <div style="font-size:10px;color:var(--text-3)">${Utils.escapeHtml(cat.label)}</div>
         </div>
         <div style="font-size:12.5px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums">−${Utils.currency(t.amount)}</div>
       </div>`;
@@ -11134,7 +11140,7 @@ ${outrs.length ? `
       <input type="checkbox" id="wToggle_${w.id}" ${vis[w.id]?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)">
       <span style="display:flex;align-items:center;gap:6px;font-size:13px">
         ${icon(w.icon,{size:14})}
-        ${w.label}
+        ${Utils.escapeHtml(w.label)}
       </span>
     </label>`).join('')}
   </div>
@@ -11574,10 +11580,10 @@ ${renderPageMonthPicker(container)}
     container.innerHTML = `
 ${section === 'perfil' ? '' : `
 <div class="config-profile-card">
-  <div class="config-profile-avatar">${profileInitial}</div>
+  <div class="config-profile-avatar">${Utils.escapeHtml(profileInitial)}</div>
   <div style="flex:1;min-width:0">
-    <div class="config-profile-name">${profileName}</div>
-    ${profileEmail ? `<div class="config-profile-email">${profileEmail}</div>` : ''}
+    <div class="config-profile-name">${Utils.escapeHtml(profileName)}</div>
+    ${profileEmail ? `<div class="config-profile-email">${Utils.escapeHtml(profileEmail)}</div>` : ''}
   </div>
   <button class="btn-outline btn-sm" id="btnEditPerfil">Editar Perfil</button>
 </div>`}
@@ -11715,7 +11721,7 @@ ${receita > 0 ? `
           <div class="llp-flow-compr-cell" style="flex:${Math.max(1, pesoPorTipo[t.id])};background:${t.color}22;border-color:${t.color}30">
             <div style="display:flex;align-items:center;gap:4px">
               <span style="width:6px;height:6px;border-radius:2px;background:${t.color};flex-shrink:0"></span>
-              <span style="font-size:10px;font-weight:600;color:${t.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.label}</span>
+              <span style="font-size:10px;font-weight:600;color:${t.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(t.label)}</span>
             </div>
             <div style="font-size:11px;font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums">${pesoPorTipo[t.id].toFixed(0)}%</div>
           </div>
@@ -11734,7 +11740,7 @@ ${receita > 0 ? `
     ${tipos.map(t => {
       const cmpt = COMPORT[t.comportamento]?.impact === 'comprometido';
       const w = Math.max(0.5, pesoPorTipo[t.id]);
-      return `<div title="${t.label}: ${pesoPorTipo[t.id].toFixed(0)}%" style="width:${w}%;background:${t.color};opacity:${cmpt?0.9:0.55}"></div>`;
+      return `<div title="${Utils.escapeHtml(t.label)}: ${pesoPorTipo[t.id].toFixed(0)}%" style="width:${w}%;background:${t.color};opacity:${cmpt?0.9:0.55}"></div>`;
     }).join('')}
     <div style="flex:1;background:var(--accent-2);opacity:0.7" title="Livre: ${pctLivre.toFixed(0)}%"></div>
   </div>
@@ -11743,7 +11749,7 @@ ${receita > 0 ? `
     ${tipos.map(t => `
       <div class="llp-flow-legend-item">
         <span style="width:7px;height:7px;border-radius:2px;background:${t.color}"></span>
-        <span style="color:var(--text-2)">${t.label}</span>
+        <span style="color:var(--text-2)">${Utils.escapeHtml(t.label)}</span>
         <span style="color:var(--text-1);font-weight:600;font-variant-numeric:tabular-nums">${pesoPorTipo[t.id].toFixed(0)}%</span>
       </div>
     `).join('')}
@@ -11777,15 +11783,15 @@ ${tipos.map(t => {
       <span class="tipo-card-tag" style="background:${t.color}22;color:${t.color}">${info.tag}</span>
       ${t.builtin ? `<span style="font-size:10px;color:var(--text-4);font-weight:500">padrão</span>` : ''}
     </div>
-    <div class="tipo-card-name">${t.label}</div>
-    <div class="tipo-card-headline" style="color:${t.color}">${info.desc.split(' — ')[0]}</div>
-    ${t.desc && t.desc !== info.desc ? `<div class="tipo-card-desc">${t.desc}</div>` : `<div class="tipo-card-desc">${info.desc.split(' — ')[1] || ''}</div>`}
+    <div class="tipo-card-name">${Utils.escapeHtml(t.label)}</div>
+    <div class="tipo-card-headline" style="color:${t.color}">${Utils.escapeHtml(info.desc.split(' — ')[0])}</div>
+    ${t.desc && t.desc !== info.desc ? `<div class="tipo-card-desc">${Utils.escapeHtml(t.desc)}</div>` : `<div class="tipo-card-desc">${Utils.escapeHtml(info.desc.split(' — ')[1] || '')}</div>`}
     <div class="tipo-card-meta">
       <span>${catsAqui.length} categoria${catsAqui.length===1?'':'s'}</span>
       ${peso > 0 ? `<span class="tipo-card-peso" style="color:${t.color}">${peso.toFixed(0)}% da receita</span>` : ''}
     </div>
     ${catsAqui.length > 0 ? `<div class="tipo-card-chips">
-      ${catsAqui.slice(0,8).map(c => `<span style="background:${c.color}20;color:${c.color}">${c.label}</span>`).join('')}
+      ${catsAqui.slice(0,8).map(c => `<span style="background:${c.color}20;color:${c.color}">${Utils.escapeHtml(c.label)}</span>`).join('')}
       ${catsAqui.length>8?`<span style="background:transparent;color:var(--text-4)">+${catsAqui.length-8}</span>`:''}
     </div>` : ''}
   </div>`;
@@ -11809,18 +11815,18 @@ ${tipos.map(t => {
          ondrop="event.preventDefault();this.style.borderColor='transparent'">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="font-size:16px">${t.icon||'✦'}</span>
-        <span style="font-size:12px;font-weight:700;color:${t.color};text-transform:uppercase;letter-spacing:.06em">${t.label}</span>
+        <span style="font-size:12px;font-weight:700;color:${t.color};text-transform:uppercase;letter-spacing:.06em">${Utils.escapeHtml(t.label)}</span>
         <span style="font-size:11px;color:var(--text-4);margin-left:auto">${catsDoTipo.length} categoria${catsDoTipo.length===1?'':'s'}</span>
       </div>
       <div class="tipo-lane-cats" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px">
         ${catsDoTipo.length === 0
           ? `<span style="font-size:11px;color:var(--text-4);font-style:italic;align-self:center">Arraste uma categoria aqui</span>`
           : catsDoTipo.map(([k, info]) => `
-            <div draggable="true" data-drag-cat="${k}" data-drag-from-tipo="${t.id}"
+            <div draggable="true" data-drag-cat="${Utils.escapeHtml(k)}" data-drag-from-tipo="${Utils.escapeHtml(t.id)}"
                  style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;background:${info.color}18;color:${info.color};font-size:12px;font-weight:600;cursor:grab;user-select:none;border:1px solid ${info.color}33">
               <span style="font-size:10px;color:var(--text-4)">⠿</span>
               ${icon(info.icon||'tag',{size:13,color:info.color})}
-              ${info.label}
+              ${Utils.escapeHtml(info.label)}
             </div>`).join('')}
       </div>
     </div>`;
@@ -11878,16 +11884,16 @@ ${tipos.map(t => {
 <div class="form-grid">
   <div class="form-group form-full">
     <label class="form-label">Nome</label>
-    <input class="form-input" id="fTLabel" value="${t.label || ''}" ${isBuiltin ? 'disabled style="opacity:0.6"' : ''} placeholder="Ex.: Qualidade de Vida">
+    <input class="form-input" id="fTLabel" value="${Utils.escapeHtml(t.label || '')}" ${isBuiltin ? 'disabled style="opacity:0.6"' : ''} placeholder="Ex.: Qualidade de Vida">
     ${isBuiltin ? '<div style="font-size:11px;color:var(--text-4);margin-top:4px">Tipos padrão não podem ser renomeados</div>' : ''}
   </div>
   <div class="form-group form-full">
     <label class="form-label">Descrição</label>
-    <input class="form-input" id="fTDesc" value="${t.desc || ''}" placeholder="Quando esse tipo se aplica? Ex.: itens que melhoram meu dia mas posso cortar">
+    <input class="form-input" id="fTDesc" value="${Utils.escapeHtml(t.desc || '')}" placeholder="Quando esse tipo se aplica? Ex.: itens que melhoram meu dia mas posso cortar">
   </div>
   <div class="form-group">
     <label class="form-label">Ícone</label>
-    <input class="form-input" id="fTIcon" value="${t.icon || '✦'}" maxlength="2" placeholder="🎯">
+    <input class="form-input" id="fTIcon" value="${Utils.escapeHtml(t.icon || '✦')}" maxlength="2" placeholder="🎯">
   </div>
   <div class="form-group">
     <label class="form-label">Cor</label>
@@ -11910,7 +11916,7 @@ ${tipos.map(t => {
     </div>
   </div>
 </div>`;
-    Modal.open(isEdit ? `Editar Tipo — ${t.label}` : 'Novo Tipo', html, () => {
+    Modal.open(isEdit ? `Editar Tipo — ${t.label || ''}` : 'Novo Tipo', html, () => {
       const label = document.getElementById('fTLabel').value.trim();
       const descricao = document.getElementById('fTDesc').value.trim();
       const icon = document.getElementById('fTIcon').value.trim() || '✦';
@@ -11944,15 +11950,15 @@ ${tipos.map(t => {
     const current = Store.getCatTipo(cat.key);
     const html = `
 <div class="form-group form-full">
-  <label class="form-label">Tipo da categoria "${cat.label}"</label>
+  <label class="form-label">Tipo da categoria "${Utils.escapeHtml(cat.label)}"</label>
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
     ${tipos.map(t => `
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;${current===t.id?'background:var(--bg-elevated);border-color:'+t.color:''}">
-      <input type="radio" name="catTipo" value="${t.id}" ${current===t.id?'checked':''}>
-      <span style="font-size:18px">${t.icon||'✦'}</span>
+      <input type="radio" name="catTipo" value="${Utils.escapeHtml(t.id)}" ${current===t.id?'checked':''}>
+      <span style="font-size:18px">${Utils.escapeHtml(t.icon||'✦')}</span>
       <div>
-        <div style="font-size:13px;font-weight:600;color:${t.color}">${t.label}</div>
-        <div style="font-size:11px;color:var(--text-3)">${t.desc || ''}</div>
+        <div style="font-size:13px;font-weight:600;color:${t.color}">${Utils.escapeHtml(t.label)}</div>
+        <div style="font-size:11px;color:var(--text-3)">${Utils.escapeHtml(t.desc || '')}</div>
       </div>
     </label>`).join('')}
   </div>
@@ -11983,13 +11989,13 @@ ${tipos.map(t => {
     const subs = Store.SUBCATEGORIES[key] || [];
     const isProtected = key === 'receita';
     return `
-    <details class="card" draggable="true" data-cat-key="${key}" style="padding:0">
+    <details class="card" draggable="true" data-cat-key="${Utils.escapeHtml(key)}" style="padding:0">
       <summary style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none">
         <span class="cat-drag-handle" style="font-size:16px;color:var(--text-4);cursor:grab" title="Arrastar para reordenar">⠿</span>
         <span style="width:36px;height:36px;border-radius:10px;background:${info.color}1a;color:${info.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(info.icon || 'tag', { size: 18, color: info.color })}</span>
         <div style="flex:1">
-          <div style="font-size:14px;font-weight:700;color:var(--text-1)">${info.label}</div>
-          <div style="font-size:11px;color:var(--text-4)">key: <code>${key}</code> · ${usage} lançamento(s) · ${subs.length} subcat.</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-1)">${Utils.escapeHtml(info.label)}</div>
+          <div style="font-size:11px;color:var(--text-4)">key: <code>${Utils.escapeHtml(key)}</code> · ${usage} lançamento(s) · ${subs.length} subcat.</div>
         </div>
         <span class="badge" style="background:${info.color}20;color:${info.color}">${info.color}</span>
         <button class="btn-icon-sm" data-action="edit-cat" data-key="${key}" title="Editar">${icon('pencil', {size:14})}</button>
@@ -12003,12 +12009,12 @@ ${tipos.map(t => {
         ${subs.length === 0
           ? '<div class="subcat-empty-hint" style="font-size:12px;color:var(--text-4);font-style:italic;padding:4px 0">Nenhuma subcategoria</div>'
           : subs.map(s => `
-            <div draggable="true" data-drag-sub="${s.replace(/"/g,'&quot;')}" data-drag-sub-from="${key}" data-edit-sub data-cat="${key}" data-sub="${s.replace(/"/g,'&quot;')}"
+            <div draggable="true" data-drag-sub="${Utils.escapeHtml(s)}" data-drag-sub-from="${Utils.escapeHtml(key)}" data-edit-sub data-cat="${Utils.escapeHtml(key)}" data-sub="${Utils.escapeHtml(s)}"
                  class="row-clickable" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);cursor:pointer">
               <span style="font-size:12px;color:var(--text-4);cursor:grab">⠿</span>
-              <span style="flex:1;font-size:13px;color:var(--text-2)">${s}</span>
+              <span style="flex:1;font-size:13px;color:var(--text-2)">${Utils.escapeHtml(s)}</span>
             </div>`).join('')}
-        <button class="btn-xs" style="margin-top:10px" data-action="add-sub" data-cat="${key}">+ Subcategoria</button>
+        <button class="btn-xs" style="margin-top:10px" data-action="add-sub" data-cat="${Utils.escapeHtml(key)}">+ Subcategoria</button>
       </div>
     </details>`;
   }).join('')}
@@ -12123,8 +12129,8 @@ ${tipos.map(t => {
     const isEdit = !!subName;
     const catLabel = Store.CATEGORIES[catKey]?.label || catKey;
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Subcategoria de "${catLabel}"</label>
-        <input class="form-input" id="fSubNome" value="${isEdit ? subName : ''}" placeholder="Ex.: Supermercado"/>
+      <div class="form-group form-full"><label class="form-label">Subcategoria de "${Utils.escapeHtml(catLabel)}"</label>
+        <input class="form-input" id="fSubNome" value="${Utils.escapeHtml(isEdit ? subName : '')}" placeholder="Ex.: Supermercado"/>
       </div>
     </div>`;
     Modal.open(isEdit ? `Editar Subcategoria — ${subName}` : 'Nova Subcategoria', html, () => {
@@ -12161,7 +12167,7 @@ ${tipos.map(t => {
     const currentIcon = CATEGORY_ICONS.includes(c.icon) ? c.icon : 'tag';
     const COLOR_SWATCHES = ['#7C6EF8','#22C55E','#3B82F6','#EC4899','#F59E0B','#F97316','#14B8A6','#6366F1','#8B5CF6','#EF4444','#0EA5E9','#D946EF','#84CC16','#06B6D4'];
     const html = `<div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">Nome</label><input class="form-input" id="fCatLabel" value="${c.label}" placeholder="Ex: Educação"/></div>
+      <div class="form-group form-full"><label class="form-label">Nome</label><input class="form-input" id="fCatLabel" value="${Utils.escapeHtml(c.label)}" placeholder="Ex: Educação"/></div>
       <div class="form-group form-full">
         <label class="form-label">Ícone</label>
         <div class="cat-icon-grid">
@@ -12364,7 +12370,7 @@ ${isConnected && isAdmin ? `
     <div style="width:130px;display:none" id="fPessoaGroup">
       <label class="form-label" style="font-size:10px">Pessoa local</label>
       <select class="form-input" id="fInvitePessoa" style="font-size:13px">
-        ${Store.PESSOAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+        ${Store.PESSOAS.map(p => `<option value="${Utils.escapeHtml(p)}">${Utils.escapeHtml(p)}</option>`).join('')}
       </select>
     </div>
     <button class="btn-primary" id="btnInvite" style="white-space:nowrap">Convidar</button>
@@ -12469,7 +12475,7 @@ ${isConnected && isAdmin ? `
     if (m.last_resent_at && (isPending || isExpired)) {
       subParts.push('reenviado em ' + new Date(m.last_resent_at).toLocaleDateString('pt-BR'));
     }
-    if (m.pessoa_name) subParts.push(`→ ${m.pessoa_name}`);
+    if (m.pessoa_name) subParts.push(`→ ${Utils.escapeHtml(m.pessoa_name)}`);
     const sub = subParts.join(' · ');
 
     const actions = isActive
@@ -12482,10 +12488,10 @@ ${isConnected && isAdmin ? `
     return `
     <div class="card${isActive ? ' row-clickable' : ''}" ${isActive ? `data-edit-member="${m.id}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer"` : 'style="display:flex;align-items:center;gap:12px;padding:10px 16px"'}>
       <div class="person-avatar" style="background:${ROLE_COLORS[role]}20;color:${ROLE_COLORS[role]};width:34px;height:34px;font-size:12px;font-weight:700;border:1px solid ${ROLE_COLORS[role]}40">
-        ${email.slice(0,2).toUpperCase()}
+        ${Utils.escapeHtml(email.slice(0,2).toUpperCase())}
       </div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${email}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(email)}</div>
         <div style="font-size:11px;color:var(--text-4)">${sub}</div>
       </div>
       <span class="badge" style="background:${STATUS_COLORS[status]}1a;color:${STATUS_COLORS[status]};border:1px solid ${STATUS_COLORS[status]}40;font-size:10px">${STATUS_LABELS[status]}</span>
@@ -12506,13 +12512,13 @@ ${isConnected && isAdmin ? `
         const html = `<div class="form-grid">
           <div class="form-group form-full">
             <label class="form-label">E-mail</label>
-            <div style="font-size:13px;color:var(--text-2);padding:8px 0">${m.invited_email || '—'}</div>
+            <div style="font-size:13px;color:var(--text-2);padding:8px 0">${Utils.escapeHtml(m.invited_email || '—')}</div>
           </div>
           <div class="form-group form-full">
             <label class="form-label">Perfil</label>
-            <div style="font-size:13px;color:var(--text-2);padding:4px 0">${ROLE_LABELS[m.role] || m.role}</div>
+            <div style="font-size:13px;color:var(--text-2);padding:4px 0">${Utils.escapeHtml(ROLE_LABELS[m.role] || m.role)}</div>
           </div>
-          ${m.pessoa_name ? `<div class="form-group form-full"><label class="form-label">Pessoa local</label><div style="font-size:13px;color:var(--text-2);padding:4px 0">${m.pessoa_name}</div></div>` : ''}
+          ${m.pessoa_name ? `<div class="form-group form-full"><label class="form-label">Pessoa local</label><div style="font-size:13px;color:var(--text-2);padding:4px 0">${Utils.escapeHtml(m.pessoa_name)}</div></div>` : ''}
           ${m.accepted_at ? `<div class="form-group form-full" style="font-size:11px;color:var(--text-4)">Ativo desde ${new Date(m.accepted_at).toLocaleDateString('pt-BR')}</div>` : ''}
         </div>`;
         Modal.open(`Membro — ${m.invited_email || ''}`, html, () => Modal.close(), async () => {
@@ -14228,16 +14234,16 @@ ${isConnected && isAdmin ? `
   <!-- Header com avatar + nome em destaque -->
   <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
     <div style="position:relative;flex-shrink:0">
-      <div style="width:76px;height:76px;border-radius:50%;background:${profileColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;box-shadow:0 6px 20px ${profileColor}33">${initial}</div>
+      <div style="width:76px;height:76px;border-radius:50%;background:${profileColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;box-shadow:0 6px 20px ${profileColor}33">${Utils.escapeHtml(initial)}</div>
       <button class="btn-secondary btn-sm" disabled title="Em breve" style="position:absolute;bottom:-4px;right:-4px;width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border:2px solid var(--bg-card);color:var(--text-3);cursor:not-allowed">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
     </div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:4px">${fullName || '—'}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:4px">${Utils.escapeHtml(fullName || '—')}</div>
       <div style="font-size:12px;color:var(--text-3)">
-        ${email ? `<span>${email}</span>` : ''}
-        ${idadeStr ? `${email?'<span style="opacity:0.5;margin:0 6px">·</span>':''}<span>${idadeStr}</span>` : ''}
+        ${email ? `<span>${Utils.escapeHtml(email)}</span>` : ''}
+        ${idadeStr ? `${email?'<span style="opacity:0.5;margin:0 6px">·</span>':''}<span>${Utils.escapeHtml(idadeStr)}</span>` : ''}
       </div>
       <div style="font-size:10.5px;color:var(--text-4);margin-top:4px">Foto de perfil — em breve</div>
     </div>
@@ -14247,11 +14253,11 @@ ${isConnected && isAdmin ? `
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
     <div>
       <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Nome</label>
-      <input id="pfFirstName" class="form-input" value="${(p.firstName||fullName.split(' ')[0]||'').replace(/"/g,'&quot;')}" placeholder="Primeiro nome"/>
+      <input id="pfFirstName" class="form-input" value="${Utils.escapeHtml(p.firstName||fullName.split(' ')[0]||'')}" placeholder="Primeiro nome"/>
     </div>
     <div>
       <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Sobrenome</label>
-      <input id="pfLastName" class="form-input" value="${(p.lastName||fullName.split(' ').slice(1).join(' ')||'').replace(/"/g,'&quot;')}" placeholder="Sobrenome"/>
+      <input id="pfLastName" class="form-input" value="${Utils.escapeHtml(p.lastName||fullName.split(' ').slice(1).join(' ')||'')}" placeholder="Sobrenome"/>
     </div>
     <div>
       <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Data de nascimento</label>
@@ -14269,16 +14275,16 @@ ${isConnected && isAdmin ? `
     </div>
     <div>
       <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Profissão</label>
-      <input id="pfProfession" class="form-input" value="${(p.profession||'').replace(/"/g,'&quot;')}" placeholder="Ex: Desenvolvedor, Médica…"/>
+      <input id="pfProfession" class="form-input" value="${Utils.escapeHtml(p.profession||'')}" placeholder="Ex: Desenvolvedor, Médica…"/>
     </div>
     <div>
       <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Cidade</label>
-      <input id="pfCity" class="form-input" value="${(p.city||'').replace(/"/g,'&quot;')}" placeholder="Ex: São Paulo, SP"/>
+      <input id="pfCity" class="form-input" value="${Utils.escapeHtml(p.city||'')}" placeholder="Ex: São Paulo, SP"/>
     </div>
     <div style="grid-column:1/-1">
       <label style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Fuso horário</label>
       <select id="pfTz" class="form-input" style="max-width:320px">
-        ${TIMEZONES.map(tz => `<option value="${tz}" ${tz===(p.timezone||'America/Sao_Paulo')?'selected':''}>${tz}</option>`).join('')}
+        ${TIMEZONES.map(tz => `<option value="${Utils.escapeHtml(tz)}" ${tz===(p.timezone||'America/Sao_Paulo')?'selected':''}>${Utils.escapeHtml(tz)}</option>`).join('')}
       </select>
     </div>
   </div>
@@ -14471,7 +14477,7 @@ ${(() => {
       <div class="icp-cat-name">${c.name}</div>
       <div class="icp-cat-desc">${c.desc}</div>
       <div class="icp-cat-bar"><div style="width:${pct}%"></div></div>
-      ${c.last ? `<div class="icp-cat-last">${c.last.length > 60 ? c.last.slice(0, 60) + '…' : c.last}</div>` : `<div class="icp-cat-empty">Nenhuma resposta ainda</div>`}
+      ${c.last ? `<div class="icp-cat-last">${Utils.escapeHtml(c.last.length > 60 ? c.last.slice(0, 60) + '…' : c.last)}</div>` : `<div class="icp-cat-empty">Nenhuma resposta ainda</div>`}
       <div class="icp-cat-footer">
         <span class="icp-cat-cta-label">${ctaLabel}</span>
         ${hasBank ? `<svg class="icp-cat-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>` : ''}
@@ -15429,7 +15435,7 @@ ${(() => {
           if (objetivo === 'investir') suggestion = 'Como sua prioridade é fazer o dinheiro render, vamos começar olhando seus investimentos atuais. Você adiciona o que já tem e eu ajudo a planejar os próximos aportes.';
           if (objetivo === 'controle') suggestion = 'Como sua prioridade é ter controle, vamos começar pelas suas despesas fixas. Em alguns lançamentos eu já consigo te mostrar onde está indo seu dinheiro.';
           return `
-            ${coachBubble(`Tudo pronto${(answers.nome?.name || _onboardingPrefillName()) ? ', ' + (answers.nome.name || _onboardingPrefillName()).split(' ')[0] : ''}! ${suggestion}`)}
+            ${coachBubble(`Tudo pronto${(answers.nome?.name || _onboardingPrefillName()) ? ', ' + Utils.escapeHtml((answers.nome.name || _onboardingPrefillName()).split(' ')[0]) : ''}! ${suggestion}`)}
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
               <button class="ob-action" data-action="meta" type="button"
                 style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;text-align:left;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:12px;width:100%">
@@ -16250,7 +16256,7 @@ FORMATO DA RESPOSTA (importante):
         div.innerHTML = `${COACH_AVATAR_HTML}<div class="coach-bubble">${rendered}</div>`;
       } else {
         const initial = currentPessoa()[0]?.toUpperCase() || 'U';
-        div.innerHTML = `<div class="coach-msg-avatar">${initial}</div><div class="coach-bubble">${rendered}</div>`;
+        div.innerHTML = `<div class="coach-msg-avatar">${Utils.escapeHtml(initial)}</div><div class="coach-bubble">${rendered}</div>`;
       }
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
@@ -16528,14 +16534,14 @@ FORMATO DA RESPOSTA (importante):
       return new Promise(resolve => {
         const id = 'toolconf-' + Math.random().toString(36).slice(2, 8);
         const fields = Object.entries(toolInput).map(([k, v]) =>
-          `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12px"><span style="color:var(--text-4);text-transform:capitalize">${k}</span><span style="color:var(--text-1);font-weight:600;text-align:right;max-width:60%;word-break:break-word">${typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : v}</span></div>`).join('');
+          `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12px"><span style="color:var(--text-4);text-transform:capitalize">${Utils.escapeHtml(k)}</span><span style="color:var(--text-1);font-weight:600;text-align:right;max-width:60%;word-break:break-word">${typeof v === 'number' ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : Utils.escapeHtml(String(v))}</span></div>`).join('');
         const card = document.createElement('div');
         card.className = 'coach-msg assistant';
         card.id = id;
         card.innerHTML = `
           <div class="coach-msg-avatar coach-msg-avatar--ai"><img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:14px;height:auto;display:block"></div>
           <div class="coach-bubble" style="border:1.5px solid ${meta.cor}44;background:linear-gradient(135deg,${meta.cor}10,transparent);padding:14px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:${meta.cor};font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em">${icon(meta.icone,{size:14})} ${meta.titulo}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:${meta.cor};font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em">${icon(meta.icone,{size:14})} ${Utils.escapeHtml(meta.titulo)}</div>
             <div style="margin-bottom:12px">${fields}</div>
             <div style="display:flex;gap:8px;justify-content:flex-end">
               <button class="btn-secondary" data-conf-cancel style="padding:6px 12px;font-size:12px">Cancelar</button>
@@ -16563,7 +16569,7 @@ FORMATO DA RESPOSTA (importante):
     function _showUndoToast(label, undoFn) {
       const t = document.createElement('div');
       t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1a1d2e;border:1px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.4);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-1);min-width:280px';
-      t.innerHTML = `<span style="flex:1">${label}</span><button style="background:var(--accent);color:white;border:0;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Desfazer</button>`;
+      t.innerHTML = `<span style="flex:1">${Utils.escapeHtml(label)}</span><button style="background:var(--accent);color:white;border:0;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Desfazer</button>`;
       const btn = t.querySelector('button');
       const close = () => { t.remove(); clearTimeout(tm); };
       const tm = setTimeout(close, 8000);
