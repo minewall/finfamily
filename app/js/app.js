@@ -7397,7 +7397,7 @@ ${reservas.length > 0 ? `
 <div class="card accent-card-purple-cyan mb-6">
   <div class="card-header">
     <span class="card-title" style="display:flex;align-items:center;gap:8px">
-      <img src="assets/svg/haile-mark-white.svg" alt="" style="width:18px;height:auto;opacity:.9">
+      <img src="../assets/svg/haile-mark-white.svg" alt="" style="width:18px;height:auto;opacity:.9">
       Coach do Portfólio
     </span>
     <span style="font-size:11px;color:var(--text-4)">Pergunte sobre sua carteira em linguagem natural</span>
