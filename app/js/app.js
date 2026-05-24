@@ -16411,7 +16411,7 @@ FORMATO DA RESPOSTA (importante):
         return {
           result: `Receita criada: "${entry.desc}" de R$ ${entry.amount.toFixed(2)} em ${entry.date} (${entry.person}). ID: ${entry.id}`,
           undo: () => { Store.deleteReceita?.(entry.id); },
-          summary: `${entry.desc} · R$ ${entry.amount.toFixed(2)} · ${entry.date}`,
+          summary: `${entry.desc} · ${Utils.currency(entry.amount)} · ${entry.person}`,
         };
       },
       addDespesa: (input) => {
@@ -16429,7 +16429,7 @@ FORMATO DA RESPOSTA (importante):
         return {
           result: `Despesa criada: "${entry.desc}" de R$ ${entry.amount.toFixed(2)} em ${entry.date} (${entry.person} · ${entry.category}). ID: ${entry.id}`,
           undo: () => { Store.deleteDespesa?.(entry.id); },
-          summary: `${entry.desc} · R$ ${entry.amount.toFixed(2)} · ${entry.date}`,
+          summary: `${entry.desc} · ${Utils.currency(entry.amount)} · ${entry.person}`,
         };
       },
       addMeta: (input) => {
@@ -16444,7 +16444,7 @@ FORMATO DA RESPOSTA (importante):
         return {
           result: `Meta criada: "${entry.label}" (${entry.type}) — alvo R$ ${entry.target.toFixed(2)}. ID: ${entry.id}`,
           undo: () => { _data?.metas && Store.get()?.metas?.splice?.(Store.get().metas.findIndex(m => m.id === entry.id), 1); Store.persist?.(); },
-          summary: `${entry.label} · R$ ${entry.target.toFixed(2)}`,
+          summary: `${entry.label} · alvo ${Utils.currency(entry.target)}`,
         };
       },
       bulkAddDespesas: (input) => {
@@ -16468,7 +16468,7 @@ FORMATO DA RESPOSTA (importante):
         return {
           result: `Criadas ${created.length} despesas — total R$ ${total.toFixed(2)}. IDs: ${created.map(e => e.id).join(', ')}`,
           undo: () => { created.forEach(e => Store.deleteDespesa?.(e.id)); },
-          summary: `${created.length} despesas · R$ ${total.toFixed(2)}`,
+          summary: `${created.length} ${created.length === 1 ? 'despesa' : 'despesas'} · total ${Utils.currency(total)}`,
         };
       },
       getCotacoes: async (input) => {
@@ -16518,19 +16518,29 @@ FORMATO DA RESPOSTA (importante):
         return {
           result: `Criadas ${created.length} receitas — total R$ ${total.toFixed(2)}. IDs: ${created.map(e => e.id).join(', ')}`,
           undo: () => { created.forEach(e => Store.deleteReceita?.(e.id)); },
-          summary: `${created.length} receitas · R$ ${total.toFixed(2)}`,
+          summary: `${created.length} ${created.length === 1 ? 'receita' : 'receitas'} · total ${Utils.currency(total)}`,
         };
       },
     };
 
+    // Mapa central de tools → metadados visíveis.
+    // `confirmar` = título do card de confirmação (imperativo: "Criar receita")
+    // `concluido` = título do toast pós-execução (passivo: "Receita criada")
+    // Usado tanto em _renderToolConfirmCard quanto em _showUndoToast.
+    const TOOL_LABELS = {
+      addReceita:       { confirmar: 'Criar receita',  concluido: 'Receita criada',  cor: 'var(--green)',  icone: 'trending-up' },
+      addDespesa:       { confirmar: 'Criar despesa',  concluido: 'Despesa criada',  cor: 'var(--red)',    icone: 'trending-down' },
+      addMeta:          { confirmar: 'Criar meta',     concluido: 'Meta criada',     cor: 'var(--accent)', icone: 'target' },
+      bulkAddDespesas:  { confirmar: 'Criar despesas em lote', concluido: 'Despesas criadas', cor: 'var(--red)',   icone: 'trending-down' },
+      bulkAddReceitas:  { confirmar: 'Criar receitas em lote', concluido: 'Receitas criadas', cor: 'var(--green)', icone: 'trending-up' },
+      getCotacoes:      { confirmar: 'Consultar cotações',     concluido: 'Cotações atualizadas', cor: 'var(--accent)', icone: 'refresh-cw' },
+    };
+
     // Renderiza card de confirmação inline e retorna Promise<'confirm'|'cancel'>
     function _renderToolConfirmCard(toolName, toolInput) {
-      const TOOL_LABELS = {
-        addReceita: { titulo: 'Criar receita',  cor: 'var(--green)', icone: 'trending-up' },
-        addDespesa: { titulo: 'Criar despesa',  cor: 'var(--red)',   icone: 'trending-down' },
-        addMeta:    { titulo: 'Criar meta',     cor: 'var(--accent)', icone: 'target' },
-      };
-      const meta = TOOL_LABELS[toolName] || { titulo: toolName, cor: 'var(--text-3)', icone: 'sparkles' };
+      const meta = TOOL_LABELS[toolName]
+        ? { titulo: TOOL_LABELS[toolName].confirmar, cor: TOOL_LABELS[toolName].cor, icone: TOOL_LABELS[toolName].icone }
+        : { titulo: toolName, cor: 'var(--text-3)', icone: 'sparkles' };
       return new Promise(resolve => {
         const id = 'toolconf-' + Math.random().toString(36).slice(2, 8);
         const fields = Object.entries(toolInput).map(([k, v]) =>
@@ -16565,16 +16575,35 @@ FORMATO DA RESPOSTA (importante):
       });
     }
 
-    // Toast com undo de 8s
-    function _showUndoToast(label, undoFn) {
+    // Toast com undo de 8s + título passivo humanizado.
+    // meta = { titulo, cor, icone } opcional — quando omitido, fallback neutro.
+    // summary = texto curto (ex: "Consultoria Altverse · R$ 10.000,00")
+    function _showUndoToast(summary, undoFn, meta) {
+      const m = meta || { titulo: 'Ação concluída', cor: 'var(--green)', icone: 'check' };
       const t = document.createElement('div');
-      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1a1d2e;border:1px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.4);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-1);min-width:280px';
-      t.innerHTML = `<span style="flex:1">${Utils.escapeHtml(label)}</span><button style="background:var(--accent);color:white;border:0;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Desfazer</button>`;
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1a1d2e;border:1px solid ' + m.cor + ';box-shadow:0 8px 24px rgba(0,0,0,.4);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-1);min-width:320px;max-width:520px';
+      const safeSummary = Utils.escapeHtml(summary || '');
+      const safeTitulo  = Utils.escapeHtml(m.titulo);
+      t.innerHTML = `
+        <span style="width:28px;height:28px;border-radius:50%;background:color-mix(in srgb, ${m.cor} 18%, transparent);display:inline-flex;align-items:center;justify-content:center;color:${m.cor};flex-shrink:0">${icon('check', { size: 15, color: m.cor })}</span>
+        <span style="flex:1;line-height:1.35">
+          <strong style="color:${m.cor};display:block;font-size:13px">${safeTitulo}</strong>
+          ${safeSummary ? `<span style="color:var(--text-2);font-size:12px">${safeSummary}</span>` : ''}
+        </span>
+        <button style="background:transparent;color:var(--accent);border:1px solid var(--accent);padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Desfazer</button>
+      `;
       const btn = t.querySelector('button');
       const close = () => { t.remove(); clearTimeout(tm); };
       const tm = setTimeout(close, 8000);
       btn.addEventListener('click', () => {
-        try { undoFn(); toast('Ação desfeita', 'info'); }
+        try {
+          undoFn();
+          toast('Ação desfeita', 'info');
+          // Re-render da rota atual pra refletir o desfazer também
+          if (typeof Router !== 'undefined' && Router.navigate && Router.current) {
+            Router.navigate(Router.current);
+          }
+        }
         catch (e) { toast('Erro ao desfazer: ' + e.message, 'error'); }
         close();
       });
@@ -16693,7 +16722,17 @@ FORMATO DA RESPOSTA (importante):
               const out = await handler(tu.input || {});
               toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: false,
                 content: out.result });
-              if (out.undo && out.summary) _showUndoToast(`${tu.name}: ${out.summary}`, out.undo);
+              if (out.undo && out.summary) {
+                const tMeta = TOOL_LABELS[tu.name]
+                  ? { titulo: TOOL_LABELS[tu.name].concluido, cor: TOOL_LABELS[tu.name].cor, icone: TOOL_LABELS[tu.name].icone }
+                  : null;
+                _showUndoToast(out.summary, out.undo, tMeta);
+              }
+              // Re-render da rota atual pra refletir a mudança imediatamente.
+              // Pula getCotacoes (não muta dados visíveis na rota).
+              if (out.undo && typeof Router !== 'undefined' && Router.navigate && Router.current) {
+                Router.navigate(Router.current);
+              }
             } catch (execErr) {
               toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: true,
                 content: `Erro ao executar: ${execErr.message}` });
