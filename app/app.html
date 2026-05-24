@@ -32,28 +32,34 @@
 </head>
 <body>
 <script>
-  // [C3] Auth guard — antes usava sessionStorage.ff_auth='1' (DevTools-bypass trivial).
-  // Agora valida o token JWT que o Supabase JS SDK guarda em localStorage:
-  // chave 'sb-<project-ref>-auth-token' com expires_at em epoch seconds.
-  // Sem JWT válido (presente + não expirado) → redirect pra login.
-  //
-  // Atacante ainda pode injetar um JWT falso via DevTools, mas:
-  //   1. RLS no servidor recusa qualquer query sem assinatura válida (anon key não dá acesso a dados).
-  //   2. JWT é assinado pelo Supabase; forjar exige a JWT secret do projeto (privada).
-  // Logo, a UI carrega vazia mesmo se atacante burlar este guard.
+  // [C3] Auth guard tolerante: aceita JWT do Supabase OU flag legada
+  // (sessionStorage.ff_auth='1' que login.html ainda seta). Versão anterior
+  // só aceitava JWT pela chave fixa 'sb-<ref>-auth-token' — bloqueava users
+  // cujo SDK guardava em outro nome (versão diferente do supabase-js, ou
+  // localStorage limpo entre tabs). RLS no servidor é a defesa real.
   (function () {
-    const TOKEN_KEY = 'sb-lpudgulhnfuwdttetwdn-auth-token';
-    let valid = false;
+    // Tenta JWT primeiro. A chave varia conforme a versão do supabase-js
+    // (alguns usam outra key, alguns guardam dentro de 'currentSession').
+    // Estratégia robusta: busca qualquer chave que comece com 'sb-' e
+    // termine com '-auth-token'.
+    let jwtValid = false;
     try {
-      const raw = localStorage.getItem(TOKEN_KEY);
-      if (raw) {
-        const data = JSON.parse(raw);
-        const exp = data?.expires_at;
-        if (exp && Date.now() / 1000 < exp) valid = true;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith('sb-') || !k.endsWith('-auth-token')) continue;
+        try {
+          const data = JSON.parse(localStorage.getItem(k) || 'null');
+          // Aceita ambos formatos: { expires_at } na raiz OU dentro de currentSession.
+          const exp = data?.expires_at ?? data?.currentSession?.expires_at;
+          if (exp && Date.now() / 1000 < exp) { jwtValid = true; break; }
+        } catch (_) { /* chave inválida, tenta próxima */ }
       }
-    } catch (e) { /* parsing error → trata como inválido */ }
+    } catch (_) { /* localStorage indisponível */ }
 
-    if (!valid) {
+    // Fallback: flag legada que login.html ainda seta na entrada.
+    const flagValid = sessionStorage.getItem('ff_auth') === '1';
+
+    if (!jwtValid && !flagValid) {
       window.location.replace('../login.html');
       return;
     }
@@ -357,7 +363,7 @@
 <script src="js/store.js?v=122"></script>
 <script src="js/charts.js?v=72"></script>
 <script src="js/svg-charts.js?v=1"></script>
-<script src="js/app.js?v=196"></script>
+<script src="js/app.js?v=197"></script>
 
 </body>
 </html>

@@ -482,19 +482,22 @@
 <!-- Auth guard + onboarding guard (inline, antes do Store carregar) -->
 <script>
   (function () {
-    // [C3] Auth guard via JWT do Supabase (mesma lógica de app.html).
-    // sessionStorage.ff_auth era trivialmente burlável via DevTools.
-    const TOKEN_KEY = 'sb-lpudgulhnfuwdttetwdn-auth-token';
-    let valid = false;
+    // [C3] Auth guard tolerante: aceita JWT do Supabase OU flag legada.
+    // Mesma lógica de app.html — defesa real é RLS no servidor.
+    let jwtValid = false;
     try {
-      const raw = localStorage.getItem(TOKEN_KEY);
-      if (raw) {
-        const data = JSON.parse(raw);
-        const exp = data?.expires_at;
-        if (exp && Date.now() / 1000 < exp) valid = true;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith('sb-') || !k.endsWith('-auth-token')) continue;
+        try {
+          const data = JSON.parse(localStorage.getItem(k) || 'null');
+          const exp = data?.expires_at ?? data?.currentSession?.expires_at;
+          if (exp && Date.now() / 1000 < exp) { jwtValid = true; break; }
+        } catch (_) {}
       }
-    } catch (e) { /* parsing error → trata como inválido */ }
-    if (!valid) {
+    } catch (_) {}
+    const flagValid = sessionStorage.getItem('ff_auth') === '1';
+    if (!jwtValid && !flagValid) {
       window.location.replace('../login.html');
       return;
     }
