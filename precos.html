@@ -6,7 +6,15 @@
     <!-- SEO -->
     <meta name="description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
     <meta name="robots" content="index, follow" />
+    <!-- Canonical sem .html depende do rewrite extensionless do host (Vercel/Netlify).
+         A URL pública é /precos; o arquivo no repo é precos.html. Não mudar
+         enquanto o rewrite estiver ativo. -->
     <link rel="canonical" href="https://haile.com.br/precos" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="assets/favicon/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="assets/favicon/haile-mark-indigo-512.png" />
+    <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon-180.png" />
 
     <!-- Open Graph -->
     <meta property="og:type"        content="website" />
@@ -241,7 +249,7 @@
     .plan-card.featured .plan-label { color: rgba(255,255,255,0.5); }
 
     .plan-name {
-      margin-top: 12px; font-size: 22px; font-weight: 800; line-height: 1.1;
+      margin: 12px 0 0 0; font-size: 22px; font-weight: 800; line-height: 1.1;
     }
     .plan-card.featured .plan-name { color: var(--white); }
 
@@ -485,7 +493,7 @@
       <!-- trial -->
       <div class="plan-card trial reveal" data-delay="1">
         <p class="plan-label">Trial</p>
-        <p class="plan-name">Experimente</p>
+        <h3 class="plan-name">Experimente</h3>
         <p class="plan-tagline">14 dias do Premium Family, grátis. Sem cartão.</p>
         <div class="plan-price-row">
           <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
@@ -515,7 +523,7 @@
       <!-- individual -->
       <div class="plan-card individual reveal" data-delay="2">
         <p class="plan-label">Individual</p>
-        <p class="plan-name">Para você</p>
+        <h3 class="plan-name">Para você</h3>
         <p class="plan-tagline">Organize sua vida financeira com inteligência.</p>
         <div class="plan-price-row">
           <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
@@ -554,7 +562,7 @@
       <div class="plan-card featured reveal" data-delay="3">
         <span class="popular-badge">Mais popular</span>
         <p class="plan-label">Premium Family</p>
-        <p class="plan-name">Para a família</p>
+        <h3 class="plan-name">Para a família</h3>
         <p class="plan-tagline">O coach financeiro que toda família merece.</p>
         <div class="plan-price-row">
           <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--white); letter-spacing:0">Em breve</span>
@@ -596,7 +604,7 @@
       <!-- family office -->
       <div class="plan-card office reveal" data-delay="4">
         <p class="plan-label">Family Office</p>
-        <p class="plan-name">Patrimônio &amp; IA avançada</p>
+        <h3 class="plan-name">Patrimônio &amp; IA avançada</h3>
         <p class="plan-tagline">Para famílias que gerenciam patrimônio complexo.</p>
         <div class="plan-price-row">
           <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Plano personalizado</span>
@@ -823,33 +831,10 @@
 
   <script>
 
-    // billing toggle
-    var isAnnual = false;
-    var toggle   = document.getElementById('billing-toggle');
-    var badge    = document.getElementById('annual-badge');
-    var lblM     = document.getElementById('lbl-monthly');
-    var lblA     = document.getElementById('lbl-annual');
-
-    function updatePrices() {
-      document.querySelectorAll('.price-amount').forEach(function (el) {
-        el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
-      });
-      document.getElementById('note-individual').textContent = isAnnual ? 'Faturado R$276/ano' : ' ';
-      document.getElementById('note-family').textContent     = isAnnual ? 'Faturado R$468/ano' : ' ';
-      badge.style.opacity  = isAnnual ? '1' : '0.4';
-      lblM.classList.toggle('active', !isAnnual);
-      lblA.classList.toggle('active',  isAnnual);
-    }
-
-    toggle.addEventListener('click', function () {
-      isAnnual = !isAnnual;
-      toggle.classList.toggle('annual', isAnnual);
-      toggle.setAttribute('aria-checked', String(isAnnual));
-      updatePrices();
-    });
-    toggle.addEventListener('keydown', function (e) {
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle.click(); }
-    });
+    // NOTE: o billing toggle (Mensal/Anual) e o updatePrices() foram removidos
+    // enquanto os planos estão como "Em breve". Quando os preços reais forem
+    // definidos, reintroduzir junto com os elementos .price-amount[data-monthly][data-annual]
+    // e descomentar o markup do toggle em .toggle-wrap (atualmente display:none).
 
     // faq accordion
     document.querySelectorAll('.faq-q').forEach(function (btn) {
