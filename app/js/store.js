@@ -861,12 +861,17 @@ const Store = (function () {
   }
 
   function _syncEditableConfig() {
+    // FIX: usa MERGE em vez de REPLACE em CATEGORIES/SUBCATEGORIES.
+    // Antes, deletava todas as keys e substituía pelo _data do user — se o user
+    // tinha _data.subcategorias incompleto (faltando 'pets', por exemplo,
+    // porque é user antigo ou customizou), as keys defaults sumiam, e código
+    // que assume `SUBCATEGORIES.pets` (como _migrateCategoriasV3 linha 1431)
+    // quebrava com "X is not iterable". Agora as customizações do user
+    // sobrescrevem só as keys correspondentes; defaults sobrevivem.
     if (_data.categorias) {
-      Object.keys(CATEGORIES).forEach(k => delete CATEGORIES[k]);
       Object.assign(CATEGORIES, _data.categorias);
     }
     if (_data.subcategorias) {
-      Object.keys(SUBCATEGORIES).forEach(k => delete SUBCATEGORIES[k]);
       Object.assign(SUBCATEGORIES, _data.subcategorias);
     }
     if (_data.pessoas) {
@@ -1422,16 +1427,20 @@ const Store = (function () {
       delete _data.categorias.assessorias;
     }
     // _data.subcategorias rename + atualiza estruturas
+    // FIX: usa `|| []` em todas pra tolerar SUBCATEGORIES sem a key
+    // (usuários cujo _data.subcategorias não tinha a categoria fazem
+    // _syncEditableConfig zerar a key correspondente em SUBCATEGORIES,
+    // causando "X is not iterable" aqui na migration v3).
     if (_data.subcategorias) {
       delete _data.subcategorias.individual;
       delete _data.subcategorias.assessorias;
-      _data.subcategorias.pessoal                = [...SUBCATEGORIES.pessoal];
-      _data.subcategorias.saude                  = [...SUBCATEGORIES.saude];
-      _data.subcategorias.educacao               = [...SUBCATEGORIES.educacao];
-      _data.subcategorias.pets                   = [...SUBCATEGORIES.pets];
-      _data.subcategorias.servicos_profissionais = [...SUBCATEGORIES.servicos_profissionais];
-      _data.subcategorias.financeiro             = [...SUBCATEGORIES.financeiro];
-      _data.subcategorias.assinaturas            = [...SUBCATEGORIES.assinaturas];
+      _data.subcategorias.pessoal                = [...(SUBCATEGORIES.pessoal                || [])];
+      _data.subcategorias.saude                  = [...(SUBCATEGORIES.saude                  || [])];
+      _data.subcategorias.educacao               = [...(SUBCATEGORIES.educacao               || [])];
+      _data.subcategorias.pets                   = [...(SUBCATEGORIES.pets                   || [])];
+      _data.subcategorias.servicos_profissionais = [...(SUBCATEGORIES.servicos_profissionais || [])];
+      _data.subcategorias.financeiro             = [...(SUBCATEGORIES.financeiro             || [])];
+      _data.subcategorias.assinaturas            = [...(SUBCATEGORIES.assinaturas            || [])];
     }
     // settings.catTipo rename
     if (_data.settings?.catTipo) {
