@@ -248,13 +248,20 @@ const SupabaseSync = (function () {
         pessoaName,
         inviterName,
         familyName: group?.name || null,
+        familyId:   group?.id || null,
         redirectTo: 'https://haile.com.br/login.html',
       };
+      // [U2] Edge agora exige JWT do user (não a anon key). Sem session = sem convite.
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        console.warn('[inviteMember] sem sessão — não envia convite');
+        return { sent: false, alreadyExists: false, error: 'sessão expirada — faça login novamente' };
+      }
       const res = await fetch(`${SUPABASE_URL}/functions/v1/family-invite`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
       });

@@ -16570,11 +16570,17 @@ FORMATO DA RESPOSTA (importante):
 
           let res;
           try {
+            // [U3] Edge agora exige JWT do user (não a anon key).
+            const accessToken = typeof SupabaseSync !== 'undefined'
+              ? await SupabaseSync.getAccessToken() : null;
+            if (!accessToken) {
+              throw new Error('Sessão expirada. Faça login novamente para usar o Coach.');
+            }
             res = await fetch(COACH_PROXY_URL, {
               method: 'POST',
               headers: {
                 'content-type': 'application/json',
-                'authorization': `Bearer ${SUPABASE_ANON}`,
+                'authorization': `Bearer ${accessToken}`,
               },
               body: JSON.stringify({
                 model: Store.get().settings?.claudeModel || 'claude-haiku-4-5-20251001',
