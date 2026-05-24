@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- SEO -->
-  <meta name="description" content="O Haile é o coach financeiro com IA para famílias. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
+  <meta name="description" content="O Haile é a inteligência financeira com IA para famílias modernas. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://haile.com.br/" />
 
@@ -17,20 +17,22 @@
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:site_name"   content="Haile" />
-  <meta property="og:title"       content="Haile — Coach financeiro com IA para a sua família" />
-  <meta property="og:description" content="O Haile é o coach financeiro com IA para famílias. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
+  <meta property="og:title"       content="Haile — Inteligência financeira para famílias modernas" />
+  <meta property="og:description" content="O Haile é a inteligência financeira com IA para famílias modernas. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
   <meta property="og:url"         content="https://haile.com.br/" />
-  <!-- TODO: substituir por og-image dedicado 1200x630 (atual usa logo quadrado como fallback). -->
-  <meta property="og:image"       content="https://haile.com.br/assets/favicon/haile-mark-indigo-512.png" />
+  <meta property="og:image"       content="https://haile.com.br/assets/social/og-image-1200x630.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt"    content="Haile — Inteligência financeira para famílias modernas" />
   <meta property="og:locale"      content="pt_BR" />
 
   <!-- Twitter / X -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="Haile — Coach financeiro com IA para a sua família" />
-  <meta name="twitter:description" content="O Haile é o coach financeiro com IA para famílias. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
-  <meta name="twitter:image"       content="https://haile.com.br/assets/favicon/haile-mark-indigo-512.png" />
+  <meta name="twitter:title"       content="Haile — Inteligência financeira para famílias modernas" />
+  <meta name="twitter:description" content="O Haile é a inteligência financeira com IA para famílias modernas. Mais clareza, mais escolhas conscientes, mais tranquilidade." />
+  <meta name="twitter:image"       content="https://haile.com.br/assets/social/og-image-1200x630.png" />
 
-  <title>Haile — Coach financeiro com IA para a sua família</title>
+  <title>Haile — Inteligência financeira para famílias modernas</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -295,7 +297,7 @@
       box-shadow: var(--shadow-2);
       animation: float-bob 6s ease-in-out infinite;
     }
-    .float-card.fc-coach {
+    .float-card.fc-haile {
       top: 8%; left: -8%;
       width: 240px;
       animation-delay: 0s;
@@ -311,8 +313,8 @@
       animation-delay: 1.2s;
     }
 
-    .fc-coach .row { display: flex; gap: 10px; align-items: flex-start; }
-    .fc-coach .avatar {
+    .fc-haile .row { display: flex; gap: 10px; align-items: flex-start; }
+    .fc-haile .avatar {
       width: 32px; height: 32px;
       border-radius: 50%;
       background: var(--soft);
@@ -320,11 +322,11 @@
       display: flex; align-items: center; justify-content: center;
       color: var(--violet); font-weight: 800; font-size: 13px;
     }
-    .fc-coach .label {
+    .fc-haile .label {
       font-size: 11px; font-weight: 700; color: var(--violet-2);
       letter-spacing: 0.08em; text-transform: uppercase;
     }
-    .fc-coach .msg { margin-top: 4px; font-size: 13px; line-height: 1.4; color: var(--ink); }
+    .fc-haile .msg { margin-top: 4px; font-size: 13px; line-height: 1.4; color: var(--ink); }
 
     .fc-goal .top { display: flex; justify-content: space-between; font-size: 12px; color: var(--slate); }
     .fc-goal .title { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--ink); }
@@ -376,8 +378,22 @@
       font-size: 12px; font-weight: 800;
       letter-spacing: 0.28em; text-transform: uppercase;
       color: var(--violet-3);
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
+    .manifesto-thesis {
+      position: relative;
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 36px;
+      font-family: "DM Serif Display", "DM Sans", serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(22px, 2.6vw, 32px);
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+      color: rgba(255,255,255,0.92);
+    }
+    .manifesto-thesis .ac { color: var(--violet-3); font-style: normal; font-family: "DM Sans", sans-serif; font-weight: 700; }
     .manifesto-marquee {
       position: relative;
       overflow: hidden;
@@ -780,19 +796,19 @@
       line-height: 1.6;
       color: rgba(255,255,255,0.66);
     }
-    .moment-coach {
+    .moment-haile {
       margin-top: 22px;
       padding: 16px 18px;
       border-radius: 14px;
       background: rgba(255,255,255,0.04);
       border-left: 2px solid var(--violet);
     }
-    .moment-coach .mc-label {
+    .moment-haile .mc-label {
       font-size: 10px; font-weight: 800;
       letter-spacing: 0.16em; text-transform: uppercase;
       color: var(--violet-3);
     }
-    .moment-coach .mc-msg {
+    .moment-haile .mc-msg {
       margin-top: 6px;
       font-size: 14px;
       line-height: 1.55;
@@ -957,19 +973,19 @@
       line-height: 1.6;
       color: rgba(255,255,255,0.78);
     }
-    .cb-moment-coach {
+    .cb-moment-haile {
       margin-top: 22px;
       padding: 14px 18px;
       border-radius: 12px;
       background: rgba(0,0,0,0.22);
       border-left: 2px solid #fff;
     }
-    .cb-moment-coach .mc-label {
+    .cb-moment-haile .mc-label {
       font-size: 10px; font-weight: 800;
       letter-spacing: 0.16em; text-transform: uppercase;
       color: rgba(255,255,255,0.92);
     }
-    .cb-moment-coach .mc-msg {
+    .cb-moment-haile .mc-msg {
       margin-top: 6px;
       font-size: 13.5px;
       line-height: 1.55;
@@ -1493,16 +1509,16 @@
     }
     .uc-poder .u-foot b { color: #fff; font-weight: 700; }
 
-    /* Coach insight card — teal accent */
-    .uc-coach {
+    /* Haile insight card — teal accent */
+    .uc-haile {
       background: linear-gradient(135deg, #0b2828 0%, #1b1e31 100%);
       border: 1px solid rgba(45,207,192,0.30);
     }
-    .uc-coach .u-coach-head {
+    .uc-haile .u-haile-head {
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 14px;
     }
-    .uc-coach .u-avatar {
+    .uc-haile .u-avatar {
       width: 36px; height: 36px;
       border-radius: 50%;
       background: linear-gradient(135deg, #2dcfc0, #4aa8ff);
@@ -1511,9 +1527,9 @@
       color: #fff;
       flex-shrink: 0;
     }
-    .uc-coach .u-coach-meta { font-size: 12px; color: rgba(237,240,255,0.6); }
-    .uc-coach .u-coach-name { color: #2dcfc0; font-weight: 700; font-size: 13px; }
-    .uc-coach .u-badge {
+    .uc-haile .u-haile-meta { font-size: 12px; color: rgba(237,240,255,0.6); }
+    .uc-haile .u-haile-name { color: #2dcfc0; font-weight: 700; font-size: 13px; }
+    .uc-haile .u-badge {
       display: inline-block; margin-left: 8px;
       padding: 2px 8px;
       border-radius: 999px;
@@ -1522,25 +1538,25 @@
       font-size: 10px; font-weight: 700;
       letter-spacing: 0.04em;
     }
-    .uc-coach .u-msg {
+    .uc-haile .u-msg {
       font-size: 14.5px;
       line-height: 1.55;
       color: rgba(237,240,255,0.92);
     }
-    .uc-coach .u-msg em {
+    .uc-haile .u-msg em {
       color: #1dc97e;
       font-style: normal;
       font-weight: 600;
     }
-    .uc-coach .u-msg strong {
+    .uc-haile .u-msg strong {
       color: #fff;
       font-weight: 700;
     }
-    .uc-coach .u-msg .accent-meta {
+    .uc-haile .u-msg .accent-meta {
       color: #6b5ef5;
       font-weight: 600;
     }
-    .uc-coach .u-action {
+    .uc-haile .u-action {
       margin-top: 18px;
       display: inline-flex; align-items: center; gap: 6px;
       padding: 9px 16px;
@@ -1875,7 +1891,7 @@
     @media (max-width: 820px) {
       .hero-grid { grid-template-columns: 1fr; gap: 56px; }
       .hero-visual { aspect-ratio: 3/4; max-width: 480px; margin: 0 auto; }
-      .float-card.fc-coach { left: -4%; }
+      .float-card.fc-haile { left: -4%; }
       .float-card.fc-goal  { right: -4%; }
       .float-card.fc-stat  { left: -4%; }
       .nav-menu { display: none; }
@@ -1923,14 +1939,13 @@
           <div>
             <span class="hero-eyebrow">
               <span class="tag">NOVO</span>
-              Coach financeiro com IA para famílias
+              Inteligência financeira para famílias modernas
             </span>
             <h1>
               O poder de escolher
               <span class="accent">com clareza.</span>
             </h1>
-            <p class="lead">A gente acredita que um dos maiores benefícios do dinheiro é o poder de escolha. O Haile é o coach financeiro com IA que entende seu contexto, mostra suas opções reais e devolve cada decisão pra suas mãos. 
-Sem promessa, sem moralismo. Só clareza.</p>
+            <p class="lead">O Haile é a inteligência financeira que entende o contexto da sua família, mostra suas opções reais e devolve cada decisão pra suas mãos. Sem promessa, sem moralismo. Só clareza.</p>
             <div class="hero-actions">
               <a href="waitlist.html" class="btn violet lg">
                 Quero ser avisado
@@ -1948,7 +1963,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
               <img src="assets/photos/familia-dia.jpg" alt="Família planejando o futuro com o Haile" />
             </div>
 
-            <div class="float-card fc-coach">
+            <div class="float-card fc-haile">
               <div class="row">
                 <div class="avatar">H</div>
                 <div>
@@ -1978,6 +1993,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
     <!-- ───────── MANIFESTO (dark marquee) ───────── -->
     <section class="trust">
       <p class="manifesto-eyebrow">O Haile, em manifesto</p>
+      <p class="manifesto-thesis">A gente acredita que um dos maiores benefícios do dinheiro é o <span class="ac">poder de escolha</span>.</p>
 
       <div class="manifesto-marquee">
         <div class="mm-track">
@@ -2002,7 +2018,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
           <span class="mm-item">
             <span class="anti">dashboard frio</span>
             <span class="arr">→</span>
-            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="pro"><span class="ac">inteligência</span> que pensa junto</span>
             <span class="sep"></span>
           </span>
           <!-- duplicate for seamless loop -->
@@ -2027,7 +2043,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
           <span class="mm-item">
             <span class="anti">dashboard frio</span>
             <span class="arr">→</span>
-            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="pro"><span class="ac">inteligência</span> que pensa junto</span>
             <span class="sep"></span>
           </span>
         </div>
@@ -2044,7 +2060,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
           <span class="mm-item">
             <span class="anti">dashboard frio</span>
             <span class="arr">→</span>
-            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="pro"><span class="ac">inteligência</span> que pensa junto</span>
             <span class="sep"></span>
           </span>
           <span class="mm-item">
@@ -2069,7 +2085,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
           <span class="mm-item">
             <span class="anti">dashboard frio</span>
             <span class="arr">→</span>
-            <span class="pro"><span class="ac">coach</span> que pensa junto</span>
+            <span class="pro"><span class="ac">inteligência</span> que pensa junto</span>
             <span class="sep"></span>
           </span>
           <span class="mm-item">
@@ -2093,8 +2109,8 @@ Sem promessa, sem moralismo. Só clareza.</p>
       <div class="wrap">
         <div class="sec-head">
           <div>
-            <p class="eyebrow">Coach financeiro com IA</p>
-            <h2>Um coach que <span class="accent">conversa</span> com o seu dia a dia.</h2>
+            <p class="eyebrow">Inteligência financeira com IA</p>
+            <h2>Uma inteligência que <span class="accent">conversa</span> com o seu dia a dia.</h2>
           </div>
           <p class="copy">
             O Haile não é mais um app de despesa. É uma camada de análise
@@ -2112,7 +2128,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
             <div class="feat-body">
               <p class="feat-tag">Decisão consciente</p>
               <h3>Pensar antes de gastar, não depois.</h3>
-              <p>O coach analisa o impacto de uma compra grande na sua meta antes do clique. Sem proibir, só informando o que acontece se você prosseguir.</p>
+              <p>O Haile analisa o impacto de uma compra grande na sua meta antes do clique. Sem proibir, só informando o que acontece se você prosseguir.</p>
               <a href="como-funciona.html" class="feat-link">Entenda como →</a>
             </div>
           </article>
@@ -2122,7 +2138,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
               <div class="feat-media-inner">
                 <div></div>
                 <div class="feat-mock">
-                  <p class="mock-label">Coach do dia</p>
+                  <p class="mock-label">Haile · hoje</p>
                   <p class="mock-msg">Você gastou R$ 340 a mais em delivery este mês. Isso atrasa a meta Itália em ~3 semanas.</p>
                 </div>
               </div>
@@ -2183,13 +2199,13 @@ Sem promessa, sem moralismo. Só clareza.</p>
             </div>
           </article>
 
-          <!-- Coach IA card -->
-          <article class="ucard uc-coach">
-            <div class="u-coach-head">
-              <div class="u-avatar">Hai</div>
+          <!-- Insight card do Haile -->
+          <article class="ucard uc-haile">
+            <div class="u-haile-head">
+              <div class="u-avatar">H</div>
               <div>
-                <div class="u-coach-name">Haile Coach <span class="u-badge">Análise de Maio</span></div>
-                <div class="u-coach-meta">IA · contextualizada por sua família</div>
+                <div class="u-haile-name">Haile <span class="u-badge">Análise de Maio</span></div>
+                <div class="u-haile-meta">Inteligência contextual da sua família</div>
               </div>
             </div>
             <p class="u-msg">
@@ -2236,20 +2252,20 @@ Sem promessa, sem moralismo. Só clareza.</p>
 
           <div class="faq-list reveal" data-delay="1">
             <div class="faq-item">
-              <button class="faq-q">O Haile é seguro para conectar minhas contas? <span class="faq-icon">+</span></button>
-              <div class="faq-a">Sim. Utilizamos criptografia de ponta a ponta e nunca armazenamos senhas bancárias. A conexão é feita via Open Finance, o padrão regulado pelo Banco Central do Brasil.</div>
+              <button class="faq-q">O Haile pode me dar conselhos sobre investimentos? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Não. O Haile não é instituição financeira, não tem registro na CVM e não presta consultoria de investimentos regulada. Ele organiza suas finanças, mostra seu contexto e ilumina suas opções — mas decisões sobre investir, contratar crédito ou seguros são suas, idealmente com apoio de um profissional certificado. As orientações do Haile têm caráter informativo e educacional.</div>
             </div>
             <div class="faq-item">
-              <button class="faq-q">Preciso de cartão de crédito para o Trial? <span class="faq-icon">+</span></button>
-              <div class="faq-a">Não. O Trial de 14 dias é completamente gratuito, sem necessidade de cartão. Só pedimos e-mail e criação de conta.</div>
+              <button class="faq-q">O Haile é seguro para conectar minhas contas? <span class="faq-icon">+</span></button>
+              <div class="faq-a">Sim. Usamos criptografia de ponta a ponta e nunca armazenamos senhas bancárias. Seus dados ficam protegidos em infraestrutura auditada, e você decide o que compartilhar com cada membro da família.</div>
             </div>
             <div class="faq-item">
               <button class="faq-q">Funciona para casal sem filhos? <span class="faq-icon">+</span></button>
-              <div class="faq-a">Sim. O Haile entende qualquer configuração familiar: casal, família com filhos, ou mesmo um indivíduo que quer organizar seu futuro. O coach se adapta ao seu contexto.</div>
+              <div class="faq-a">Sim. O Haile entende qualquer configuração familiar: casal sem filhos, família com filhos, mãe ou pai solo, família recomposta, ou quem cuida dos pais. A inteligência se adapta ao seu contexto.</div>
             </div>
             <div class="faq-item">
               <button class="faq-q">O Haile substitui um planejador financeiro? <span class="faq-icon">+</span></button>
-              <div class="faq-a">Não, e nem quer. O Haile é seu coach do dia a dia: orienta decisões rotineiras, acompanha metas e dá visibilidade. Para planejamento patrimonial complexo, ele trabalha junto com seu assessor.</div>
+              <div class="faq-a">Não, e nem quer. O Haile é a inteligência financeira do seu dia a dia: orienta decisões rotineiras, acompanha metas e dá visibilidade. Para planejamento patrimonial complexo, ele trabalha junto com seu assessor.</div>
             </div>
             <div class="faq-item">
               <button class="faq-q">Posso cancelar a qualquer momento? <span class="faq-icon">+</span></button>
@@ -2269,7 +2285,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
             <div>
               <p class="eyebrow">Acesso antecipado</p>
               <h2>Comece sua próxima <span class="accent">escolha consciente.</span></h2>
-              <p class="cta-sub">14 dias grátis. Sem cartão. Ative seu coach financeiro e tome sua próxima decisão com clareza, não no escuro.</p>
+              <p class="cta-sub">14 dias grátis. Sem cartão. Ative sua inteligência financeira e tome sua próxima decisão com clareza, não no escuro.</p>
             </div>
             <p class="cta-login">Já tem conta? <a href="login.html">Fazer login</a></p>
           </div>
@@ -2307,7 +2323,7 @@ Sem promessa, sem moralismo. Só clareza.</p>
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <p>Coach financeiro com IA para famílias que querem decidir melhor com o dinheiro.</p>
+          <p>Inteligência financeira com IA para famílias modernas que querem decidir melhor com o dinheiro.</p>
         </div>
 
         <div class="foot-col">
