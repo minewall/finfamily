@@ -1,12 +1,28 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-// CORS: em produção restringir a origens conhecidas (ver [M1]).
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// [M1] CORS restritivo: allowlist de origens permitidas. Em prod, apenas
+// haile.com.br pode chamar; em dev, localhost comum. Origin não-allowlist
+// recebe haile.com.br (browser bloqueia se origin real não bater).
+const ALLOWED_ORIGINS = new Set([
+  'https://haile.com.br',
+  'https://www.haile.com.br',
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
+]);
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : 'https://haile.com.br';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'content-type, authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
 
 // Allowlist de modelos aceitos (mantém-se em sincronia com app.js:14724-14726).
 // Cliente envia o id; servidor valida e cai em DEFAULT se não bater.
@@ -25,7 +41,7 @@ const DEFAULT_MAX_TOKENS = 1024;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS });
+    return new Response(null, { headers: corsHeaders(req) });
   }
 
   try {
@@ -33,17 +49,17 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') || '';
     const jwt = authHeader.replace(/^Bearer\s+/i, '').trim();
     if (!jwt) {
-      return jsonErr(401, 'unauthorized', 'Authorization header ausente');
+      return jsonErr(401, 'unauthorized', 'Authorization header ausente', req);
     }
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('ANON_KEY');
     const apiKey       = Deno.env.get('ANTHROPIC_API_KEY');
     if (!SUPABASE_URL || !ANON_KEY) {
-      return jsonErr(500, 'config', 'env Supabase ausente');
+      return jsonErr(500, 'config', 'env Supabase ausente', req);
     }
     if (!apiKey) {
-      return jsonErr(500, 'config', 'ANTHROPIC_API_KEY não configurada');
+      return jsonErr(500, 'config', 'ANTHROPIC_API_KEY não configurada', req);
     }
 
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -52,7 +68,7 @@ serve(async (req) => {
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
-      return jsonErr(401, 'unauthorized', 'JWT inválido ou expirado');
+      return jsonErr(401, 'unauthorized', 'JWT inválido ou expirado', req);
     }
     const callerId = userData.user.id;
 
@@ -61,7 +77,7 @@ serve(async (req) => {
     const { model, messages, system, max_tokens, tools, tool_choice } = payload;
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      return jsonErr(400, 'invalid_input', 'messages obrigatório');
+      return jsonErr(400, 'invalid_input', 'messages obrigatório', req);
     }
 
     // Allowlist de modelo
@@ -110,16 +126,17 @@ serve(async (req) => {
 
     return new Response(JSON.stringify(parsed), {
       status: res.status,
-      headers: { ...CORS, 'content-type': 'application/json' },
+      headers: { ...corsHeaders(req), 'content-type': 'application/json' },
     });
   } catch (e) {
     console.error('[claude-proxy] exception:', e);
-    return jsonErr(500, 'proxy_exception', (e as Error).message);
+    return jsonErr(500, 'proxy_exception', (e as Error).message, req);
   }
 });
 
-function jsonErr(status: number, type: string, message: string) {
+function jsonErr(status: number, type: string, message: string, req?: Request) {
+  const cors = req ? corsHeaders(req) : { 'Access-Control-Allow-Origin': 'https://haile.com.br' };
   return new Response(JSON.stringify({ error: { type, message } }), {
-    status, headers: { ...CORS, 'content-type': 'application/json' },
+    status, headers: { ...cors, 'content-type': 'application/json' },
   });
 }

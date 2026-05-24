@@ -19,11 +19,27 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// [M1] CORS restritivo. Server-to-server (cron), mas mantemos allowlist
+// por consistência com as outras Edges.
+const ALLOWED_ORIGINS = new Set([
+  'https://haile.com.br',
+  'https://www.haile.com.br',
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
+]);
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : 'https://haile.com.br';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'content-type, authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
 
 const APP_BASE_URL = 'https://haile.com.br';
 const DEFAULT_BATCH = 200;
@@ -52,22 +68,23 @@ interface Candidate {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
-  if (req.method !== 'POST')    return json(405, { error: 'use POST' });
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(req) });
+  if (req.method !== 'POST')    return json(405, { error: 'use POST' }, req);
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // [M8] Padronizado SERVICE_ROLE_KEY (fallback removido).
+    const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY');
     const RESEND_KEY   = Deno.env.get('RESEND_API_KEY');
 
-    if (!SUPABASE_URL || !SERVICE_KEY) return json(500, { error: 'SUPABASE_URL ou SERVICE_ROLE_KEY ausente' });
-    if (!RESEND_KEY)                   return json(500, { error: 'RESEND_API_KEY ausente' });
+    if (!SUPABASE_URL || !SERVICE_KEY) return json(500, { error: 'SUPABASE_URL ou SERVICE_ROLE_KEY ausente' }, req);
+    if (!RESEND_KEY)                   return json(500, { error: 'RESEND_API_KEY ausente' }, req);
 
     // ── Auth: bearer == service role ──
     const auth = req.headers.get('authorization') ?? '';
     const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
     if (!token || token !== SERVICE_KEY) {
-      return json(401, { error: 'service role bearer obrigatório' });
+      return json(401, { error: 'service role bearer obrigatório' }, req);
     }
 
     // ── Parse body ──
@@ -76,7 +93,7 @@ serve(async (req) => {
       const raw = await req.text();
       if (raw) body = JSON.parse(raw);
     } catch (_) {
-      return json(400, { error: 'body JSON inválido' });
+      return json(400, { error: 'body JSON inválido' }, req);
     }
     const dryRun = !!body.dryRun;
     const batchSize = clamp(
@@ -95,12 +112,12 @@ serve(async (req) => {
 
     if (fetchErr) {
       console.error('[onboarding-reminder] fetch error:', fetchErr);
-      return json(500, { error: fetchErr.message });
+      return json(500, { error: fetchErr.message }, req);
     }
 
     const rows = (candidates ?? []) as Candidate[];
     if (rows.length === 0) {
-      return json(200, { sent: 0, failed: 0, skipped: 0, errors: [], message: 'nada a enviar' });
+      return json(200, { sent: 0, failed: 0, skipped: 0, errors: [], message: 'nada a enviar' }, req);
     }
 
     if (dryRun) {
@@ -108,7 +125,7 @@ serve(async (req) => {
         dryRun: true,
         wouldSend: rows.length,
         emails: rows.map(r => ({ email: r.email, step: STEP_LABELS[STEP_KEYS[r.paused_at_step]] ?? '?' })),
-      });
+      }, req);
     }
 
     // ── Loop de envio ──
@@ -162,10 +179,10 @@ serve(async (req) => {
       }
     }
 
-    return json(200, { sent, failed, skipped, errors });
+    return json(200, { sent, failed, skipped, errors }, req);
   } catch (e) {
     console.error('[onboarding-reminder] fatal:', e);
-    return json(500, { error: (e as Error).message });
+    return json(500, { error: (e as Error).message }, req);
   }
 });
 
@@ -235,10 +252,11 @@ function encodeAttr(s: string): string {
   return s.replace(/"/g, '&quot;');
 }
 
-function json(status: number, body: unknown): Response {
+function json(status: number, body: unknown, req?: Request): Response {
+  const cors = req ? corsHeaders(req) : { 'Access-Control-Allow-Origin': 'https://haile.com.br' };
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'content-type': 'application/json' },
+    headers: { ...cors, 'content-type': 'application/json' },
   });
 }
 

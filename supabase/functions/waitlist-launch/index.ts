@@ -12,11 +12,28 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// [M1] CORS restritivo. Esta Edge é server-to-server (cron + admin only),
+// então origem do browser não é o vetor — mas mantemos allowlist para
+// consistência com as outras Edges.
+const ALLOWED_ORIGINS = new Set([
+  'https://haile.com.br',
+  'https://www.haile.com.br',
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5173',
+]);
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : 'https://haile.com.br';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'content-type, authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
 
 const TEMPLATE_EXPIRES_DAYS = 30;
 const DEFAULT_BATCH = 100;
@@ -37,23 +54,24 @@ interface LaunchBody {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS });
+    return new Response(null, { headers: corsHeaders(req) });
   }
   if (req.method !== 'POST') {
-    return json(405, { error: { type: 'method', message: 'use POST' } });
+    return json(405, { error: { type: 'method', message: 'use POST' } }, req);
   }
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    // Nome sem prefixo SUPABASE_ porque o CLI rejeita esse prefixo nos secrets.
-    const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // [M8] Nome SERVICE_ROLE_KEY (sem prefixo SUPABASE_) pq o CLI rejeita
+    // esse prefixo nos secrets. Fallback removido — padronizado em todas as Edges.
+    const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY');
     const RESEND_KEY   = Deno.env.get('RESEND_API_KEY');
 
     if (!SUPABASE_URL || !SERVICE_KEY) {
-      return json(500, { error: { type: 'config', message: 'SUPABASE_URL ou SERVICE_ROLE_KEY ausente' } });
+      return json(500, { error: { type: 'config', message: 'SUPABASE_URL ou SERVICE_ROLE_KEY ausente' } }, req);
     }
     if (!RESEND_KEY) {
-      return json(500, { error: { type: 'config', message: 'RESEND_API_KEY ausente' } });
+      return json(500, { error: { type: 'config', message: 'RESEND_API_KEY ausente' } }, req);
     }
 
     // ── Autenticação: exige bearer token igual ao service role ──
@@ -62,7 +80,7 @@ serve(async (req) => {
       ? authHeader.slice(7).trim()
       : '';
     if (!token || token !== SERVICE_KEY) {
-      return json(401, { error: { type: 'unauthorized', message: 'service role bearer token obrigatório' } });
+      return json(401, { error: { type: 'unauthorized', message: 'service role bearer token obrigatório' } }, req);
     }
 
     // ── Parse do body (opcional) ──
@@ -71,7 +89,7 @@ serve(async (req) => {
       const raw = await req.text();
       if (raw) body = JSON.parse(raw) as LaunchBody;
     } catch (_) {
-      return json(400, { error: { type: 'invalid_input', message: 'body JSON inválido' } });
+      return json(400, { error: { type: 'invalid_input', message: 'body JSON inválido' } }, req);
     }
 
     const batchSize = clamp(
@@ -100,12 +118,12 @@ serve(async (req) => {
     const { data: leads, error: fetchErr } = await query;
     if (fetchErr) {
       console.error('[waitlist-launch] fetch error:', fetchErr);
-      return json(500, { error: { type: 'fetch', message: fetchErr.message } });
+      return json(500, { error: { type: 'fetch', message: fetchErr.message } }, req);
     }
 
     const rows = (leads ?? []) as WaitlistRow[];
     if (rows.length === 0) {
-      return json(200, { sent: 0, failed: 0, errors: [], message: 'nada a enviar' });
+      return json(200, { sent: 0, failed: 0, errors: [], message: 'nada a enviar' }, req);
     }
 
     // ── Loop de disparo ──
@@ -162,10 +180,10 @@ serve(async (req) => {
       }
     }
 
-    return json(200, { sent, failed, errors });
+    return json(200, { sent, failed, errors }, req);
   } catch (e) {
     console.error('[waitlist-launch] fatal exception:', e);
-    return json(500, { error: { type: 'exception', message: (e as Error).message } });
+    return json(500, { error: { type: 'exception', message: (e as Error).message } }, req);
   }
 });
 
@@ -316,9 +334,10 @@ img{border:0;display:block;max-width:100%}
 <p style="text-align:center;font-size:11px;color:#1E293B;margin-top:24px;font-family:'DM Sans',Arial,sans-serif">&copy; 2026 Haile &middot; Averse Tecnologia</p>
 </div></div></body></html>`;
 
-function json(status: number, body: unknown): Response {
+function json(status: number, body: unknown, req?: Request): Response {
+  const cors = req ? corsHeaders(req) : { 'Access-Control-Allow-Origin': 'https://haile.com.br' };
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'content-type': 'application/json' },
+    headers: { ...cors, 'content-type': 'application/json' },
   });
 }
