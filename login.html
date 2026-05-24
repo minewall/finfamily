@@ -352,7 +352,9 @@
           <label for="fPass">Senha</label>
           <input id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
         </div>
-        <div class="forgot"><a href="#">Esqueci minha senha</a></div>
+        <!-- "Esqueci minha senha" ocultado até implementar fluxo de password reset via Supabase.
+             Hoje aponta pra href="#" — esconder evita expectativa frustrada. -->
+        <div class="forgot" style="display:none"><a href="#">Esqueci minha senha</a></div>
         <div class="field" id="fPassConfirmGroup" style="display:none">
           <label for="fPassConfirm">Confirmar senha</label>
           <input id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
