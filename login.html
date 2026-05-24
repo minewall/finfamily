@@ -265,6 +265,29 @@
       content: ''; flex: 1; height: 1px; background: var(--line);
     }
 
+    /* Google sign-in button */
+    .btn-google {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 13px 24px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .btn-google:hover { border-color: #d1cfe6; box-shadow: 0 6px 18px rgba(15,16,32,0.08); transform: translateY(-1px); }
+    .btn-google:active { transform: none; }
+    .btn-google:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-google svg { flex-shrink: 0; }
+
     /* toggle mode button */
     .btn-toggle {
       width: 100%; background: transparent; border: 1px solid var(--line);
@@ -378,10 +401,22 @@
         <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:6px">Enviamos um link de confirmação para</p>
         <p id="confirmEmail" style="font-size:14px;font-weight:600;color:var(--violet);margin-bottom:20px;word-break:break-all"></p>
         <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:28px">Clique no link do e-mail para ativar sua conta. Verifique também a pasta de <strong style="color:var(--fg)">Promoções</strong> caso não encontre.</p>
-        <button class="btn-toggle" onclick="document.getElementById('confirmScreen').style.display='none';document.getElementById('loginForm').style.display='block';document.getElementById('divider').style.display='flex';document.getElementById('btnToggleMode').style.display='block';">
+        <button class="btn-toggle" onclick="document.getElementById('confirmScreen').style.display='none';document.getElementById('loginForm').style.display='block';document.getElementById('divider').style.display='flex';document.getElementById('dividerGoogle').style.display='flex';document.getElementById('btnGoogle').style.display='inline-flex';document.getElementById('btnToggleMode').style.display='block';">
           Voltar ao login
         </button>
       </div>
+
+      <div class="divider" id="dividerGoogle">ou</div>
+
+      <button type="button" class="btn-google" id="btnGoogle">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.96H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.04l3.007-2.333z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.96L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+        </svg>
+        <span id="btnGoogleLabel">Entrar com Google</span>
+      </button>
 
       <div class="divider" id="divider">ou</div>
 
@@ -471,7 +506,46 @@
     btnToggle.textContent      = isSignUp ? 'Já tenho conta — Entrar' : 'Primeiro acesso? Criar conta';
     confirmGroup.style.display = isSignUp ? 'block' : 'none';
     forgot.style.display       = isSignUp ? 'none' : 'block';
+    // Label do botão Google acompanha o modo (Entrar / Cadastrar com Google)
+    document.getElementById('btnGoogleLabel').textContent = isSignUp ? 'Cadastrar com Google' : 'Entrar com Google';
     clearMsgs();
+  });
+
+  // ── Google OAuth ─────────────────────────────────────────────
+  // Preserva invite_token / source vindos da URL através do redirect.
+  (function preserveInviteContextFromURL() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('invite_token');
+      const source = params.get('source');
+      if (token) sessionStorage.setItem('ff_invite_token', token);
+      if (source) sessionStorage.setItem('ff_invite_source', source);
+    } catch (_) { /* URL inválida — segue */ }
+  })();
+
+  document.getElementById('btnGoogle').addEventListener('click', async () => {
+    clearMsgs();
+    const btn = document.getElementById('btnGoogle');
+    btn.disabled = true;
+    try {
+      const redirectTo = window.location.origin + '/login.html';
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: { access_type: 'offline', prompt: 'select_account' },
+        },
+      });
+      if (error) {
+        btn.disabled = false;
+        return showError('Não foi possível iniciar o login com Google. Tente novamente.');
+      }
+      // Em sucesso, o navegador é redirecionado pro consent do Google.
+      // Quando volta, getSession() acima processa a sessão e redireciona pro app.
+    } catch (e) {
+      btn.disabled = false;
+      showError('Falha ao conectar com o Google.');
+    }
   });
 
   function setLoading(on) {
@@ -525,6 +599,8 @@
       document.getElementById('confirmEmail').textContent = email;
       document.getElementById('loginForm').style.display = 'none';
       document.getElementById('divider').style.display = 'none';
+      document.getElementById('dividerGoogle').style.display = 'none';
+      document.getElementById('btnGoogle').style.display = 'none';
       document.getElementById('btnToggleMode').style.display = 'none';
       document.getElementById('confirmScreen').style.display = 'block';
     } else {
