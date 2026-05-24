@@ -2498,6 +2498,20 @@ body.sidebar-open { overflow: hidden; }
   transition: background .15s, color .15s, border-color .15s;
 }
 .coach-suggestion:hover { background: var(--accent)15; color: var(--accent); border-color: var(--accent)40; }
+.coach-suggestion-import {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.10) 0%, rgba(45,207,192,0.10) 100%);
+  border: 1px solid rgba(45,207,192,0.30);
+  color: var(--teal-coach, #2dcfc0);
+  font-weight: 600;
+}
+.coach-suggestion-import:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(45,207,192,0.18) 100%);
+  border-color: rgba(45,207,192,0.55);
+  color: var(--teal-coach, #2dcfc0);
+}
 .coach-msg {
   display: flex;
   gap: 8px;

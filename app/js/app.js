@@ -4116,12 +4116,13 @@ ${(() => {
   </div>
 </div>
 
-${contratos.length === 0 ? `
-  <div class="empty-state" style="padding:48px;text-align:center;border:1px dashed var(--border);border-radius:12px">
-    <div style="font-size:14px;color:var(--text-3);margin-bottom:8px">Nenhum compromisso cadastrado</div>
-    <div style="font-size:12px;color:var(--text-4)">Clique em "Novo Compromisso" para começar.</div>
-  </div>
-` : `
+${contratos.length === 0 ? coachEmptyHTML({
+  titulo: 'Aqui você vai cadastrar compromissos',
+  texto: 'Compromissos são suas obrigações recorrentes — assinaturas, financiamentos, parcelamentos. Posso te ajudar a identificar o que já se repete no seu extrato.',
+  ctaLabel: '+ Novo Compromisso',
+  ctaId: 'btnCoachEmptyContrato',
+  showImportCta: true,
+}) : `
 <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap">
     <table class="data-table" style="min-width:900px">
@@ -4296,6 +4297,7 @@ ${contratos.length === 0 ? `
       });
     }
     document.getElementById('btnAddContrato')?.addEventListener('click', () => openContratoModal(null, container));
+    document.getElementById('btnCoachEmptyContrato')?.addEventListener('click', () => openContratoModal(null, container));
   }
 
   function openContratoModal(contrato, container) {
@@ -15678,9 +15680,13 @@ ${(() => {
         <div class="coach-avatar-lg" style="overflow:hidden">
           <img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:38px;height:auto;display:block">
         </div>
-        <p>Olá! Sou seu coach financeiro. Tenho acesso ao seu histórico completo e posso responder perguntas como:</p>
+        <p>Olá! Sou o Haile, sua inteligência financeira. Tenho acesso ao seu histórico completo e posso te ajudar com:</p>
         <div class="coach-suggestions" id="coachSuggestions">
-          ${suggestions.map(s => `<button class="coach-suggestion">${s}</button>`).join('')}
+          <button class="coach-suggestion coach-suggestion-import" data-coach-import-cta type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            <span>Importar do extrato bancário <span style="opacity:.55;font-weight:400">(CSV, OFX ou PDF)</span></span>
+          </button>
+          ${suggestions.map(s => `<button class="coach-suggestion">${Utils.escapeHtml(s)}</button>`).join('')}
         </div>
         <div class="coach-privacy-footer">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -16878,6 +16884,8 @@ Se o PDF for de poupança/conta corrente e tiver poucos movimentos, pode pular o
 
     function bindSuggestions() {
       document.querySelectorAll('.coach-suggestion').forEach(btn => {
+        // chip de import tem handler global em data-coach-import-cta — não tratar como texto
+        if (btn.hasAttribute('data-coach-import-cta')) return;
         btn.addEventListener('click', () => sendMessage(btn.textContent));
       });
     }
