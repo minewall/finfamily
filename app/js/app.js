@@ -52,7 +52,10 @@ const App = (function () {
       // Se houver foto custom em settings.pessoaAvatars[name], usa
       const custom = Utils.personAvatar(name);
       if (custom) {
-        return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" title="${title}"><img src="${custom}" alt="${name}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.replaceWith(document.createTextNode('${initial}'))"></span>`;
+        // [C2] Avatar fallback antes usava onerror="...createTextNode('${initial}')..." inline.
+        // Era vetor de XSS: se name começasse com '), alert(1)//' (via importação de extrato), executava.
+        // Agora: data-fallback-initial + listener global delegado (registrado uma vez no init).
+        return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" title="${title}"><img src="${custom}" alt="${name}" style="width:100%;height:100%;object-fit:cover" loading="lazy" data-fallback-initial="${initial}"></span>`;
       }
       return `<span class="person-avatar" style="width:${size}px;height:${size}px;background:${color};color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${fontSize}px;font-weight:700;letter-spacing:0" title="${title}">${initial}</span>`;
     },
@@ -15003,6 +15006,18 @@ ${(() => {
         if (navEl) navEl.click();
       }
     });
+
+    // [C2] Listener global pra fallback de avatar com foto custom.
+    // Antes era onerror="..." inline com initial interpolado — vulnerável a XSS
+    // se o nome contivesse aspas/parêntesis (via importação de extrato).
+    // Agora: lê data-fallback-initial via dataset (sem interpolação em HTML).
+    // Capture phase porque 'error' não bubble.
+    document.addEventListener('error', (e) => {
+      const t = e.target;
+      if (t && t.tagName === 'IMG' && t.dataset && t.dataset.fallbackInitial) {
+        t.replaceWith(document.createTextNode(t.dataset.fallbackInitial));
+      }
+    }, true);
 
     // Tema: fixado em dark (redesign 2026-05 — app é dark-only)
     // O tema light ainda existe no CSS como fallback mas não é mais selecionável.

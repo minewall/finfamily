@@ -32,24 +32,45 @@
 </head>
 <body>
 <script>
-  // Auth guard — redirect to login if not authenticated
-  if (sessionStorage.getItem('ff_auth') !== '1') {
-    window.location.replace('../login.html');
-  } else {
-    // Onboarding guard — novos usuários sem dados vão para o onboarding
-    // Lê direto do localStorage sem carregar o Store completo
+  // [C3] Auth guard — antes usava sessionStorage.ff_auth='1' (DevTools-bypass trivial).
+  // Agora valida o token JWT que o Supabase JS SDK guarda em localStorage:
+  // chave 'sb-<project-ref>-auth-token' com expires_at em epoch seconds.
+  // Sem JWT válido (presente + não expirado) → redirect pra login.
+  //
+  // Atacante ainda pode injetar um JWT falso via DevTools, mas:
+  //   1. RLS no servidor recusa qualquer query sem assinatura válida (anon key não dá acesso a dados).
+  //   2. JWT é assinado pelo Supabase; forjar exige a JWT secret do projeto (privada).
+  // Logo, a UI carrega vazia mesmo se atacante burlar este guard.
+  (function () {
+    const TOKEN_KEY = 'sb-lpudgulhnfuwdttetwdn-auth-token';
+    let valid = false;
+    try {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        const exp = data?.expires_at;
+        if (exp && Date.now() / 1000 < exp) valid = true;
+      }
+    } catch (e) { /* parsing error → trata como inválido */ }
+
+    if (!valid) {
+      window.location.replace('../login.html');
+      return;
+    }
+
+    // Onboarding guard — novos usuários sem dados vão para o onboarding.
+    // Lê direto do localStorage sem carregar o Store completo.
     try {
       const _raw = JSON.parse(localStorage.getItem('finfamily_v1') || '{}');
       const _onb = _raw.onboarding;
       const _hasData = (_raw.receitas && _raw.receitas.length > 0)
         || (_raw.despesas && _raw.despesas.length > 0)
         || (_raw.contas && _raw.contas.length > 0);
-      // Se não tem onboarding completo E não tem dados legados → onboarding
       if (!_onb?.completed && !_hasData) {
         window.location.replace('onboarding.html');
       }
     } catch (e) { /* parsing error — segue em frente */ }
-  }
+  })();
 </script>
 
 <!-- ═══════════════════════════════════════════════════ LAYOUT ══ -->
@@ -336,7 +357,7 @@
 <script src="js/store.js?v=122"></script>
 <script src="js/charts.js?v=72"></script>
 <script src="js/svg-charts.js?v=1"></script>
-<script src="js/app.js?v=194"></script>
+<script src="js/app.js?v=195"></script>
 
 </body>
 </html>
