@@ -29,6 +29,26 @@ const App = (function () {
       return name === 'Roberto' ? '#3B82F6' : name === 'Mariana' ? '#D946EF' : name === 'Manuela' ? '#22C55E' : '#7C6EF8';
     },
     personInitial(name) { return name ? name[0].toUpperCase() : '?'; },
+    /**
+     * [C1] Escapa entidades HTML em string vinda de input do usuário antes
+     * de interpolar em innerHTML. Sempre use ao renderizar:
+     *   - descrição de lançamento (digitada OU importada de extrato)
+     *   - nome de pessoa
+     *   - label de meta/categoria/subcategoria
+     *   - nome de conta/cartão
+     *   - qualquer texto que o user (ou outro membro da família) controla.
+     * Aceita null/undefined/number, sempre retorna string segura.
+     * Replicava função do Coach (escapeHtml local); agora global.
+     */
+    escapeHtml(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
     // Retorna URL de avatar customizado (settings.pessoaAvatars), se houver.
     // Caso contrário retorna null — o consumidor usa personAvatarHtml().
     // Mantido para compat com handlers de upload custom em Configurações.
@@ -78,7 +98,8 @@ const App = (function () {
         ? items.filter(s => s.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
         : [];
       if (!matches.length) { list.classList.remove('open'); return; }
-      list.innerHTML = matches.map(s => `<div class="ac-item">${s}</div>`).join('');
+      // [C1] escapa: items pode conter descrições históricas (user input)
+      list.innerHTML = matches.map(s => `<div class="ac-item">${Utils.escapeHtml(s)}</div>`).join('');
       list.classList.add('open');
       list.querySelectorAll('.ac-item').forEach(item => {
         item.addEventListener('mousedown', e => {
@@ -1608,8 +1629,8 @@ ${filtered.map(d => {
   return `<tr class="row-clickable${(d.year||0)*12+(d.month||0) > year*12+month ? '" style="opacity:0.55"' : '"'} data-row-desp="${d.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}</td>
   <td>
-    <div>${d.desc}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length > 1 ? ` <span class="badge badge-accent" style="font-size:10px;display:inline-flex;align-items:center;gap:3px" title="${d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · ')}">${icon('users',{size:10})} ${d.split.map(s=>s.person[0]).join('+')}</span>` : ''}</div>
-    ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
+    <div>${Utils.escapeHtml(d.desc)}${d.desconto ? ` <span class="badge badge-green" style="font-size:10px">desc -${Utils.currency(d.economia||0)}</span>` : ''}${d.split && d.split.length > 1 ? ` <span class="badge badge-accent" style="font-size:10px;display:inline-flex;align-items:center;gap:3px" title="${Utils.escapeHtml(d.split.map(s=>s.person+': '+Utils.currency(s.valor)).join(' · '))}">${icon('users',{size:10})} ${Utils.escapeHtml(d.split.map(s=>(s.person||'?')[0]).join('+'))}</span>` : ''}</div>
+    ${d.sub ? `<div class="lancamentos-sub">${Utils.escapeHtml(d.sub)}</div>` : ''}
   </td>
   <td><span class="lancamentos-cat-pill" style="background:${catBg};color:${catColor}">${catLabel}</span></td>
   <td>${pessoaAvatarHtml(mainPerson)}</td>
@@ -1647,10 +1668,10 @@ ${filtered.map(r => {
   const isFuture = (r.year||0)*12+(r.month||0) > year*12+month;
   return `<tr class="row-clickable${isFuture ? '" style="opacity:0.55"' : '"'} data-row-rec="${r.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
-  <td>${r.desc}</td>
-  <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
-  <td class="muted">${r.sub || ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||''}</td>
-  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${c.label}">${icon('file-text',{size:10})} ${c.label}</span>` : '<span class="muted">—</span>'}</td>
+  <td>${Utils.escapeHtml(r.desc)}</td>
+  <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${Utils.escapeHtml(r.person)}</span></td>
+  <td class="muted">${Utils.escapeHtml(r.sub || ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||'')}</td>
+  <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${Utils.escapeHtml(c.label)}">${icon('file-text',{size:10})} ${Utils.escapeHtml(c.label)}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
   <td style="white-space:nowrap;width:42px">
     ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?icon('check',{size:14}):paidState==='auto'?icon('circle-dot',{size:14}):icon('circle',{size:14})}</button>` : ''}
@@ -1845,11 +1866,11 @@ ${filtered.map(r => {
           const [yyyy, mm2, dd2] = dateKey.split('-');
           let rows = '';
           entries.rec.forEach(r => {
-            rows += `<div class="cal-pop-row"><span class="cal-pop-dot cal-dot-green"></span><span class="cal-pop-desc">${r.desc}</span><span class="cal-pop-val positive">+${Utils.currency(r.amount)}</span></div>`;
+            rows += `<div class="cal-pop-row"><span class="cal-pop-dot cal-dot-green"></span><span class="cal-pop-desc">${Utils.escapeHtml(r.desc)}</span><span class="cal-pop-val positive">+${Utils.currency(r.amount)}</span></div>`;
           });
           entries.desp.forEach(d => {
             const cat = Store.CATEGORIES[d.category];
-            rows += `<div class="cal-pop-row"><span class="cal-pop-dot cal-dot-red"></span><span class="cal-pop-desc">${d.desc} <span style="font-size:10px;color:var(--text-4)">${cat?.label||d.category}</span></span><span class="cal-pop-val negative">-${Utils.currency(d.amount)}</span></div>`;
+            rows += `<div class="cal-pop-row"><span class="cal-pop-dot cal-dot-red"></span><span class="cal-pop-desc">${Utils.escapeHtml(d.desc)} <span style="font-size:10px;color:var(--text-4)">${Utils.escapeHtml(cat?.label||d.category)}</span></span><span class="cal-pop-val negative">-${Utils.currency(d.amount)}</span></div>`;
           });
           pop.innerHTML = `<div class="cal-pop-head">${dd2}/${mm2}/${yyyy}</div>${rows}`;
           pop.style.display = 'block';
@@ -2317,11 +2338,11 @@ ${(() => {
             return `<tr class="row-clickable" data-row-rec="${r.id}">
               <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}</td>
               <td>
-                <div>${r.desc}</div>
-                ${subLabel ? `<div class="lancamentos-sub">${subLabel}</div>` : ''}
+                <div>${Utils.escapeHtml(r.desc)}</div>
+                ${subLabel ? `<div class="lancamentos-sub">${Utils.escapeHtml(subLabel)}</div>` : ''}
               </td>
-              <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${r.person}</span></td>
-              <td class="muted">${tipoLabel}</td>
+              <td><span class="person-chip">${Utils.personAvatarHtml(r.person, { size: 22, fontSize: 10 })}${Utils.escapeHtml(r.person)}</span></td>
+              <td class="muted">${Utils.escapeHtml(tipoLabel)}</td>
               <td class="num positive">${Utils.currency(r.amount)}</td>
             </tr>`;
           }).join('')}
@@ -2740,13 +2761,13 @@ ${despesas.length === 0 ? coachEmptyHTML({
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(d.date)}${isFut?' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>':''}</td>
   <td style="font-weight:500">
     <div style="display:inline-flex;align-items:center;gap:6px">
-      ${d.desc}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">desc.</span>`:''}${d.attachment?` <span style="color:var(--accent)" title="Recibo anexado">${icon('paperclip',{size:11})}</span>`:''}
+      ${Utils.escapeHtml(d.desc)}${d.desconto?` <span class="badge badge-green" title="Economia: ${Utils.currency(d.economia||0)}">desc.</span>`:''}${d.attachment?` <span style="color:var(--accent)" title="Recibo anexado">${icon('paperclip',{size:11})}</span>`:''}
     </div>
-    ${d.sub ? `<div class="lancamentos-sub">${d.sub}</div>` : ''}
+    ${d.sub ? `<div class="lancamentos-sub">${Utils.escapeHtml(d.sub)}</div>` : ''}
   </td>
-  <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Store.CATEGORIES[d.category]?.label||d.category}</span></td>
-  <td>${mainPerson ? `<span class="person-chip">${Utils.personAvatarHtml(mainPerson, { size: 22, fontSize: 10 })}${mainPerson}${splitInfo}</span>` : '<span class="muted">—</span>'}</td>
-  <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
+  <td><span class="badge" style="background:${Store.CATEGORIES[d.category]?.color+'20'};color:${Store.CATEGORIES[d.category]?.color}">${Utils.escapeHtml(Store.CATEGORIES[d.category]?.label||d.category)}</span></td>
+  <td>${mainPerson ? `<span class="person-chip">${Utils.personAvatarHtml(mainPerson, { size: 22, fontSize: 10 })}${Utils.escapeHtml(mainPerson)}${splitInfo}</span>` : '<span class="muted">—</span>'}</td>
+  <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${Utils.escapeHtml(d.pay||'')}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
 </tr>`}).join('')}</tbody>
 <tfoot><tr><td colspan="5" class="fw-700">Total</td><td class="num negative fw-700">${Utils.currency(tot)}</td></tr></tfoot>
