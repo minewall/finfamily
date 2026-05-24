@@ -31,7 +31,10 @@ const MODEL_ALLOWLIST = new Set([
   'claude-sonnet-4-6',
   'claude-opus-4-7',
 ]);
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+// [M9] DEFAULT_MODEL configurável via env (hot-swap sem redeploy quando
+// Anthropic lançar nova versão). Fallback p/ snapshot hardcoded caso a
+// env não esteja setada.
+const DEFAULT_MODEL = Deno.env.get('DEFAULT_MODEL') || 'claude-haiku-4-5-20251001';
 
 // Cap de tokens por request — protege bill abuse + DoS.
 // Cliente atualmente pede 2048 (app.js:16581). Cap em 4096 dá folga 2x sem

@@ -216,26 +216,39 @@ interface SendArgs {
 async function sendEmail(args: SendArgs): Promise<{ ok: boolean; error?: string }> {
   const subject = `${args.name || 'Olá'}, o Haile está pronto`;
   const html = renderTemplate(args.name, args.link, args.expiresDays);
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'authorization': `Bearer ${args.apiKey}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Haile <oi@haile.com.br>',
-      to: args.to,
-      subject,
-      html,
-    }),
+  const body = JSON.stringify({
+    from: 'Haile <oi@haile.com.br>',
+    to: args.to,
+    subject,
+    html,
   });
 
-  if (!res.ok) {
+  // [M11] Retry com backoff exponencial em 429/5xx. Sem isso, rate-limit
+  // transitório do Resend perdia e-mails (DB já marcava invited_at antes
+  // do retorno, então usuário nunca recebia e nunca seria re-tentado).
+  // 4xx não-429 (validação, payload inválido) → game over (não retenta).
+  const MAX_ATTEMPTS = 3; // 1 try + 2 retries
+  let lastErr = '';
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const delay = 500 * Math.pow(2, attempt - 1); // 500ms, 1000ms
+      await new Promise(r => setTimeout(r, delay));
+    }
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${args.apiKey}`,
+        'content-type': 'application/json',
+      },
+      body,
+    });
+    if (res.ok) return { ok: true };
     const text = await res.text().catch(() => '');
-    return { ok: false, error: `HTTP ${res.status} — ${text.slice(0, 240)}` };
+    lastErr = `HTTP ${res.status} — ${text.slice(0, 240)}`;
+    // Retry só em 429/5xx (transientes); outros 4xx (validação) param.
+    if (res.status !== 429 && res.status < 500) break;
   }
-  return { ok: true };
+  return { ok: false, error: lastErr };
 }
 
 // Substitui as variáveis do template waitlist-lancamento.html.

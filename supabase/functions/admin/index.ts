@@ -73,7 +73,7 @@ serve(async (req) => {
           .select('id, email, full_name, role, tier, created_at, updated_at')
           .order('created_at', { ascending: false })
           .limit((params.limit as number) || 100);
-        if (error) return json(500, { error: error.message }, req);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         return json(200, { users: data }, req);
       }
 
@@ -87,7 +87,7 @@ serve(async (req) => {
           .from('profiles')
           .update({ tier })
           .eq('id', userId);
-        if (error) return json(500, { error: error.message }, req);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         console.log(`[admin] setTier userId=${userId} tier=${tier} by admin=${user.id}`);
         return json(200, { ok: true }, req);
       }
@@ -102,7 +102,7 @@ serve(async (req) => {
           .from('profiles')
           .update({ role })
           .eq('id', userId);
-        if (error) return json(500, { error: error.message }, req);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         console.log(`[admin] setRole userId=${userId} role=${role} by admin=${user.id}`);
         return json(200, { ok: true }, req);
       }
@@ -114,7 +114,7 @@ serve(async (req) => {
         if (userId === user.id) return json(400, { error: 'Cannot delete yourself' }, req);
         // CASCADE on auth.users → profiles, user_data, family_members
         const { error } = await adminClient.auth.admin.deleteUser(userId);
-        if (error) return json(500, { error: error.message }, req);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         console.log(`[admin] deleteUser userId=${userId} by admin=${user.id}`);
         return json(200, { ok: true }, req);
       }
@@ -142,7 +142,7 @@ serve(async (req) => {
         const { data, error } = await adminClient
           .from('waitlist_stats')
           .select('*');
-        if (error) return json(500, { error: error.message }, req);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         return json(200, { stats: data }, req);
       }
 
@@ -161,7 +161,7 @@ serve(async (req) => {
         if (params.converted === true)  q = q.not('signup_at', 'is', null);
         if (params.converted === false) q = q.is('signup_at', null);
         const { data, error } = await q;
-        if (error) return json(500, { error: error.message }, req);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         return json(200, { leads: data }, req);
       }
 

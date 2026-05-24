@@ -15562,7 +15562,11 @@ ${(() => {
     }
 
     function goNext(stepKey) {
-      try { Store.markOnboardingStep(stepKey); } catch (e) {}
+      // [M5] Antes era catch (e) {} — silenciava falha de markOnboardingStep,
+      // permitindo que o onboarding "completasse" com dados parciais (o que
+      // disparava o cron de onboarding-reminder equivocadamente).
+      try { Store.markOnboardingStep(stepKey); }
+      catch (e) { (window.Logger || console).warn('markOnboardingStep falhou em goNext:', stepKey, e); }
       // Aplica side-effects parciais conforme avança
       applyPartialAnswers();
       currentStep++;
@@ -15592,13 +15596,17 @@ ${(() => {
     // ── Finalizador ──────────────────────────────────────────────
     function completeOnboardingFlow() {
       applyPartialAnswers();
-      try { Store.markOnboardingStep('primeira_acao'); } catch (e) {}
+      // [M5] Catches agora logam via Logger dev-only (antes eram catch (e) {}).
+      try { Store.markOnboardingStep('primeira_acao'); }
+      catch (e) { (window.Logger || console).warn('markOnboardingStep("primeira_acao") falhou:', e); }
 
       // Cria meta sugerida conforme objetivo
       if (answers.objetivo === 'reserva') {
-        try { Store.addMeta({ label: 'Reserva de emergência', type: 'reserva', target: 0, atual: 0, active: true }); } catch (e) {}
+        try { Store.addMeta({ label: 'Reserva de emergência', type: 'reserva', target: 0, atual: 0, active: true }); }
+        catch (e) { (window.Logger || console).warn('addMeta(reserva) falhou no onboarding:', e); }
       } else if (answers.objetivo === 'imovel') {
-        try { Store.addMeta({ label: 'Comprar imóvel', type: 'objetivo', target: 0, atual: 0, active: true }); } catch (e) {}
+        try { Store.addMeta({ label: 'Comprar imóvel', type: 'objetivo', target: 0, atual: 0, active: true }); }
+        catch (e) { (window.Logger || console).warn('addMeta(imovel) falhou no onboarding:', e); }
       }
 
       Store.completeOnboarding(answers);

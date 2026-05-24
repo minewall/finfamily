@@ -210,26 +210,37 @@ interface SendArgs {
 async function sendEmail(args: SendArgs): Promise<{ ok: boolean; error?: string }> {
   const subject = `${args.name || 'Olá'}, vamos terminar de configurar?`;
   const html = renderTemplate(args.name, args.step, args.link);
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'authorization': `Bearer ${args.apiKey}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Haile <oi@haile.com.br>',
-      to: args.to,
-      subject,
-      html,
-    }),
+  const body = JSON.stringify({
+    from: 'Haile <oi@haile.com.br>',
+    to: args.to,
+    subject,
+    html,
   });
 
-  if (!res.ok) {
+  // [M11] Retry com backoff exponencial em 429/5xx (mesma lógica do
+  // waitlist-launch). Sem isso, transientes do Resend faziam o cron
+  // marcar lastReminderAt sem o e-mail ter saído de fato.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const delay = 500 * Math.pow(2, attempt - 1);
+      await new Promise(r => setTimeout(r, delay));
+    }
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'authorization': `Bearer ${args.apiKey}`,
+        'content-type': 'application/json',
+      },
+      body,
+    });
+    if (res.ok) return { ok: true };
     const text = await res.text().catch(() => '');
-    return { ok: false, error: `HTTP ${res.status} — ${text.slice(0, 240)}` };
+    lastErr = `HTTP ${res.status} — ${text.slice(0, 240)}`;
+    if (res.status !== 429 && res.status < 500) break;
   }
-  return { ok: true };
+  return { ok: false, error: lastErr };
 }
 
 function renderTemplate(nome: string, step: string, link: string): string {

@@ -65,6 +65,15 @@ const SupabaseSync = (function () {
       const raw = localStorage.getItem('finfamily_v1');
       if (!raw) return;
       const data = JSON.parse(raw);
+      // [M6] Guard de email mismatch (replicado de _pushToCloud linha 103).
+      // Sem isso, em troca de user (logout + login rápido), o blob do user A
+      // marcado com data.userEmail poderia ser pushado com JWT do user B.
+      // Janela curta mas é o tipo de bug que já causou problema (bug Mai/2026
+      // citado no comentário acima do guard em _pushToCloud).
+      if (data && data.userEmail && _user.email && data.userEmail !== _user.email) {
+        (window.Logger || console).warn('flushOnUnload ABORT — user mismatch');
+        return;
+      }
       const targetUserId = (_family && _family.dataOwnerUserId) ? _family.dataOwnerUserId : _user.id;
       if (_family && _family.role === 'member') return; // membro não escreve
       const row = { user_id: targetUserId, data };
@@ -83,7 +92,7 @@ const SupabaseSync = (function () {
       });
     } catch (e) {
       // beforeunload não pode bloquear — apenas registra
-      console.warn('flushOnUnload falhou:', e);
+      (window.Logger || console).warn('flushOnUnload falhou:', e);
     }
   }
 
@@ -101,10 +110,8 @@ const SupabaseSync = (function () {
     // evita vazamento cruzado (bug Mai/2026: dados do A acabavam no row do B
     // quando localStorage não era limpo entre logins).
     if (data && data.userEmail && _user.email && data.userEmail !== _user.email) {
-      console.error(
-        'SupabaseSync push ABORT — data pertence a', data.userEmail,
-        'mas logado como', _user.email
-      );
+      // [M3] Log via Logger dev-only — antes vazava 2 emails no DevTools de prod.
+      (window.Logger || console).warn('SupabaseSync push ABORT — user mismatch');
       _emitStatus('error');
       return;
     }

@@ -4,6 +4,31 @@
 ═══════════════════════════════════════════════════════════════════ */
 'use strict';
 
+// [M3] Logger dev-only — só emite no console em desenvolvimento.
+// Ativa em localhost OU quando ?debug=1 está na URL. Em prod, vira no-op
+// pra não vazar mensagens de erro internas, hints de schema, emails de
+// usuário, etc no DevTools de qualquer visitante.
+// Exposto como window.Logger pra uso em todos os módulos.
+(function () {
+  if (typeof window === 'undefined' || window.Logger) return;
+  const isDev = (() => {
+    try {
+      const host = window.location.hostname;
+      const isLocal = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+      const debugFlag = new URLSearchParams(window.location.search).get('debug') === '1';
+      return isLocal || debugFlag;
+    } catch (_) { return false; }
+  })();
+  const noop = () => {};
+  window.Logger = {
+    isDev,
+    log:   isDev ? console.log.bind(console)   : noop,
+    info:  isDev ? console.info.bind(console)  : noop,
+    warn:  isDev ? console.warn.bind(console)  : noop,
+    error: isDev ? console.error.bind(console) : noop,
+  };
+})();
+
 const Store = (function () {
   const KEY = 'finfamily_v1';
 
@@ -751,11 +776,9 @@ const Store = (function () {
         // (cenário do bug Mai/2026 onde dados do A foram pushados pro
         // row do B porque localStorage não foi limpo na troca de sessão).
         if (data.userEmail && data.userEmail !== email) {
-          console.error(
-            'Store.save: ABORT — data pertence a', data.userEmail,
-            'mas sessão atual é', email,
-            '— evitando vazamento entre usuários.'
-          );
+          // [M3] Log via Logger dev-only — antes era console.error com 2 emails
+          // visíveis no DevTools de qualquer visitante em prod.
+          (window.Logger || console).warn('Store.save: ABORT — user mismatch (evitando vazamento entre usuários)');
           return;
         }
         data.userEmail = email;
