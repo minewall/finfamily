@@ -2249,13 +2249,13 @@ Sem promessa, sem moralismo. Só clareza.</p>
           </div>
 
           <div class="cta-right">
-            <form onsubmit="event.preventDefault(); this.querySelector('.form-submit').textContent='Inscrito ✓'; this.querySelector('.form-submit').disabled = true;">
+            <form action="waitlist.html" method="get">
               <div class="form-field">
                 <label for="cta-email">E-mail</label>
-                <input id="cta-email" type="email" placeholder="seu@email.com" required />
+                <input id="cta-email" name="email" type="email" placeholder="seu@email.com" required />
               </div>
               <label class="form-check">
-                <input type="checkbox" />
+                <input type="checkbox" name="news" />
                 <span>Quero receber novidades, leituras e cases do Haile. Posso cancelar a qualquer momento.</span>
               </label>
               <button type="submit" class="form-submit">
@@ -2263,11 +2263,11 @@ Sem promessa, sem moralismo. Só clareza.</p>
                 <span style="font-size: 13px">→</span>
               </button>
               <div class="form-divider">ou</div>
-              <button type="button" class="form-social">
+              <a href="login.html" class="form-social" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;justify-content:center">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.22-4.74 3.22-8.32z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.85 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.67-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.67 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
-                Continuar com Google
-              </button>
-              <p class="form-mini-foot">Ao continuar, você concorda com os <a href="#">Termos</a> e a <a href="#">Política de Privacidade</a> do Haile.</p>
+                Entrar com Google
+              </a>
+              <p class="form-mini-foot">Ao continuar, você concorda com os <a href="termos.html">Termos</a> e a <a href="privacidade.html">Política de Privacidade</a> do Haile.</p>
             </form>
           </div>
         </div>
@@ -2321,8 +2321,8 @@ Sem promessa, sem moralismo. Só clareza.</p>
       <div class="foot-bottom">
         <div class="foot-legal">
           <span>© 2026 Haile</span>
-          <a href="#">Termos</a>
-          <a href="#">Privacidade</a>
+          <a href="termos.html">Termos</a>
+          <a href="privacidade.html">Privacidade</a>
         </div>
 
         <div class="foot-socials">

@@ -1106,20 +1106,20 @@
           </div>
 
           <div class="cta-right">
-            <form onsubmit="event.preventDefault(); this.querySelector('.form-submit').textContent='Inscrito ✓'; this.querySelector('.form-submit').disabled = true;">
+            <form action="waitlist.html" method="get">
               <div class="form-field">
                 <label for="cta-email">E-mail</label>
-                <input id="cta-email" type="email" placeholder="seu@email.com" required />
+                <input id="cta-email" name="email" type="email" placeholder="seu@email.com" required />
               </div>
               <label class="form-check">
-                <input type="checkbox" />
+                <input type="checkbox" name="news" />
                 <span>Quero receber novidades, leituras e cases do Haile. Posso cancelar a qualquer momento.</span>
               </label>
               <button type="submit" class="form-submit">
                 Quero meu acesso antecipado
                 <span style="font-size: 13px">→</span>
               </button>
-              <p class="form-mini-foot">Ao continuar, você concorda com os <a href="#">Termos</a> e a <a href="#">Política de Privacidade</a> do Haile.</p>
+              <p class="form-mini-foot">Ao continuar, você concorda com os <a href="termos.html">Termos</a> e a <a href="privacidade.html">Política de Privacidade</a> do Haile.</p>
             </form>
           </div>
         </div>
@@ -1170,8 +1170,8 @@
       <div class="foot-bottom">
         <div class="foot-legal">
           <span>© 2026 Haile</span>
-          <a href="#">Termos</a>
-          <a href="#">Privacidade</a>
+          <a href="termos.html">Termos</a>
+          <a href="privacidade.html">Privacidade</a>
         </div>
         <div class="foot-socials">
           <a href="#" class="foot-social" aria-label="Instagram">IG</a>

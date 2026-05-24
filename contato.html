@@ -495,8 +495,8 @@
             <div class="success-icon">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
-            <h3>Mensagem enviada!</h3>
-            <p>Recebemos seu contato e responderemos em até 1 dia útil.</p>
+            <h3>Abrindo seu e-mail…</h3>
+            <p>Se o seu cliente de e-mail não abriu automaticamente, copie a mensagem e envie para <a href="mailto:oi@haile.com.br" style="color:var(--violet);text-decoration:underline">oi@haile.com.br</a>. Respondemos em até 1 dia útil.</p>
             <a href="index.html" class="back-link">Voltar ao site</a>
           </div>
         </div>
@@ -594,12 +594,35 @@
       });
     });
 
-    // form submit
+    // Pré-popula o assunto se vier via ?assunto=... (ex: precos.html CTA Family Office).
+    (function prefillSubjectFromQuery() {
+      try {
+        var qs = new URLSearchParams(window.location.search);
+        var subj = qs.get('assunto');
+        if (!subj) return;
+        var sel = document.getElementById('f-subject');
+        var match = sel ? Array.from(sel.options).find(function (o) { return o.value === subj; }) : null;
+        if (sel && match) {
+          sel.value = subj;
+          document.querySelectorAll('.contact-reason').forEach(function (btn) {
+            btn.classList.toggle('active', btn.dataset.value === subj);
+          });
+        }
+      } catch (_) { /* ignora query inválida */ }
+    })();
+
+    // form submit — abre cliente de e-mail do usuário com mailto:
+    // (substitui o handler antigo que apenas escondia o form sem enviar nada,
+    // descartando leads de Family Office / Imprensa / Suporte silenciosamente).
+    // Quando houver Edge Function dedicada (ex: contato-relay via Resend),
+    // trocar este handler por fetch direto.
     document.getElementById('contact-form').addEventListener('submit', function (e) {
       e.preventDefault();
-      var name  = document.getElementById('f-name').value.trim();
-      var email = document.getElementById('f-email').value.trim();
-      var msg   = document.getElementById('f-message').value.trim();
+      var name    = document.getElementById('f-name').value.trim();
+      var email   = document.getElementById('f-email').value.trim();
+      var msg     = document.getElementById('f-message').value.trim();
+      var subject = (document.getElementById('f-subject').value || '').trim() || 'Contato pelo site';
+
       if (!name || !email || !msg) {
         [['f-name', name], ['f-email', email], ['f-message', msg]].forEach(function (pair) {
           var el = document.getElementById(pair[0]);
@@ -610,6 +633,16 @@
         });
         return;
       }
+
+      // Monta o e-mail com identificação clara do remetente (já que mailto:
+      // usa o e-mail do cliente de e-mail do usuário, não o digitado).
+      var to       = 'oi@haile.com.br';
+      var mailSubj = '[' + subject + '] ' + name;
+      var mailBody = msg + '\n\n—\nEnviado de: ' + name + ' <' + email + '>\nVia formulário de contato em haile.com.br';
+      var href = 'mailto:' + to + '?subject=' + encodeURIComponent(mailSubj) + '&body=' + encodeURIComponent(mailBody);
+
+      // Abre o cliente de e-mail e mostra confirmação inline.
+      window.location.href = href;
       document.getElementById('contact-form').style.display = 'none';
       document.getElementById('form-success').classList.add('visible');
     });

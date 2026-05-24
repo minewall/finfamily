@@ -463,7 +463,7 @@
               <div class="select-wrap">
                 <select id="wl-profile" name="profile">
                   <option value="">Selecione...</option>
-                  <option value="individual">Pessoa física</option>
+                  <option value="individual">Individual</option>
                   <option value="casal">Casal</option>
                   <option value="familia">Família com filhos</option>
                   <option value="outro">Outro</option>
@@ -555,6 +555,20 @@
       msgError.textContent = '';
       msgError.classList.remove('visible');
     }
+
+    // Pré-popula email se vier via ?email= (redirect dos forms de acesso antecipado
+     // em index.html e como-funciona.html). Marca também o checkbox de novidades
+     // se vier ?news=on.
+    (function prefillFromQuery() {
+      try {
+        const qs = new URLSearchParams(window.location.search);
+        const emailFromQS = qs.get('email');
+        if (emailFromQS) {
+          const emailField = document.getElementById('wl-email');
+          if (emailField) emailField.value = emailFromQS.trim();
+        }
+      } catch (_) { /* ignora query inválida */ }
+    })();
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
