@@ -7296,12 +7296,18 @@ ${reservas.length > 0 ? `
   </div>
   <div class="card" style="display:flex;flex-direction:column;min-width:0">
     <div class="card-header">
-      <span class="card-title">Evolução Patrimonial — ${getYear()}</span>
-      <span style="font-size:11px;color:var(--text-4)">reservas + saldo acumulado</span>
+      <span class="card-title">Evolução Patrimonial</span>
+      <div class="view-tabs" id="evoRangeTabs" style="margin-left:auto;gap:4px">
+        <button type="button" class="view-tab" data-evo-range="current" style="padding:4px 10px;font-size:11px">Ano atual</button>
+        <button type="button" class="view-tab" data-evo-range="prev" style="padding:4px 10px;font-size:11px">Ano anterior</button>
+        <button type="button" class="view-tab" data-evo-range="rolling12" style="padding:4px 10px;font-size:11px">12 meses</button>
+        <button type="button" class="view-tab" data-evo-range="all" style="padding:4px 10px;font-size:11px">Tudo</button>
+      </div>
     </div>
     <div class="chart-wrap" style="flex:1;display:flex;align-items:stretch;min-height:340px">
       <canvas id="chartInvEvolucao" class="chart-canvas" height="340" style="max-height:380px"></canvas>
     </div>
+    <div id="evoEmpty" style="display:none;text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes (mínimo 2 meses no período)</div>
   </div>
 </div>
 
@@ -7531,37 +7537,124 @@ ${reservas.length > 0 ? `
         }
       }
 
-      // Evolução patrimonial anual
-      const evoEl = document.getElementById('chartInvEvolucao');
-      if (evoEl) {
-        const yr = getYear();
-        const yrRec  = Store.yearlyMonthly(yr, 'receita');
-        const yrDesp = Store.yearlyMonthly(yr, 'despesa');
-        const totalAccSaldo = yrRec.reduce((a,r,i) => a + r - yrDesp[i], 0);
-        const baseline = totalAtual - totalAccSaldo;
-        let running = 0;
-        const evolLabels = [], evolValues = [], evolAporteValues = [];
-        let cumAporte = 0;
-        yrRec.forEach((r, i) => {
-          if (r === 0 && yrDesp[i] === 0) return;
-          running += r - yrDesp[i];
-          cumAporte += r;
-          evolLabels.push(Utils.months[i]);
-          evolValues.push(Math.max(0, parseFloat((baseline + running).toFixed(0))));
-          evolAporteValues.push(parseFloat(cumAporte.toFixed(0)));
-        });
-        if (evolLabels.length > 1) {
-          Charts.Line(evoEl, {
-            labels: evolLabels,
-            datasets: [
-              { label: 'Patrimônio', values: evolValues, color: '#7367F0', fill: true },
-              { label: 'Receitas acum.', values: evolAporteValues, color: '#22C55E', dashed: true },
-            ],
-          }, { height: 200 });
+      // Evolução patrimonial — toggle de período
+      const EVO_RANGE_KEY = 'ff_inv_evol_range';
+      const VALID_RANGES = new Set(['current', 'prev', 'rolling12', 'all']);
+
+      function _evoBuild(rangeKey) {
+        const now = new Date();
+        const curYr = now.getFullYear();
+        const curMo = now.getMonth() + 1;
+        const periods = []; // [{ y, m }]
+        if (rangeKey === 'prev') {
+          for (let m = 1; m <= 12; m++) periods.push({ y: curYr - 1, m });
+        } else if (rangeKey === 'rolling12') {
+          for (let i = 11; i >= 0; i--) {
+            const d = new Date(curYr, curMo - 1 - i, 1);
+            periods.push({ y: d.getFullYear(), m: d.getMonth() + 1 });
+          }
+        } else if (rangeKey === 'all') {
+          const allRows = [...(data.receitas || []), ...(data.despesas || [])];
+          if (!allRows.length) {
+            periods.push({ y: curYr, m: curMo });
+          } else {
+            let minY = Infinity, minM = 13;
+            allRows.forEach(r => {
+              if (r.year < minY || (r.year === minY && r.month < minM)) { minY = r.year; minM = r.month; }
+            });
+            let y = minY, m = minM;
+            while (y < curYr || (y === curYr && m <= curMo)) {
+              periods.push({ y, m });
+              m++; if (m > 12) { y++; m = 1; }
+            }
+          }
         } else {
-          evoEl.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Dados insuficientes (mínimo 2 meses)</div>';
+          // 'current' — default, ano corrente
+          for (let m = 1; m <= 12; m++) periods.push({ y: curYr, m });
         }
+
+        const flows = periods.map(({ y, m }) => {
+          const rec  = Store.sumReceitas(m, y);
+          const desp = Store.sumDespesas(m, y);
+          return { y, m, rec, desp, net: rec - desp };
+        });
+
+        // Patrimônio anchor: totalAtual representa "hoje". Calculamos quanto saldo foi acumulado
+        // do FIM do range até hoje pra encontrar o baseline (patrimônio no início do range).
+        let netSinceRangeEnd = 0;
+        const last = periods[periods.length - 1];
+        if (last && (last.y < curYr || (last.y === curYr && last.m < curMo))) {
+          let y = last.y, m = last.m + 1;
+          if (m > 12) { y++; m = 1; }
+          while (y < curYr || (y === curYr && m <= curMo)) {
+            netSinceRangeEnd += Store.sumReceitas(m, y) - Store.sumDespesas(m, y);
+            m++; if (m > 12) { y++; m = 1; }
+          }
+        }
+        const totalNetInRange = flows.reduce((a, f) => a + f.net, 0);
+        const baseline = totalAtual - netSinceRangeEnd - totalNetInRange;
+
+        // Pra ranges de ano único pulamos meses zerados nas pontas (look cleaner).
+        // Pra rolling12/all mantemos timeline contínuo.
+        const skipEmpty = (rangeKey === 'current' || rangeKey === 'prev');
+        const showYrSuffix = (rangeKey !== 'current');
+
+        let running = 0, cumRec = 0;
+        const labels = [], patrimonio = [], receitas = [];
+        flows.forEach(f => {
+          if (skipEmpty && f.rec === 0 && f.desp === 0) return;
+          running += f.net;
+          cumRec  += f.rec;
+          const lbl = Utils.months[f.m - 1] + (showYrSuffix ? `/${String(f.y).slice(-2)}` : '');
+          labels.push(lbl);
+          patrimonio.push(Math.max(0, parseFloat((baseline + running).toFixed(0))));
+          receitas.push(parseFloat(cumRec.toFixed(0)));
+        });
+
+        return { labels, patrimonio, receitas };
       }
+
+      function _evoRender() {
+        const evoEl = document.getElementById('chartInvEvolucao');
+        const emptyEl = document.getElementById('evoEmpty');
+        if (!evoEl) return;
+        let range = localStorage.getItem(EVO_RANGE_KEY) || 'current';
+        if (!VALID_RANGES.has(range)) range = 'current';
+        const series = _evoBuild(range);
+        if (series.labels.length < 2) {
+          evoEl.parentElement.style.display = 'none';
+          if (emptyEl) emptyEl.style.display = 'block';
+          return;
+        }
+        evoEl.parentElement.style.display = '';
+        if (emptyEl) emptyEl.style.display = 'none';
+        Charts.Line(evoEl, {
+          labels: series.labels,
+          datasets: [
+            { label: 'Patrimônio',     values: series.patrimonio, color: '#7367F0', fill: true },
+            { label: 'Receitas acum.', values: series.receitas,   color: '#22C55E', dashed: true },
+          ],
+        }, { height: 200 });
+      }
+
+      // Bind toggle
+      const evoTabs = container.querySelector('#evoRangeTabs');
+      if (evoTabs) {
+        const cur = localStorage.getItem(EVO_RANGE_KEY) || 'current';
+        evoTabs.querySelectorAll('[data-evo-range]').forEach(btn => {
+          if (btn.getAttribute('data-evo-range') === cur) btn.classList.add('active');
+          btn.addEventListener('click', () => {
+            const r = btn.getAttribute('data-evo-range');
+            if (!VALID_RANGES.has(r)) return;
+            localStorage.setItem(EVO_RANGE_KEY, r);
+            evoTabs.querySelectorAll('[data-evo-range]').forEach(b =>
+              b.classList.toggle('active', b === btn));
+            _evoRender();
+          });
+        });
+      }
+
+      _evoRender();
     });
 
     // Header de taxas
