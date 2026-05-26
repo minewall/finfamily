@@ -536,6 +536,45 @@ const SupabaseSync = (function () {
     }
   }
 
+  // ── AVATAR (storage bucket 'avatars') ────────────────────────────
+  // Upload do blob redimensionado pelo client. Path: {user_id}/avatar.{ext}.
+  // Bucket é público — URL retornada é cacheable e shareable (família,
+  // futuros componentes social).
+  const AVATAR_BUCKET = 'avatars';
+  const AVATAR_MAX_BYTES = 2 * 1024 * 1024; // 2MB depois do redimensionamento
+  async function uploadAvatar(blob, opts = {}) {
+    if (!_client || !_user) return { error: 'Não conectado' };
+    if (!blob || !(blob instanceof Blob)) return { error: 'Blob inválido' };
+    if (blob.size > AVATAR_MAX_BYTES) return { error: 'Arquivo muito grande (limite 2MB após redimensionar)' };
+    const ext = opts.ext || (blob.type === 'image/png' ? 'png' : 'jpg');
+    const path = `${_user.id}/avatar.${ext}`;
+    try {
+      const { error } = await _client.storage
+        .from(AVATAR_BUCKET)
+        .upload(path, blob, { upsert: true, contentType: blob.type || `image/${ext}`, cacheControl: '0' });
+      if (error) return { error: error.message };
+      // URL pública (bucket público) com cache buster pra forçar refresh
+      const { data } = _client.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+      const publicUrl = data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : null;
+      return { ok: true, path, url: publicUrl };
+    } catch (e) {
+      return { error: e.message || String(e) };
+    }
+  }
+  async function deleteAvatar() {
+    if (!_client || !_user) return { error: 'Não conectado' };
+    try {
+      // Remove tanto .jpg quanto .png
+      await _client.storage.from(AVATAR_BUCKET).remove([
+        `${_user.id}/avatar.jpg`,
+        `${_user.id}/avatar.png`,
+      ]);
+      return { ok: true };
+    } catch (e) {
+      return { error: e.message || String(e) };
+    }
+  }
+
   // ── REALTIME (foundation: detecta mudanças remotas no user_data) ──
   // Notifica quando OUTRO device/sessão atualiza o mesmo user_id.
   // Requer migration: alter publication supabase_realtime add table public.user_data;
@@ -616,6 +655,7 @@ const SupabaseSync = (function () {
     resolveFamilyContext, getFamilyContext, ensureFamilyIdLinked,
     uploadAnexo, getAnexoUrl, deleteAnexo,
     ANEXO_MAX_BYTES, ANEXO_MIMES,
+    uploadAvatar, deleteAvatar,
     subscribeRealtime, unsubscribeRealtime, getSessionId,
   };
 })();

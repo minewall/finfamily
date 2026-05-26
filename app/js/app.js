@@ -12600,12 +12600,13 @@ ${renderPageMonthPicker(container)}
     const profileData = Store.getProfile();
     const profileName = profileData?.name || Store.PESSOAS[0] || 'Usuário';
     const profileInitial = profileName[0]?.toUpperCase() || '?';
+    const profileAvatarUrl = profileData?.avatarUrl || '';
     const profileEmail = (typeof SupabaseSync !== 'undefined' ? SupabaseSync.getUser?.()?.email : null) || '';
 
     container.innerHTML = `
 ${section === 'perfil' ? '' : `
 <div class="config-profile-card">
-  <div class="config-profile-avatar">${Utils.escapeHtml(profileInitial)}</div>
+  <div class="config-profile-avatar"${profileAvatarUrl ? ` style="background-image:url('${Utils.escapeHtml(profileAvatarUrl)}');background-size:cover;background-position:center"` : ''}>${profileAvatarUrl ? '' : Utils.escapeHtml(profileInitial)}</div>
   <div style="flex:1;min-width:0">
     <div class="config-profile-name">${Utils.escapeHtml(profileName)}</div>
     ${profileEmail ? `<div class="config-profile-email">${Utils.escapeHtml(profileEmail)}</div>` : ''}
@@ -15235,6 +15236,32 @@ ${isConnected && isAdmin ? `
   ];
 
   // ─────────────────────────────────────────────────────────────────
+  // Redimensiona imagem pra quadrado de `size`×`size` via canvas (center crop).
+  // Retorna Blob JPEG comprimido. Usado pelo upload de avatar.
+  function _resizeImageToBlob(file, size = 256, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // Center crop pra quadrado
+        const sx = Math.max(0, (img.width - img.height) / 2);
+        const sy = Math.max(0, (img.height - img.width) / 2);
+        const sLen = Math.min(img.width, img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, sLen, sLen, 0, 0, size, size);
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(img.src);
+          if (blob) resolve(blob);
+          else reject(new Error('canvas.toBlob falhou'));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('Não foi possível ler a imagem'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   function renderConfigPerfil(content) {
     const p = Store.getProfile();
     const fullName = p.name || '';
@@ -15252,6 +15279,7 @@ ${isConnected && isAdmin ? `
       return idade > 0 ? `${idade} anos` : '';
     })();
 
+    const avatarUrl = p.avatarUrl || '';
     content.innerHTML = `
 <div class="section-header mb-4"><div>
   <div class="section-title">Perfil</div>
@@ -15261,8 +15289,11 @@ ${isConnected && isAdmin ? `
   <!-- Header com avatar + nome em destaque -->
   <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
     <div style="position:relative;flex-shrink:0">
-      <div style="width:76px;height:76px;border-radius:50%;background:${profileColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;box-shadow:0 6px 20px ${profileColor}33">${Utils.escapeHtml(initial)}</div>
-      <button class="btn-secondary btn-sm" disabled title="Em breve" style="position:absolute;bottom:-4px;right:-4px;width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border:2px solid var(--bg-card);color:var(--text-3);cursor:not-allowed">
+      <div id="profileAvatarBox" style="width:76px;height:76px;border-radius:50%;background:${profileColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;box-shadow:0 6px 20px ${profileColor}33;overflow:hidden;background-size:cover;background-position:center;${avatarUrl ? `background-image:url('${Utils.escapeHtml(avatarUrl)}')` : ''}">
+        ${avatarUrl ? '' : Utils.escapeHtml(initial)}
+      </div>
+      <input type="file" id="pfAvatarInput" accept="image/jpeg,image/png,image/webp" style="display:none">
+      <button class="btn-secondary btn-sm" id="btnUploadAvatar" title="Trocar foto" style="position:absolute;bottom:-4px;right:-4px;width:28px;height:28px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border:2px solid var(--bg-card);color:var(--text-2);cursor:pointer">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
     </div>
@@ -15272,7 +15303,7 @@ ${isConnected && isAdmin ? `
         ${email ? `<span>${Utils.escapeHtml(email)}</span>` : ''}
         ${idadeStr ? `${email?'<span style="opacity:0.5;margin:0 6px">·</span>':''}<span>${Utils.escapeHtml(idadeStr)}</span>` : ''}
       </div>
-      <div style="font-size:10.5px;color:var(--text-4);margin-top:4px">Foto de perfil — em breve</div>
+      <div id="avatarHint" style="font-size:10.5px;color:var(--text-4);margin-top:4px">${avatarUrl ? `<button type="button" id="btnRemoveAvatar" style="background:none;border:0;color:var(--red);font-size:10.5px;cursor:pointer;padding:0">Remover foto</button>` : 'JPG, PNG ou WebP · máx 2MB'}</div>
     </div>
   </div>
 
@@ -15615,6 +15646,47 @@ ${(() => {
 
 `;
 })()}`;
+
+    // ── Upload de avatar (redimensiona 256x256 client-side antes do upload) ──
+    const fileInput = document.getElementById('pfAvatarInput');
+    const uploadBtn = document.getElementById('btnUploadAvatar');
+    const removeBtn = document.getElementById('btnRemoveAvatar');
+    uploadBtn?.addEventListener('click', () => fileInput?.click());
+    fileInput?.addEventListener('change', async e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (typeof SupabaseSync === 'undefined' || !SupabaseSync.isConnected?.()) {
+        toast('Conecte na nuvem pra usar foto de perfil', 'error');
+        return;
+      }
+      uploadBtn.disabled = true;
+      try {
+        const blob = await _resizeImageToBlob(file, 256, 0.85);
+        const res = await SupabaseSync.uploadAvatar(blob);
+        if (res.error) { toast('Falha no upload: ' + res.error, 'error'); return; }
+        // Persist URL no profile
+        Store.setProfile({ avatarUrl: res.url });
+        toast('Foto atualizada', 'success');
+        // Re-render pra refletir
+        renderConfigPerfil(content);
+      } catch (err) {
+        toast('Erro: ' + (err.message || String(err)), 'error');
+      } finally {
+        uploadBtn.disabled = false;
+        fileInput.value = '';
+      }
+    });
+    removeBtn?.addEventListener('click', async () => {
+      if (!confirm('Remover sua foto de perfil?')) return;
+      try {
+        await SupabaseSync.deleteAvatar?.();
+        Store.setProfile({ avatarUrl: null });
+        toast('Foto removida', 'success');
+        renderConfigPerfil(content);
+      } catch (err) {
+        toast('Erro: ' + (err.message || String(err)), 'error');
+      }
+    });
 
     document.getElementById('btnSavePerfil').addEventListener('click', () => {
       const firstName  = document.getElementById('pfFirstName').value.trim();
