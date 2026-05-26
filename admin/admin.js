@@ -79,6 +79,7 @@ const Admin = (() => {
       { section: 'Gestão' },
       { page: 'users',    icon: 'users',           label: 'Usuários' },
       { page: 'coach',    icon: 'bot',             label: 'Coach & IA' },
+      { page: 'usage',    icon: 'activity',        label: 'Uso de IA' },
       { section: 'Sistema' },
       { page: 'logs',     icon: 'scroll-text',     label: 'Logs' },
       { page: 'settings', icon: 'settings-2',      label: 'Configurações' },

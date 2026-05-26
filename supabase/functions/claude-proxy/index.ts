@@ -42,6 +42,14 @@ const DEFAULT_MODEL = Deno.env.get('DEFAULT_MODEL') || 'claude-haiku-4-5-2025100
 const MAX_TOKENS_CAP = 4096;
 const DEFAULT_MAX_TOKENS = 1024;
 
+// Custo estimado em micro-USD (USD × 1e6) por 1k tokens.
+// Fonte: pricing Anthropic (~Mai/2026, snapshot — atualizar se mudar).
+const PRICING_PER_1K_MICRO_USD: Record<string, { in: number; out: number }> = {
+  'claude-haiku-4-5-20251001':   { in:   800,  out:   4000 },  // $0.0008 in, $0.004 out
+  'claude-sonnet-4-6':           { in:  3000,  out:  15000 },  // $0.003 in, $0.015 out
+  'claude-opus-4-7':             { in: 15000,  out:  75000 },  // $0.015 in, $0.075 out
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders(req) });
@@ -74,6 +82,62 @@ serve(async (req) => {
       return jsonErr(401, 'unauthorized', 'JWT inválido ou expirado', req);
     }
     const callerId = userData.user.id;
+
+    // ── Service role client (pra ler tier + caps + logar usage) ────
+    const SERVICE_KEY = Deno.env.get('SERVICE_ROLE_KEY');
+    const adminClient = SERVICE_KEY ? createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { persistSession: false },
+    }) : null;
+
+    // ── Preflight: cap mensal do tier ──────────────────────────────
+    // Se não tem service role configurada, pula o check (modo dev).
+    let userTier = 'free';
+    let monthlyCap = 50000; // default conservador
+    let usedThisMonth = 0;
+    if (adminClient) {
+      try {
+        // Tier do user
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('tier, role')
+          .eq('id', callerId)
+          .single();
+        // Admin não tem cap operacional (só o cap "admin")
+        userTier = profile?.role === 'admin' ? 'admin' : (profile?.tier || 'free');
+
+        // Cap configurado pro tier
+        const { data: capRow } = await adminClient
+          .from('ai_usage_caps')
+          .select('cap_tokens_month')
+          .eq('tier', userTier)
+          .single();
+        if (capRow?.cap_tokens_month) monthlyCap = capRow.cap_tokens_month;
+
+        // Consumo do mês corrente
+        const { data: usageRow } = await adminClient
+          .rpc('ai_usage_current_month', { target_user_id: callerId });
+        const row = Array.isArray(usageRow) ? usageRow[0] : usageRow;
+        if (row) usedThisMonth = (row.total_input_tokens || 0) + (row.total_output_tokens || 0);
+
+        if (usedThisMonth >= monthlyCap) {
+          return new Response(JSON.stringify({
+            error: {
+              type: 'quota_exceeded',
+              message: 'Você atingiu o limite mensal de uso do Haile no seu plano.',
+              tier: userTier,
+              used: usedThisMonth,
+              cap: monthlyCap,
+            }
+          }), {
+            status: 429,
+            headers: { ...corsHeaders(req), 'content-type': 'application/json' },
+          });
+        }
+      } catch (e) {
+        console.warn(`[claude-proxy] preflight check falhou (continuando sem cap): ${(e as Error).message}`);
+        // Não bloqueia — preflight é best-effort. Logar fail vs negar serviço.
+      }
+    }
 
     // ── Parse + validação de input ─────────────────────────────────
     const payload = await req.json().catch(() => ({}));
@@ -124,8 +188,30 @@ serve(async (req) => {
       console.log(`[claude-proxy] ← Anthropic ${res.status} OK (${rawText.length} bytes)`);
     }
 
-    let parsed: unknown;
+    let parsed: any;
     try { parsed = JSON.parse(rawText); } catch { parsed = { error: { type: 'non_json_response', message: rawText.slice(0, 1000) } }; }
+
+    // ── Post-call logging: persiste consumo em ai_usage ────────────
+    // Best-effort: se falhar, não bloqueia a resposta do Coach.
+    if (res.ok && adminClient && parsed?.usage) {
+      const inTok  = parsed.usage.input_tokens  || 0;
+      const outTok = parsed.usage.output_tokens || 0;
+      const pricing = PRICING_PER_1K_MICRO_USD[usedModel];
+      const costMicroUsd = pricing
+        ? Math.round((inTok / 1000) * pricing.in + (outTok / 1000) * pricing.out)
+        : 0;
+      const requestId = parsed?.id || null;
+      adminClient.from('ai_usage').insert({
+        user_id:        callerId,
+        model:          usedModel,
+        input_tokens:   inTok,
+        output_tokens:  outTok,
+        cost_micro_usd: costMicroUsd,
+        request_id:     requestId,
+      }).then(({ error }) => {
+        if (error) console.warn(`[claude-proxy] log ai_usage falhou: ${error.message}`);
+      }).catch((e) => console.warn(`[claude-proxy] log ai_usage exception: ${e?.message}`));
+    }
 
     return new Response(JSON.stringify(parsed), {
       status: res.status,

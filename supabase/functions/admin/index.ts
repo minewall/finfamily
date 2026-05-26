@@ -204,6 +204,79 @@ serve(async (req) => {
         }, req);
       }
 
+      // AI usage stats: KPIs do mês + caps por tier + top users
+      case 'aiUsageStats': {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+        // Caps por tier
+        const { data: caps } = await adminClient
+          .from('ai_usage_caps')
+          .select('tier, cap_tokens_month, soft_cap_pct')
+          .order('cap_tokens_month');
+
+        // Agregado do mês
+        const { data: usage } = await adminClient
+          .from('ai_usage')
+          .select('user_id, input_tokens, output_tokens, cost_micro_usd')
+          .gte('occurred_at', monthStart);
+
+        const usageByUser: Record<string, { tokens: number; cost: number; requests: number }> = {};
+        let totalTokens = 0, totalCost = 0, totalRequests = 0;
+        for (const u of (usage || [])) {
+          const t = (u.input_tokens || 0) + (u.output_tokens || 0);
+          if (!usageByUser[u.user_id]) usageByUser[u.user_id] = { tokens: 0, cost: 0, requests: 0 };
+          usageByUser[u.user_id].tokens   += t;
+          usageByUser[u.user_id].cost     += (u.cost_micro_usd || 0);
+          usageByUser[u.user_id].requests += 1;
+          totalTokens   += t;
+          totalCost     += (u.cost_micro_usd || 0);
+          totalRequests += 1;
+        }
+
+        // Lookup tier + email pros top 20 users
+        const topIds = Object.entries(usageByUser)
+          .sort((a, b) => b[1].tokens - a[1].tokens)
+          .slice(0, 20)
+          .map(([uid]) => uid);
+        let profilesByUser: Record<string, { email?: string; full_name?: string; tier?: string }> = {};
+        if (topIds.length > 0) {
+          const { data: profs } = await adminClient
+            .from('profiles')
+            .select('id, email, full_name, tier')
+            .in('id', topIds);
+          profilesByUser = Object.fromEntries((profs || []).map(p => [p.id, p]));
+        }
+        const capByTier: Record<string, number> = Object.fromEntries(
+          (caps || []).map((c: any) => [c.tier, c.cap_tokens_month])
+        );
+
+        const topUsers = topIds.map(uid => {
+          const u = usageByUser[uid];
+          const p = profilesByUser[uid] || {};
+          return {
+            user_id:              uid,
+            email:                p.email,
+            full_name:            p.full_name,
+            tier:                 p.tier || 'free',
+            total_tokens:         u.tokens,
+            total_cost_micro_usd: u.cost,
+            request_count:        u.requests,
+            cap_tokens:           capByTier[p.tier || 'free'] || 0,
+          };
+        });
+
+        return json(200, {
+          caps:                caps || [],
+          totalTokens,
+          totalCostMicroUsd:   totalCost,
+          totalRequests,
+          activeUsers:         Object.keys(usageByUser).length,
+          topUsers,
+          monthStart,
+        }, req);
+      }
+
       default:
         return json(400, { error: `Unknown action: ${action}` }, req);
     }

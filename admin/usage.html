@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Uso de IA · Haile</title>
+  <link rel="stylesheet" href="../app/css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">Uso de IA</div>
+      <div class="admin-page-sub">Consumo de tokens por user e tier — mês corrente</div>
+    </div>
+    <div class="admin-topbar-actions">
+      <button class="btn btn-secondary" id="btnRefresh" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg data-lucide="refresh-cw" width="13" height="13" stroke="currentColor" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-refresh-cw"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <!-- KPIs gerais -->
+    <div id="usageStatsGrid" class="admin-stats">
+      <div class="admin-stat-card"><div class="admin-stat-label">Carregando…</div></div>
+    </div>
+
+    <!-- Caps configurados -->
+    <div class="admin-table-card" style="margin-top:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Caps mensais por tier</span>
+        <span style="font-size:11px;color:var(--text-4)">Edite via SQL: <code>update ai_usage_caps set cap_tokens_month = X where tier = 'Y';</code></span>
+      </div>
+      <div id="capsList" style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+        <div class="admin-loading">Carregando…</div>
+      </div>
+    </div>
+
+    <!-- Top users por consumo do mês -->
+    <div class="admin-table-card" style="margin-top:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Top 20 users — mês corrente</span>
+      </div>
+      <div class="admin-table-wrap">
+        <div id="topUsers" class="admin-loading">Carregando…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../app/js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('usage');
+  const ok = await Admin.boot('usage');
+  if (!ok) return;
+
+  document.getElementById('btnRefresh').addEventListener('click', load);
+  load();
+});
+
+function fmtTokens(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+  return String(n);
+}
+function fmtCostMicroUsd(microUsd) {
+  const usd = microUsd / 1e6;
+  return 'US$ ' + usd.toFixed(2);
+}
+
+async function load() {
+  try {
+    // O endpoint adminCall ainda não tem 'aiUsage' — vamos lê-lo direto via REST
+    // usando o client do user logado (RLS permite admin via role check no edge).
+    // Por ora: lemos via Supabase JS direto, assumindo que o user é admin
+    // (boot() já validou via adminCall('stats') antes).
+    const sb = window._supabaseClient || (() => {
+      // Em algumas páginas o client é exposto; tentamos pegar via SupabaseSync
+      return null;
+    })();
+
+    // Caps por tier
+    const capsRes = await SupabaseSync.adminCall('aiUsageStats', {}).catch(() => null);
+    if (!capsRes) {
+      document.getElementById('usageStatsGrid').innerHTML =
+        '<div class="admin-stat-card"><div class="admin-stat-label">Endpoint não disponível</div><div class="admin-stat-value muted">Aplique migration 013 e atualize a edge function admin com action <code>aiUsageStats</code>.</div></div>';
+      document.getElementById('capsList').innerHTML = '<div class="admin-empty">—</div>';
+      document.getElementById('topUsers').innerHTML = '<div class="admin-empty">—</div>';
+      return;
+    }
+    renderStats(capsRes);
+    renderCaps(capsRes.caps || []);
+    renderTopUsers(capsRes.topUsers || []);
+  } catch (e) {
+    Admin.toast(e.message || String(e), 'error');
+  }
+}
+
+function renderStats(s) {
+  const cards = [
+    { label: 'Tokens (mês)',     value: fmtTokens(s.totalTokens || 0),       color: 'var(--text-1)' },
+    { label: 'Requests (mês)',   value: s.totalRequests || 0,                color: 'var(--haile-indigo-deep)' },
+    { label: 'Custo estimado',   value: fmtCostMicroUsd(s.totalCostMicroUsd || 0), color: 'var(--green)' },
+    { label: 'Users ativos',     value: s.activeUsers || 0,                  color: 'var(--blue)' },
+  ];
+  document.getElementById('usageStatsGrid').innerHTML = cards.map(c => `
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">${c.label}</div>
+      <div class="admin-stat-value" style="color:${c.color}">${c.value}</div>
+    </div>`).join('');
+}
+
+function renderCaps(caps) {
+  if (!caps.length) {
+    document.getElementById('capsList').innerHTML = '<div class="admin-empty">Sem caps configurados.</div>';
+    return;
+  }
+  const TIER_COLOR = { free: 'var(--text-3)', plus: 'var(--blue)', premium: 'var(--haile-indigo-deep)', admin: 'var(--amber)' };
+  document.getElementById('capsList').innerHTML = caps.map(c => `
+    <div class="admin-setting-row">
+      <div class="admin-setting-label">Tier <strong style="color:${TIER_COLOR[c.tier] || 'var(--text-2)'}">${c.tier}</strong></div>
+      <div class="admin-setting-value" style="font-family:var(--mono);color:${TIER_COLOR[c.tier]}">${fmtTokens(c.cap_tokens_month)} tokens/mês</div>
+      <div class="admin-setting-hint">Soft cap ${c.soft_cap_pct || 80}% — warning antes do bloqueio</div>
+    </div>`).join('');
+}
+
+function renderTopUsers(users) {
+  if (!users.length) {
+    document.getElementById('topUsers').innerHTML = '<div class="admin-empty" style="padding:24px;text-align:center;color:var(--text-4)">Nenhum consumo registrado este mês.</div>';
+    return;
+  }
+  document.getElementById('topUsers').innerHTML = `
+    <table class="admin-table">
+      <thead><tr>
+        <th>User</th><th>Tier</th><th class="num">Tokens</th><th class="num">Requests</th><th class="num">Custo est.</th><th class="num">% do cap</th>
+      </tr></thead>
+      <tbody>${users.map(u => {
+        const pct = u.cap_tokens > 0 ? Math.round(((u.total_tokens || 0) / u.cap_tokens) * 100) : 0;
+        const corPct = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : 'var(--green)';
+        return `<tr>
+          <td>
+            <div style="font-weight:500">${u.email || u.user_id}</div>
+            <div style="font-size:11px;color:var(--text-3)">${u.full_name || ''}</div>
+          </td>
+          <td><span class="badge badge-${u.tier || 'free'}">${u.tier || 'free'}</span></td>
+          <td class="num" style="font-family:var(--mono)">${fmtTokens(u.total_tokens || 0)}</td>
+          <td class="num">${u.request_count || 0}</td>
+          <td class="num" style="font-family:var(--mono)">${fmtCostMicroUsd(u.total_cost_micro_usd || 0)}</td>
+          <td class="num" style="font-family:var(--mono);font-weight:700;color:${corPct}">${pct}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+</script>
+</body>
+</html>

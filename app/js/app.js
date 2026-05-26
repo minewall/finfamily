@@ -17712,8 +17712,17 @@ FORMATO DA RESPOSTA (importante):
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             const msg = err.error?.message || err.error || `HTTP ${res.status}`;
+            const errType = err.error?.type;
             if (res.status === 401) throw new Error('Edge Function não autorizada. Verifique o deploy.');
             if (res.status === 402 || res.status === 529) throw new Error('Conta Anthropic sem créditos. Adicione em console.anthropic.com.');
+            if (res.status === 429 && errType === 'quota_exceeded') {
+              // Cap mensal do tier do user — mensagem específica c/ call-to-action de upgrade
+              const usado  = err.error?.used  || 0;
+              const cap    = err.error?.cap   || 0;
+              const tier   = err.error?.tier  || 'seu plano';
+              const pctUsado = cap > 0 ? Math.round((usado / cap) * 100) : 100;
+              throw new Error(`Você atingiu o limite mensal do Haile no plano ${tier} (${pctUsado}% do cap). Espere o próximo mês ou faça upgrade pra continuar.`);
+            }
             if (res.status === 429) throw new Error('Limite de requisições atingido. Aguarde um momento.');
             if (res.status === 500 && msg.includes('ANTHROPIC_API_KEY')) throw new Error('Chave Anthropic não configurada na Edge Function. Configure o secret ANTHROPIC_API_KEY no Supabase.');
             throw new Error(msg);
