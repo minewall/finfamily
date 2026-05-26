@@ -45,5 +45,7 @@ create policy "avatars_owner_delete"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
-comment on policy "avatars_public_read" on storage.objects is
-  'Avatares públicos: qualquer um vê. Útil pra Painel da Família e futuros componentes social.';
+-- COMMENT ON POLICY removido — SQL Editor não tem ownership de
+-- storage.objects pra colocar comentário. Anotação fica aqui no arquivo:
+-- "avatars_public_read" = avatares são públicos: qualquer um vê. Útil
+-- pra Painel da Família e futuros componentes social.
