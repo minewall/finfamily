@@ -375,9 +375,7 @@
           <label for="fPass">Senha</label>
           <input id="fPass" type="password" placeholder="••••••••" autocomplete="current-password" />
         </div>
-        <!-- "Esqueci minha senha" ocultado até implementar fluxo de password reset via Supabase.
-             Hoje aponta pra href="#" — esconder evita expectativa frustrada. -->
-        <div class="forgot" style="display:none"><a href="#">Esqueci minha senha</a></div>
+        <div class="forgot"><a href="#" id="linkForgot">Esqueci minha senha</a></div>
         <div class="field" id="fPassConfirmGroup" style="display:none">
           <label for="fPassConfirm">Confirmar senha</label>
           <input id="fPassConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
@@ -401,9 +399,56 @@
         <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:6px">Enviamos um link de confirmação para</p>
         <p id="confirmEmail" style="font-size:14px;font-weight:600;color:var(--violet);margin-bottom:20px;word-break:break-all"></p>
         <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:28px">Clique no link do e-mail para ativar sua conta. Verifique também a pasta de <strong style="color:var(--fg)">Promoções</strong> caso não encontre.</p>
-        <button class="btn-toggle" onclick="document.getElementById('confirmScreen').style.display='none';document.getElementById('loginForm').style.display='block';document.getElementById('divider').style.display='flex';document.getElementById('dividerGoogle').style.display='flex';document.getElementById('btnGoogle').style.display='inline-flex';document.getElementById('btnToggleMode').style.display='block';">
+        <button class="btn-toggle" id="btnConfirmBack">
           Voltar ao login
         </button>
+      </div>
+
+      <!-- Tela: Recuperar acesso (esqueci minha senha) -->
+      <div id="forgotScreen" style="display:none">
+        <form id="forgotForm" autocomplete="off">
+          <div class="field">
+            <label for="forgotEmail">E-mail da conta</label>
+            <input id="forgotEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+          </div>
+          <button class="btn-submit" type="submit" id="btnForgotSubmit">
+            <div class="spinner"></div>
+            <span>Enviar link de redefinição</span>
+          </button>
+          <div class="msg error" id="forgotError"></div>
+        </form>
+        <button class="btn-toggle" id="btnForgotBack" style="margin-top:16px">Voltar ao login</button>
+      </div>
+
+      <!-- Tela: Link enviado (confirmação de envio) -->
+      <div id="forgotSentScreen" style="display:none;text-align:center;padding:8px 0">
+        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--deep));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(115,103,240,0.3)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h2 style="font-size:20px;font-weight:700;color:var(--ink);margin-bottom:10px">Link enviado</h2>
+        <p style="font-size:14px;color:var(--slate);line-height:1.6;margin-bottom:8px">Se este e-mail estiver cadastrado, você receberá as instruções em instantes.</p>
+        <p style="font-size:13px;color:var(--slate);line-height:1.6;margin-bottom:28px">Verifique também a pasta de <strong style="color:var(--ink)">spam ou promoções</strong>. O link expira em 1 hora.</p>
+        <button class="btn-toggle" id="btnForgotSentBack">Voltar ao login</button>
+      </div>
+
+      <!-- Tela: Definir nova senha (chega aqui via link do e-mail) -->
+      <div id="resetScreen" style="display:none">
+        <form id="resetForm" autocomplete="off">
+          <div class="field">
+            <label for="resetPass">Nova senha</label>
+            <input id="resetPass" type="password" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label for="resetPassConfirm">Confirmar nova senha</label>
+            <input id="resetPassConfirm" type="password" placeholder="repita a senha" autocomplete="new-password" />
+          </div>
+          <button class="btn-submit" type="submit" id="btnResetSubmit">
+            <div class="spinner"></div>
+            <span>Salvar e entrar</span>
+          </button>
+          <div class="msg error"   id="resetError"></div>
+          <div class="msg success" id="resetSuccess"></div>
+        </form>
       </div>
 
       <div class="divider" id="dividerGoogle">ou</div>
@@ -498,18 +543,70 @@
     sessionStorage.removeItem('ff_invite_source');
   }
 
-  // Detecta sessão já ativa OU retorno do link de confirmação de e-mail / OAuth
+  // Detecta password recovery direto pelo hash da URL — Supabase põe `type=recovery`
+  // no fragment quando o usuário clica no link do e-mail de redefinição.
+  const _isRecovery = (window.location.hash || '').includes('type=recovery');
+
+  // Detecta sessão já ativa OU retorno do link de confirmação de e-mail / OAuth.
   // (Supabase JS processa o hash #access_token=... automaticamente).
   sb.auth.getSession().then(async ({ data }) => {
-    if (data?.session) {
-      const email = data.session.user?.email || '';
-      await _consumeInviteToken(data.session);
-      await _hydrateFromCloud(data.session);
-      sessionStorage.setItem('ff_auth', '1');
-      if (email) sessionStorage.setItem('ff_user_email', email);
-      window.location.replace('app/app.html');
+    if (!data?.session) return;
+    if (_isRecovery) {
+      // Recovery: NÃO redireciona pro app. Mostra a tela de nova senha.
+      showScreen('reset');
+      return;
     }
+    const email = data.session.user?.email || '';
+    await _consumeInviteToken(data.session);
+    await _hydrateFromCloud(data.session);
+    sessionStorage.setItem('ff_auth', '1');
+    if (email) sessionStorage.setItem('ff_user_email', email);
+    window.location.replace('app/app.html');
   });
+
+  // Garantia extra: alguns flows do Supabase só emitem PASSWORD_RECOVERY via auth state.
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') showScreen('reset');
+  });
+
+  // ── Screen switcher ────────────────────────────────────────────
+  // Modos: 'login' (default) | 'forgot' | 'forgotSent' | 'reset' | 'confirm'
+  // Hidra/mostra blocos secundários (Google, divider, toggle) só em 'login'.
+  function showScreen(name) {
+    const screens = {
+      login:      'loginForm',
+      forgot:     'forgotScreen',
+      forgotSent: 'forgotSentScreen',
+      reset:      'resetScreen',
+      confirm:    'confirmScreen',
+    };
+    Object.entries(screens).forEach(([k, id]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (k === name) ? (id === 'loginForm' || id === 'forgotForm' || id === 'resetForm' ? '' : 'block') : 'none';
+    });
+    // Mostra Google + divider + toggle SÓ no modo login
+    const showAux = (name === 'login');
+    ['dividerGoogle', 'btnGoogle', 'divider', 'btnToggleMode'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = showAux ? '' : 'none';
+    });
+    // Header copy
+    const t = document.getElementById('cardTitle');
+    const s = document.getElementById('cardSub');
+    if (name === 'forgot') {
+      t.textContent = 'Recuperar acesso';
+      s.textContent = 'Vamos te enviar um link pra criar uma nova senha.';
+    } else if (name === 'forgotSent') {
+      t.textContent = ' ';
+      s.textContent = ' ';
+    } else if (name === 'reset') {
+      t.textContent = 'Definir nova senha';
+      s.textContent = 'Crie uma senha forte. Você vai entrar automaticamente depois.';
+    } else if (name === 'login') {
+      t.textContent = isSignUp ? 'Criar conta.' : 'Bem-vindo de volta.';
+      s.textContent = isSignUp ? 'Preencha os dados para criar seu acesso.' : 'Entre com seu e-mail e senha para continuar.';
+    }
+  }
 
   let isSignUp = false;
 
@@ -596,6 +693,111 @@
     document.getElementById(id)?.addEventListener('input', clearMsgs);
   });
 
+  // ── Recuperação de senha ──────────────────────────────────────
+  function _showForgotError(msg) {
+    const el = document.getElementById('forgotError');
+    if (el) { el.textContent = msg; el.classList.add('visible'); }
+  }
+  function _clearForgotError() {
+    document.getElementById('forgotError')?.classList.remove('visible');
+  }
+  function _setForgotLoading(on) {
+    const btn = document.getElementById('btnForgotSubmit');
+    if (btn) { btn.disabled = on; btn.classList.toggle('loading', on); }
+  }
+
+  document.getElementById('linkForgot')?.addEventListener('click', e => {
+    e.preventDefault();
+    clearMsgs(); _clearForgotError();
+    // Pré-preenche com o que tiver no campo de e-mail do login
+    const fEmail = document.getElementById('fEmail')?.value?.trim();
+    if (fEmail) document.getElementById('forgotEmail').value = fEmail;
+    showScreen('forgot');
+  });
+  document.getElementById('btnForgotBack')?.addEventListener('click', () => showScreen('login'));
+  document.getElementById('btnForgotSentBack')?.addEventListener('click', () => showScreen('login'));
+  document.getElementById('btnConfirmBack')?.addEventListener('click', () => showScreen('login'));
+  document.getElementById('forgotEmail')?.addEventListener('input', _clearForgotError);
+
+  document.getElementById('forgotForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) return _showForgotError('Informe seu e-mail.');
+    _setForgotLoading(true);
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/login.html',
+      });
+      _setForgotLoading(false);
+      // Mostra "Link enviado" SEMPRE — não revela se o e-mail existe (segurança).
+      if (error) console.warn('[forgot] resetPasswordForEmail:', error);
+      showScreen('forgotSent');
+    } catch (err) {
+      _setForgotLoading(false);
+      _showForgotError('Não foi possível enviar agora. Tente em alguns instantes.');
+    }
+  });
+
+  // ── Definir nova senha (volta do link do e-mail) ──────────────
+  function _showResetError(msg) {
+    const el = document.getElementById('resetError');
+    const ok = document.getElementById('resetSuccess');
+    if (el) { el.textContent = msg; el.classList.add('visible'); }
+    ok?.classList.remove('visible');
+  }
+  function _showResetSuccess(msg) {
+    const el = document.getElementById('resetSuccess');
+    const err = document.getElementById('resetError');
+    if (el) { el.textContent = msg; el.classList.add('visible'); }
+    err?.classList.remove('visible');
+  }
+  function _setResetLoading(on) {
+    const btn = document.getElementById('btnResetSubmit');
+    if (btn) { btn.disabled = on; btn.classList.toggle('loading', on); }
+  }
+  ['resetPass','resetPassConfirm'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      document.getElementById('resetError')?.classList.remove('visible');
+    });
+  });
+
+  document.getElementById('resetForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const p1 = document.getElementById('resetPass').value;
+    const p2 = document.getElementById('resetPassConfirm').value;
+    if (p1.length < 8) return _showResetError('A senha precisa ter ao menos 8 caracteres.');
+    if (p1 !== p2)     return _showResetError('As senhas não coincidem.');
+    _setResetLoading(true);
+    try {
+      const { data, error } = await sb.auth.updateUser({ password: p1 });
+      if (error) {
+        _setResetLoading(false);
+        if ((error.message || '').toLowerCase().includes('expired') || (error.status === 401)) {
+          return _showResetError('Link expirado. Volte ao login e solicite um novo.');
+        }
+        return _showResetError(error.message || 'Não foi possível salvar a senha.');
+      }
+      _showResetSuccess('Senha atualizada. Entrando no app…');
+      // Sessão atual já é válida (Supabase auto-logou durante o recovery).
+      // getSession() vai pegar e o flow normal redireciona pro app.
+      const sess = (await sb.auth.getSession()).data?.session;
+      if (sess) {
+        await _hydrateFromCloud(sess);
+        sessionStorage.setItem('ff_auth', '1');
+        sessionStorage.setItem('ff_user_email', sess.user?.email || '');
+        // Limpa o hash de recovery pra não disparar de novo
+        history.replaceState(null, '', window.location.pathname);
+        window.location.replace('app/app.html');
+      } else {
+        _setResetLoading(false);
+        _showResetError('Sessão não encontrada. Faça login manualmente.');
+      }
+    } catch (err) {
+      _setResetLoading(false);
+      _showResetError('Erro inesperado. Tente de novo.');
+    }
+  });
+
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('fEmail').value.trim();
@@ -620,14 +822,9 @@
       });
       setLoading(false);
       if (error) return showError(error.message);
-      // Mostra tela de confirmação, oculta formulário e toggles
+      // Mostra tela de confirmação (showScreen hidra/mostra os blocos auxiliares)
       document.getElementById('confirmEmail').textContent = email;
-      document.getElementById('loginForm').style.display = 'none';
-      document.getElementById('divider').style.display = 'none';
-      document.getElementById('dividerGoogle').style.display = 'none';
-      document.getElementById('btnGoogle').style.display = 'none';
-      document.getElementById('btnToggleMode').style.display = 'none';
-      document.getElementById('confirmScreen').style.display = 'block';
+      showScreen('confirm');
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) {
