@@ -142,6 +142,9 @@ svg { display: block; flex-shrink: 0; }
    variando intensidade + contraste pra fundo claro.
    ═══════════════════════════════════════════════════════════════ */
 [data-theme="light"] {
+  /* Brand override pro modo claro (defaults em :root são pro dark) */
+  --haile-indigo-soft: #EEF0FF;  /* fundo claro pra badges/hovers em light */
+
   /* Backgrounds */
   --bg-base:     #f4f6fb;        /* app bg */
   --bg-sidebar:  #ffffff;        /* sidebar/topbar bg */
