@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Logs · Haile</title>
+  <link rel="stylesheet" href="../app/css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">Logs</div>
+      <div class="admin-page-sub">Eventos do sistema, auth, sync e Coach</div>
+    </div>
+    <div class="admin-topbar-actions">
+      <select class="form-select" id="logFilter" style="max-width:180px">
+        <option value="all">Todos os eventos</option>
+        <option value="auth">Autenticação</option>
+        <option value="sync">Sync (Supabase)</option>
+        <option value="coach">Coach / IA</option>
+        <option value="error">Apenas erros</option>
+      </select>
+      <button class="btn btn-secondary" id="btnRefresh" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg data-lucide="refresh-cw" width="13" height="13" stroke="currentColor" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-refresh-cw"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <div class="admin-table-card">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Eventos recentes</span>
+        <span style="font-size:11px;color:var(--text-4)">últimas 24h</span>
+      </div>
+      <div id="logsList" class="admin-table-wrap" style="padding:18px">
+        <div style="text-align:center;color:var(--text-4);padding:36px 12px;font-size:13px;line-height:1.6">
+          Centralização de logs estruturados ainda em construção.<br>
+          Por enquanto, eventos são visíveis no <strong>Supabase Dashboard → Logs</strong> (auth, edge functions, postgres).
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-table-card" style="margin-top:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Atalhos do Supabase Dashboard</span>
+      </div>
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+        <a href="https://supabase.com/dashboard/project/lpudgulhnfuwdttetwdn/auth/users" target="_blank" rel="noopener" class="admin-link-card">Auth — Usuários e sessões</a>
+        <a href="https://supabase.com/dashboard/project/lpudgulhnfuwdttetwdn/functions" target="_blank" rel="noopener" class="admin-link-card">Edge Functions — Logs por função</a>
+        <a href="https://supabase.com/dashboard/project/lpudgulhnfuwdttetwdn/logs/postgres-logs" target="_blank" rel="noopener" class="admin-link-card">Postgres — Queries e erros</a>
+        <a href="https://supabase.com/dashboard/project/lpudgulhnfuwdttetwdn/database/cron-jobs" target="_blank" rel="noopener" class="admin-link-card">Cron Jobs — Histórico</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../app/js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('logs');
+  await Admin.boot('logs');
+});
+</script>
+</body>
+</html>

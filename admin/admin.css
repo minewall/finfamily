@@ -342,3 +342,49 @@ table.admin-table tbody tr:hover td { background: var(--bg-elevated); }
 .admin-toast-item.error   { background: var(--red, #ef4444); }
 
 @keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+/* ── Settings page ──────────────────────────────────────── */
+.admin-setting-row {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.admin-setting-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+.admin-setting-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.admin-setting-value.muted { color: var(--text-4); font-weight: 500; }
+.admin-setting-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.45;
+}
+
+/* ── Logs page atalhos ──────────────────────────────────── */
+.admin-link-card {
+  display: block;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  text-decoration: none;
+  transition: border-color .15s, background .15s;
+}
+.admin-link-card:hover {
+  border-color: var(--haile-indigo, #6366F1);
+  background: var(--surface-2);
+}

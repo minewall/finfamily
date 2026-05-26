@@ -5554,6 +5554,48 @@ ${veiculos.length === 0
 </div>`}`;
 })()}
 
+<!-- Equipamentos -->
+${(() => {
+  const equips = Store.getEquipamentos();
+  const CAT_LABEL = { eletronico: 'Eletrônico', eletrodomestico: 'Eletrodoméstico', moveis: 'Móveis', ferramenta: 'Ferramenta', outro: 'Outro' };
+  const CAT_COLOR = { eletronico: '#06B6D4', eletrodomestico: '#F59E0B', moveis: '#7367F0', ferramenta: '#22C55E', outro: '#9CA3AF' };
+  const CAT_ICON  = { eletronico: 'monitor', eletrodomestico: 'tv', moveis: 'sofa', ferramenta: 'wrench', outro: 'package' };
+  return `
+<div class="section-header mb-4" style="margin-top:32px">
+  <div><div class="section-title">Equipamentos</div><div class="section-sub">Eletrônicos, eletrodomésticos, móveis, ferramentas — depreciação rápida</div></div>
+  <button class="btn-primary" id="btnAddEquipamento">+ Novo Equipamento</button>
+</div>
+${equips.length === 0
+  ? `<div class="card mb-6" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum equipamento cadastrado. Use pra rastrear notebook, celular, eletrodomésticos — itens que perdem valor rápido mas somam ao patrimônio.</div>`
+  : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">
+  ${equips.map(e => {
+    const valEst = Store.equipamentoValorEstimado(e);
+    const deprec = (e.valorCompra || 0) - valEst;
+    const deprecPct = e.valorCompra > 0 ? (deprec / e.valorCompra) * 100 : 0;
+    const idade = e.dataCompra ? ((Date.now() - new Date(e.dataCompra).getTime()) / (1000*60*60*24*365.25)).toFixed(1) : '—';
+    const cor = CAT_COLOR[e.categoria] || '#9CA3AF';
+    const ico = CAT_ICON[e.categoria] || 'package';
+    return `
+  <div class="card" data-edit-equipamento="${e.id}" style="border-top:3px solid ${cor};padding:14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:32px;height:32px;border-radius:8px;background:${cor}22;color:${cor};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(ico, {size:16})}</div>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:10.5px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.05em">${CAT_LABEL[e.categoria] || 'Outro'}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-1);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${Utils.escapeHtml(e.nome||'')}">${Utils.escapeHtml(e.nome || '—')}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11.5px;margin-bottom:6px">
+      <div><div style="color:var(--text-4);font-size:10px;text-transform:uppercase">Valor compra</div><div style="font-weight:600">${Utils.currency(e.valorCompra||0)}</div></div>
+      <div><div style="color:var(--text-4);font-size:10px;text-transform:uppercase">Estimado</div><div style="font-weight:700;color:${cor};font-family:var(--mono)">${Utils.currency(valEst)}</div></div>
+      <div><div style="color:var(--text-4);font-size:10px;text-transform:uppercase">Idade</div><div style="font-weight:600">${idade}a</div></div>
+      <div><div style="color:var(--text-4);font-size:10px;text-transform:uppercase">Vida útil</div><div style="font-weight:600">${e.vidaUtilAnos || 5}a</div></div>
+    </div>
+    ${deprec > 0 ? `<div style="font-size:10.5px;color:var(--red);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">▼ ${Utils.currency(deprec)} (${deprecPct.toFixed(0)}%) depreciado</div>` : ''}
+  </div>`;
+  }).join('')}
+</div>`}`;
+})()}
+
 <!-- Passivos -->
 ${(() => {
   const passivos = Store.getPassivos();
@@ -5708,6 +5750,14 @@ ${passivos.length === 0
     document.getElementById('btnAddVeiculo')?.addEventListener('click', () => openVeiculoModal(null, re));
     document.getElementById('btnAddImovel')?.addEventListener('click', () => openImovelModal(null, re));
     document.getElementById('btnAlugarVsComprar')?.addEventListener('click', () => _showAlugarVsComprarModal());
+    document.getElementById('btnAddEquipamento')?.addEventListener('click', () => openEquipamentoModal(null, re));
+    container.querySelectorAll('[data-edit-equipamento]').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const eq = Store.getEquipamentos().find(x => x.id === card.dataset.editEquipamento);
+        if (eq) openEquipamentoModal(eq, re);
+      });
+    });
 
     // Veículos + Imóveis: clique direto + programação de custos
     container.querySelectorAll('[data-edit-veiculo]').forEach(card => {
@@ -6506,6 +6556,52 @@ ${passivos.length === 0
         document.getElementById(id)?.addEventListener('input', calc);
       });
     }, 50);
+  }
+
+  function openEquipamentoModal(equipamento, onSaved) {
+    const isEdit = !!equipamento;
+    const e = equipamento || {};
+    const hoje = new Date().toISOString().slice(0, 10);
+    const CATS = [['eletronico','Eletrônico'],['eletrodomestico','Eletrodoméstico'],['moveis','Móveis'],['ferramenta','Ferramenta'],['outro','Outro']];
+    const html = `
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Categoria</label>
+    <select class="form-select" id="fEQCat">${CATS.map(([v,l])=>`<option value="${v}"${(e.categoria||'eletronico')===v?' selected':''}>${l}</option>`).join('')}</select>
+  </div>
+  <div class="form-group"><label class="form-label">Nome / modelo</label><input class="form-input" id="fEQNome" placeholder="Ex.: MacBook Pro 14" value="${Utils.escapeHtml(e.nome||'')}"></div>
+  <div class="form-group"><label class="form-label">Valor de compra (R$)</label><input class="form-input" id="fEQValor" type="number" step="50" value="${e.valorCompra||''}"></div>
+  <div class="form-group"><label class="form-label">Data da compra</label><input class="form-input" id="fEQData" type="date" value="${e.dataCompra||hoje}"></div>
+  <div class="form-group"><label class="form-label">Valor atual (R$) — opcional</label><input class="form-input" id="fEQValorAtual" type="number" step="50" value="${e.valorAtual||''}" placeholder="Calcula auto se vazio"></div>
+  <div class="form-group"><label class="form-label">Depreciação anual (%)</label><input class="form-input" id="fEQDeprec" type="number" step="1" min="0" max="60" value="${e.depreciacaoAnualPct || 20}"></div>
+  <div class="form-group"><label class="form-label">Vida útil (anos)</label><input class="form-input" id="fEQVida" type="number" step="1" min="1" max="30" value="${e.vidaUtilAnos || 5}"></div>
+  <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fEQNotes" value="${Utils.escapeHtml(e.notes||'')}"></div>
+</div>
+<div style="font-size:11px;color:var(--text-4);margin-top:8px;line-height:1.5">
+  Sugestão de depreciação: eletrônicos 25-35%/a.a., eletrodomésticos 15-20%/a.a., móveis 10%/a.a., ferramentas 10-15%/a.a.
+</div>`;
+    Modal.open(isEdit ? 'Editar Equipamento' : 'Novo Equipamento', html, () => {
+      const data = {
+        categoria:           document.getElementById('fEQCat').value,
+        nome:                document.getElementById('fEQNome').value.trim(),
+        valorCompra:         parseFloat(document.getElementById('fEQValor').value) || 0,
+        dataCompra:          document.getElementById('fEQData').value,
+        valorAtual:          parseFloat(document.getElementById('fEQValorAtual').value) || 0,
+        depreciacaoAnualPct: parseFloat(document.getElementById('fEQDeprec').value) || 20,
+        vidaUtilAnos:        parseInt(document.getElementById('fEQVida').value) || 5,
+        notes:               document.getElementById('fEQNotes').value.trim(),
+      };
+      if (!data.nome) return toast('Informe o nome do equipamento', 'error');
+      if (!data.valorCompra) return toast('Informe o valor de compra', 'error');
+      if (isEdit) { Store.updateEquipamento(equipamento.id, data); toast('Equipamento atualizado', 'success'); }
+      else        { Store.addEquipamento(data);                    toast('Equipamento cadastrado', 'success'); }
+      Modal.close();
+      if (onSaved) onSaved();
+    }, isEdit ? () => {
+      Store.deleteEquipamento(equipamento.id);
+      Modal.close();
+      if (onSaved) onSaved();
+      toast('Equipamento removido', 'success');
+    } : null);
   }
 
   function openImovelModal(imovel, onSaved) {
@@ -9557,6 +9653,24 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
         }
         const anos = Math.floor(meses/12), mesesRest = meses % 12;
         const anoAtingimento = new Date().getFullYear() + anos;
+        // Narrativa contextual: o que mexer nos inputs mudaria
+        const pct1maisAporte = 0.10; // se aportasse 10% a mais
+        const novoAporte = aporte * (1 + pct1maisAporte);
+        let novoMeses = 0, novoSaldo = P0;
+        while (novoSaldo < alvo && novoMeses < 600) {
+          novoMeses++; novoSaldo = novoSaldo * (1 + iMes) + novoAporte;
+        }
+        const dif = meses - novoMeses;
+        const difTexto = dif >= 12
+          ? `Aportar <strong>${Utils.currency(novoAporte - aporte)}/mês a mais</strong> (10% extra) te tira <strong>${Math.floor(dif/12)} ano${Math.floor(dif/12)===1?'':'s'} ${dif%12 ? `e ${dif%12} meses` : ''}</strong> do prazo.`
+          : dif > 0
+            ? `Aportar <strong>${Utils.currency(novoAporte - aporte)}/mês a mais</strong> (10% extra) adianta a meta em <strong>${dif} meses</strong>.`
+            : '';
+        const ratioAporte = (aporte * 12) > 0 ? (despIF * 12) / (aporte * 12) : 0;
+        const ratioTexto = aporte > 0
+          ? `Hoje você consome ${Utils.currency(despIF)}/mês e poupa ${Utils.currency(aporte)}/mês — proporção <strong>${(ratioAporte).toFixed(1)}x</strong>. Quem chega na IF rápido geralmente fica na faixa 0.5–1x.`
+          : `Sem aportes mensais, o atingimento depende só do retorno composto do patrimônio atual.`;
+
         document.getElementById('fResult').style.display = '';
         document.getElementById('fResultBody').innerHTML = `
 <div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -9571,6 +9685,14 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
   </div>
   <div class="kpi-card" style="--kpi-color:var(--teal);--kpi-bg:var(--teal-dim);padding:14px">
     <div class="kpi-body"><div class="kpi-label">Renda Mensal Passiva</div><div class="kpi-value" style="color:var(--teal)">${Utils.currency(despIF)}</div></div>
+  </div>
+</div>
+<div style="background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.25);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+  <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('sparkles',{size:12})} <span>Insight do Haile</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">
+    ${ratioTexto}${difTexto ? `<br>${difTexto}` : ''}
   </div>
 </div>`;
         if (window._chartFIRE) window._chartFIRE.destroy();
@@ -15674,6 +15796,25 @@ ${(() => {
         const s = SYNC_STATES[status] || SYNC_STATES.offline;
         if (syncDot)   syncDot.style.background = s.color;
         if (syncLabel) syncLabel.textContent     = s.label;
+      });
+
+      // ── Realtime: detecta updates remotos no user_data e avisa o usuário ──
+      // Foundation: notifica + sugere reload. Sync incremental sem reload
+      // (apply diff em background) é roadmap futuro — exige mais infra de
+      // conflict resolution (origin session id, last-writer-wins por campo, etc).
+      let _lastRemoteToastAt = 0;
+      const REMOTE_TOAST_THROTTLE_MS = 30 * 1000; // não spammar
+      SupabaseSync.subscribeRealtime?.(payload => {
+        const now = Date.now();
+        if (now - _lastRemoteToastAt < REMOTE_TOAST_THROTTLE_MS) return;
+        // Heurística: se acabei de fazer um push (status === 'syncing' ou 'synced'
+        // nos últimos ~5s), o UPDATE provavelmente é eco do próprio cliente.
+        // Sem origin_session_id no schema, melhor avisar com cuidado: pergunta.
+        _lastRemoteToastAt = now;
+        // Mostra toast com ação de reload manual
+        if (typeof toast === 'function') {
+          toast('Dados atualizados em outro dispositivo. Recarregue pra ver a versão mais recente.', 'info', 7000);
+        }
       });
 
       // Resolve family context, accept pending invites, then pull data

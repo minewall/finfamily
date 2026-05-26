@@ -80,8 +80,9 @@ const Admin = (() => {
       { page: 'users',    icon: 'users',           label: 'Usuários' },
       { page: 'coach',    icon: 'bot',             label: 'Coach & IA' },
       { section: 'Sistema' },
-      { page: 'logs',     icon: 'scroll-text',     label: 'Logs',       soon: true },
-      { page: 'settings', icon: 'settings-2',      label: 'Configurações', soon: true },
+      { page: 'logs',     icon: 'scroll-text',     label: 'Logs' },
+      { page: 'settings', icon: 'settings-2',      label: 'Configurações' },
+      { page: 'lgpd',     icon: 'shield-check',    label: 'LGPD',          soon: true },
     ];
 
     const items = nav.map(n => {

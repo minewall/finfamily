@@ -2031,6 +2031,47 @@ const Store = (function () {
     return fromAtivos + fromReserva + fromVeiculos + fromImoveis + fromEquip;
   }
 
+  // ── EQUIPAMENTOS ────────────────────────────────────────────────
+  // Notebooks, celulares, eletrodomésticos, ferramentas, móveis.
+  // Depreciação linear até vida útil; tipicamente 15-30%/ano.
+  function _ensureEquipamentos() {
+    if (!_data.equipamentos) { _data.equipamentos = []; }
+  }
+  function getEquipamentos() { _ensureEquipamentos(); return _data.equipamentos; }
+  function addEquipamento(e) {
+    _ensureEquipamentos();
+    const novo = { id: 'eq' + Date.now(), createdAt: new Date().toISOString(), ...e };
+    _data.equipamentos.push(novo);
+    persist();
+    return novo;
+  }
+  function updateEquipamento(id, patch) {
+    _ensureEquipamentos();
+    const e = _data.equipamentos.find(x => x.id === id);
+    if (!e) return null;
+    Object.assign(e, patch);
+    persist();
+    return e;
+  }
+  function deleteEquipamento(id) {
+    _ensureEquipamentos();
+    _data.equipamentos = _data.equipamentos.filter(x => x.id !== id);
+    persist();
+  }
+  function equipamentoValorEstimado(e) {
+    if (!e.valorCompra || !e.dataCompra) return e.valorAtual || 0;
+    if (e.valorAtual != null && e.valorAtual !== '') return e.valorAtual; // override manual
+    const anos = Math.max(0, (Date.now() - new Date(e.dataCompra).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+    const vidaUtil = e.vidaUtilAnos || 5;
+    // Depreciação linear até zero ao atingir vida útil
+    if (anos >= vidaUtil) return 0;
+    const taxaAnual = (e.depreciacaoAnualPct || 20) / 100;
+    return Math.max(0, e.valorCompra * Math.pow(1 - taxaAnual, anos));
+  }
+  function totalEquipamentos() {
+    return (_data.equipamentos || []).reduce((s, e) => s + equipamentoValorEstimado(e), 0);
+  }
+
   // ── VEÍCULOS ────────────────────────────────────────────────────
   function _ensureVeiculos() {
     if (!_data.veiculos) { _data.veiculos = []; }
@@ -3995,6 +4036,7 @@ const Store = (function () {
     addReserva, updateReserva, deleteReserva,
     addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
+    getEquipamentos, addEquipamento, updateEquipamento, deleteEquipamento, equipamentoValorEstimado, totalEquipamentos,
     getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, veiculoIdadeAnos, veiculoTCO, veiculoAvaliacaoTroca, totalVeiculos,
     getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
     getFinanciamentos, addFinanciamento, updateFinanciamento, deleteFinanciamento,

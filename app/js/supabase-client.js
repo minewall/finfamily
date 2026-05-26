@@ -521,6 +521,55 @@ const SupabaseSync = (function () {
     }
   }
 
+  // ── REALTIME (foundation: detecta mudanças remotas no user_data) ──
+  // Notifica quando OUTRO device/sessão atualiza o mesmo user_id.
+  // Requer migration: alter publication supabase_realtime add table public.user_data;
+  let _realtimeChannel = null;
+  let _onRemoteChangeCallbacks = [];
+
+  function subscribeRealtime(callback) {
+    if (typeof callback === 'function') _onRemoteChangeCallbacks.push(callback);
+    if (!_client || !_user) return false;
+    if (_realtimeChannel) return true; // já inscrito
+    try {
+      _realtimeChannel = _client
+        .channel(`user_data_${_user.id}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_data',
+          filter: `user_id=eq.${_user.id}`,
+        }, payload => {
+          // Filtra eventos de echo: só dispara se outro client atualizou.
+          // Pra implementar isso direito precisaríamos de um origin_session_id
+          // na linha. Por ora, qualquer UPDATE remoto dispara callback —
+          // os callbacks devem comparar timestamps e decidir se aplicam.
+          _onRemoteChangeCallbacks.forEach(cb => {
+            try { cb(payload); } catch (e) { console.warn('Realtime cb err:', e); }
+          });
+        })
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            (window.Logger || console).log?.('[Realtime] user_data subscribed');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('[Realtime] channel state:', status);
+          }
+        });
+      return true;
+    } catch (e) {
+      console.warn('[Realtime] subscribe failed:', e);
+      return false;
+    }
+  }
+
+  function unsubscribeRealtime() {
+    if (_realtimeChannel && _client) {
+      try { _client.removeChannel(_realtimeChannel); } catch (_) {}
+      _realtimeChannel = null;
+    }
+    _onRemoteChangeCallbacks = [];
+  }
+
   async function deleteAnexo(path) {
     if (!_client || !_user || !path) return { error: 'inválido' };
     try {
@@ -542,5 +591,6 @@ const SupabaseSync = (function () {
     resolveFamilyContext, getFamilyContext, ensureFamilyIdLinked,
     uploadAnexo, getAnexoUrl, deleteAnexo,
     ANEXO_MAX_BYTES, ANEXO_MIMES,
+    subscribeRealtime, unsubscribeRealtime,
   };
 })();

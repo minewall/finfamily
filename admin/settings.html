@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Configurações · Haile</title>
+  <link rel="stylesheet" href="../app/css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">Configurações globais</div>
+      <div class="admin-page-sub">Caps de uso por tier, integrações e feature flags</div>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <!-- Seção: Coach / IA -->
+    <div class="admin-table-card" style="margin-bottom:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Coach (IA)</span>
+      </div>
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Modelo default</div>
+          <div class="admin-setting-value">Claude Sonnet 4.6</div>
+          <div class="admin-setting-hint">Configurado em <a href="coach.html">Coach &amp; IA</a></div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Cap free / mês</div>
+          <div class="admin-setting-value muted">— em breve</div>
+          <div class="admin-setting-hint">Telemetria de uso real pendente</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Cap premium / mês</div>
+          <div class="admin-setting-value muted">— em breve</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Integrações -->
+    <div class="admin-table-card" style="margin-bottom:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Integrações</span>
+      </div>
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Resend (SMTP)</div>
+          <div class="admin-setting-value" style="color:var(--green)">Configurado</div>
+          <div class="admin-setting-hint">oi@haile.com.br · domínio verificado</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Google OAuth</div>
+          <div class="admin-setting-value" style="color:var(--green)">Configurado</div>
+          <div class="admin-setting-hint">Modo Testing</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Cron lembrete onboarding</div>
+          <div class="admin-setting-value" style="color:var(--green)">Ativo</div>
+          <div class="admin-setting-hint">Diário às 14h UTC (11h BRT)</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Anthropic API (Claude)</div>
+          <div class="admin-setting-value" style="color:var(--green)">Configurado</div>
+          <div class="admin-setting-hint">Edge Functions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção: Feature flags -->
+    <div class="admin-table-card">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Feature flags</span>
+      </div>
+      <div style="padding:36px 18px;text-align:center;color:var(--text-4);font-size:13px;line-height:1.6">
+        Controle granular de features por tier ainda em construção.<br>
+        Quando o paywall abrir, flags como <code>tool_use</code>, <code>coach_quiz</code>, <code>familia_premium</code> serão configuráveis aqui.
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../app/js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('settings');
+  await Admin.boot('settings');
+});
+</script>
+</body>
+</html>
