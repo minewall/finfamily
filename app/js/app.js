@@ -8457,6 +8457,13 @@ ${acoesBar}
   <div class="form-group"><label class="form-label">Parcelas já pagas</label><input class="form-input" id="fFNPagas" type="number" step="1" min="0" value="${f.parcelasPagas||0}"></div>
   <div class="form-group"><label class="form-label">Data do contrato</label><input class="form-input" id="fFNData" type="date" value="${f.dataInicio||hoje}"></div>
   <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fFNNotes" value="${Utils.escapeHtml(f.notes||'')}"></div>
+
+  <div class="form-group form-full" id="fFNComparador" style="display:none;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:6px">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      ${icon('git-compare', {size:12})} <span>Comparador SAC vs Price</span>
+    </div>
+    <div id="fFNComparadorBody"></div>
+  </div>
 </div>`;
     Modal.open(isEdit ? 'Editar Financiamento' : 'Novo Financiamento', html, () => {
       const tipoSel = document.getElementById('fFNTipoNovo').value;
@@ -8510,6 +8517,77 @@ ${acoesBar}
           }
         });
       }
+
+      // ── Comparador SAC vs Price (live preview) ───────────────────
+      const renderComparador = () => {
+        const valor = parseFloat(document.getElementById('fFNValor')?.value) || 0;
+        const taxa  = parseFloat(document.getElementById('fFNTaxa')?.value) || 0;
+        const prazo = parseInt(document.getElementById('fFNPrazo')?.value) || 0;
+        const sistemaAtual = document.getElementById('fFNSistema')?.value || 'price';
+        const wrap = document.getElementById('fFNComparador');
+        const body = document.getElementById('fFNComparadorBody');
+        if (!wrap || !body) return;
+        if (!valor || !prazo || !taxa) { wrap.style.display = 'none'; return; }
+        const sistemaAlvo = sistemaAtual === 'sac' ? 'price' : 'sac';
+        const base = { valorFinanciado: valor, taxaMensal: taxa, prazo, sistema: 'price' };
+        const simAtual = Store.financiamentoSimularSistema({ ...base, sistema: sistemaAtual }, sistemaAtual);
+        const simAlvo  = Store.financiamentoSimularSistema({ ...base, sistema: sistemaAtual }, sistemaAlvo);
+
+        const labelAtual = sistemaAtual === 'sac' ? 'SAC' : 'Price';
+        const labelAlvo  = sistemaAlvo  === 'sac' ? 'SAC' : 'Price';
+        const corAtual = 'var(--accent)';
+        const corAlvo  = 'var(--text-3)';
+
+        const deltaJuros   = simAtual.totalJuros - simAlvo.totalJuros;
+        const deltaPagar   = simAtual.totalPago  - simAlvo.totalPago;
+        const deltaInicial = simAtual.parcelaInicial - simAlvo.parcelaInicial;
+
+        const cheaperLabel = deltaJuros < 0 ? labelAtual : labelAlvo;
+        const cheaperColor = deltaJuros < 0 ? corAtual : 'var(--green)';
+        const economia = Math.abs(deltaJuros);
+
+        wrap.style.display = '';
+        body.innerHTML = `
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+  <div style="border:1px solid ${corAtual};border-radius:8px;padding:10px 12px;background:rgba(115,103,240,0.05)">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;color:${corAtual};text-transform:uppercase;letter-spacing:.05em">${labelAtual}</span>
+      <span style="font-size:9.5px;color:var(--text-4);font-weight:600;padding:1px 6px;border-radius:4px;background:var(--surface-2)">selecionado</span>
+    </div>
+    <div style="font-size:11px;color:var(--text-4)">Parcela inicial</div>
+    <div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--text-1);margin-bottom:6px">${Utils.currency(simAtual.parcelaInicial)}</div>
+    ${sistemaAtual === 'sac' ? `<div style="font-size:10.5px;color:var(--text-3)">Parcela final: ${Utils.currency(simAtual.parcelaFinal)}</div>` : '<div style="font-size:10.5px;color:var(--text-3)">Parcela fixa</div>'}
+    <div style="font-size:10.5px;color:var(--text-4);margin-top:6px">Juros totais</div>
+    <div style="font-size:13.5px;font-weight:700;font-family:var(--mono);color:var(--red)">${Utils.currency(simAtual.totalJuros)}</div>
+  </div>
+  <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;color:${corAlvo};text-transform:uppercase;letter-spacing:.05em">${labelAlvo}</span>
+      <span style="font-size:9.5px;color:var(--text-4)">alternativa</span>
+    </div>
+    <div style="font-size:11px;color:var(--text-4)">Parcela inicial</div>
+    <div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--text-1);margin-bottom:6px">${Utils.currency(simAlvo.parcelaInicial)}</div>
+    ${sistemaAlvo === 'sac' ? `<div style="font-size:10.5px;color:var(--text-3)">Parcela final: ${Utils.currency(simAlvo.parcelaFinal)}</div>` : '<div style="font-size:10.5px;color:var(--text-3)">Parcela fixa</div>'}
+    <div style="font-size:10.5px;color:var(--text-4);margin-top:6px">Juros totais</div>
+    <div style="font-size:13.5px;font-weight:700;font-family:var(--mono);color:var(--red)">${Utils.currency(simAlvo.totalJuros)}</div>
+  </div>
+</div>
+<div style="font-size:12.5px;color:var(--text-2);line-height:1.55">
+  No <strong style="color:${cheaperColor}">${cheaperLabel}</strong> você ${deltaJuros !== 0 ? `pagaria <strong>${Utils.currency(economia)}</strong> a menos em juros` : 'tem o mesmo custo'}.
+  ${Math.abs(deltaInicial) > 0.01 ? ` Parcela inicial ${deltaInicial > 0 ? 'maior' : 'menor'} em <strong>${Utils.currency(Math.abs(deltaInicial))}</strong> que no ${labelAlvo}.` : ''}
+</div>
+<div style="font-size:10.5px;color:var(--text-4);margin-top:8px;line-height:1.45">
+  <strong>SAC</strong>: amortização constante, parcela cai com o tempo. Total de juros menor, mas parcela inicial pesada.<br>
+  <strong>Price</strong>: parcela fixa do começo ao fim. Confortável no orçamento, mas paga mais juros no longo prazo.
+</div>`;
+      };
+
+      ['fFNValor','fFNTaxa','fFNPrazo','fFNSistema'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', renderComparador);
+        if (el && el.tagName === 'SELECT') el.addEventListener('change', renderComparador);
+      });
+      renderComparador();
       // Ações rápidas (apenas em edição)
       if (isEdit) {
         document.querySelectorAll('[data-fin-act]').forEach(btn => {
@@ -8565,16 +8643,32 @@ ${acoesBar}
     Modal.open(`${f.label} — tabela ${f.sistema === 'sac' ? 'SAC' : 'Price'}`, html, () => Modal.close(), { okText: 'Fechar' });
   }
 
-  function _showAntecipacaoModal(f, onDone) {
+  async function _showAntecipacaoModal(f, onDone) {
     const saldoAtual = Store.financiamentoSaldoDevedor(f);
+    const cetAnual = Store.financiamentoCETAnual(f);
+    // Tenta usar CDI corrente do MarketRates; fallback razoável.
+    let cdiAnual = 11;
+    try { const r = await MarketRates.get(); if (r?.cdi) cdiAnual = r.cdi; } catch (_) { /* offline */ }
+    const cdiLiqAnual = cdiAnual * 0.85; // IR 15% no rendimento (estimativa conservadora)
+
     const html = `
 <div class="form-grid">
   <div class="form-group form-full" style="background:var(--bg-elevated);border-radius:8px;padding:12px">
     <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px">Saldo devedor atual</div>
     <div style="font-size:20px;font-weight:800;color:var(--red);font-family:var(--mono)">${Utils.currency(saldoAtual)}</div>
   </div>
-  <div class="form-group"><label class="form-label">Valor a amortizar (R$)</label><input class="form-input" id="fANValor" type="number" step="1000" value="${Math.round(saldoAtual*0.1)}"></div>
-  <div class="form-group"><label class="form-label">Estratégia</label>
+  <div class="form-group form-full">
+    <label class="form-label">Modo</label>
+    <div class="view-tabs" id="fANModo" style="gap:4px">
+      <button type="button" class="view-tab active" data-mode="unico" style="padding:6px 14px;font-size:12px">Aporte único</button>
+      <button type="button" class="view-tab" data-mode="mensal" style="padding:6px 14px;font-size:12px">Aporte mensal (recorrente)</button>
+    </div>
+  </div>
+  <div class="form-group" id="fANValorWrap">
+    <label class="form-label" id="fANValorLabel">Valor a amortizar (R$)</label>
+    <input class="form-input" id="fANValor" type="number" step="100" value="${Math.round(saldoAtual*0.1)}">
+  </div>
+  <div class="form-group" id="fANEstratWrap"><label class="form-label">Estratégia</label>
     <select class="form-select" id="fANEstrat">
       <option value="prazo">Reduzir prazo (manter parcela)</option>
       <option value="parcela">Reduzir parcela (manter prazo)</option>
@@ -8582,23 +8676,117 @@ ${acoesBar}
   </div>
 </div>
 <div id="anResult" style="margin-top:12px"></div>
+<div id="anCetCdi" style="margin-top:12px"></div>
 <div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn-secondary" id="btnAnCalc">Calcular</button></div>`;
     Modal.open(`Antecipar — ${f.label}`, html, () => Modal.close(), { okText: 'Fechar' });
+
     setTimeout(() => {
+      let modo = 'unico';
+      const tabs = document.getElementById('fANModo');
+      const valorLabel = document.getElementById('fANValorLabel');
+      const valorInput = document.getElementById('fANValor');
+      const estratWrap = document.getElementById('fANEstratWrap');
+
+      tabs?.addEventListener('click', e => {
+        const btn = e.target.closest('[data-mode]');
+        if (!btn) return;
+        modo = btn.dataset.mode;
+        tabs.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b === btn));
+        if (modo === 'mensal') {
+          valorLabel.textContent = 'Aporte mensal extra (R$)';
+          valorInput.value = Math.max(100, Math.round(Store.financiamentoParcelaInicial(f) * 0.2));
+          valorInput.step = '50';
+          estratWrap.style.display = 'none'; // recorrente é sempre 'prazo'
+        } else {
+          valorLabel.textContent = 'Valor a amortizar (R$)';
+          valorInput.value = Math.round(saldoAtual * 0.1);
+          valorInput.step = '100';
+          estratWrap.style.display = '';
+        }
+        document.getElementById('anResult').innerHTML = '';
+        document.getElementById('anCetCdi').innerHTML = '';
+      });
+
       const btn = document.getElementById('btnAnCalc');
       if (!btn) return;
-      btn.addEventListener('click', () => {
+      const calc = () => {
         const v = parseFloat(document.getElementById('fANValor').value) || 0;
         const est = document.getElementById('fANEstrat').value;
         if (!v) return toast('Informe um valor', 'error');
-        const r = Store.financiamentoAntecipar(f, v, est);
-        const html = r.quitacao
-          ? `<div class="alert-strip success"><div class="alert-text"><div class="alert-title">Quitação total!</div><div class="alert-sub">Você economiza <strong>${Utils.currency(r.jurosEconomizados)}</strong> em juros e ${r.mesesEconomizados} parcelas.</div></div></div>`
-          : `<div class="alert-strip success"><div class="alert-text"><div class="alert-title">Economia da antecipação</div><div class="alert-sub">${est === 'prazo'
-              ? `Reduz <strong>${r.mesesEconomizados} meses</strong> do prazo (novo total: ${r.novosMeses}). Mantém parcela em ${Utils.currency(r.novaParcela)}.`
-              : `Parcela cai de ${Utils.currency(Store.financiamentoParcelaInicial(f))} para <strong>${Utils.currency(r.novaParcela)}</strong> (economia ${Utils.currency(r.reducaoParcela)}/mês).`} Você economiza <strong style="color:var(--green)">${Utils.currency(r.jurosEconomizados)}</strong> em juros.</div></div></div>`;
-        document.getElementById('anResult').innerHTML = html;
-      });
+
+        let r, summary, valorComparado;
+        if (modo === 'mensal') {
+          r = Store.financiamentoAnteciparRecorrente(f, v);
+          valorComparado = r.totalAportado; // total que entraria no CDI no mesmo ritmo
+          summary = `<div class="alert-strip success"><div class="alert-text">
+            <div class="alert-title">Aportando R$ ${Utils.currency(v).replace('R$','').trim()}/mês a mais</div>
+            <div class="alert-sub">Quita em <strong>${r.novosMeses} meses</strong> em vez de ${(f.prazo || 0) - (f.parcelasPagas || 0)} (poupa <strong>${r.mesesEconomizados} meses</strong>). Parcela efetiva passa pra ${Utils.currency(r.parcelaEfetiva)}. Economia em juros: <strong style="color:var(--green)">${Utils.currency(r.jurosEconomizados)}</strong>. Você teria aportado ${Utils.currency(r.totalAportado)} no total.</div>
+          </div></div>`;
+        } else {
+          r = Store.financiamentoAntecipar(f, v, est);
+          valorComparado = v;
+          summary = r.quitacao
+            ? `<div class="alert-strip success"><div class="alert-text"><div class="alert-title">Quitação total!</div><div class="alert-sub">Você economiza <strong>${Utils.currency(r.jurosEconomizados)}</strong> em juros e ${r.mesesEconomizados} parcelas.</div></div></div>`
+            : `<div class="alert-strip success"><div class="alert-text"><div class="alert-title">Economia da antecipação</div><div class="alert-sub">${est === 'prazo'
+                ? `Reduz <strong>${r.mesesEconomizados} meses</strong> do prazo (novo total: ${r.novosMeses}). Mantém parcela em ${Utils.currency(r.novaParcela)}.`
+                : `Parcela cai de ${Utils.currency(Store.financiamentoParcelaInicial(f))} para <strong>${Utils.currency(r.novaParcela)}</strong> (economia ${Utils.currency(r.reducaoParcela)}/mês).`} Você economiza <strong style="color:var(--green)">${Utils.currency(r.jurosEconomizados)}</strong> em juros.</div></div></div>`;
+        }
+        document.getElementById('anResult').innerHTML = summary;
+
+        // ── CET vs CDI: vale antecipar ou aplicar no CDI? ──
+        const diffPct = cetAnual - cdiLiqAnual; // positivo = dívida custa mais que CDI rende → antecipar
+        const anteciparMelhor = diffPct > 0;
+        // Estimativa quantitativa pro horizonte do contrato restante
+        const mesesHorizonte = Math.max(1, (f.prazo || 0) - (f.parcelasPagas || 0));
+        const cdiMonthly = Math.pow(1 + cdiAnual / 100, 1 / 12) - 1;
+        let rendimentoCDIBruto;
+        if (modo === 'mensal') {
+          // FV de uma anuidade mensal: PMT * ((1+i)^n - 1) / i
+          rendimentoCDIBruto = (cdiMonthly === 0)
+            ? v * mesesHorizonte
+            : v * (Math.pow(1 + cdiMonthly, mesesHorizonte) - 1) / cdiMonthly - v * mesesHorizonte;
+        } else {
+          rendimentoCDIBruto = v * Math.pow(1 + cdiMonthly, mesesHorizonte) - v;
+        }
+        const rendimentoCDILiq = rendimentoCDIBruto * 0.85; // IR 15% sobre rendimento
+
+        const cor = anteciparMelhor ? 'var(--green)' : 'var(--accent)';
+        const corBg = anteciparMelhor ? 'rgba(34,197,94,0.08)' : 'rgba(115,103,240,0.08)';
+        const corBorder = anteciparMelhor ? 'rgba(34,197,94,0.25)' : 'rgba(115,103,240,0.25)';
+        const recomendacao = anteciparMelhor
+          ? `Sua dívida custa <strong>${diffPct.toFixed(2)} pp</strong> mais que o CDI rende. <strong style="color:var(--green)">Antecipar tende a ser melhor.</strong>`
+          : `O CDI rende <strong>${Math.abs(diffPct).toFixed(2)} pp</strong> mais que sua dívida custa. <strong style="color:var(--accent)">Investir no CDI pode ser mais vantajoso.</strong>`;
+
+        document.getElementById('anCetCdi').innerHTML = `
+<div style="background:${corBg};border:1px solid ${corBorder};border-radius:10px;padding:14px 16px">
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${cor};margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('git-compare', {size:13})} <span>Antecipar vs. Investir no CDI</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px">
+    <div>
+      <div style="font-size:10.5px;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em">CET do contrato</div>
+      <div style="font-size:16px;font-weight:800;color:var(--red);font-family:var(--mono)">${cetAnual.toFixed(2)}% a.a.</div>
+    </div>
+    <div>
+      <div style="font-size:10.5px;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em">CDI líquido (IR 15%)</div>
+      <div style="font-size:16px;font-weight:800;color:var(--accent);font-family:var(--mono)">${cdiLiqAnual.toFixed(2)}% a.a.</div>
+    </div>
+  </div>
+  <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:10px">${recomendacao}</div>
+  <div style="font-size:11.5px;color:var(--text-3);line-height:1.5;padding-top:10px;border-top:1px solid var(--border)">
+    Em <strong>${mesesHorizonte} meses</strong>${modo === 'mensal' ? ` aportando ${Utils.currency(v)}/mês` : ` com ${Utils.currency(v)}`}:
+    economia em juros do financiamento ≈ <strong style="color:var(--green)">${Utils.currency(r.jurosEconomizados)}</strong>
+    ${modo === 'mensal' ? ' vs ' : ' · '}
+    rendimento líquido no CDI ≈ <strong style="color:var(--accent)">${Utils.currency(rendimentoCDILiq)}</strong>.
+  </div>
+  <div style="font-size:10px;color:var(--text-4);margin-top:6px;line-height:1.5">
+    Estimativa simplificada — CDI ${cdiAnual.toFixed(2)}% a.a. corrente; IR 15% sobre rendimento; ignora liquidez, oportunidade de novos aportes e custo emocional da dívida.
+  </div>
+</div>`;
+      };
+      btn.addEventListener('click', calc);
+      // Calcula uma vez ao abrir
+      calc();
     }, 50);
   }
 

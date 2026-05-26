@@ -2280,6 +2280,58 @@ const Store = (function () {
     return (_data.financiamentos || []).reduce((s, f) => s + financiamentoSaldoDevedor(f), 0);
   }
 
+  // Simula aporte mensal extra fixo durante toda a vida do financiamento.
+  // Iteração mensal: paga PMT regular + amortizaExtra; saldo decresce mais rápido.
+  // Estratégia 'prazo' apenas (manter parcela e antecipar prazo é o caso real).
+  function financiamentoAnteciparRecorrente(f, aporteMensal) {
+    const i = (f.taxaMensal || 0) / 100;
+    const n = f.prazo || 0;
+    const k = f.parcelasPagas || 0;
+    const restante = n - k;
+    if (!aporteMensal || aporteMensal <= 0 || restante <= 0) {
+      return { mesesEconomizados: 0, jurosEconomizados: 0, novosMeses: restante, totalAportado: 0 };
+    }
+    const PMT = financiamentoParcelaInicial(f);
+    let saldo = financiamentoSaldoDevedor(f);
+    let mesesGastos = 0;
+    let totalPago = 0;
+    let totalAportado = 0;
+    const maxIter = restante * 2; // safety
+    while (saldo > 0.01 && mesesGastos < maxIter) {
+      const juros = saldo * i;
+      const amortRegular = (f.sistema === 'sac') ? ((f.valorFinanciado || 0) / n) : Math.max(0, PMT - juros);
+      const pagamentoMes = amortRegular + juros + aporteMensal;
+      // Não pagar mais que o necessário
+      const pagamentoEfetivo = Math.min(pagamentoMes, saldo + juros);
+      totalPago += pagamentoEfetivo;
+      totalAportado += aporteMensal;
+      saldo = Math.max(0, saldo + juros - pagamentoEfetivo);
+      mesesGastos++;
+    }
+    const jurosOriginais = financiamentoTotalRestante(f) - financiamentoSaldoDevedor(f);
+    const jurosNovo = totalPago - financiamentoSaldoDevedor(f);
+    return {
+      mesesEconomizados: Math.max(0, restante - mesesGastos),
+      jurosEconomizados: Math.max(0, jurosOriginais - jurosNovo),
+      novosMeses: mesesGastos,
+      totalAportado,
+      parcelaEfetiva: PMT + aporteMensal,
+    };
+  }
+
+  // Simula o mesmo financiamento em outro sistema (SAC ↔ Price), pra
+  // comparação educacional. Retorna métricas do contrato hipotético.
+  function financiamentoSimularSistema(f, sistemaAlvo) {
+    const hipotetico = { ...f, sistema: sistemaAlvo, parcelasPagas: 0 };
+    return {
+      sistema:        sistemaAlvo,
+      parcelaInicial: financiamentoParcelaInicial(hipotetico),
+      parcelaFinal:   financiamentoParcelaNa(hipotetico, hipotetico.prazo || 1),
+      totalPago:      financiamentoTotalPago({ ...hipotetico, parcelasPagas: hipotetico.prazo }),
+      totalJuros:     financiamentoTotalJuros(hipotetico),
+    };
+  }
+
   // ── CONTRATOS ──────────────────────────────────────────────────
   function _ensureContratos() {
     if (!_data.contratos) { _data.contratos = []; persist(); return; }
@@ -3884,7 +3936,7 @@ const Store = (function () {
     getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, totalVeiculos,
     getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
     getFinanciamentos, addFinanciamento, updateFinanciamento, deleteFinanciamento,
-    financiamentoParcelaInicial, financiamentoParcelaNa, financiamentoSaldoDevedor, financiamentoTotalPago, financiamentoTotalRestante, financiamentoTotalJuros, financiamentoCETAnual, financiamentoAntecipar, totalFinanciamentosDevedor,
+    financiamentoParcelaInicial, financiamentoParcelaNa, financiamentoSaldoDevedor, financiamentoTotalPago, financiamentoTotalRestante, financiamentoTotalJuros, financiamentoCETAnual, financiamentoAntecipar, financiamentoAnteciparRecorrente, financiamentoSimularSistema, totalFinanciamentosDevedor,
     updateSettings,
     receitasByMonth, despesasByMonth,
     sumReceitas, sumDespesas,
