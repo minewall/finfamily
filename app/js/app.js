@@ -1616,7 +1616,7 @@ ${renderPrevisaoCaixa(saldo)}
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamentos encontrado com os filtros aplicados.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Pessoa</th><th>Pagamento</th><th class="num">Valor</th><th>Status</th><th style="position:sticky;right:0;background:var(--bg-card)"></th>
+  <th>Data</th><th>Descrição</th><th>Categoria</th><th>Pessoa</th><th>Pagamento</th><th class="num">Valor</th><th>Status</th>
 </tr></thead>
 <tbody>
 ${filtered.map(d => {
@@ -1624,9 +1624,14 @@ ${filtered.map(d => {
   const paidState = d.paid === true ? 'on' : d.paid === false ? 'off' : (new Date(d.date+'T23:59:59') <= new Date() ? 'auto' : '');
   const isFuture = new Date(d.date+'T23:59:59') > new Date();
   const isScheduled = isFuture || d.paid === false;
-  const statusBadge = isScheduled
+  // Status badge agora é clicável (quando há contrato): toggla pago/agendado.
+  // Substitui a antiga coluna sticky direita (removida — padrão clique direto).
+  const baseBadge = isScheduled
     ? '<span class="lancamentos-status-badge agendado">Agendado</span>'
     : '<span class="lancamentos-status-badge pago">Pago</span>';
+  const statusCell = c
+    ? `<button class="lancamentos-status-btn" data-paid-desp="${d.id}" title="${paidState==='on'?'Pago (clique pra desmarcar)':paidState==='auto'?'Considerado pago — clique pra marcar/desmarcar manualmente':'Marcar como pago'}" style="background:none;border:0;padding:0;cursor:pointer">${baseBadge}</button>`
+    : baseBadge;
   const catInfo = Store.CATEGORIES[d.category];
   const catBg = catInfo?.color ? catInfo.color + '20' : 'var(--accent-dim)';
   const catColor = catInfo?.color || 'var(--accent)';
@@ -1642,16 +1647,12 @@ ${filtered.map(d => {
   <td>${pessoaAvatarHtml(mainPerson)}</td>
   <td><span class="badge ${d.pay==='Cartão'?'badge-accent':d.pay==='Dinheiro'?'badge-amber':'badge-blue'}">${d.pay||''}</span></td>
   <td class="num negative">${Utils.currency(d.amount)}</td>
-  <td>${statusBadge}</td>
-  <td style="white-space:nowrap;position:sticky;right:0;background:var(--bg-card);width:42px">
-    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Pago (clique para desmarcar)':paidState==='auto'?'Considerado pago (data passou) — clique p/ marcar/desmarcar manualmente':'Marcar como pago'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-desp="${d.id}">${paidState==='on'?icon('check',{size:14}):paidState==='auto'?icon('circle-dot',{size:14}):icon('circle',{size:14})}</button>` : ''}
-  </td>
+  <td>${statusCell}</td>
 </tr>`;}).join('')}
 </tbody>
 <tfoot><tr>
   <td colspan="6" class="fw-700">Total (${filtered.length} lançamentos)</td>
   <td class="num negative fw-700">${Utils.currency(total)}</td>
-  <td style="position:sticky;right:0;background:var(--bg-card)"></td>
 </tr></tfoot>
 </table>`;
     }
@@ -1665,13 +1666,24 @@ ${filtered.map(d => {
       if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado.</div>';
       return `<table class="data-table">
 <thead><tr>
-  <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th>Compromisso</th><th class="num">Valor</th><th></th>
+  <th>Data</th><th>Descrição</th><th>Pessoa</th><th>Tipo</th><th>Compromisso</th><th class="num">Valor</th><th>Status</th>
 </tr></thead>
 <tbody>
 ${filtered.map(r => {
   const c = r.contratoId ? Store.getContratoById(r.contratoId) : null;
   const paidState = r.paid === true ? 'on' : r.paid === false ? 'off' : (new Date(r.date+'T23:59:59') <= new Date() ? 'auto' : '');
   const isFuture = (r.year||0)*12+(r.month||0) > year*12+month;
+  const isPending = isFuture || r.paid === false;
+  // Status agora é badge clicável (quando há compromisso). Substitui a antiga
+  // coluna sem header com botão check/circle.
+  const baseBadge = c
+    ? (isPending
+        ? '<span class="lancamentos-status-badge agendado">A receber</span>'
+        : '<span class="lancamentos-status-badge pago">Recebido</span>')
+    : '<span class="muted" style="font-size:11px">—</span>';
+  const statusCell = c
+    ? `<button class="lancamentos-status-btn" data-paid-rec="${r.id}" title="${paidState==='on'?'Recebido (clique pra desmarcar)':paidState==='auto'?'Considerado recebido — clique pra marcar/desmarcar':'Marcar como recebido'}" style="background:none;border:0;padding:0;cursor:pointer">${baseBadge}</button>`
+    : baseBadge;
   return `<tr class="row-clickable${isFuture ? '" style="opacity:0.55"' : '"'} data-row-rec="${r.id}">
   <td class="muted" style="white-space:nowrap">${Utils.fmtDate(r.date)}${isFuture ? ' <span style="font-size:10px;color:var(--accent);font-weight:600">futuro</span>' : ''}</td>
   <td>${Utils.escapeHtml(r.desc)}</td>
@@ -1679,9 +1691,7 @@ ${filtered.map(r => {
   <td class="muted">${Utils.escapeHtml(r.sub || ({salario:'Salário',contrato:'Contrato',pensao:'Pensão',emprestimo:'Empréstimo',outros:'Outros'})[r.type]||r.type||'')}</td>
   <td>${c ? `<span class="badge badge-accent" style="font-size:10px" title="Compromisso: ${Utils.escapeHtml(c.label)}">${icon('file-text',{size:10})} ${Utils.escapeHtml(c.label)}</span>` : '<span class="muted">—</span>'}</td>
   <td class="num positive">${Utils.currency(r.amount)}</td>
-  <td style="white-space:nowrap;width:42px">
-    ${c ? `<button class="btn-ghost" title="${paidState==='on'?'Recebido':paidState==='auto'?'Considerado recebido (data passou)':'Marcar como recebido'}" style="font-size:12px;color:${paidState==='on'?'var(--green)':paidState==='auto'?'var(--green-dim,#22C55E80)':'var(--text-4)'}" data-paid-rec="${r.id}">${paidState==='on'?icon('check',{size:14}):paidState==='auto'?icon('circle-dot',{size:14}):icon('circle',{size:14})}</button>` : ''}
-  </td>
+  <td>${statusCell}</td>
 </tr>`;}).join('')}
 </tbody>
 <tfoot><tr><td colspan="5" class="fw-700">Total (${filtered.length})</td><td class="num positive fw-700">${Utils.currency(total)}</td><td></td></tr></tfoot>
@@ -12582,7 +12592,9 @@ ${renderPageMonthPicker(container)}
   // PAGE: CONFIGURAÇÕES
   // ══════════════════════════════════════════════════════════════
   function renderConfig(container) {
-    const section = localStorage.getItem('ff_config_section') || 'categorias';
+    // Default: abre em "Perfil" pra novos users (era 'categorias').
+    // Se o user já visitou outra seção, respeita o último que ele escolheu.
+    const section = localStorage.getItem('ff_config_section') || 'perfil';
 
     // ── Card de perfil no topo ──────────────────────────────────────
     const profileData = Store.getProfile();

@@ -1240,6 +1240,10 @@ table.data-table tfoot td {
 }
 
 td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+/* Specificity: thead th tinha "text-align: left" sobrescrevendo th.num.
+   Esta regra é mais específica e garante alinhamento à direita no header. */
+table.data-table thead th.num,
+table.data-table tfoot td.num { text-align: right; }
 td.positive { color: var(--green); }
 td.negative { color: var(--red); }
 td.muted    { color: var(--text-3); }
@@ -2649,6 +2653,17 @@ body.sidebar-open { overflow: hidden; }
 }
 .lancamentos-status-badge.pago      { background: var(--green-dim); color: var(--green); }
 .lancamentos-status-badge.agendado  { background: var(--amber-dim); color: var(--amber); }
+
+/* Status como toggle clicável (substituiu coluna sticky direita) */
+.lancamentos-status-btn:hover .lancamentos-status-badge {
+  filter: brightness(1.1);
+  box-shadow: 0 0 0 2px var(--bg-elevated);
+}
+.lancamentos-status-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 
 .lancamentos-cat-pill {
   display: inline-flex;
