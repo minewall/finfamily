@@ -1534,7 +1534,7 @@ ${renderPrevisaoCaixa(saldo)}
   // ══════════════════════════════════════════════════════════════
   function renderLancamentos(container) {
     const month = getMonth(), year = getYear();
-    const period = localStorage.getItem('ff_lanc_period') || 'mes';
+    const period = UISettings.get('lancPeriod', 'mes');
     const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
 
     // Normalização defensiva: despesas/receitas com schema variado podem quebrar a tela.
@@ -1556,7 +1556,7 @@ ${renderPrevisaoCaixa(saldo)}
     const receitas = _allRec.filter(r => r.year === year && r.month >= mStart && r.month <= mEnd);
 
     let sortDir = 'asc';
-    let activeTab = localStorage.getItem('ff_lanc_tab') || 'desp';
+    let activeTab = UISettings.get('lancTab', 'desp');
 
     container.innerHTML = `
 <div class="page-head mb-4">
@@ -1944,7 +1944,7 @@ ${filtered.map(r => {
     }
 
     document.getElementById('btnTabDesp').addEventListener('click', () => {
-      activeTab = 'desp'; localStorage.setItem('ff_lanc_tab', 'desp');
+      activeTab = 'desp'; UISettings.set('lancTab', 'desp');
       document.getElementById('btnTabDesp').classList.add('active');
       document.getElementById('btnTabRec').classList.remove('active');
       document.getElementById('btnTabCal').classList.remove('active');
@@ -1960,7 +1960,7 @@ ${filtered.map(r => {
     });
 
     document.getElementById('btnTabRec').addEventListener('click', () => {
-      activeTab = 'rec'; localStorage.setItem('ff_lanc_tab', 'rec');
+      activeTab = 'rec'; UISettings.set('lancTab', 'rec');
       document.getElementById('btnTabRec').classList.add('active');
       document.getElementById('btnTabDesp').classList.remove('active');
       document.getElementById('btnTabCal').classList.remove('active');
@@ -1973,7 +1973,7 @@ ${filtered.map(r => {
     });
 
     document.getElementById('btnTabCal').addEventListener('click', () => {
-      activeTab = 'cal'; localStorage.setItem('ff_lanc_tab', 'cal');
+      activeTab = 'cal'; UISettings.set('lancTab', 'cal');
       document.getElementById('btnTabCal').classList.add('active');
       document.getElementById('btnTabDesp').classList.remove('active');
       document.getElementById('btnTabRec').classList.remove('active');
@@ -2031,7 +2031,7 @@ ${filtered.map(r => {
   // ══════════════════════════════════════════════════════════════
   function renderReceitas(container) {
     const year = getYear(), month = getMonth();
-    const period = localStorage.getItem('ff_rec_period') || 'mes';
+    const period = UISettings.get('recPeriod', 'mes');
     const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
 
     // Normalização defensiva: receitas com schema variado podem quebrar a tela.
@@ -2520,7 +2520,7 @@ ${(() => {
   // ══════════════════════════════════════════════════════════════
   function renderDespesas(container) {
     const month = getMonth(), year = getYear();
-    const period = localStorage.getItem('ff_desp_period') || 'mes';
+    const period = UISettings.get('despPeriod', 'mes');
     const { start: mStart, end: mEnd, label: periodLabel } = periodRangeFor(period, month, year);
 
     // Normalização defensiva: despesas com schema variado podem quebrar a tela.
@@ -4042,8 +4042,8 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     const STATUS_LABEL = { ativo:'Ativo', atrasado:'Atrasado', encerrado:'Encerrado', quitado:'Quitado' };
     const STATUS_COLOR = { ativo:'var(--green)', atrasado:'var(--red)', encerrado:'var(--text-3)', quitado:'var(--accent)' };
 
-    const filterStatus = localStorage.getItem('ff_contratos_status') || 'todos';
-    const filterPessoa = localStorage.getItem('ff_contratos_pessoa') || '';
+    const filterStatus = UISettings.get('contratosStatus', 'todos');
+    const filterPessoa = UISettings.get('contratosPessoa', '');
 
     // KPIs
     let totReceitaMes = 0, totDespesaMes = 0;
@@ -4071,7 +4071,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     const pessoas = [...new Set(contratos.map(c => c.responsavel).filter(Boolean))];
 
     // ── Sub-nav natureza (Compromissos = Recorrentes + Dívidas) ──
-    const naturezaTab = localStorage.getItem('ff_comp_natureza') || 'todos';
+    const naturezaTab = UISettings.get('compNatureza', 'todos');
     const nRec = contratos.filter(c => (c.natureza || 'recorrente') === 'recorrente').length;
     const nDiv = contratos.filter(c => c.natureza === 'divida').length;
 
@@ -4375,18 +4375,18 @@ ${contratos.length === 0 ? coachEmptyHTML({
         }
         const statusBtn = e.target.closest('[data-status]');
         if (statusBtn) {
-          localStorage.setItem('ff_contratos_status', statusBtn.dataset.status);
+          UISettings.set('contratosStatus', statusBtn.dataset.status);
           renderContratos(container);
         }
         const natBtn = e.target.closest('[data-nat-tab]');
         if (natBtn) {
-          localStorage.setItem('ff_comp_natureza', natBtn.dataset.natTab);
+          UISettings.set('compNatureza', natBtn.dataset.natTab);
           renderContratos(container);
         }
       });
       container.addEventListener('change', e => {
         if (e.target.id === 'contratosPessoa') {
-          localStorage.setItem('ff_contratos_pessoa', e.target.value);
+          UISettings.set('contratosPessoa', e.target.value);
           renderContratos(container);
         }
       });
@@ -4719,7 +4719,7 @@ ${contratos.length === 0 ? coachEmptyHTML({
     const showCartoes = mode === 'all' || mode === 'cartoes';
 
     // Sub-nav por categoria (apenas quando mostrando contas) — redesign 2026-05
-    const categoriaTab = showContas ? (localStorage.getItem('ff_contas_categoria') || 'todos') : 'todos';
+    const categoriaTab = showContas ? UISettings.get('contasCategoria', 'todos') : 'todos';
     const contas = (showContas && categoriaTab !== 'todos')
       ? allContas.filter(c => (c.categoria || 'bancaria') === categoriaTab)
       : allContas;
@@ -5103,7 +5103,7 @@ ${(() => {
     // Sub-nav handler — Bancárias/Digitais/Cripto
     container.querySelectorAll('[data-conta-categoria]').forEach(btn => {
       btn.addEventListener('click', () => {
-        localStorage.setItem('ff_contas_categoria', btn.dataset.contaCategoria);
+        UISettings.set('contasCategoria', btn.dataset.contaCategoria);
         renderContas(container, mode);
       });
     });
@@ -7701,8 +7701,7 @@ ${topCats.length ? `
   // (redesign 2026-05 — backlog project_backlog_unify_simulador.md)
   // ══════════════════════════════════════════════════════════════
   function renderSimulador(container) {
-    const BUCKET_KEY = 'ff_sim_bucket';
-    const bucket = localStorage.getItem(BUCKET_KEY) || 'investir';
+    const bucket = UISettings.get('simBucket', 'investir');
 
     // Buckets que controlam quais sub-abas de Simulações aparecem
     const BUCKETS = {
@@ -7763,7 +7762,7 @@ ${(() => {
     // Bind tabs
     container.querySelectorAll('[data-bucket]').forEach(btn => {
       btn.addEventListener('click', () => {
-        localStorage.setItem(BUCKET_KEY, btn.dataset.bucket);
+        UISettings.set('simBucket', btn.dataset.bucket);
         renderSimulador(container);
       });
     });
@@ -12685,7 +12684,7 @@ ${renderPageMonthPicker(container)}
   function renderConfig(container) {
     // Default: abre em "Perfil" pra novos users (era 'categorias').
     // Se o user já visitou outra seção, respeita o último que ele escolheu.
-    const section = localStorage.getItem('ff_config_section') || 'perfil';
+    const section = UISettings.get('configSection', 'perfil');
 
     // ── Card de perfil no topo ──────────────────────────────────────
     const profileData = Store.getProfile();
@@ -12746,7 +12745,7 @@ ${section === 'perfil' ? '' : `
     container.addEventListener('click', e => {
       const btn = e.target.closest('[data-section]');
       if (!btn) return;
-      localStorage.setItem('ff_config_section', btn.dataset.section);
+      UISettings.set('configSection', btn.dataset.section);
       renderConfig(container);
     });
 
@@ -12766,7 +12765,7 @@ ${section === 'perfil' ? '' : `
     upgradeIcons(container);
 
     document.getElementById('btnEditPerfil')?.addEventListener('click', () => {
-      localStorage.setItem('ff_config_section', 'perfil');
+      UISettings.set('configSection', 'perfil');
       renderConfig(container);
     });
   }
@@ -13828,6 +13827,39 @@ ${isConnected && isAdmin ? `
     apply() {
       const density = this.get('tableDensity', 'normal');
       document.documentElement.setAttribute('data-table-density', density);
+    },
+    // Migration one-time: copia flags ff_* legados de localStorage pra
+    // Store.settings.ui (sincado cross-device) e limpa do localStorage.
+    // Idempotente — só copia se a chave nova ainda não estiver setada.
+    migrate() {
+      const MAP = {
+        'ff_lanc_period':       'lancPeriod',
+        'ff_lanc_tab':          'lancTab',
+        'ff_rec_period':        'recPeriod',
+        'ff_desp_period':       'despPeriod',
+        'ff_contratos_status':  'contratosStatus',
+        'ff_contratos_pessoa':  'contratosPessoa',
+        'ff_comp_natureza':     'compNatureza',
+        'ff_contas_categoria':  'contasCategoria',
+        'ff_config_section':    'configSection',
+        'ff_sim_bucket':        'simBucket',
+        'ff_coach_width':       'coachWidth',
+      };
+      const s = Store.get();
+      if (!s.settings) s.settings = {};
+      if (!s.settings.ui) s.settings.ui = {};
+      let migrated = 0;
+      Object.entries(MAP).forEach(([oldKey, newKey]) => {
+        const val = localStorage.getItem(oldKey);
+        if (val !== null) {
+          if (!(newKey in s.settings.ui)) {
+            s.settings.ui[newKey] = val;
+            migrated++;
+          }
+          localStorage.removeItem(oldKey);
+        }
+      });
+      if (migrated > 0) { Store.save(s); (window.Logger || console).log?.(`[UISettings] migrated ${migrated} legacy ff_* flags`); }
     },
   };
   // Expõe pra debugging e pra usos futuros
@@ -16594,7 +16626,7 @@ ${(() => {
     }
 
     // Aplica preferências de UI persistidas (densidade das tabelas etc.)
-    try { UISettings.apply(); } catch (_) {}
+    try { UISettings.migrate(); UISettings.apply(); } catch (_) {}
 
     // Init routing
     Router.init();
@@ -17109,7 +17141,7 @@ ${(() => {
 
     let history = []; // [{role, content}]
     let isLoading = false;
-    let panelWidth = parseInt(localStorage.getItem('ff_coach_width') || '380', 10);
+    let panelWidth = parseInt(UISettings.get('coachWidth', '380'), 10);
     let lastActivity = Date.now();
     const INACTIVITY_MS = 4 * 60 * 60 * 1000; // 4 horas
 
@@ -17235,7 +17267,7 @@ ${(() => {
         panelWidth = w;
         panel.style.width = w + 'px';
         layout.style.setProperty('--coach-panel-w', w + 'px');
-        localStorage.setItem('ff_coach_width', w);
+        UISettings.set('coachWidth', String(w));
         updateWidthPresetActive();
       });
     });
@@ -17269,7 +17301,7 @@ ${(() => {
       dragging = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      localStorage.setItem('ff_coach_width', panelWidth);
+      UISettings.set('coachWidth', String(panelWidth));
     });
 
     // ── Build financial context ───────────────────────────────────
