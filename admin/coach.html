@@ -15,16 +15,51 @@
   <header id="admin-topbar">
     <div>
       <div class="admin-page-title">Coach & IA</div>
-      <div class="admin-page-sub">Configurações globais do Haile Coach</div>
+      <div class="admin-page-sub">Configurações globais do Haile — modelo, comportamento padrão</div>
+    </div>
+    <div class="admin-topbar-actions">
+      <button class="btn btn-secondary" id="btnRefresh" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg data-lucide="refresh-cw" width="13" height="13" stroke="currentColor" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-refresh-cw"/></svg>
+        Atualizar
+      </button>
     </div>
   </header>
 
   <main id="admin-content">
-    <div class="admin-table-card" style="padding:48px;text-align:center">
-      <svg data-lucide="bot" width="40" height="40" stroke="var(--text-4)" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-bot"/></svg>
-      <div style="margin-top:16px;font-size:15px;font-weight:600;color:var(--text-2)">Em construção</div>
-      <div style="margin-top:8px;font-size:13px;color:var(--text-4);max-width:400px;margin-inline:auto">
-        Configurações globais do Coach — prompt base, limites de uso, modelos e personalidades padrão.
+    <!-- Modelo default -->
+    <div class="admin-table-card" style="margin-bottom:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Modelo Claude</span>
+      </div>
+      <div style="padding:20px">
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Modelo default para todo o sistema</label>
+          <select class="form-select" id="defaultModel" style="max-width:480px">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 — rápido e barato (~$0,0003/pergunta)</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 — mais inteligente (~$0,007/pergunta)</option>
+            <option value="claude-opus-4-7">Opus 4.7 — máximo (~$0,03/pergunta)</option>
+          </select>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">Usado quando o user não escolheu modelo nas configurações dele.</div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="forceGlobalModel">
+            <span style="font-size:13px;color:var(--text-1)">Forçar modelo global em <strong>todos os users</strong> (ignora escolha individual)</span>
+          </label>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px;margin-left:24px">Use pra controle de custo emergencial ou se descobrir bug em um modelo específico.</div>
+        </div>
+        <button class="btn-primary" id="btnSaveModel" style="display:none">Salvar</button>
+        <div id="modelStatus" style="font-size:12px;color:var(--text-3);margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- Status atual -->
+    <div class="admin-table-card">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Status atual</span>
+      </div>
+      <div id="statusBox" style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+        <div class="admin-loading">Carregando…</div>
       </div>
     </div>
   </main>
@@ -37,11 +72,80 @@
 <script src="../app/js/supabase-client.js"></script>
 <script src="admin.js"></script>
 <script>
+let _initialSettings = {};
+
 document.addEventListener('DOMContentLoaded', async () => {
   Admin.renderSidebar('coach');
-  await Admin.boot('coach');
-  lucide.createIcons();
+  const ok = await Admin.boot('coach');
+  if (!ok) return;
+  document.getElementById('btnRefresh').addEventListener('click', load);
+  document.getElementById('btnSaveModel').addEventListener('click', save);
+  ['defaultModel', 'forceGlobalModel'].forEach(id => {
+    document.getElementById(id).addEventListener('change', checkDirty);
+  });
+  load();
 });
+
+async function load() {
+  try {
+    const res = await SupabaseSync.adminCall('getGlobalSettings');
+    const map = {};
+    (res.settings || []).forEach(s => { map[s.key] = s.value; });
+    _initialSettings = { ...map };
+    document.getElementById('defaultModel').value = map.default_model || 'claude-haiku-4-5-20251001';
+    document.getElementById('forceGlobalModel').checked = !!map.force_global_model;
+    checkDirty();
+    renderStatus(map);
+  } catch (e) {
+    Admin.toast(e.message || String(e), 'error');
+  }
+}
+
+function renderStatus(map) {
+  const MODEL_LABEL = {
+    'claude-haiku-4-5-20251001': 'Haiku 4.5',
+    'claude-sonnet-4-6': 'Sonnet 4.6',
+    'claude-opus-4-7': 'Opus 4.7',
+  };
+  const cur = map.default_model || 'claude-haiku-4-5-20251001';
+  const forced = !!map.force_global_model;
+  document.getElementById('statusBox').innerHTML = `
+    <div class="admin-setting-row">
+      <div class="admin-setting-label">Modelo default</div>
+      <div class="admin-setting-value" style="color:var(--haile-indigo-deep)">${MODEL_LABEL[cur] || cur}</div>
+    </div>
+    <div class="admin-setting-row">
+      <div class="admin-setting-label">Modo</div>
+      <div class="admin-setting-value" style="color:${forced ? 'var(--amber)' : 'var(--green)'}">${forced ? 'Forçado em todos' : 'Override permitido por user'}</div>
+      <div class="admin-setting-hint">${forced ? 'Users não conseguem trocar' : 'User escolhe em Configurações'}</div>
+    </div>
+  `;
+}
+
+function checkDirty() {
+  const curModel = document.getElementById('defaultModel').value;
+  const curForce = document.getElementById('forceGlobalModel').checked;
+  const dirty = curModel !== _initialSettings.default_model ||
+                curForce !== !!_initialSettings.force_global_model;
+  document.getElementById('btnSaveModel').style.display = dirty ? 'inline-flex' : 'none';
+}
+
+async function save() {
+  const model = document.getElementById('defaultModel').value;
+  const force = document.getElementById('forceGlobalModel').checked;
+  const status = document.getElementById('modelStatus');
+  status.textContent = 'Salvando…';
+  try {
+    await SupabaseSync.adminCall('setGlobalSetting', { key: 'default_model', value: model });
+    await SupabaseSync.adminCall('setGlobalSetting', { key: 'force_global_model', value: force });
+    status.textContent = 'Salvo. Mudança vale na próxima request do Coach.';
+    Admin.toast('Configurações salvas', 'success');
+    await load();
+  } catch (e) {
+    status.textContent = '';
+    Admin.toast(e.message || String(e), 'error');
+  }
+}
 </script>
 </body>
 </html>

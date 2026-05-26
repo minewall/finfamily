@@ -105,6 +105,7 @@ function drawTable(users) {
         <td style="text-align:right;white-space:nowrap;display:flex;gap:4px;justify-content:flex-end">
           <button class="btn-xs" data-action="tier" data-id="${u.id}" data-cur="${u.tier || 'free'}">Tier</button>
           <button class="btn-xs" data-action="role" data-id="${u.id}" data-cur="${u.role || 'user'}">Role</button>
+          <button class="btn-xs ${u.tier === 'suspended' ? 'success' : 'warning'}" data-action="${u.tier === 'suspended' ? 'reactivate' : 'suspend'}" data-id="${u.id}" data-email="${u.email || u.id}">${u.tier === 'suspended' ? 'Reativar' : 'Suspender'}</button>
           <button class="btn-xs" data-action="export" data-id="${u.id}">Export</button>
           <button class="btn-xs danger" data-action="delete" data-id="${u.id}" data-email="${u.email || u.id}">Deletar</button>
         </td>
@@ -118,12 +119,32 @@ async function handleAction(e) {
   const { action, id, cur, email } = btn.dataset;
 
   if (action === 'tier') {
-    const tiers = ['free', 'plus', 'premium', 'suspended'];
-    const next = tiers[(tiers.indexOf(cur) + 1) % tiers.length];
+    // Cycle não inclui 'suspended' — usar botão dedicado pra isso
+    const tiers = ['free', 'always_free', 'plus', 'premium'];
+    const idx = tiers.indexOf(cur);
+    const next = idx === -1 ? 'free' : tiers[(idx + 1) % tiers.length];
     if (!confirm(`Mudar tier de "${cur}" → "${next}"?`)) return;
     try {
       await SupabaseSync.adminCall('setTier', { userId: id, tier: next });
       Admin.toast(`Tier atualizado para ${next}`, 'success');
+      load();
+    } catch (err) { Admin.toast(err.message, 'error'); }
+  }
+
+  if (action === 'suspend') {
+    if (!confirm(`Suspender "${email}"? O user não conseguirá usar o Coach até ser reativado.`)) return;
+    try {
+      await SupabaseSync.adminCall('suspendUser', { userId: id });
+      Admin.toast('Usuário suspenso', 'success');
+      load();
+    } catch (err) { Admin.toast(err.message, 'error'); }
+  }
+
+  if (action === 'reactivate') {
+    if (!confirm(`Reativar "${email}"? Restaura o tier anterior à suspensão.`)) return;
+    try {
+      const res = await SupabaseSync.adminCall('reactivateUser', { userId: id });
+      Admin.toast(`Usuário reativado (tier: ${res?.restored_to || 'free'})`, 'success');
       load();
     } catch (err) { Admin.toast(err.message, 'error'); }
   }

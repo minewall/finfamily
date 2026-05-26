@@ -260,10 +260,11 @@ table.admin-table tbody tr:hover td { background: var(--bg-elevated); }
   border-radius: 99px;
 }
 
-.badge-free     { color: var(--text-3); background: var(--bg-elevated); }
-.badge-plus     { color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, transparent); }
-.badge-premium  { color: var(--haile-indigo-deep); background: var(--haile-indigo-soft); }
-.badge-suspended{ color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.badge-free        { color: var(--text-3); background: var(--bg-elevated); }
+.badge-always_free { color: var(--green);   background: color-mix(in srgb, var(--green) 14%, transparent); }
+.badge-plus        { color: var(--blue);    background: color-mix(in srgb, var(--blue)  12%, transparent); }
+.badge-premium     { color: var(--haile-indigo-deep); background: var(--haile-indigo-soft); }
+.badge-suspended   { color: var(--red);     background: color-mix(in srgb, var(--red)   12%, transparent); }
 .badge-admin    { color: var(--amber, #f59e0b); background: color-mix(in srgb, #f59e0b 14%, transparent); }
 .badge-user     { color: var(--text-4); background: transparent; }
 
@@ -283,6 +284,10 @@ table.admin-table tbody tr:hover td { background: var(--bg-elevated); }
 .btn-xs:hover { background: var(--bg-base); color: var(--text-1); }
 .btn-xs.danger { border-color: var(--red); color: var(--red); }
 .btn-xs.danger:hover { background: var(--red); color: #fff; }
+.btn-xs.warning { border-color: var(--amber); color: var(--amber); }
+.btn-xs.warning:hover { background: var(--amber); color: #fff; }
+.btn-xs.success { border-color: var(--green); color: var(--green); }
+.btn-xs.success:hover { background: var(--green); color: #fff; }
 
 .btn { padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: var(--radius-md); border: none; cursor: pointer; transition: opacity .15s; }
 .btn:hover { opacity: .88; }

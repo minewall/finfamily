@@ -81,7 +81,7 @@ serve(async (req) => {
       case 'setTier': {
         const { userId, tier } = params as { userId: string; tier: string };
         if (!userId || !tier) return json(400, { error: 'userId and tier required' }, req);
-        const valid = ['free', 'plus', 'premium', 'suspended'];
+        const valid = ['free', 'always_free', 'plus', 'premium', 'suspended'];
         if (!valid.includes(tier)) return json(400, { error: `tier must be one of: ${valid.join(', ')}` }, req);
         const { error } = await adminClient
           .from('profiles')
@@ -90,6 +90,38 @@ serve(async (req) => {
         if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
         console.log(`[admin] setTier userId=${userId} tier=${tier} by admin=${user.id}`);
         return json(200, { ok: true }, req);
+      }
+
+      // Suspend user — preserva o tier atual em previous_tier
+      case 'suspendUser': {
+        const { userId } = params as { userId: string };
+        if (!userId) return json(400, { error: 'userId required' }, req);
+        if (userId === user.id) return json(400, { error: 'Cannot suspend yourself' }, req);
+        // Lê tier atual pra salvar em previous_tier
+        const { data: p } = await adminClient.from('profiles').select('tier').eq('id', userId).single();
+        const prev = p?.tier && p.tier !== 'suspended' ? p.tier : 'free';
+        const { error } = await adminClient
+          .from('profiles')
+          .update({ tier: 'suspended', previous_tier: prev })
+          .eq('id', userId);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
+        console.log(`[admin] suspendUser userId=${userId} previous_tier=${prev} by admin=${user.id}`);
+        return json(200, { ok: true, previous_tier: prev }, req);
+      }
+
+      // Reactivate user — restaura previous_tier (ou 'free' se não houver)
+      case 'reactivateUser': {
+        const { userId } = params as { userId: string };
+        if (!userId) return json(400, { error: 'userId required' }, req);
+        const { data: p } = await adminClient.from('profiles').select('previous_tier').eq('id', userId).single();
+        const restoreTo = p?.previous_tier || 'free';
+        const { error } = await adminClient
+          .from('profiles')
+          .update({ tier: restoreTo, previous_tier: null })
+          .eq('id', userId);
+        if (error) { console.error("[admin] db error:", error); return json(500, { error: "Erro ao processar a operação" }, req); }
+        console.log(`[admin] reactivateUser userId=${userId} restored_to=${restoreTo} by admin=${user.id}`);
+        return json(200, { ok: true, restored_to: restoreTo }, req);
       }
 
       // Change role for a user: { userId, role } — use with care
@@ -275,6 +307,28 @@ serve(async (req) => {
           topUsers,
           monthStart,
         }, req);
+      }
+
+      // Global app_settings — read all
+      case 'getGlobalSettings': {
+        const { data, error } = await adminClient
+          .from('app_settings')
+          .select('key, value, description, updated_at');
+        if (error) return json(500, { error: error.message }, req);
+        return json(200, { settings: data || [] }, req);
+      }
+
+      // Global app_settings — set { key, value }
+      case 'setGlobalSetting': {
+        const { key, value } = params as { key: string; value: unknown };
+        if (!key) return json(400, { error: 'key required' }, req);
+        // upsert
+        const { error } = await adminClient
+          .from('app_settings')
+          .upsert({ key, value, updated_at: new Date().toISOString(), updated_by: user.id }, { onConflict: 'key' });
+        if (error) return json(500, { error: error.message }, req);
+        console.log(`[admin] setGlobalSetting key=${key} by admin=${user.id}`);
+        return json(200, { ok: true }, req);
       }
 
       default:

@@ -147,9 +147,33 @@ serve(async (req) => {
       return jsonErr(400, 'invalid_input', 'messages obrigatório', req);
     }
 
+    // Global override do admin: se app_settings.force_global_model = true,
+    // ignora o pedido do cliente e força o default_model configurado.
+    let globalDefaultModel = DEFAULT_MODEL;
+    let forceGlobalModel = false;
+    if (adminClient) {
+      try {
+        const { data: settings } = await adminClient
+          .from('app_settings')
+          .select('key, value')
+          .in('key', ['default_model', 'force_global_model']);
+        for (const s of (settings || [])) {
+          if (s.key === 'default_model' && typeof s.value === 'string') {
+            globalDefaultModel = s.value;
+          } else if (s.key === 'force_global_model' && s.value === true) {
+            forceGlobalModel = true;
+          }
+        }
+      } catch (e) {
+        console.warn(`[claude-proxy] app_settings read falhou: ${(e as Error).message}`);
+      }
+    }
+
     // Allowlist de modelo
-    const requestedModel = typeof model === 'string' ? model : DEFAULT_MODEL;
-    const usedModel = MODEL_ALLOWLIST.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
+    const requestedModel = forceGlobalModel
+      ? globalDefaultModel
+      : (typeof model === 'string' ? model : globalDefaultModel);
+    const usedModel = MODEL_ALLOWLIST.has(requestedModel) ? requestedModel : globalDefaultModel;
 
     // Cap max_tokens
     let safeMaxTokens = typeof max_tokens === 'number' && max_tokens > 0
