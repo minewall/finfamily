@@ -3185,13 +3185,24 @@ ${despesas.length === 0 ? coachEmptyHTML({
     const knowledge = (data.settings && data.settings.iaKnowledge) || {};
     const norm = desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
     if (!norm) return null;
-    // Check user's personal knowledge base first
+
+    // 1) Match exato no aprendizado pessoal (prioridade máxima)
     if (knowledge[norm]) return knowledge[norm];
-    // Partial match in knowledge base
+
+    // 2) Match parcial — pick por count desc (mais corrigido/confirmado ganha).
+    //    Resolve o caso em que múltiplas chaves casam com a descrição atual.
+    let bestPartial = null;
+    let bestScore = -1;
     for (const [key, val] of Object.entries(knowledge)) {
-      if (norm.includes(key) || key.includes(norm)) return val;
+      if (key.length < 3) continue; // ignora ruído
+      if (norm.includes(key) || key.includes(norm)) {
+        const score = val.count || 1;
+        if (score > bestScore) { bestScore = score; bestPartial = val; }
+      }
     }
-    // Keyword dictionary
+    if (bestPartial) return bestPartial;
+
+    // 3) Dicionário estático de keywords (fallback final)
     for (const entry of IA_KEYWORDS) {
       if (entry.kws.some(kw => norm.includes(kw))) {
         return { category: entry.cat, sub: entry.sub };
@@ -3284,6 +3295,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
     </div>`;
     let splitApi = null;
     let novaAnexoApi = null;
+    let _lastSuggestion = null; // Fase 2: snapshot da sugestão exibida (pra aprender com correção)
     Modal.open('Nova Despesa', html, () => {
       const desc          = document.getElementById('fDDesc').value.trim();
       const amount        = parseFloat(document.getElementById('fDAmt').value);
@@ -3314,6 +3326,35 @@ ${despesas.length === 0 ? coachEmptyHTML({
       if (temReembolso) extraFields.reembolso = {
         para: currentPessoa(), de: reembolsoDe, valor: reembolsoVal, status: 'pendente', criadoEm: new Date().toISOString().slice(0,10)
       };
+      // ── Fase 2: IA aprende com a escolha do usuário ─────────────
+      // Salva mapeamento desc→categoria sempre que houver descrição substantiva.
+      // Casos cobertos:
+      //  a) Override: usuário recebeu sugestão mas escolheu outra categoria
+      //  b) First pick: descrição nova que o IA_KEYWORDS não cobre
+      // O caso de "confirmou a sugestão clicando no chip" já é salvo no handler
+      // do chip (linha ~3430) — esse bloco aqui cobre os 2 casos restantes.
+      (() => {
+        if (!desc || !cat) return;
+        const norm = desc.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+        if (norm.length < 3) return;
+        const suggested = _lastSuggestion; // pode ser null
+        const userChoice = { category: cat, sub: sub || null };
+        const isOverride  = suggested && (suggested.category !== userChoice.category || (suggested.sub || null) !== userChoice.sub);
+        const isFirstPick = !suggested;
+        if (!isOverride && !isFirstPick) return; // confirmou sugestão sem mudar — nada a aprender aqui
+        const d = Store.get(); d.settings = d.settings || {}; d.settings.iaKnowledge = d.settings.iaKnowledge || {};
+        const prev = d.settings.iaKnowledge[norm];
+        const sameAsBefore = prev && prev.category === userChoice.category && (prev.sub || null) === userChoice.sub;
+        d.settings.iaKnowledge[norm] = {
+          category: userChoice.category,
+          sub:      userChoice.sub,
+          count:    sameAsBefore ? (prev.count || 1) + 1 : 1,
+          lastSeen: Date.now(),
+          source:   isOverride ? 'override' : 'firstPick',
+        };
+        Store.save(d);
+      })();
+
       let createdEntry = null;
       if (parcelado && parcelas > 1) {
         Store.addDespesaParcelada({ desc, amount: parseFloat((amount / parcelas).toFixed(2)), date, category: cat, sub, pay, parcelas, ...extraFields });
@@ -3410,6 +3451,8 @@ ${despesas.length === 0 ? coachEmptyHTML({
         const chip = document.getElementById('fDIaSuggest');
         if (!chip) return;
         const suggestion = suggestCategory(e.target.value);
+        // Fase 2: guarda a sugestão pra comparar com a escolha final no save
+        _lastSuggestion = suggestion ? { category: suggestion.category, sub: suggestion.sub || null } : null;
         if (suggestion) {
           const catLabel = catLabels[suggestion.category] || suggestion.category;
           chip.innerHTML = `<button type="button" class="ia-suggest-btn" data-cat="${Utils.escapeHtml(suggestion.category)}" data-sub="${Utils.escapeHtml(suggestion.sub || '')}">
@@ -3420,12 +3463,20 @@ ${despesas.length === 0 ? coachEmptyHTML({
             const catSel = document.getElementById('fDCat');
             if (catSel) { catSel.value = suggestion.category; updateSubs(); }
             if (suggestion.sub) setTimeout(() => { const s = document.getElementById('fDSub'); if (s) s.value = suggestion.sub; }, 30);
-            // Save to knowledgebase
+            // Save to knowledgebase (Fase 2: incrementa count se já existia o mesmo mapeamento)
             const norm = e.target.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
             if (norm) {
               const d = Store.get(); d.settings = d.settings || {};
               d.settings.iaKnowledge = d.settings.iaKnowledge || {};
-              d.settings.iaKnowledge[norm] = { category: suggestion.category, sub: suggestion.sub, confidence: 1.0 };
+              const prev = d.settings.iaKnowledge[norm];
+              const sameAsBefore = prev && prev.category === suggestion.category && (prev.sub || null) === (suggestion.sub || null);
+              d.settings.iaKnowledge[norm] = {
+                category: suggestion.category,
+                sub:      suggestion.sub || null,
+                count:    sameAsBefore ? (prev.count || 1) + 1 : 1,
+                lastSeen: Date.now(),
+                source:   'confirm',
+              };
               Store.save(d);
             }
             chip.style.display = 'none';
