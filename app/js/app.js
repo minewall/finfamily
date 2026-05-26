@@ -9475,9 +9475,22 @@ ${_embed ? '' : `<div class="page-head mb-4">
         const rendimentoBruto = saldoAcc - totalAportado;
         const rendimentoLiq = rendimentoBruto * (1 - ir);
         const totalLiq = totalAportado + rendimentoLiq;
+        // Insight: ano em que o rendimento mensal supera o aporte mensal (turning point)
+        let mTurningPoint = 0;
+        {
+          let s = C;
+          for (let m = 1; m <= n; m++) {
+            const rendMes = s * i;
+            if (rendMes > A && A > 0) { mTurningPoint = m; break; }
+            s = s * (1 + i) + A;
+          }
+        }
+        // Tempo pra dobrar o capital aportado (sem aporte adicional, só juros)
+        const tempoDobrar = i > 0 ? Math.log(2) / Math.log(1 + i) : 0;
+
         document.getElementById('jResult').style.display = '';
         document.getElementById('jResultBody').innerHTML = `
-<div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
+<div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
   <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-dim);padding:14px">
     <div class="kpi-body"><div class="kpi-label">Montante Bruto</div><div class="kpi-value green">${Utils.currency(saldoAcc)}</div></div>
   </div>
@@ -9489,6 +9502,17 @@ ${_embed ? '' : `<div class="page-head mb-4">
   </div>
   <div class="kpi-card" style="--kpi-color:var(--amber);--kpi-bg:var(--amber-dim);padding:14px">
     <div class="kpi-body"><div class="kpi-label">Rendimento Líquido</div><div class="kpi-value" style="color:var(--amber)">${Utils.currency(rendimentoLiq)}</div></div>
+  </div>
+</div>
+<div style="background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.25);border-radius:10px;padding:12px 14px">
+  <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('sparkles',{size:12})} <span>Insight do Haile</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">
+    ${mTurningPoint > 0
+      ? `O ponto onde o <strong>rendimento mensal supera o aporte</strong> acontece no mês <strong>${mTurningPoint}</strong> (~${Math.floor(mTurningPoint/12)} anos${mTurningPoint%12 ? ` e ${mTurningPoint%12} meses` : ''}). A partir dali, seu dinheiro trabalha mais que você.`
+      : `A taxa de ${(i*100).toFixed(2)}% a.m. não é suficiente pro rendimento superar o aporte de ${Utils.currency(A)}/mês no horizonte de ${n} meses.`}
+    ${tempoDobrar > 0 ? `<br>Sem novos aportes, o capital inicial de ${Utils.currency(C)} dobraria em <strong>~${tempoDobrar.toFixed(0)} meses</strong> (regra dos juros compostos).` : ''}
   </div>
 </div>`;
         if (window._chartJuros) window._chartJuros.destroy();
@@ -9771,7 +9795,29 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
 <div class="progress-bar progress-lg mb-4" style="margin-top:4px"><div class="progress-fill" style="width:${Math.min((base/alvo)*100,100).toFixed(1)}%;background:var(--accent)"></div></div>
 <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:16px">
   <span>Já guardado: ${Utils.currency(base)}</span><span>Alvo: ${Utils.currency(alvo)}</span>
+</div>
+${(() => {
+  // Insight: progresso atual + simulação +10% aporte
+  const pctAtual = alvo > 0 ? (base / alvo) * 100 : 0;
+  // Se aportasse 10% a mais
+  const aporteMais = aporte * 1.10;
+  let s2 = base, m2 = 0;
+  while (s2 < alvo && m2 < 600) { m2++; s2 = s2 * (1 + i) + aporteMais; }
+  const adiantar = Math.max(0, meses - m2);
+  // Quanto vem de juros vs aporte
+  const aportadoTotal = aporte * meses;
+  const jurosTotal = Math.max(0, (alvo - base) - aportadoTotal);
+  const jurosPct = (alvo - base) > 0 ? (jurosTotal / (alvo - base)) * 100 : 0;
+  return `
+<div style="background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+  <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('sparkles',{size:12})} <span>Insight do Haile</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">
+    ${pctAtual > 0 ? `Você está com <strong>${pctAtual.toFixed(0)}% da meta</strong> conquistados.` : 'Partindo do zero.'}${adiantar > 0 ? ` Aportar <strong>${Utils.currency(aporteMais - aporte)}/mês a mais</strong> (10% extra) adianta <strong>${adiantar} ${adiantar === 1 ? 'mês' : 'meses'}</strong>.` : ''}${jurosPct > 5 ? `<br>Dos ${Utils.currency(alvo - base)} que faltam, <strong style="color:var(--green)">${jurosPct.toFixed(0)}% vem dos juros compostos</strong> — não só do seu aporte.` : ''}
+  </div>
 </div>`;
+})()}`;
         if (window._chartMeta) window._chartMeta.destroy();
         const step = Math.max(1, Math.floor(meses/24));
         const lFiltered = labels.filter((_,idx) => idx % step === 0 || idx === labels.length-1);
@@ -9988,6 +10034,41 @@ ${usandoReserva ? `
   </div>
 </div>` : ''}
 
+${(() => {
+  // Insight contextual: aporte vs saldo médio mensal dos últimos 3 meses
+  const hoje = new Date();
+  let saldoSomado = 0, mesesUsados = 0;
+  for (let k = 0; k < 3; k++) {
+    const d = new Date(hoje); d.setMonth(d.getMonth() - k);
+    const rec = Store.sumReceitas(d.getMonth() + 1, d.getFullYear());
+    const desp = Store.sumDespesas(d.getMonth() + 1, d.getFullYear());
+    if (rec > 0 || desp > 0) { saldoSomado += (rec - desp); mesesUsados++; }
+  }
+  const saldoMedio = mesesUsados ? Math.max(0, saldoSomado / mesesUsados) : 0;
+  const pctSaldo = saldoMedio > 0 ? (pmtEscolhido / saldoMedio) * 100 : null;
+  // Se aportasse 20% a mais, quantos meses adianta?
+  const pmtMais = pmtEscolhido * 1.20;
+  let mesesNovo = 0; let acc2 = reservaUsada;
+  while (acc2 < fv && mesesNovo < meses * 2) { mesesNovo++; acc2 = acc2 * (1 + i) + pmtMais; }
+  const adiantar = Math.max(0, meses - mesesNovo);
+  let pctText = '';
+  if (pctSaldo != null) {
+    const cor = pctSaldo > 80 ? 'var(--red)' : pctSaldo > 50 ? 'var(--amber)' : 'var(--green)';
+    pctText = `Esse aporte representa <strong style="color:${cor}">${pctSaldo.toFixed(0)}% do seu saldo médio mensal</strong> dos últimos ${mesesUsados} meses${pctSaldo > 80 ? ' — tá apertado.' : pctSaldo > 50 ? ' — folgado mas pesa.' : ' — cabe tranquilo.'}`;
+  } else {
+    pctText = 'Cadastre receitas/despesas pra eu calcular o impacto no seu fluxo mensal.';
+  }
+  return `
+<div style="background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+  <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('sparkles',{size:12})} <span>Insight do Haile</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">
+    ${pctText}${adiantar > 0 ? `<br>Aportar <strong>${Utils.currency(pmtMais - pmtEscolhido)}/mês a mais</strong> (20% extra) te tira <strong>${adiantar} ${adiantar === 1 ? 'mês' : 'meses'}</strong> do prazo.` : ''}
+  </div>
+</div>`;
+})()}
+
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
   <button class="btn-primary" id="vSaveBtn">→ Converter em meta + aporte</button>
   <button class="btn-coach" id="vCoachBtn" style="padding:10px 18px">
@@ -10103,6 +10184,32 @@ ${reservaTotal > 0 ? `
     ? `Você já tem ${cobertura.toFixed(1)} meses cobertos — pode focar em outros objetivos.`
     : `Aportando <strong>${Utils.currency(aporte)}/mês</strong> a <strong>${taxaAnual.toFixed(2)}% a.a.</strong>, você completa a reserva em <strong>~${meses} meses</strong>.`}
 </div>
+
+${(() => {
+  // Insight: progresso atual, ritmo, sugestão de cobertura ideal
+  const pctProgresso = alvo > 0 ? (reservaTotal / alvo) * 100 : 0;
+  const meiaCobertura = cobertura;
+  let recomendacao = '';
+  if (jaCompleta) {
+    recomendacao = `Sua reserva está completa com ${meiaCobertura.toFixed(1)} meses de cobertura. Próximo passo: <strong>investir o excedente</strong> em produtos com melhor rendimento (Tesouro IPCA+ pra horizonte longo, CDB acima de 100% CDI).`;
+  } else if (meiaCobertura < 3) {
+    recomendacao = `Você está com <strong style="color:var(--red)">${meiaCobertura.toFixed(1)} meses</strong> de cobertura — em zona de risco. Reserva é a base do plano: priorize completar pelo menos 3 meses antes de outros objetivos.`;
+  } else if (meiaCobertura < 6) {
+    recomendacao = `Você está com <strong style="color:var(--amber)">${meiaCobertura.toFixed(1)} meses</strong> — já tem um colchão básico. Considere chegar nos 6 meses antes de redirecionar pra metas de longo prazo.`;
+  } else {
+    recomendacao = `<strong style="color:var(--green)">${meiaCobertura.toFixed(1)} meses</strong> de cobertura — patamar saudável. Se quer mais conservadorismo, vá até 12 meses; senão, sobra grana pra investir em ${(meiaCobertura - 6) > 1 ? 'objetivos de longo prazo' : 'metas específicas'}.`;
+  }
+  return `
+<div style="background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+  <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('sparkles',{size:12})} <span>Insight do Haile</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">
+    ${recomendacao}${!jaCompleta && reservaTotal > 0 ? `<br>Progresso: <strong>${pctProgresso.toFixed(0)}%</strong> do alvo de ${multi} meses.` : ''}
+  </div>
+</div>`;
+})()}
+
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
   ${!jaCompleta ? `<button class="btn-primary" id="rSaveBtn">→ Converter em meta + aporte</button>` : ''}
   <button class="btn-coach" id="rCoachBtn" style="padding:10px 18px">
@@ -10260,6 +10367,39 @@ ${usarReserva ? `
     mas abre mão de <strong style="color:var(--red)">${Utils.currency(fvAplicacao - pmt*n + (vista * (Math.pow(1+i, n) - 1)))}</strong> de rendimento que a reserva geraria nos próximos ${n} meses.
   </div>
 </div>` : ''}
+
+${(() => {
+  // Insight: impacto no fluxo mensal + relação juros vs taxa de oportunidade
+  const hoje = new Date();
+  let saldoSomado = 0, mesesUsados = 0;
+  for (let k = 0; k < 3; k++) {
+    const d = new Date(hoje); d.setMonth(d.getMonth() - k);
+    const rec = Store.sumReceitas(d.getMonth() + 1, d.getFullYear());
+    const desp = Store.sumDespesas(d.getMonth() + 1, d.getFullYear());
+    if (rec > 0 || desp > 0) { saldoSomado += (rec - desp); mesesUsados++; }
+  }
+  const saldoMedio = mesesUsados ? Math.max(0, saldoSomado / mesesUsados) : 0;
+  const pctSaldo = saldoMedio > 0 ? (pmt / saldoMedio) * 100 : null;
+  const jurosVsOportPp = jAnual - taxaAnual;
+  let texto = '';
+  if (vistaMelhor) {
+    texto = `Os juros embutidos no parcelado (<strong style="color:var(--red)">${jAnual.toFixed(1)}% a.a.</strong>) são <strong>${jurosVsOportPp.toFixed(1)} pp acima</strong> da sua taxa de oportunidade. Pagar à vista e investir o que sobra geralmente vence.`;
+  } else {
+    texto = `Os juros do parcelado (<strong>${jAnual.toFixed(1)}% a.a.</strong>) estão <strong>${Math.abs(jurosVsOportPp).toFixed(1)} pp abaixo</strong> da sua taxa de oportunidade — parcelar e investir o caixa que sobra rende mais. Mas só vale se você de fato investir a diferença.`;
+  }
+  if (pctSaldo != null) {
+    const cor = pctSaldo > 30 ? 'var(--amber)' : 'var(--green)';
+    texto += `<br>Parcela de ${Utils.currency(pmt)} consome <strong style="color:${cor}">${pctSaldo.toFixed(0)}% do seu saldo médio mensal</strong>${pctSaldo > 30 ? ' — fica pesado no orçamento.' : '.'}`;
+  }
+  return `
+<div style="background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+  <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+    ${icon('sparkles',{size:12})} <span>Insight do Haile</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">${texto}</div>
+</div>`;
+})()}
+
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
   ${vistaMelhor
     ? `<button class="btn-primary" id="cSaveMeta">→ Criar meta "Juntar ${Utils.currency(vista)} para ${desc}"</button>`
