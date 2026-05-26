@@ -5619,6 +5619,7 @@ ${equips.length === 0
     const idade = e.dataCompra ? ((Date.now() - new Date(e.dataCompra).getTime()) / (1000*60*60*24*365.25)).toFixed(1) : '—';
     const cor = CAT_COLOR[e.categoria] || '#9CA3AF';
     const ico = CAT_ICON[e.categoria] || 'package';
+    const custoAnual = Store.equipamentoCustoAnual(e);
     return `
   <div class="card" data-edit-equipamento="${e.id}" style="border-top:3px solid ${cor};padding:14px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -5635,6 +5636,12 @@ ${equips.length === 0
       <div><div style="color:var(--text-4);font-size:10px;text-transform:uppercase">Vida útil</div><div style="font-weight:600">${e.vidaUtilAnos || 5}a</div></div>
     </div>
     ${deprec > 0 ? `<div style="font-size:10.5px;color:var(--red);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">▼ ${Utils.currency(deprec)} (${deprecPct.toFixed(0)}%) depreciado</div>` : ''}
+    ${custoAnual > 0 ? `
+    <div style="font-size:10.5px;color:var(--text-3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+      <span style="text-transform:uppercase;letter-spacing:.04em;font-weight:600">Custo/ano</span>
+      <span style="font-weight:700;color:var(--amber);font-family:var(--mono)">${Utils.currency(custoAnual)}</span>
+    </div>` : ''}
+    ${e.custoManutencaoMensal > 0 ? `<div style="margin-top:10px"><button class="btn-xs" data-prog-manut-eq="${e.id}">${icon('calendar-clock',{size:11})} Programar manutenção</button></div>` : ''}
   </div>`;
   }).join('')}
 </div>`}`;
@@ -5819,6 +5826,13 @@ ${passivos.length === 0
       });
     });
     container.addEventListener('click', e => {
+      const progEq = e.target.closest('[data-prog-manut-eq]');
+      if (progEq) {
+        e.stopPropagation();
+        const eq = Store.getEquipamentos().find(x => x.id === progEq.dataset.progManutEq);
+        if (eq) _programarManutencaoEquipamento(eq, re);
+        return;
+      }
       const tco = e.target.closest('[data-tco-veiculo]');
       if (tco) { e.stopPropagation(); const v = Store.getVeiculos().find(x => x.id === tco.dataset.tcoVeiculo); if (v) _showTCOVeiculoModal(v); return; }
       const troca = e.target.closest('[data-troca-veiculo]');
@@ -6618,6 +6632,8 @@ ${passivos.length === 0
   <div class="form-group"><label class="form-label">Valor atual (R$) — opcional</label><input class="form-input" id="fEQValorAtual" type="number" step="50" value="${e.valorAtual||''}" placeholder="Calcula auto se vazio"></div>
   <div class="form-group"><label class="form-label">Depreciação anual (%)</label><input class="form-input" id="fEQDeprec" type="number" step="1" min="0" max="60" value="${e.depreciacaoAnualPct || 20}"></div>
   <div class="form-group"><label class="form-label">Vida útil (anos)</label><input class="form-input" id="fEQVida" type="number" step="1" min="1" max="30" value="${e.vidaUtilAnos || 5}"></div>
+  <div class="form-group"><label class="form-label">Manutenção/mês (R$)</label><input class="form-input" id="fEQManut" type="number" step="10" value="${e.custoManutencaoMensal || ''}" placeholder="Limpeza, peças, software"></div>
+  <div class="form-group"><label class="form-label">Custo anual extra (R$)</label><input class="form-input" id="fEQAnualExtra" type="number" step="50" value="${e.custoAnualExtra || ''}" placeholder="Seguro, garantia"></div>
   <div class="form-group form-full"><label class="form-label">Observações</label><input class="form-input" id="fEQNotes" value="${Utils.escapeHtml(e.notes||'')}"></div>
 </div>
 <div style="font-size:11px;color:var(--text-4);margin-top:8px;line-height:1.5">
@@ -6625,14 +6641,16 @@ ${passivos.length === 0
 </div>`;
     Modal.open(isEdit ? 'Editar Equipamento' : 'Novo Equipamento', html, () => {
       const data = {
-        categoria:           document.getElementById('fEQCat').value,
-        nome:                document.getElementById('fEQNome').value.trim(),
-        valorCompra:         parseFloat(document.getElementById('fEQValor').value) || 0,
-        dataCompra:          document.getElementById('fEQData').value,
-        valorAtual:          parseFloat(document.getElementById('fEQValorAtual').value) || 0,
-        depreciacaoAnualPct: parseFloat(document.getElementById('fEQDeprec').value) || 20,
-        vidaUtilAnos:        parseInt(document.getElementById('fEQVida').value) || 5,
-        notes:               document.getElementById('fEQNotes').value.trim(),
+        categoria:             document.getElementById('fEQCat').value,
+        nome:                  document.getElementById('fEQNome').value.trim(),
+        valorCompra:           parseFloat(document.getElementById('fEQValor').value) || 0,
+        dataCompra:            document.getElementById('fEQData').value,
+        valorAtual:            parseFloat(document.getElementById('fEQValorAtual').value) || 0,
+        depreciacaoAnualPct:   parseFloat(document.getElementById('fEQDeprec').value) || 20,
+        vidaUtilAnos:          parseInt(document.getElementById('fEQVida').value) || 5,
+        custoManutencaoMensal: parseFloat(document.getElementById('fEQManut').value) || 0,
+        custoAnualExtra:       parseFloat(document.getElementById('fEQAnualExtra').value) || 0,
+        notes:                 document.getElementById('fEQNotes').value.trim(),
       };
       if (!data.nome) return toast('Informe o nome do equipamento', 'error');
       if (!data.valorCompra) return toast('Informe o valor de compra', 'error');
@@ -6646,6 +6664,45 @@ ${passivos.length === 0
       if (onSaved) onSaved();
       toast('Equipamento removido', 'success');
     } : null, { size: 'md' });
+  }
+
+  // Cria contrato recorrente mensal com a manutenção do equipamento.
+  function _programarManutencaoEquipamento(eq, onDone) {
+    const valor = eq.custoManutencaoMensal;
+    if (!valor) return toast('Cadastre o custo de manutenção mensal primeiro', 'error');
+    const label = `Manutenção ${eq.nome}`;
+    const hoje = new Date();
+    const html = `
+<div class="form-grid">
+  <div class="form-group form-full"><label class="form-label">Descrição</label><input class="form-input" id="fEPMLabel" value="${Utils.escapeHtml(label)}"></div>
+  <div class="form-group"><label class="form-label">Valor mensal (R$)</label><input class="form-input" id="fEPMValor" type="number" step="10" value="${valor}"></div>
+  <div class="form-group"><label class="form-label">Dia do mês</label><input class="form-input" id="fEPMDia" type="number" min="1" max="28" value="${hoje.getDate()}"></div>
+  <div class="form-group"><label class="form-label">Repetir por (meses)</label><input class="form-input" id="fEPMMeses" type="number" min="1" max="120" value="12"></div>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px">Será criado um contrato mensal de despesa categoria "Casa/Equipamentos".</div>`;
+    Modal.open(`Programar manutenção — ${eq.nome}`, html, () => {
+      const lbl    = document.getElementById('fEPMLabel').value.trim() || label;
+      const val    = parseFloat(document.getElementById('fEPMValor').value) || valor;
+      const dia    = parseInt(document.getElementById('fEPMDia').value) || hoje.getDate();
+      const meses  = parseInt(document.getElementById('fEPMMeses').value) || 12;
+      const ano    = hoje.getFullYear();
+      const mes    = hoje.getMonth() + 1;
+      const ini    = `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      const fimD   = new Date(ano, mes - 1 + meses, dia);
+      const fim    = fimD.toISOString().slice(0, 10);
+      Store.addContrato({
+        label: lbl, kind: 'despesa', responsavel: currentPessoa(),
+        category: 'moradia', sub: 'Equipamentos',
+        dataInicio: ini, dataFim: fim,
+        valorParcela: val, parcelas: meses, entrada: 0,
+        diaVencimento: dia, pay: 'transferencia',
+        notes: `Manutenção do equipamento "${eq.nome}". Gerado da aba Patrimônio.`,
+        active: true, periodicidade: 'mensal',
+      });
+      Modal.close();
+      toast(`${meses} parcelas de manutenção programadas`, 'success');
+      if (onDone) onDone();
+    }, null, { size: 'md' });
   }
 
   function openImovelModal(imovel, onSaved) {

@@ -2068,6 +2068,10 @@ const Store = (function () {
     const taxaAnual = (e.depreciacaoAnualPct || 20) / 100;
     return Math.max(0, e.valorCompra * Math.pow(1 - taxaAnual, anos));
   }
+  function equipamentoCustoAnual(e) {
+    // Manutenção mensal + custo anual (seguro, garantia estendida, software).
+    return ((e.custoManutencaoMensal || 0) * 12) + (e.custoAnualExtra || 0);
+  }
   function totalEquipamentos() {
     return (_data.equipamentos || []).reduce((s, e) => s + equipamentoValorEstimado(e), 0);
   }
@@ -4036,7 +4040,7 @@ const Store = (function () {
     addReserva, updateReserva, deleteReserva,
     addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
-    getEquipamentos, addEquipamento, updateEquipamento, deleteEquipamento, equipamentoValorEstimado, totalEquipamentos,
+    getEquipamentos, addEquipamento, updateEquipamento, deleteEquipamento, equipamentoValorEstimado, equipamentoCustoAnual, totalEquipamentos,
     getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, veiculoIdadeAnos, veiculoTCO, veiculoAvaliacaoTroca, totalVeiculos,
     getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
     getFinanciamentos, addFinanciamento, updateFinanciamento, deleteFinanciamento,
