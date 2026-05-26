@@ -1240,6 +1240,14 @@ table.data-table tfoot td {
 }
 
 td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+
+/* ── Densidade das tabelas (sincado via Store.settings.ui.tableDensity) ── */
+[data-table-density="compact"] table.data-table thead th { padding: 7px 10px; font-size: 10.5px; }
+[data-table-density="compact"] table.data-table tbody td { padding: 7px 10px; }
+[data-table-density="compact"] table.data-table tfoot td { padding: 7px 10px; }
+[data-table-density="cozy"]    table.data-table thead th { padding: 14px 18px; }
+[data-table-density="cozy"]    table.data-table tbody td { padding: 16px 18px; }
+[data-table-density="cozy"]    table.data-table tfoot td { padding: 14px 18px; }
 /* Specificity: thead th tinha "text-align: left" sobrescrevendo th.num.
    Esta regra é mais específica e garante alinhamento à direita no header. */
 table.data-table thead th.num,

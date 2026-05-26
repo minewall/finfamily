@@ -144,7 +144,7 @@ const App = (function () {
     <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="40" height="40" style="border-radius:50%;object-fit:cover"/>
   </div>
   <div class="coach-empty-body">
-    <div class="coach-empty-eyebrow">HAILE · SEU COACH FINANCEIRO</div>
+    <div class="coach-empty-eyebrow">HAILE · INTELIGÊNCIA FINANCEIRA</div>
     <h3 class="coach-empty-title">${titulo}</h3>
     <p class="coach-empty-text">${texto}</p>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px">
@@ -1101,7 +1101,7 @@ ${(() => {
       <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="44" height="44" style="border-radius:50%;object-fit:cover"/>
     </div>
     <div>
-      <div class="welcome-coach-eyebrow">HAILE · SEU COACH FINANCEIRO</div>
+      <div class="welcome-coach-eyebrow">HAILE · INTELIGÊNCIA FINANCEIRA</div>
       <h2 class="welcome-coach-title">Bem-vindo. Vamos começar?</h2>
       <p class="welcome-coach-sub">Eu sou o Haile. Pra eu te ajudar com clareza, conte aos poucos como sua vida financeira funciona. Escolha um passo abaixo — você pode pular ou voltar quando quiser.</p>
     </div>
@@ -11792,7 +11792,7 @@ ${outrs.length ? `
       { id: 'patrimonio',     label: 'Patrimônio',               icon: 'landmark',       default: false },
       { id: 'desp_cat',       label: 'Despesas por Categoria',   icon: 'pie-chart',      default: false },
       { id: 'parcelas',       label: 'Próximas Parcelas',        icon: 'calendar-clock', default: false },
-      { id: 'coach',          label: 'Recados do Coach',         icon: 'sparkles',       default: false },
+      { id: 'coach',          label: 'Recados do Haile',         icon: 'sparkles',       default: false },
     ];
     const savedVis = JSON.parse(localStorage.getItem('painel_widgets') || 'null');
     const vis = {}; // widget visibility
@@ -12031,12 +12031,12 @@ ${outrs.length ? `
       };
       if (!recados.length) return `
 <div class="card widget-card" data-widget="coach">
-  <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Coach</span></div>
+  <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Haile</span></div>
   <div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Nenhum recado novo. O Coach vai se manifestar em breve.</p></div>
 </div>`;
       return `
 <div class="card widget-card" data-widget="coach">
-  <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Coach</span>
+  <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Haile</span>
     <a href="#recados" onclick="Router.navigate('recados')" style="font-size:11px;color:var(--accent)">Ver todos →</a></div>
   <div style="display:flex;flex-direction:column;gap:10px">
     ${recados.map(r => {
@@ -12244,7 +12244,7 @@ ${outrs.length ? `
       const _id = 'mpCoachInline_' + Math.random().toString(36).slice(2,7);
       return `
 <div id="${_id}" class="mp-coach-banner" style="border-radius:14px;padding:13px 18px;background:linear-gradient(135deg,#0b2828 0%,#092236 100%);border:1px solid rgba(45,207,192,0.2);display:flex;align-items:center;gap:12px">
-  <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--teal-coach,#2dcfc0),var(--blue,#4aa8ff));display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">Hai</div>
+  <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--teal-coach,#2dcfc0),var(--blue,#4aa8ff));display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">H</div>
   <span style="font-size:11px;font-weight:700;color:var(--teal-coach,#2dcfc0);white-space:nowrap;letter-spacing:.04em">Para você</span>
   <span style="font-size:12.5px;color:rgba(195,235,235,0.82);line-height:1.5;flex:1">${mensagem}</span>
   <button type="button" data-mp-coach-open style="background:rgba(45,207,192,.12);border:1px solid rgba(45,207,192,.3);color:var(--teal-coach,#2dcfc0);border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;flex-shrink:0">Analisar</button>
@@ -12520,7 +12520,7 @@ ${renderPageMonthPicker(container)}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="#fff"/><path d="M19 14l.9 2.3L22.2 17l-2.3.9L19 20l-.9-2.1L15.8 17l2.3-.7L19 14z" fill="#fff"/></svg>
     </div>
     <div>
-      <h1 class="page-head-title">Recados do Coach</h1>
+      <h1 class="page-head-title">Recados do Haile</h1>
       <p class="page-head-meta">
         ${naoLidosTotal > 0 ? `<span style="color:var(--teal-coach);font-weight:600">${naoLidosTotal} não lido${naoLidosTotal!==1?'s':''}</span><span class="page-head-meta-sep">·</span>` : ''}
         <span style="color:var(--text-3)">insights e recomendações personalizadas da sua IA financeira</span>
@@ -13751,12 +13751,43 @@ ${isConnected && isAdmin ? `
     });
   }
 
+  // ── UI Settings (estruturado, sincado via Store.settings.ui) ──
+  // Centraliza customizações de exibição que precisam persistir entre
+  // sessões/devices (não confundir com Store.settings global como tema,
+  // que ainda vive em localStorage pelo anti-FOUC).
+  const UISettings = {
+    get(key, fallback) {
+      const ui = (Store.get().settings && Store.get().settings.ui) || {};
+      return Object.prototype.hasOwnProperty.call(ui, key) ? ui[key] : fallback;
+    },
+    set(key, value) {
+      const s = Store.get();
+      if (!s.settings) s.settings = {};
+      if (!s.settings.ui) s.settings.ui = {};
+      s.settings.ui[key] = value;
+      Store.save(s);
+    },
+    // Aplica todas as preferências no DOM (chamado no boot + on change)
+    apply() {
+      const density = this.get('tableDensity', 'normal');
+      document.documentElement.setAttribute('data-table-density', density);
+    },
+  };
+  // Expõe pra debugging e pra usos futuros
+  window.UISettings = UISettings;
+
   function renderConfigAparencia(content) {
     const currentPref = localStorage.getItem('haile_theme') || 'auto';
+    const currentDensity = UISettings.get('tableDensity', 'normal');
     const opts = [
       { id: 'light', label: 'Claro',      icon: 'sun',         desc: 'Fundo claro, texto escuro' },
       { id: 'dark',  label: 'Escuro',     icon: 'moon',        desc: 'Padrão Haile — reduz fadiga em sessões longas' },
       { id: 'auto',  label: 'Automático', icon: 'monitor-cog', desc: 'Segue a preferência do sistema operacional' },
+    ];
+    const densityOpts = [
+      { id: 'compact', label: 'Compacta', desc: 'Mais linhas visíveis por tela — bom pra revisão' },
+      { id: 'normal',  label: 'Normal',   desc: 'Espaçamento padrão' },
+      { id: 'cozy',    label: 'Confortável', desc: 'Mais respiro — bom pra leitura longa' },
     ];
     content.innerHTML = `
 <div class="section-header mb-4">
@@ -13789,6 +13820,34 @@ ${isConnected && isAdmin ? `
     ${icon('info',{size:13, color:'var(--text-3)'})}
     Preferência salva localmente. Sincronização cross-device pela conta vem em update futuro.
   </div>
+</div>
+
+<!-- Densidade das tabelas — sincado via Store.settings.ui (multi-device) -->
+<div class="card" style="padding:18px 20px;margin-top:16px">
+  <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px">
+    <div style="width:38px;height:38px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent)">${icon('table-2',{size:18})}</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px">Densidade das tabelas</div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.55">Quanto espaço cada linha ocupa nas tabelas de lançamentos, receitas, despesas e relatórios.</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+    ${densityOpts.map(o => {
+      const sel = currentDensity === o.id;
+      return `
+      <button type="button" data-density="${o.id}" style="background:${sel?'var(--accent-dim)':'var(--bg-elevated)'};border:1.5px solid ${sel?'var(--accent)':'var(--border)'};border-radius:12px;padding:14px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;transition:all .15s">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:600;color:var(--text-1)">${o.label}</div>
+          ${sel ? `<div style="color:var(--accent)">${icon('check-circle',{size:14})}</div>` : ''}
+        </div>
+        <div style="font-size:11.5px;color:var(--text-3);line-height:1.4">${o.desc}</div>
+      </button>`;
+    }).join('')}
+  </div>
+  <div style="margin-top:14px;padding:10px 12px;background:var(--bg-elevated);border-radius:8px;font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:8px">
+    ${icon('cloud',{size:13, color:'var(--text-3)'})}
+    Preferência sincroniza entre seus dispositivos.
+  </div>
 </div>`;
     // Wire dos botões
     content.querySelectorAll('[data-theme-pref]').forEach(btn => {
@@ -13796,6 +13855,14 @@ ${isConnected && isAdmin ? `
         const pref = btn.getAttribute('data-theme-pref');
         applyThemePreference(pref);
         renderConfigAparencia(content); // re-render pra atualizar visual selected
+      });
+    });
+    content.querySelectorAll('[data-density]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-density');
+        UISettings.set('tableDensity', v);
+        UISettings.apply();
+        renderConfigAparencia(content);
       });
     });
   }
@@ -15474,7 +15541,7 @@ ${(() => {
         <div class="icp-hero-next-cap">Faltam <strong style="color:var(--text-1)">${next.min - icp}%</strong> — responda mais perguntas em qualquer categoria abaixo.</div>
       </div>` : ''}
       <div class="icp-hero-hai">
-        <div class="icp-hero-hai-avatar">Hai</div>
+        <div class="icp-hero-hai-avatar">H</div>
         <div class="icp-hero-hai-quote">"Quanto mais eu sei sobre suas crenças, medos e sonhos, mais útil consigo ser quando você precisa decidir."</div>
       </div>
     </div>
@@ -16469,6 +16536,9 @@ ${(() => {
       }
     }
 
+    // Aplica preferências de UI persistidas (densidade das tabelas etc.)
+    try { UISettings.apply(); } catch (_) {}
+
     // Init routing
     Router.init();
 
@@ -16665,8 +16735,8 @@ ${(() => {
           const greeting = isResuming
             ? `Que bom que você voltou${firstName ? ', ' + firstName : ''}! Vamos continuar de onde paramos?`
             : (isInvited
-                ? `Olá${firstName ? ', ' + firstName : ''}! Sou o Haile, seu coach financeiro com IA. Você foi convidado para um grupo familiar — em alguns minutos te apresento como funciona.`
-                : `Oi${firstName ? ', ' + firstName : ''}! Sou o Haile, seu coach financeiro com IA. Antes de começar, preciso te conhecer um pouco. São 7 perguntas rápidas — leva uns 3 minutos.`);
+                ? `Olá${firstName ? ', ' + firstName : ''}! Sou o Haile, sua inteligência financeira. Você foi convidado para um grupo familiar — em alguns minutos te apresento como funciona.`
+                : `Oi${firstName ? ', ' + firstName : ''}! Sou o Haile, sua inteligência financeira. Antes de começar, preciso te conhecer um pouco. São 7 perguntas rápidas — leva uns 3 minutos.`);
           return `
             ${coachBubble(greeting)}
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
@@ -16990,13 +17060,35 @@ ${(() => {
 
     function resetConversation() {
       history = [];
-      // Build context-aware suggestions
-      const reservas = Store.get('reservas') || [];
-      const metas = Store.get('metas') || [];
+      // Build context-aware suggestions baseado no estado do user.
+      // Banido: "orçamento", "limite", "controle de gastos" (skill haile-design).
+      const data = Store.get();
+      const reservas = data.reservas || [];
+      const metas = data.metas || [];
+      const despesas = data.despesas || [];
+      const financiamentos = data.financiamentos || [];
       const temInvestimentos = reservas.length > 0;
       const temMetas = metas.length > 0;
+      const temDespesas = despesas.length > 0;
+      const temFinanciamentos = financiamentos.length > 0;
       let suggestions;
-      if (temInvestimentos) {
+      if (!temDespesas) {
+        // User novíssimo — foca em onboarding leve
+        suggestions = [
+          'Como começar a organizar minhas finanças?',
+          'Como cadastrar minha primeira despesa?',
+          'Quais categorias o Haile já entende?',
+          'Como o Haile usa meus dados?',
+        ];
+      } else if (temInvestimentos && temFinanciamentos) {
+        // Caso complexo — tem patrimônio E dívida ativa
+        suggestions = [
+          'Vale antecipar meu financiamento?',
+          'Como está minha diversificação?',
+          temMetas ? 'Estou no caminho das minhas metas?' : 'Quanto posso aportar com folga?',
+          'Como está minha saúde financeira?',
+        ];
+      } else if (temInvestimentos) {
         suggestions = [
           'Como está minha diversificação?',
           'Qual o rendimento estimado do meu portfólio?',
@@ -17006,8 +17098,8 @@ ${(() => {
       } else {
         suggestions = [
           'Qual meu maior gasto esse mês?',
-          'Estou dentro do orçamento?',
-          'Onde posso economizar?',
+          'Onde meu dinheiro está indo?',
+          'Como melhorar meu Poder de Escolha?',
           'Como está minha saúde financeira?',
         ];
       }
@@ -17336,7 +17428,7 @@ ${(() => {
         recFut.slice(0, 6).map(f => `  - ${f.descricao}: R$ ${(f.valor||0).toFixed(2)} previsto ${Utils.monthsFull[(f.mes||1)-1]} ${f.ano}`).join('\n');
       const totalRecFut = recFut.reduce((s,f) => s + (f.valor||0), 0);
 
-      return `Você é o **Haile** — coach financeiro pessoal da família, com inteligência artificial. Você acompanha o usuário como um conselheiro próximo, não como um chatbot. Tagline da marca: "Seu coach financeiro pessoal".
+      return `Você é o **Haile** — a inteligência financeira da família, baseada em inteligência artificial. Você acompanha o usuário como um conselheiro próximo, não como um chatbot. Categoria oficial da marca: "Inteligência financeira para famílias modernas".
 
 USUÁRIO LOGADO: ${userName}
 PESSOAS DA FAMÍLIA: ${pessoasStr}
