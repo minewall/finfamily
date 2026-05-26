@@ -15938,23 +15938,55 @@ ${(() => {
         if (syncLabel) syncLabel.textContent     = s.label;
       });
 
-      // ── Realtime: detecta updates remotos no user_data e avisa o usuário ──
-      // Foundation: notifica + sugere reload. Sync incremental sem reload
-      // (apply diff em background) é roadmap futuro — exige mais infra de
-      // conflict resolution (origin session id, last-writer-wins por campo, etc).
-      let _lastRemoteToastAt = 0;
-      const REMOTE_TOAST_THROTTLE_MS = 30 * 1000; // não spammar
-      SupabaseSync.subscribeRealtime?.(payload => {
+      // ── Realtime: apply diff sem reload ─────────────────────────
+      // Anti-echo é tratado em supabase-client (compara origin_session_id).
+      // Aqui: ao receber update remoto, faz sync direto + re-render.
+      // Se modal estiver aberto, defer até fechar pra não destruir form em edição.
+      let _pendingRemote = false;
+      let _pollHandle = null;
+      let _lastApplyAt = 0;
+      const APPLY_THROTTLE_MS = 1500;
+
+      async function applyRemoteSync() {
         const now = Date.now();
-        if (now - _lastRemoteToastAt < REMOTE_TOAST_THROTTLE_MS) return;
-        // Heurística: se acabei de fazer um push (status === 'syncing' ou 'synced'
-        // nos últimos ~5s), o UPDATE provavelmente é eco do próprio cliente.
-        // Sem origin_session_id no schema, melhor avisar com cuidado: pergunta.
-        _lastRemoteToastAt = now;
-        // Mostra toast com ação de reload manual
-        if (typeof toast === 'function') {
-          toast('Dados atualizados em outro dispositivo. Recarregue pra ver a versão mais recente.', 'info', 7000);
+        if (now - _lastApplyAt < APPLY_THROTTLE_MS) return;
+        _lastApplyAt = now;
+        const applied = await Store.syncFromCloud?.();
+        if (!applied) return;
+        // Re-render da rota atual sem perder scroll position
+        const scrollY = window.scrollY;
+        if (typeof Router !== 'undefined' && Router.current) {
+          Router.navigate(Router.current);
         }
+        // Restaura scroll após re-render (rAF pra esperar o paint)
+        requestAnimationFrame(() => window.scrollTo(0, scrollY));
+        if (typeof toast === 'function') {
+          toast('Atualizado a partir de outro dispositivo', 'info', 3000);
+        }
+      }
+
+      function tryApplyOrDefer() {
+        const isModalOpen = Modal?.overlay?.classList?.contains('open');
+        if (isModalOpen) {
+          // Mantém poll ativo até o modal fechar
+          if (!_pollHandle) {
+            _pollHandle = setInterval(() => {
+              if (!Modal.overlay.classList.contains('open')) {
+                clearInterval(_pollHandle);
+                _pollHandle = null;
+                if (_pendingRemote) { _pendingRemote = false; applyRemoteSync(); }
+              }
+            }, 1000);
+          }
+          return;
+        }
+        _pendingRemote = false;
+        applyRemoteSync();
+      }
+
+      SupabaseSync.subscribeRealtime?.(_payload => {
+        _pendingRemote = true;
+        tryApplyOrDefer();
       });
 
       // Resolve family context, accept pending invites, then pull data

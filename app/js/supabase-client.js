@@ -19,6 +19,21 @@ const SupabaseSync = (function () {
   let _family = null;
   const PUSH_TIMEOUT_MS = 15000;
 
+  // ── Session ID por aba (anti-echo do Realtime) ────────────────────
+  // Gerado uma vez por aba e enviado em todo push pra user_data.
+  // Realtime callback ignora payloads cujo origin_session_id == este.
+  const _sessionId = (() => {
+    try {
+      let id = sessionStorage.getItem('ff_session_id');
+      if (!id) {
+        id = (window.crypto?.randomUUID?.() || (Date.now() + '-' + Math.random().toString(36).slice(2, 11)));
+        sessionStorage.setItem('ff_session_id', id);
+      }
+      return id;
+    } catch { return 'unknown-' + Date.now(); }
+  })();
+  function getSessionId() { return _sessionId; }
+
   // Promise que resolve quando getSession() retorna — permite que outros
   // pontos do app aguardem o _user estar setado antes de tentar pull/push.
   let _authReadyResolve;
@@ -76,7 +91,7 @@ const SupabaseSync = (function () {
       }
       const targetUserId = (_family && _family.dataOwnerUserId) ? _family.dataOwnerUserId : _user.id;
       if (_family && _family.role === 'member') return; // membro não escreve
-      const row = { user_id: targetUserId, data };
+      const row = { user_id: targetUserId, data, origin_session_id: _sessionId };
       if (_family) row.family_id = _family.groupId;
       // POST direto na REST API do Supabase com keepalive — sobrevive ao unload
       fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id`, {
@@ -120,7 +135,7 @@ const SupabaseSync = (function () {
     // Members (role=member) cannot push — read-only
     if (_family && _family.role === 'member') { _emitStatus('synced'); return; }
     try {
-      const row = { user_id: targetUserId, data };
+      const row = { user_id: targetUserId, data, origin_session_id: _sessionId };
       if (_family) row.family_id = _family.groupId;
       // Timeout pra não pendurar indefinidamente — se o cliente SDK trava,
       // pelo menos liberamos o status e o usuário sabe que falhou.
@@ -532,6 +547,18 @@ const SupabaseSync = (function () {
     if (!_client || !_user) return false;
     if (_realtimeChannel) return true; // já inscrito
     try {
+      // Subscribe nos UPDATEs E INSERTs (primeiro write cria a row).
+      // O filtro user_id eq garante que só recebemos a own row, mas pra
+      // family member (que lê a row do owner), o filter precisaria mudar.
+      // Foundation atual: só sync do próprio user_id.
+      const handler = (payload) => {
+        // Anti-echo: ignora se origin_session_id == minha sessão atual
+        const originId = payload?.new?.origin_session_id;
+        if (originId && originId === _sessionId) return;
+        _onRemoteChangeCallbacks.forEach(cb => {
+          try { cb(payload); } catch (e) { console.warn('Realtime cb err:', e); }
+        });
+      };
       _realtimeChannel = _client
         .channel(`user_data_${_user.id}`)
         .on('postgres_changes', {
@@ -539,18 +566,16 @@ const SupabaseSync = (function () {
           schema: 'public',
           table: 'user_data',
           filter: `user_id=eq.${_user.id}`,
-        }, payload => {
-          // Filtra eventos de echo: só dispara se outro client atualizou.
-          // Pra implementar isso direito precisaríamos de um origin_session_id
-          // na linha. Por ora, qualquer UPDATE remoto dispara callback —
-          // os callbacks devem comparar timestamps e decidir se aplicam.
-          _onRemoteChangeCallbacks.forEach(cb => {
-            try { cb(payload); } catch (e) { console.warn('Realtime cb err:', e); }
-          });
-        })
+        }, handler)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_data',
+          filter: `user_id=eq.${_user.id}`,
+        }, handler)
         .subscribe(status => {
           if (status === 'SUBSCRIBED') {
-            (window.Logger || console).log?.('[Realtime] user_data subscribed');
+            (window.Logger || console).log?.('[Realtime] user_data subscribed (session=' + _sessionId.slice(0,8) + ')');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.warn('[Realtime] channel state:', status);
           }
@@ -591,6 +616,6 @@ const SupabaseSync = (function () {
     resolveFamilyContext, getFamilyContext, ensureFamilyIdLinked,
     uploadAnexo, getAnexoUrl, deleteAnexo,
     ANEXO_MAX_BYTES, ANEXO_MIMES,
-    subscribeRealtime, unsubscribeRealtime,
+    subscribeRealtime, unsubscribeRealtime, getSessionId,
   };
 })();
