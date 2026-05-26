@@ -474,11 +474,36 @@
     }
   }
 
-  // Detecta sessão já ativa OU retorno do link de confirmação de e-mail
+  // Consome invite_token da sessionStorage chamando mark_waitlist_signup.
+  // Cobre todos os flows de auth (senha login, signUp pós-confirm, OAuth callback).
+  // Idempotente — se o token já foi marcado, retorna false sem efeito colateral.
+  async function _consumeInviteToken(session) {
+    const token = sessionStorage.getItem('ff_invite_token');
+    if (!token || !session?.access_token) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/mark_waitlist_signup`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+    } catch (e) {
+      console.warn('[login] mark_waitlist_signup falhou:', e);
+      // Não bloqueia o fluxo — auth já deu certo, conversion tracking é best-effort
+    }
+    sessionStorage.removeItem('ff_invite_token');
+    sessionStorage.removeItem('ff_invite_source');
+  }
+
+  // Detecta sessão já ativa OU retorno do link de confirmação de e-mail / OAuth
   // (Supabase JS processa o hash #access_token=... automaticamente).
   sb.auth.getSession().then(async ({ data }) => {
     if (data?.session) {
       const email = data.session.user?.email || '';
+      await _consumeInviteToken(data.session);
       await _hydrateFromCloud(data.session);
       sessionStorage.setItem('ff_auth', '1');
       if (email) sessionStorage.setItem('ff_user_email', email);
@@ -605,8 +630,14 @@
       document.getElementById('confirmScreen').style.display = 'block';
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if (error) { setLoading(false); return showError('E-mail ou senha incorretos.'); }
+      if (error) {
+        setLoading(false);
+        // Não sabemos pelo erro se a conta é só-Google (Supabase devolve "invalid credentials"
+        // pros dois casos). Dica suave no fim cobre o caso sem comprometer segurança.
+        return showError('E-mail ou senha incorretos. Se você cadastrou com Google, use o botão abaixo.');
+      }
       // Puxa cloud antes do redirect — garante multi-device sem perder dados
+      await _consumeInviteToken(data.session);
       await _hydrateFromCloud(data.session);
       setLoading(false);
       sessionStorage.setItem('ff_auth', '1');
