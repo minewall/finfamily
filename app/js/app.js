@@ -7232,6 +7232,9 @@ ${(() => {
     const saldoMedio = mesesUsados ? Math.max(0, Math.round(saldoSomado / mesesUsados)) : 500;
 
     const _embed = window._simEmbedded;
+    // Pré-fetch taxas de mercado pra ter CDI disponível no benchmark da evolução
+    // (resolve ANTES do rAF do chart pra evitar race condition)
+    const rates = await MarketRates.get();
     container.innerHTML = `
 ${_embed ? '' : `<div class="page-head mb-4">
   <div>
@@ -7431,12 +7434,12 @@ ${reservas.length > 0 ? `
   <button class="btn-primary" style="display:none" id="btnFeeAnalyzer">Calcular</button>
 </div>
 
-<!-- ── COACH DO PORTFÓLIO ─────────────────────────────────────── -->
+<!-- ── HAILE NO PORTFÓLIO (análise por linguagem natural) ─────── -->
 <div class="card accent-card-purple-cyan mb-6">
   <div class="card-header">
     <span class="card-title" style="display:flex;align-items:center;gap:8px">
       <img src="../assets/svg/haile-mark-white.svg" alt="" style="width:18px;height:auto;opacity:.9">
-      Coach do Portfólio
+      Haile no Portfólio
     </span>
     <span style="font-size:11px;color:var(--text-4)">Pergunte sobre sua carteira em linguagem natural</span>
   </div>
@@ -7599,19 +7602,29 @@ ${reservas.length > 0 ? `
         const skipEmpty = (rangeKey === 'current' || rangeKey === 'prev');
         const showYrSuffix = (rangeKey !== 'current');
 
+        // Benchmark: "se tivesse deixado tudo no CDI" — compõe CDI mensalmente em
+        // TODOS os meses do range (até os pulados visualmente), pra não distorcer
+        // o juro composto.
+        const cdiAnnual = (rates && rates.cdi) ? rates.cdi : 11;
+        const cdiMonthly = annualToMonthly(cdiAnnual);
+        let cdiBal = baseline;
+
         let running = 0, cumRec = 0;
-        const labels = [], patrimonio = [], receitas = [];
+        const labels = [], patrimonio = [], receitas = [], cdi = [];
         flows.forEach(f => {
-          if (skipEmpty && f.rec === 0 && f.desp === 0) return;
+          // CDI compõe sempre, mesmo em meses pulados visualmente
+          cdiBal = cdiBal * (1 + cdiMonthly) + f.net;
           running += f.net;
           cumRec  += f.rec;
+          if (skipEmpty && f.rec === 0 && f.desp === 0) return;
           const lbl = Utils.months[f.m - 1] + (showYrSuffix ? `/${String(f.y).slice(-2)}` : '');
           labels.push(lbl);
           patrimonio.push(Math.max(0, parseFloat((baseline + running).toFixed(0))));
           receitas.push(parseFloat(cumRec.toFixed(0)));
+          cdi.push(Math.max(0, parseFloat(cdiBal.toFixed(0))));
         });
 
-        return { labels, patrimonio, receitas };
+        return { labels, patrimonio, receitas, cdi, cdiAnnual };
       }
 
       function _evoRender() {
@@ -7631,8 +7644,9 @@ ${reservas.length > 0 ? `
         Charts.Line(evoEl, {
           labels: series.labels,
           datasets: [
-            { label: 'Patrimônio',     values: series.patrimonio, color: '#7367F0', fill: true },
-            { label: 'Receitas acum.', values: series.receitas,   color: '#22C55E', dashed: true },
+            { label: 'Patrimônio',                                    values: series.patrimonio, color: '#7367F0', fill: true  },
+            { label: 'Receitas acum.',                                values: series.receitas,   color: '#22C55E', dashed: true },
+            { label: `Se estivesse no CDI (${series.cdiAnnual.toFixed(2)}% a.a.)`, values: series.cdi, color: '#06B6D4', dashed: true },
           ],
         }, { height: 200 });
       }
@@ -7657,8 +7671,7 @@ ${reservas.length > 0 ? `
       _evoRender();
     });
 
-    // Header de taxas
-    const rates = await MarketRates.get();
+    // Header de taxas (rates já foi pre-fetched no topo da função)
     document.getElementById('invRatesStrip').innerHTML = `
 <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap">
   <div style="flex:1;min-width:120px;padding:14px 16px;border-right:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">SELIC</div><div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono)">${rates.selic.toFixed(2)}% <span style="font-size:11px;color:var(--text-3);font-weight:500">a.a.</span></div></div>
@@ -7701,7 +7714,31 @@ ${reservas.length > 0 ? `
       const irPct  = (parseFloat(document.getElementById('ivIR').value) || 15) / 100;
       const meses  = anos * 12;
       const inflM  = annualToMonthly(inflPct);
-      const produtos = _produtos(inflPct);
+      const produtosBase = _produtos(inflPct);
+
+      // ── Sua carteira: taxa média ponderada das reservas com taxaAnual > 0 ──
+      const carteiraEntry = (() => {
+        const elig = (reservas || []).filter(r => {
+          const v = r.valorAtual || r.valorInvestido || 0;
+          return v > 0 && (r.taxaAnual || 0) > 0;
+        });
+        if (elig.length === 0) return null;
+        const totalVal = elig.reduce((s, r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
+        const taxaPond = elig.reduce((s, r) => s + (r.valorAtual || r.valorInvestido || 0) * (r.taxaAnual || 0), 0) / totalVal;
+        // Cobertura: quanto do portfólio tem taxa declarada (vs. tipo ações/crypto sem taxaAnual)
+        const cobertura = totalAtual > 0 ? totalVal / totalAtual : 1;
+        return {
+          key: 'carteira',
+          nome: 'Sua carteira (média ponderada)',
+          taxa: taxaPond,
+          isento: false, // mistura — IR conservador
+          color: '#EC4899',
+          isCarteira: true,
+          cobertura,
+          ativos: elig.length,
+        };
+      })();
+      const produtos = carteiraEntry ? [carteiraEntry, ...produtosBase] : produtosBase;
 
       const resultados = produtos.map(p => {
         const r = _evolucao(pv, pmt, p.taxa, meses, p.isento ? 0 : irPct);
@@ -7721,19 +7758,43 @@ ${reservas.length > 0 ? `
         label: r.nome,
         values: Array.from({ length: anos }, (_, k) => parseFloat(r.serie[(k+1)*12 - 1].toFixed(2))),
         color: r.color,
+        // Carteira: linha mais grossa, sem fill (pra não obscurecer as outras)
+        ...(r.isCarteira ? { lineWidth: 3.5, fill: false } : {}),
       }));
+
+      // Ranking da carteira vs produtos: identifica quem ela bate
+      let carteiraRank = '';
+      if (carteiraEntry) {
+        const rIdx = resultados.findIndex(r => r.isCarteira);
+        const total = resultados.length;
+        const posicao = rIdx + 1;
+        const bateu = resultados.slice(rIdx + 1).map(r => r.nome);
+        const perde = resultados.slice(0, rIdx).map(r => r.nome);
+        const cobPct = Math.round((carteiraEntry.cobertura || 1) * 100);
+        if (rIdx === 0) {
+          carteiraRank = `Sua carteira (taxa média <strong>${carteiraEntry.taxa.toFixed(2)}% a.a.</strong>) bate todos os produtos comparados.`;
+        } else if (rIdx === total - 1) {
+          carteiraRank = `Sua carteira (taxa média <strong>${carteiraEntry.taxa.toFixed(2)}% a.a.</strong>) fica abaixo de todos os produtos comparados. Considere revisar a estratégia.`;
+        } else {
+          carteiraRank = `Sua carteira (taxa média <strong>${carteiraEntry.taxa.toFixed(2)}% a.a.</strong>) ${bateu.length ? `bate ${bateu.join(', ')}` : ''}${bateu.length && perde.length ? ' e ' : ''}${perde.length ? `perde para ${perde.join(', ')}` : ''}.`;
+        }
+        if (cobPct < 100) {
+          carteiraRank += ` <span style="color:var(--text-3);font-size:11px">Comparação cobre ${cobPct}% do portfólio (ativos com taxa declarada).</span>`;
+        }
+      }
 
       document.getElementById('ivCompBody').innerHTML = `
 <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">
   Em <strong>${anos} anos</strong> com capital ${Utils.currency(pv)} + aporte ${Utils.currency(pmt)}/mês:
   o melhor produto é <strong style="color:${melhor.color}">${Utils.escapeHtml(melhor.nome)}</strong>, acumulando <strong>${Utils.currency(melhor.totalLiq)}</strong> líquidos.
 </div>
+${carteiraRank ? `<div style="font-size:12.5px;color:var(--text-2);margin-bottom:14px;padding:10px 12px;background:rgba(236,72,153,0.08);border-left:3px solid #EC4899;border-radius:6px">${carteiraRank}</div>` : ''}
 <div class="chart-wrap" style="margin-bottom:16px"><canvas id="chartInvComp" class="chart-canvas" height="240"></canvas></div>
 <div class="table-wrap"><table class="data-table">
   <thead><tr><th>Produto</th><th class="num">Taxa</th><th class="num">Total aportado</th><th class="num">Bruto</th><th class="num">Líquido (após IR)</th><th class="num">Poder de compra</th></tr></thead>
   <tbody>${resultados.map(r => `
-    <tr style="${r === melhor ? 'background:rgba(34,197,94,0.06)' : ''}">
-      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span><strong>${Utils.escapeHtml(r.nome)}</strong>${r.isento ? ' <span style="font-size:10px;color:var(--green)">isento IR</span>' : ''}</td>
+    <tr style="${r === melhor ? 'background:rgba(34,197,94,0.06)' : r.isCarteira ? 'background:rgba(236,72,153,0.06)' : ''}">
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:8px;vertical-align:middle"></span><strong>${Utils.escapeHtml(r.nome)}</strong>${r.isento ? ' <span style="font-size:10px;color:var(--green)">isento IR</span>' : ''}${r.isCarteira ? ` <span style="font-size:10px;color:#EC4899">você</span>` : ''}</td>
       <td class="num">${r.taxa.toFixed(2)}% a.a.</td>
       <td class="num">${Utils.currency(r.totalAportado)}</td>
       <td class="num">${Utils.currency(r.saldoBruto)}</td>
@@ -7795,24 +7856,24 @@ ${reservas.length > 0 ? `
     _autoCalcInv(['ivCap','ivAporte','ivAnos','ivInfl','ivIR'], 'btnCompInv');
     _autoCalcInv(['ivAlvo','ivAlvoAnos','ivAlvoCap'], 'btnRevInv');
 
-    // ── COACH DO PORTFÓLIO ────────────────────────────────────────
+    // ── HAILE NO PORTFÓLIO ───────────────────────────────────────
     function askCoachPortfolio(pergunta) {
       if (!pergunta.trim()) return;
       const respEl = document.getElementById('coachPortfolioResp');
       if (respEl) {
         respEl.style.display = 'block';
-        respEl.innerHTML = `<span style="color:var(--accent);font-size:13px;display:flex;align-items:center;gap:6px">${icon('sparkles',{size:13})} Abrindo o Coach com sua pergunta…</span>`;
+        respEl.innerHTML = `<span style="color:var(--accent);font-size:13px;display:flex;align-items:center;gap:6px">${icon('sparkles',{size:13})} Abrindo o Haile com sua pergunta…</span>`;
       }
-      // Usa a API pública do Coach — abre o painel e envia a pergunta
+      // Usa a API pública do Coach (Haile) — abre o painel e envia a pergunta
       if (window.FFCoach?.ask) {
         window.FFCoach.ask(pergunta);
         if (respEl) {
           setTimeout(() => {
-            respEl.innerHTML = `<span style="color:var(--text-3);font-size:12px;display:inline-flex;align-items:center;gap:4px">${icon('check',{size:12})} Pergunta enviada ao Coach — veja o painel à direita →</span>`;
+            respEl.innerHTML = `<span style="color:var(--text-3);font-size:12px;display:inline-flex;align-items:center;gap:4px">${icon('check',{size:12})} Pergunta enviada — veja a resposta do Haile no painel à direita →</span>`;
           }, 400);
         }
       } else {
-        if (respEl) respEl.innerHTML = `<span style="color:var(--text-4);font-size:13px">Abra o Coach (ícone no topo) e pergunte diretamente.</span>`;
+        if (respEl) respEl.innerHTML = `<span style="color:var(--text-4);font-size:13px">Abra o Haile (ícone no topo) e pergunte diretamente.</span>`;
       }
     }
 

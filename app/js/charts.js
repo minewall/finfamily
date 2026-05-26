@@ -192,7 +192,9 @@ const Charts = (function () {
         y: padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH,
       }));
 
-      if (opts.area !== false) {
+      // Fill: opts.area controla globalmente, ds.fill pode forçar/desligar individualmente
+      const doFill = ds.fill === true || (ds.fill !== false && opts.area !== false && !ds.dashed);
+      if (doFill) {
         ctx.beginPath();
         ctx.moveTo(pts[0].x, padT + chartH);
         pts.forEach(p => ctx.lineTo(p.x, p.y));
@@ -208,17 +210,21 @@ const Charts = (function () {
       ctx.beginPath();
       pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = ds.lineWidth || 2;
       ctx.lineJoin = 'round';
+      if (ds.dashed) ctx.setLineDash([6, 4]);
       ctx.stroke();
+      if (ds.dashed) ctx.setLineDash([]);
 
-      // Dots
-      pts.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-      });
+      // Dots (skip if dashed — visual cleaner)
+      if (!ds.dashed) {
+        pts.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+        });
+      }
     });
 
     // X labels
