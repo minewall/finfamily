@@ -5435,7 +5435,10 @@ ${(() => {
   return `
 <div class="section-header mb-4" style="margin-top:32px">
   <div><div class="section-title">Imóveis</div><div class="section-sub">Casa, apartamento, sala — equity, rentabilidade e custos recorrentes</div></div>
-  <button class="btn-primary" id="btnAddImovel">+ Novo Imóvel</button>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn-secondary" id="btnAlugarVsComprar">${icon('git-compare',{size:13})} Alugar vs Comprar</button>
+    <button class="btn-primary" id="btnAddImovel">+ Novo Imóvel</button>
+  </div>
 </div>
 ${imoveis.length === 0
   ? `<div class="card mb-6" style="text-align:center;padding:32px;color:var(--text-4)">Nenhum imóvel cadastrado.</div>`
@@ -5542,6 +5545,7 @@ ${veiculos.length === 0
     </div>
     <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn-xs" data-tco-veiculo="${v.id}">${icon('bar-chart-3',{size:11})} Ver TCO</button>
+      <button class="btn-xs" data-troca-veiculo="${v.id}">${icon('repeat',{size:11})} Vale trocar?</button>
       ${v.ipvaAnual > 0 ? `<button class="btn-xs" data-prog-ipva="${v.id}">Programar IPVA</button>` : ''}
       ${v.seguroAnual > 0 ? `<button class="btn-xs" data-prog-seguro="${v.id}">Programar Seguro</button>` : ''}
     </div>
@@ -5703,6 +5707,7 @@ ${passivos.length === 0
     document.getElementById('btnAddAtivo')?.addEventListener('click', () => openAtivoModal(null, re));
     document.getElementById('btnAddVeiculo')?.addEventListener('click', () => openVeiculoModal(null, re));
     document.getElementById('btnAddImovel')?.addEventListener('click', () => openImovelModal(null, re));
+    document.getElementById('btnAlugarVsComprar')?.addEventListener('click', () => _showAlugarVsComprarModal());
 
     // Veículos + Imóveis: clique direto + programação de custos
     container.querySelectorAll('[data-edit-veiculo]').forEach(card => {
@@ -5722,6 +5727,8 @@ ${passivos.length === 0
     container.addEventListener('click', e => {
       const tco = e.target.closest('[data-tco-veiculo]');
       if (tco) { e.stopPropagation(); const v = Store.getVeiculos().find(x => x.id === tco.dataset.tcoVeiculo); if (v) _showTCOVeiculoModal(v); return; }
+      const troca = e.target.closest('[data-troca-veiculo]');
+      if (troca) { e.stopPropagation(); const v = Store.getVeiculos().find(x => x.id === troca.dataset.trocaVeiculo); if (v) _showAvaliacaoTrocaModal(v); return; }
       const ipva = e.target.closest('[data-prog-ipva]');
       if (ipva) { const v = Store.getVeiculos().find(x => x.id === ipva.dataset.progIpva); if (v) _programarCustoVeiculo(v, 'ipva', re); return; }
       const seg = e.target.closest('[data-prog-seguro]');
@@ -6260,6 +6267,243 @@ ${passivos.length === 0
       render();
       ['fTCOAnos','fTCODeprec'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', render);
+      });
+    }, 50);
+  }
+
+  // Modal: avaliação de troca — manter o atual vs. trocar agora por um novo.
+  // Decisão pragmática: compara custo real (depreciação + custo operacional)
+  // do horizonte N pra cada cenário.
+  function _showAvaliacaoTrocaModal(v) {
+    const valorHoje = Store.veiculoValorEstimado(v);
+    const opAtual   = Store.veiculoCustoAnual(v);
+    const precoSugestaoNovo = Math.round(valorHoje * 1.5 / 1000) * 1000;
+    const opSugestaoNovo    = Math.round(opAtual * 0.7);
+    const html = `
+<div style="background:var(--bg-elevated);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+  <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Cenário A — Manter o atual</div>
+  <div style="font-size:13px;color:var(--text-1);margin-top:4px"><strong>${Utils.escapeHtml(v.apelido || v.modelo || 'Veículo')}</strong> · valor estimado hoje <strong style="color:var(--cyan,#06B6D4);font-family:var(--mono)">${Utils.currency(valorHoje)}</strong> · custo op. ${Utils.currency(opAtual)}/ano</div>
+</div>
+<div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:8px">Cenário B — Trocar por um novo</div>
+<div class="form-grid" style="margin-bottom:14px">
+  <div class="form-group"><label class="form-label">Preço do novo (R$)</label><input class="form-input" id="fTRPreco" type="number" step="1000" value="${precoSugestaoNovo}"></div>
+  <div class="form-group"><label class="form-label">Custo operac. anual novo (R$)</label><input class="form-input" id="fTRCustoOp" type="number" step="100" value="${opSugestaoNovo}"></div>
+  <div class="form-group"><label class="form-label">Depreciação do novo (%/a.a.)</label><input class="form-input" id="fTRDeprec" type="number" step="0.5" min="0" max="40" value="${v.depreciacaoAnualPct || 10}"></div>
+  <div class="form-group"><label class="form-label">Horizonte de comparação (anos)</label><input class="form-input" id="fTRAnos" type="number" min="1" max="20" step="1" value="5"></div>
+</div>
+<div id="trResult"></div>
+<div style="font-size:11px;color:var(--text-4);margin-top:10px;line-height:1.5">
+  <strong>Custo real do período</strong> = depreciação (quanto o veículo perdeu em valor) + custo operacional acumulado (IPVA + seguro + manutenção × N anos). Não inclui combustível nem oportunidade de investir a diferença no CDI.
+</div>`;
+    Modal.open(`Vale trocar? — ${v.apelido || v.modelo || 'Veículo'}`, html, () => Modal.close(), { okText: 'Fechar' });
+
+    const render = () => {
+      const precoNovo  = parseFloat(document.getElementById('fTRPreco')?.value) || precoSugestaoNovo;
+      const custoOpNovo= parseFloat(document.getElementById('fTRCustoOp')?.value) || opSugestaoNovo;
+      const deprecNovo = parseFloat(document.getElementById('fTRDeprec')?.value) || (v.depreciacaoAnualPct || 10);
+      const anos       = parseInt(document.getElementById('fTRAnos')?.value) || 5;
+      const r = Store.veiculoAvaliacaoTroca(v, { precoNovo, custoOpNovoAnual: custoOpNovo, deprecNovoPct: deprecNovo, anos });
+
+      const manterMelhor = r.diff > 0; // diff = B - A
+      const cor   = manterMelhor ? 'var(--green)' : 'var(--accent)';
+      const bg    = manterMelhor ? 'rgba(34,197,94,0.06)' : 'rgba(115,103,240,0.06)';
+      const bord  = manterMelhor ? 'rgba(34,197,94,0.25)' : 'rgba(115,103,240,0.25)';
+      const recom = manterMelhor
+        ? `Manter o atual sai <strong>${Utils.currency(r.diff)}</strong> mais barato em ${anos} anos.`
+        : `Trocar agora sai <strong>${Utils.currency(Math.abs(r.diff))}</strong> mais barato em ${anos} anos.`;
+
+      document.getElementById('trResult').innerHTML = `
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+  <div style="border:1px solid ${manterMelhor ? bord : 'var(--border)'};border-radius:10px;padding:12px 14px;background:${manterMelhor ? bg : 'transparent'}">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:700;color:${manterMelhor ? cor : 'var(--text-3)'};text-transform:uppercase;letter-spacing:.05em">A — Manter</span>
+      ${manterMelhor ? `<span style="font-size:9.5px;color:var(--green);font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15)">mais barato</span>` : ''}
+    </div>
+    <div style="font-size:10.5px;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em">Custo total ${anos}a</div>
+    <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1);margin-bottom:8px">${Utils.currency(r.A.custoTotal)}</div>
+    <div style="font-size:11.5px;color:var(--text-3);line-height:1.65">
+      Depreciação: <strong style="color:var(--red)">${Utils.currency(r.A.depreciacao)}</strong><br>
+      Custo operacional: <strong>${Utils.currency(r.A.op)}</strong><br>
+      Valor em ${anos}a: <strong style="color:var(--cyan,#06B6D4)">${Utils.currency(r.A.valorFinal)}</strong>
+    </div>
+  </div>
+  <div style="border:1px solid ${!manterMelhor ? bord : 'var(--border)'};border-radius:10px;padding:12px 14px;background:${!manterMelhor ? bg : 'transparent'}">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:700;color:${!manterMelhor ? cor : 'var(--text-3)'};text-transform:uppercase;letter-spacing:.05em">B — Trocar</span>
+      ${!manterMelhor ? `<span style="font-size:9.5px;color:var(--accent);font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(115,103,240,0.15)">mais barato</span>` : ''}
+    </div>
+    <div style="font-size:10.5px;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em">Custo total ${anos}a</div>
+    <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1);margin-bottom:8px">${Utils.currency(r.B.custoTotal)}</div>
+    <div style="font-size:11.5px;color:var(--text-3);line-height:1.65">
+      Depreciação: <strong style="color:var(--red)">${Utils.currency(r.B.depreciacao)}</strong><br>
+      Custo operacional: <strong>${Utils.currency(r.B.op)}</strong><br>
+      Valor em ${anos}a: <strong style="color:var(--cyan,#06B6D4)">${Utils.currency(r.B.valorFinal)}</strong><br>
+      ${r.B.aporteInicial > 0 ? `<span style="color:var(--amber)">Aporte hoje (entrada): <strong>${Utils.currency(r.B.aporteInicial)}</strong></span>` : ''}
+    </div>
+  </div>
+</div>
+<div style="background:${bg};border:1px solid ${bord};border-radius:10px;padding:12px 14px">
+  <div style="font-size:12px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+    ${icon(manterMelhor ? 'check-circle' : 'arrow-right-circle', {size:13})} <span>Recomendação</span>
+  </div>
+  <div style="font-size:13.5px;color:var(--text-1);line-height:1.55">${recom}</div>
+</div>`;
+    };
+
+    setTimeout(() => {
+      render();
+      ['fTRPreco','fTRCustoOp','fTRDeprec','fTRAnos'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', render);
+      });
+    }, 50);
+  }
+
+  // Modal: comparador "alugar vs comprar" para imóvel residencial.
+  // Compara patrimônio líquido em N anos: comprar (equity acumulada)
+  // vs alugar (investir entrada + diferença mensal no CDI).
+  async function _showAlugarVsComprarModal() {
+    // Defaults aproximados pra mercado brasileiro hoje
+    let cdiAnual = 11;
+    try { const r = await MarketRates.get(); if (r?.cdi) cdiAnual = r.cdi; } catch (_) {}
+    const cdiLiqAnual = cdiAnual * 0.85; // IR 15% conservador
+    const html = `
+<div style="font-size:11.5px;color:var(--text-3);margin-bottom:10px;line-height:1.5">
+  Compare patrimônio em N anos entre <strong>comprar financiando</strong> e <strong>alugar + investir a diferença</strong>. CDI atual considerado: <strong>${cdiAnual.toFixed(2)}% a.a.</strong> (líquido ~${cdiLiqAnual.toFixed(2)}% após IR 15%).
+</div>
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Preço do imóvel (R$)</label><input class="form-input" id="fAVCPreco" type="number" step="10000" value="500000"></div>
+  <div class="form-group"><label class="form-label">Entrada (R$)</label><input class="form-input" id="fAVCEntrada" type="number" step="5000" value="100000"></div>
+  <div class="form-group"><label class="form-label">Taxa financ. (% a.m.)</label><input class="form-input" id="fAVCTaxa" type="number" step="0.05" value="0.95"></div>
+  <div class="form-group"><label class="form-label">Prazo financ. (meses)</label><input class="form-input" id="fAVCPrazo" type="number" step="12" value="360"></div>
+  <div class="form-group"><label class="form-label">Aluguel equivalente (R$/mês)</label><input class="form-input" id="fAVCAluguel" type="number" step="100" value="2500"></div>
+  <div class="form-group"><label class="form-label">Valorização imóvel (% a.a.)</label><input class="form-input" id="fAVCValoriz" type="number" step="0.5" value="4"></div>
+  <div class="form-group"><label class="form-label">IPTU + condomínio (R$/mês)</label><input class="form-input" id="fAVCCustosM" type="number" step="50" value="600"></div>
+  <div class="form-group"><label class="form-label">Manutenção (% imóvel/a.a.)</label><input class="form-input" id="fAVCManut" type="number" step="0.1" value="1"></div>
+  <div class="form-group"><label class="form-label">Reajuste aluguel (% a.a.)</label><input class="form-input" id="fAVCReajuste" type="number" step="0.5" value="4"></div>
+  <div class="form-group"><label class="form-label">Horizonte (anos)</label><input class="form-input" id="fAVCAnos" type="number" min="1" max="40" step="1" value="10"></div>
+</div>
+<div id="avcResult" style="margin-top:14px"></div>
+<div style="font-size:11px;color:var(--text-4);margin-top:8px;line-height:1.55">
+  <strong>Comprar</strong>: patrimônio = (valor do imóvel valorizado) − (saldo devedor restante). Custos pagos do fluxo mensal.<br>
+  <strong>Alugar</strong>: investe entrada no CDI desde t=0. Cada mês, investe também a diferença (parcela+custos) − aluguel, se positiva. Aluguel sobe com inflação. Patrimônio final = montante acumulado no CDI.
+</div>`;
+    Modal.open('Alugar vs Comprar — análise de patrimônio', html, () => Modal.close(), { okText: 'Fechar' });
+
+    const calc = () => {
+      const preco       = parseFloat(document.getElementById('fAVCPreco').value)    || 0;
+      const entrada     = parseFloat(document.getElementById('fAVCEntrada').value)  || 0;
+      const taxaMensal  = (parseFloat(document.getElementById('fAVCTaxa').value)    || 0) / 100;
+      const prazo       = parseInt(document.getElementById('fAVCPrazo').value)      || 360;
+      const aluguel0    = parseFloat(document.getElementById('fAVCAluguel').value)  || 0;
+      const valoriz     = (parseFloat(document.getElementById('fAVCValoriz').value) || 0) / 100;
+      const custosM     = parseFloat(document.getElementById('fAVCCustosM').value)  || 0;
+      const manutPct    = (parseFloat(document.getElementById('fAVCManut').value)   || 0) / 100;
+      const reajPct     = (parseFloat(document.getElementById('fAVCReajuste').value)|| 0) / 100;
+      const anos        = parseInt(document.getElementById('fAVCAnos').value)       || 10;
+      const meses       = anos * 12;
+      const PV          = Math.max(0, preco - entrada);
+      const PMT         = PV === 0 ? 0 : (taxaMensal === 0 ? PV / prazo : PV * taxaMensal / (1 - Math.pow(1 + taxaMensal, -prazo)));
+      const cdiMensal   = Math.pow(1 + cdiLiqAnual / 100, 1 / 12) - 1;
+      const reajMensal  = Math.pow(1 + reajPct, 1 / 12) - 1;
+
+      // === CENÁRIO COMPRAR ===
+      let saldoDevedor = PV;
+      let totalJurosPagos = 0;
+      let totalCustosPagos = 0;
+      let totalManutencaoPaga = 0;
+      const mesesFinanc = Math.min(meses, prazo);
+      for (let m = 1; m <= mesesFinanc; m++) {
+        const juros = saldoDevedor * taxaMensal;
+        const amort = Math.max(0, PMT - juros);
+        saldoDevedor = Math.max(0, saldoDevedor - amort);
+        totalJurosPagos += juros;
+      }
+      // Custos recorrentes (IPTU+condomínio + manutenção como % do imóvel)
+      const manutMensal = (preco * manutPct) / 12;
+      totalCustosPagos = (custosM + manutMensal) * meses;
+      const valorImovel = preco * Math.pow(1 + valoriz, anos);
+      const equity = valorImovel - saldoDevedor;
+      // Caixa "queimado" = entrada + parcelas + custos − valor recuperável (equity)
+      const totalPagoCompra = entrada + PMT * mesesFinanc + totalCustosPagos;
+      const patrimComprar = equity;
+
+      // === CENÁRIO ALUGAR ===
+      // Investe entrada no CDI desde t=0
+      // A cada mês: paga aluguel (reajustado). Se diferença (PMT + custos - aluguel) > 0, investe no CDI.
+      let saldoCDI = entrada;
+      let totalAluguelPago = 0;
+      let totalInvestidoExtra = 0;
+      for (let m = 1; m <= meses; m++) {
+        saldoCDI *= (1 + cdiMensal);
+        const aluguelM = aluguel0 * Math.pow(1 + reajMensal, m - 1);
+        totalAluguelPago += aluguelM;
+        // Custo mensal de COMPRAR (parcela + custos + manutenção) — se for menor que o financiamento ativo
+        const parcelaAtiva = m <= prazo ? PMT : 0;
+        const custoCompraMes = parcelaAtiva + custosM + manutMensal;
+        const dif = custoCompraMes - aluguelM;
+        if (dif > 0) {
+          saldoCDI += dif;
+          totalInvestidoExtra += dif;
+        }
+        // Se aluguel > custo de comprar, alugar gasta mais (sem investir)
+      }
+      const patrimAlugar = saldoCDI;
+
+      // === Comparação ===
+      const diff = patrimComprar - patrimAlugar;
+      const comprarMelhor = diff > 0;
+      const cor = comprarMelhor ? 'var(--green)' : 'var(--accent)';
+      const bg  = comprarMelhor ? 'rgba(34,197,94,0.06)' : 'rgba(115,103,240,0.06)';
+      const bord= comprarMelhor ? 'rgba(34,197,94,0.25)' : 'rgba(115,103,240,0.25)';
+
+      document.getElementById('avcResult').innerHTML = `
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+  <div style="border:1px solid ${comprarMelhor ? bord : 'var(--border)'};border-radius:10px;padding:12px 14px;background:${comprarMelhor ? bg : 'transparent'}">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:700;color:${comprarMelhor ? cor : 'var(--text-3)'};text-transform:uppercase;letter-spacing:.05em">Comprar</span>
+      ${comprarMelhor ? '<span style="font-size:9.5px;color:var(--green);font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15)">melhor</span>' : ''}
+    </div>
+    <div style="font-size:10.5px;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em">Patrimônio em ${anos}a (equity)</div>
+    <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1);margin-bottom:8px">${Utils.currency(patrimComprar)}</div>
+    <div style="font-size:11.5px;color:var(--text-3);line-height:1.65">
+      Valor do imóvel: <strong style="color:var(--cyan,#06B6D4)">${Utils.currency(valorImovel)}</strong><br>
+      Saldo financ.: <strong style="color:var(--red)">${Utils.currency(saldoDevedor)}</strong><br>
+      Parcela: ${Utils.currency(PMT)}/mês · juros pagos ${Utils.currency(totalJurosPagos)}<br>
+      Custos+manut: ${Utils.currency(totalCustosPagos)} em ${anos}a
+    </div>
+  </div>
+  <div style="border:1px solid ${!comprarMelhor ? bord : 'var(--border)'};border-radius:10px;padding:12px 14px;background:${!comprarMelhor ? bg : 'transparent'}">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:700;color:${!comprarMelhor ? cor : 'var(--text-3)'};text-transform:uppercase;letter-spacing:.05em">Alugar</span>
+      ${!comprarMelhor ? '<span style="font-size:9.5px;color:var(--accent);font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(115,103,240,0.15)">melhor</span>' : ''}
+    </div>
+    <div style="font-size:10.5px;color:var(--text-4);text-transform:uppercase;letter-spacing:.04em">Patrimônio em ${anos}a (CDI)</div>
+    <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text-1);margin-bottom:8px">${Utils.currency(patrimAlugar)}</div>
+    <div style="font-size:11.5px;color:var(--text-3);line-height:1.65">
+      Entrada investida no CDI desde t=0<br>
+      Aluguel pago: <strong style="color:var(--red)">${Utils.currency(totalAluguelPago)}</strong><br>
+      Investido extra: <strong style="color:var(--green)">${Utils.currency(totalInvestidoExtra)}</strong><br>
+      CDI líquido: ${cdiLiqAnual.toFixed(2)}% a.a.
+    </div>
+  </div>
+</div>
+<div style="background:${bg};border:1px solid ${bord};border-radius:10px;padding:12px 14px">
+  <div style="font-size:12px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+    ${icon(comprarMelhor ? 'home' : 'piggy-bank', {size:13})} <span>Recomendação</span>
+  </div>
+  <div style="font-size:13.5px;color:var(--text-1);line-height:1.55">
+    Em <strong>${anos} anos</strong>, <strong style="color:${cor}">${comprarMelhor ? 'comprar' : 'alugar e investir'}</strong> rende <strong>${Utils.currency(Math.abs(diff))}</strong> a mais em patrimônio líquido.
+    ${comprarMelhor
+      ? ' O imóvel valoriza e o financiamento força "poupança" via amortização.'
+      : ' Investir a diferença no CDI supera a valorização do imóvel + os custos do financiamento.'}
+  </div>
+</div>`;
+    };
+
+    setTimeout(() => {
+      calc();
+      ['fAVCPreco','fAVCEntrada','fAVCTaxa','fAVCPrazo','fAVCAluguel','fAVCValoriz','fAVCCustosM','fAVCManut','fAVCReajuste','fAVCAnos'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', calc);
       });
     }, 50);
   }

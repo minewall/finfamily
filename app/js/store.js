@@ -2101,6 +2101,39 @@ const Store = (function () {
     return (_data.veiculos || []).reduce((s, v) => s + veiculoValorEstimado(v), 0);
   }
 
+  // Compara "manter o atual" vs "trocar por um novo" no horizonte N.
+  // Modelo: custo real = depreciação no período + custo operacional acumulado.
+  // (Aporte líquido pra trocar = precoNovo − valorAtualHoje, mas isso já está
+  //  refletido na depreciação_novo que é maior em valor absoluto.)
+  function veiculoAvaliacaoTroca(v, params) {
+    const valorAtualHoje = veiculoValorEstimado(v);
+    const deprecAtual    = (v.depreciacaoAnualPct || 10) / 100;
+    const custoOpAtual   = veiculoCustoAnual(v);
+    const anos           = Math.max(1, params?.anos || 5);
+    const precoNovo      = params?.precoNovo || Math.round(valorAtualHoje * 1.5);
+    const deprecNovo     = ((params?.deprecNovoPct || (v.depreciacaoAnualPct || 10)) / 100);
+    const custoOpNovo    = (params?.custoOpNovoAnual != null) ? params.custoOpNovoAnual : Math.round(custoOpAtual * 0.7);
+
+    const valorAtualEmN = valorAtualHoje * Math.pow(1 - deprecAtual, anos);
+    const valorNovoEmN  = precoNovo      * Math.pow(1 - deprecNovo,  anos);
+
+    const A_deprec = valorAtualHoje - valorAtualEmN;
+    const A_op     = custoOpAtual * anos;
+    const A_total  = A_deprec + A_op;
+
+    const B_deprec = precoNovo - valorNovoEmN;
+    const B_op     = custoOpNovo * anos;
+    const B_total  = B_deprec + B_op;
+    const B_aporte = Math.max(0, precoNovo - valorAtualHoje);
+
+    return {
+      anos, valorAtualHoje, precoNovo,
+      A: { custoTotal: A_total, depreciacao: A_deprec, op: A_op, valorFinal: valorAtualEmN, custoOpAnual: custoOpAtual },
+      B: { custoTotal: B_total, depreciacao: B_deprec, op: B_op, valorFinal: valorNovoEmN, custoOpAnual: custoOpNovo, aporteInicial: B_aporte },
+      diff: B_total - A_total, // > 0 → trocar é mais caro
+    };
+  }
+
   // ── IMÓVEIS ─────────────────────────────────────────────────────
   function _ensureImoveis() {
     if (!_data.imoveis) { _data.imoveis = []; }
@@ -3962,7 +3995,7 @@ const Store = (function () {
     addReserva, updateReserva, deleteReserva,
     addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
-    getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, veiculoIdadeAnos, veiculoTCO, totalVeiculos,
+    getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, veiculoIdadeAnos, veiculoTCO, veiculoAvaliacaoTroca, totalVeiculos,
     getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
     getFinanciamentos, addFinanciamento, updateFinanciamento, deleteFinanciamento,
     financiamentoParcelaInicial, financiamentoParcelaNa, financiamentoSaldoDevedor, financiamentoTotalPago, financiamentoTotalRestante, financiamentoTotalJuros, financiamentoCETAnual, financiamentoAntecipar, financiamentoAnteciparRecorrente, financiamentoSimularSistema, totalFinanciamentosDevedor,
