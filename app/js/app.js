@@ -13360,7 +13360,7 @@ ${tipos.map(t => {
 <div class="section-header mb-4">
   <div>
     <div class="section-title">Personalidade do Haile</div>
-    <div class="section-sub">Escolha o tom de voz com que o Coach conversa com você. Você pode mudar a qualquer momento.</div>
+    <div class="section-sub">Escolha o tom de voz com que o Haile conversa com você. Você pode mudar a qualquer momento.</div>
   </div>
 </div>
 
@@ -13385,7 +13385,7 @@ ${personalities.map(p => `
 </div>
 
 <div style="background:var(--bg-elevated);border-radius:var(--radius-md);padding:12px 14px;font-size:12px;color:var(--text-3);line-height:1.6">
-  <strong style="color:var(--text-2)">Em breve:</strong> personalidades de "guru" — coaches financeiros licenciados com tom de figuras conhecidas do mercado brasileiro. Cobrança separada.
+  <strong style="color:var(--text-2)">Em breve:</strong> personalidades de mentores — vozes inspiradas em figuras conhecidas do mercado financeiro brasileiro. Cobrança separada.
 </div>`;
 
     content.addEventListener('click', e => {
@@ -14595,7 +14595,7 @@ ${isConnected && isAdmin ? `
     health: [
       {
         id: 'health_1', version: 1,
-        pergunta: 'Você reserva algo no orçamento todo mês pra cuidar da sua saúde?',
+        pergunta: 'Você reserva algo todo mês pra cuidar da sua saúde?',
         opcoes: [
           { id: 'a', label: 'Sim, valor mensal organizado',             sub: 'Plano, academia, terapia' },
           { id: 'b', label: 'Sim, mas inconsistente',                   sub: 'Quando dá ou quando precisa' },
@@ -14605,7 +14605,7 @@ ${isConnected && isAdmin ? `
       },
       {
         id: 'health_2', version: 1,
-        pergunta: 'Existe alguma condição de saúde na família que pode pesar no seu orçamento no futuro?',
+        pergunta: 'Existe alguma condição de saúde na família que pode pesar nas suas finanças no futuro?',
         opcoes: [
           { id: 'a', label: 'Sim, e já estou me preparando',            sub: 'Já tenho reserva pensada' },
           { id: 'b', label: 'Sim, mas ainda não me preparei',           sub: 'Sei do risco, não agi' },
