@@ -4485,7 +4485,7 @@ ${contratos.length === 0 ? coachEmptyHTML({
       Modal.close();
       toast('Compromisso removido', 'success');
       renderContratos(container);
-    } : null);
+    } : null, { size: 'lg' });
 
     setTimeout(() => {
       const kindSel = document.getElementById('fCKind');
@@ -5991,7 +5991,7 @@ ${passivos.length === 0
       Modal.close();
       onSaved();
       toast('Passivo removido', 'success');
-    } : null);
+    } : null, { size: 'lg' });
   }
 
   function openPassivoToContratoModal(passivo, onSaved) {
@@ -7535,7 +7535,7 @@ ${topCats.length ? `
       Modal.close();
       toast('Despesa removida', 'success');
       if (onSaved) onSaved();
-    });
+    }, { size: 'lg' });
 
     setTimeout(() => {
       editSplitApi = setupSplitUI('eDAmt', d.split || null);
@@ -7630,7 +7630,7 @@ ${topCats.length ? `
       Modal.close();
       toast('Receita removida', 'success');
       if (onSaved) onSaved();
-    });
+    }, { size: 'lg' });
   }
 
   // ── CARTÕES (rota separada — só seção de cartões) ──

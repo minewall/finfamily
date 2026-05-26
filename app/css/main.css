@@ -1822,8 +1822,11 @@ body.sidebar-open { overflow: hidden; }
     gap: 6px;
   }
 
-  /* Modal: full width */
-  .modal {
+  /* Modal: full width (bottom sheet) — override force pra modal--lg/xl tb */
+  .modal,
+  .modal.modal--md,
+  .modal.modal--lg,
+  .modal.modal--xl {
     width: 100%;
     max-width: 100%;
     margin: 0;
@@ -1833,9 +1836,12 @@ body.sidebar-open { overflow: hidden; }
     left: 0;
     right: 0;
     max-height: 90vh;
-    overflow-y: auto;
+    /* overflow-y removido — .modal-body já scrolla; ter ambos cria scroll duplo */
   }
-  .modal-overlay { align-items: flex-end; }
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0; /* bottom sheet usa a borda inteira do viewport */
+  }
 }
 
 /* ── SCROLLBAR STYLE ────────────────────────────────────────────── */
