@@ -5541,6 +5541,7 @@ ${veiculos.length === 0
       </div>
     </div>
     <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn-xs" data-tco-veiculo="${v.id}">${icon('bar-chart-3',{size:11})} Ver TCO</button>
       ${v.ipvaAnual > 0 ? `<button class="btn-xs" data-prog-ipva="${v.id}">Programar IPVA</button>` : ''}
       ${v.seguroAnual > 0 ? `<button class="btn-xs" data-prog-seguro="${v.id}">Programar Seguro</button>` : ''}
     </div>
@@ -5719,6 +5720,8 @@ ${passivos.length === 0
       });
     });
     container.addEventListener('click', e => {
+      const tco = e.target.closest('[data-tco-veiculo]');
+      if (tco) { e.stopPropagation(); const v = Store.getVeiculos().find(x => x.id === tco.dataset.tcoVeiculo); if (v) _showTCOVeiculoModal(v); return; }
       const ipva = e.target.closest('[data-prog-ipva]');
       if (ipva) { const v = Store.getVeiculos().find(x => x.id === ipva.dataset.progIpva); if (v) _programarCustoVeiculo(v, 'ipva', re); return; }
       const seg = e.target.closest('[data-prog-seguro]');
@@ -6150,6 +6153,115 @@ ${passivos.length === 0
       toast(`${tipo.toUpperCase()} programado por ${anos} anos`, 'success');
       if (onDone) onDone();
     });
+  }
+
+  // Modal: TCO (Total Cost of Ownership) do veículo
+  // Mostra ano-a-ano: valor estimado (depreciação), custo acumulado e custo líquido
+  // (= dinheiro real "queimado" se vendesse o carro hoje).
+  function _showTCOVeiculoModal(v) {
+    const idade = Math.max(0, Store.veiculoIdadeAnos(v));
+    const horizonteDefault = Math.max(5, Math.ceil(idade) + 5);
+    const html = `
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+  <div class="form-group" style="margin-bottom:0">
+    <label class="form-label">Horizonte (anos desde a compra)</label>
+    <input class="form-input" id="fTCOAnos" type="number" min="1" max="30" step="1" value="${horizonteDefault}">
+  </div>
+  <div class="form-group" style="margin-bottom:0">
+    <label class="form-label">Depreciação anual (%)</label>
+    <input class="form-input" id="fTCODeprec" type="number" min="0" max="50" step="0.5" value="${v.depreciacaoAnualPct || 10}">
+  </div>
+  <div class="form-group" style="margin-bottom:0">
+    <label class="form-label">Custo operacional/ano (R$)</label>
+    <div class="form-input" style="display:flex;align-items:center;background:var(--bg-elevated);color:var(--text-3);font-family:var(--mono)">${Utils.currency(Store.veiculoCustoAnual(v))}</div>
+  </div>
+</div>
+<div id="tcoChartWrap" class="chart-wrap" style="height:280px;display:flex;align-items:stretch">
+  <canvas id="chartTCO" class="chart-canvas" style="width:100%;height:100%"></canvas>
+</div>
+<div id="tcoInsight" style="margin-top:12px"></div>
+<div id="tcoTableWrap" style="margin-top:14px;max-height:240px;overflow-y:auto"></div>
+<div style="font-size:11px;color:var(--text-4);margin-top:8px;line-height:1.5">
+  <strong>Custo líquido</strong> = quanto dinheiro real você "queimou" tendo o carro até esse ano = (preço de compra + custos operacionais) − valor de revenda estimado.
+</div>`;
+    Modal.open(`TCO — ${v.apelido || v.modelo || 'Veículo'}`, html, () => Modal.close(), { okText: 'Fechar' });
+
+    const render = () => {
+      const anos = parseInt(document.getElementById('fTCOAnos')?.value) || horizonteDefault;
+      const deprecPct = parseFloat(document.getElementById('fTCODeprec')?.value);
+      const veh = { ...v, depreciacaoAnualPct: isFinite(deprecPct) ? deprecPct : (v.depreciacaoAnualPct || 10) };
+      const tco = Store.veiculoTCO(veh, anos);
+
+      // Chart
+      const labels  = tco.map(t => `${t.ano}a`);
+      const dssets  = [
+        { label: 'Valor estimado',  values: tco.map(t => t.valorEstim), color: '#06B6D4', fill: true },
+        { label: 'Custo acumulado', values: tco.map(t => t.custoAcum),  color: '#EF4444', dashed: true },
+        { label: 'Custo líquido',   values: tco.map(t => t.custoLiq),   color: '#F59E0B', lineWidth: 3 },
+      ];
+      const canvas = document.getElementById('chartTCO');
+      if (canvas) {
+        if (window._chartTCO) window._chartTCO.destroy?.();
+        window._chartTCO = Charts.Line(canvas, { labels, datasets: dssets }, { height: 280 });
+      }
+
+      // Insight contextual (ponto atual do usuário)
+      const idadeArred = Math.min(anos, Math.max(0, Math.round(Store.veiculoIdadeAnos(v))));
+      const atual = tco[idadeArred];
+      if (atual) {
+        const pctQueimado = atual.custoAcum > 0 ? (atual.custoLiq / atual.custoAcum * 100) : 0;
+        document.getElementById('tcoInsight').innerHTML = `
+<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px 14px">
+  <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Você hoje (~${idadeArred} ano${idadeArred===1?'':'s'} de uso)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12.5px">
+    <div>
+      <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase">Valor estimado</div>
+      <div style="font-weight:700;color:var(--cyan,#06B6D4);font-family:var(--mono)">${Utils.currency(atual.valorEstim)}</div>
+    </div>
+    <div>
+      <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase">Já gastou (oper.)</div>
+      <div style="font-weight:700;color:var(--red);font-family:var(--mono)">${Utils.currency(atual.gastoOp)}</div>
+    </div>
+    <div>
+      <div style="color:var(--text-4);font-size:10.5px;text-transform:uppercase">Custo líquido</div>
+      <div style="font-weight:800;color:var(--amber);font-family:var(--mono)">${Utils.currency(atual.custoLiq)}</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text-2);margin-top:8px;line-height:1.5">
+    Se vendesse hoje, esse veículo já teria "custado" <strong style="color:var(--amber)">${Utils.currency(atual.custoLiq)}</strong> no total
+    (${pctQueimado.toFixed(0)}% do que você colocou). Útil pra comparar com aluguel/transporte por demanda nas mesmas condições.
+  </div>
+</div>`;
+      }
+
+      // Table (somente alguns marcos)
+      const marcos = tco.filter(t => t.ano === 0 || t.ano % Math.max(1, Math.ceil(anos / 6)) === 0 || t.ano === anos);
+      document.getElementById('tcoTableWrap').innerHTML = `
+<table class="data-table" style="width:100%">
+  <thead><tr>
+    <th>Ano</th>
+    <th class="num">Valor estimado</th>
+    <th class="num">Gasto operac.</th>
+    <th class="num">Custo acumul.</th>
+    <th class="num">Custo líquido</th>
+  </tr></thead>
+  <tbody>${marcos.map(t => `
+    <tr ${t.ano === idadeArred ? 'style="background:rgba(245,158,11,0.06)"' : ''}>
+      <td><strong>${t.ano}a</strong>${t.ano === idadeArred ? ' <span style="font-size:10px;color:var(--amber);font-weight:700">← hoje</span>' : ''}</td>
+      <td class="num" style="font-family:var(--mono);color:#06B6D4">${Utils.currency(t.valorEstim)}</td>
+      <td class="num" style="font-family:var(--mono)">${Utils.currency(t.gastoOp)}</td>
+      <td class="num" style="font-family:var(--mono);color:var(--red)">${Utils.currency(t.custoAcum)}</td>
+      <td class="num" style="font-family:var(--mono);color:var(--amber);font-weight:700">${Utils.currency(t.custoLiq)}</td>
+    </tr>`).join('')}</tbody>
+</table>`;
+    };
+
+    setTimeout(() => {
+      render();
+      ['fTCOAnos','fTCODeprec'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', render);
+      });
+    }, 50);
   }
 
   function openImovelModal(imovel, onSaved) {

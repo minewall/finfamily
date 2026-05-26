@@ -2068,6 +2068,35 @@ const Store = (function () {
   function veiculoCustoAnual(v) {
     return (v.ipvaAnual || 0) + (v.seguroAnual || 0) + ((v.manutencaoMensal || 0) * 12);
   }
+  // Idade em anos (fração) desde a compra. 0 se sem data.
+  function veiculoIdadeAnos(v) {
+    if (!v.dataCompra) return 0;
+    return Math.max(0, (Date.now() - new Date(v.dataCompra).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+  }
+  // TCO ano-a-ano (year 0 = compra). Retorna [{ ano, custoAcum, valorEstim, custoLiq, gastoAno, deprecAno }]
+  function veiculoTCO(v, anosTotal) {
+    const valorCompra = v.valorCompra || 0;
+    const deprec = (v.depreciacaoAnualPct || 10) / 100;
+    const custoOpAnual = veiculoCustoAnual(v);
+    const N = Math.max(1, Math.min(40, anosTotal || 10));
+    const series = [];
+    for (let i = 0; i <= N; i++) {
+      const valorEstim = valorCompra * Math.pow(1 - deprec, i);
+      const gastoOp = custoOpAnual * i;
+      const custoAcum = valorCompra + gastoOp;
+      const custoLiq = custoAcum - valorEstim; // dinheiro real "queimado" se vendesse hoje
+      const deprecAno = i > 0 ? valorCompra * Math.pow(1 - deprec, i - 1) - valorEstim : 0;
+      series.push({
+        ano: i,
+        valorEstim:  parseFloat(valorEstim.toFixed(2)),
+        gastoOp:     parseFloat(gastoOp.toFixed(2)),
+        custoAcum:   parseFloat(custoAcum.toFixed(2)),
+        custoLiq:    parseFloat(custoLiq.toFixed(2)),
+        deprecAno:   parseFloat(deprecAno.toFixed(2)),
+      });
+    }
+    return series;
+  }
   function totalVeiculos() {
     return (_data.veiculos || []).reduce((s, v) => s + veiculoValorEstimado(v), 0);
   }
@@ -3933,7 +3962,7 @@ const Store = (function () {
     addReserva, updateReserva, deleteReserva,
     addRecebimentoFuturo, deleteRecebimentoFuturo, getRecebimentosFuturos, realizarRecebimentoFuturo,
     deleteAtivo, updateAtivo,
-    getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, totalVeiculos,
+    getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo, veiculoValorEstimado, veiculoCustoAnual, veiculoIdadeAnos, veiculoTCO, totalVeiculos,
     getImoveis, addImovel, updateImovel, deleteImovel, imovelValorEstimado, imovelEquity, imovelCustoAnual, imovelReceitaAnual, imovelRentabilidadeAluguel, totalImoveis,
     getFinanciamentos, addFinanciamento, updateFinanciamento, deleteFinanciamento,
     financiamentoParcelaInicial, financiamentoParcelaNa, financiamentoSaldoDevedor, financiamentoTotalPago, financiamentoTotalRestante, financiamentoTotalJuros, financiamentoCETAnual, financiamentoAntecipar, financiamentoAnteciparRecorrente, financiamentoSimularSistema, totalFinanciamentosDevedor,
