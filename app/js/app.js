@@ -176,26 +176,60 @@ const App = (function () {
       this.overlay.addEventListener('click', e => { if (e.target === this.overlay) this.close(); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') this.close(); });
     },
-    open(title, bodyHTML, onSave, onDelete) {
+    /**
+     * Modal.open(title, bodyHTML, onSave, [onDelete | opts], [opts])
+     * opts: { size: 'md'|'lg'|'xl', okText, cancelText, hideFooter }
+     * Backward-compatible — chamadas antigas (4 args com obj no 4º) ainda funcionam.
+     */
+    open(title, bodyHTML, onSave, onDeleteOrOpts, optsArg) {
+      // Detecta se o 4º arg é função (onDelete) ou objeto (opts)
+      let onDelete = null, opts = {};
+      if (typeof onDeleteOrOpts === 'function') {
+        onDelete = onDeleteOrOpts;
+        opts = optsArg || {};
+      } else if (onDeleteOrOpts && typeof onDeleteOrOpts === 'object') {
+        opts = onDeleteOrOpts;
+      }
+
+      const modalEl = document.getElementById('modal');
+      // Reset size classes e aplica o pedido
+      modalEl.classList.remove('modal--md', 'modal--lg', 'modal--xl');
+      if (opts.size === 'lg' || opts.size === 'xl') {
+        modalEl.classList.add(`modal--${opts.size}`);
+      }
+
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalBody').innerHTML = bodyHTML;
-      const footer = document.createElement('div');
-      footer.className = 'modal-footer';
-      const deleteBtn = onDelete ? `<button class="btn-danger" id="modalDelete">${icon('trash-2', {size:14})} Excluir</button><div style="flex:1"></div>` : '';
-      footer.innerHTML = `${deleteBtn}<button class="btn-secondary" id="modalCancel">Cancelar</button><button class="btn-primary" id="modalSave">Salvar</button>`;
-      document.getElementById('modal').appendChild(footer);
-      document.getElementById('modalCancel').addEventListener('click', () => this.close());
-      if (onSave)   document.getElementById('modalSave').addEventListener('click', onSave);
-      if (onDelete) document.getElementById('modalDelete').addEventListener('click', onDelete);
+
+      if (!opts.hideFooter) {
+        const footer = document.createElement('div');
+        footer.className = 'modal-footer';
+        const deleteBtn = onDelete
+          ? `<button class="btn-danger" id="modalDelete">${icon('trash-2', {size:14})} Excluir</button><div style="flex:1"></div>`
+          : '';
+        const okLabel     = opts.okText     || 'Salvar';
+        const cancelLabel = opts.cancelText || 'Cancelar';
+        const okOnly      = !!opts.okOnly;
+        footer.innerHTML = okOnly
+          ? `<button class="btn-primary" id="modalSave">${okLabel}</button>`
+          : `${deleteBtn}<button class="btn-secondary" id="modalCancel">${cancelLabel}</button><button class="btn-primary" id="modalSave">${okLabel}</button>`;
+        modalEl.appendChild(footer);
+        if (!okOnly) document.getElementById('modalCancel').addEventListener('click', () => this.close());
+        if (onSave)   document.getElementById('modalSave').addEventListener('click', onSave);
+        if (onDelete) document.getElementById('modalDelete').addEventListener('click', onDelete);
+      }
+
       this.overlay.classList.add('open');
       this.overlay.setAttribute('aria-hidden', 'false');
-      // Upgrade lucide icons inside modal
-      if (typeof upgradeIcons === 'function') upgradeIcons(document.getElementById('modal'));
+      if (typeof upgradeIcons === 'function') upgradeIcons(modalEl);
     },
     close() {
       this.overlay.classList.remove('open');
       this.overlay.setAttribute('aria-hidden', 'true');
-      document.getElementById('modal').querySelectorAll('.modal-footer').forEach(el => el.remove());
+      const modalEl = document.getElementById('modal');
+      modalEl.querySelectorAll('.modal-footer').forEach(el => el.remove());
+      // Reset size classes pra próximo open começar limpo
+      modalEl.classList.remove('modal--md', 'modal--lg', 'modal--xl');
     },
   };
 
@@ -6177,7 +6211,7 @@ ${passivos.length === 0
       Modal.close();
       if (onSaved) onSaved();
       toast('Veículo removido', 'success');
-    } : null);
+    } : null, { size: 'lg' });
   }
 
   // Cria contrato recorrente anual com o IPVA ou Seguro do veículo
@@ -6251,7 +6285,7 @@ ${passivos.length === 0
 <div style="font-size:11px;color:var(--text-4);margin-top:8px;line-height:1.5">
   <strong>Custo líquido</strong> = quanto dinheiro real você "queimou" tendo o carro até esse ano = (preço de compra + custos operacionais) − valor de revenda estimado.
 </div>`;
-    Modal.open(`TCO — ${v.apelido || v.modelo || 'Veículo'}`, html, () => Modal.close(), { okText: 'Fechar' });
+    Modal.open(`TCO — ${v.apelido || v.modelo || 'Veículo'}`, html, () => Modal.close(), { okText: 'Fechar', okOnly: true, size: 'xl' });
 
     const render = () => {
       const anos = parseInt(document.getElementById('fTCOAnos')?.value) || horizonteDefault;
@@ -6355,7 +6389,7 @@ ${passivos.length === 0
 <div style="font-size:11px;color:var(--text-4);margin-top:10px;line-height:1.5">
   <strong>Custo real do período</strong> = depreciação (quanto o veículo perdeu em valor) + custo operacional acumulado (IPVA + seguro + manutenção × N anos). Não inclui combustível nem oportunidade de investir a diferença no CDI.
 </div>`;
-    Modal.open(`Vale trocar? — ${v.apelido || v.modelo || 'Veículo'}`, html, () => Modal.close(), { okText: 'Fechar' });
+    Modal.open(`Vale trocar? — ${v.apelido || v.modelo || 'Veículo'}`, html, () => Modal.close(), { okText: 'Fechar', okOnly: true, size: 'lg' });
 
     const render = () => {
       const precoNovo  = parseFloat(document.getElementById('fTRPreco')?.value) || precoSugestaoNovo;
@@ -6447,7 +6481,7 @@ ${passivos.length === 0
   <strong>Comprar</strong>: patrimônio = (valor do imóvel valorizado) − (saldo devedor restante). Custos pagos do fluxo mensal.<br>
   <strong>Alugar</strong>: investe entrada no CDI desde t=0. Cada mês, investe também a diferença (parcela+custos) − aluguel, se positiva. Aluguel sobe com inflação. Patrimônio final = montante acumulado no CDI.
 </div>`;
-    Modal.open('Alugar vs Comprar — análise de patrimônio', html, () => Modal.close(), { okText: 'Fechar' });
+    Modal.open('Alugar vs Comprar — análise de patrimônio', html, () => Modal.close(), { okText: 'Fechar', okOnly: true, size: 'xl' });
 
     const calc = () => {
       const preco       = parseFloat(document.getElementById('fAVCPreco').value)    || 0;
@@ -6611,7 +6645,7 @@ ${passivos.length === 0
       Modal.close();
       if (onSaved) onSaved();
       toast('Equipamento removido', 'success');
-    } : null);
+    } : null, { size: 'md' });
   }
 
   function openImovelModal(imovel, onSaved) {
@@ -6682,7 +6716,7 @@ ${passivos.length === 0
       Modal.close();
       if (onSaved) onSaved();
       toast('Imóvel removido', 'success');
-    } : null);
+    } : null, { size: 'lg' });
   }
 
   function _programarCustoImovel(im, tipo, onDone) {
@@ -8964,7 +8998,7 @@ ${acoesBar}
       Modal.close();
       toast('Financiamento removido', 'success');
       if (onSaved) onSaved();
-    } : null);
+    } : null, { size: 'lg' });
     // Atualiza descrição + range ao trocar tipo + ações rápidas (modo edit)
     setTimeout(() => {
       const sel  = document.getElementById('fFNTipoNovo');
@@ -9102,7 +9136,7 @@ ${acoesBar}
     </tr>`).join('')}</tbody>
   <tfoot><tr><td class="fw-700">Total juros</td><td colspan="4" class="num fw-700 negative">${Utils.currency(totalJuros)}</td></tr></tfoot>
 </table></div>`;
-    Modal.open(`${f.label} — tabela ${f.sistema === 'sac' ? 'SAC' : 'Price'}`, html, () => Modal.close(), { okText: 'Fechar' });
+    Modal.open(`${f.label} — tabela ${f.sistema === 'sac' ? 'SAC' : 'Price'}`, html, () => Modal.close(), { okText: 'Fechar', okOnly: true, size: 'xl' });
   }
 
   async function _showAntecipacaoModal(f, onDone) {
@@ -9140,7 +9174,7 @@ ${acoesBar}
 <div id="anResult" style="margin-top:12px"></div>
 <div id="anCetCdi" style="margin-top:12px"></div>
 <div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn-secondary" id="btnAnCalc">Calcular</button></div>`;
-    Modal.open(`Antecipar — ${f.label}`, html, () => Modal.close(), { okText: 'Fechar' });
+    Modal.open(`Antecipar — ${f.label}`, html, () => Modal.close(), { okText: 'Fechar', okOnly: true, size: 'lg' });
 
     setTimeout(() => {
       let modo = 'unico';

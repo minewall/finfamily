@@ -1499,6 +1499,10 @@ td.muted    { color: var(--text-3); }
   display: flex;
   flex-direction: column;
 }
+/* Modifier sizes — opt-in via Modal.open(..., { size: 'lg'|'xl' }) */
+.modal.modal--lg { max-width: 720px; }
+.modal.modal--xl { max-width: 880px; }
+.modal.modal--md { max-width: 560px; }
 .modal-overlay.open .modal {
   transform: translateY(0) scale(1);
 }
