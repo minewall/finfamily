@@ -309,6 +309,40 @@ serve(async (req) => {
         }, req);
       }
 
+      // LGPD: lista pedidos com filtro opcional
+      case 'lgpdListRequests': {
+        const { status: filterStatus } = params as { status?: string };
+        let q = adminClient
+          .from('lgpd_requests')
+          .select('id, user_id, user_email, request_type, status, notes, requested_at, completed_at')
+          .order('requested_at', { ascending: false })
+          .limit(200);
+        if (filterStatus) q = q.eq('status', filterStatus);
+        const { data, error } = await q;
+        if (error) return json(500, { error: error.message }, req);
+        return json(200, { requests: data || [] }, req);
+      }
+
+      // LGPD: marca pedido como completed/rejected
+      case 'lgpdCompleteRequest': {
+        const { requestId, status: newStatus, notes } = params as { requestId: string; status?: string; notes?: string };
+        if (!requestId) return json(400, { error: 'requestId required' }, req);
+        const finalStatus = newStatus === 'rejected' ? 'rejected' : 'completed';
+        const patch: Record<string, unknown> = {
+          status:       finalStatus,
+          completed_at: new Date().toISOString(),
+          completed_by: user.id,
+        };
+        if (notes) patch.notes = notes;
+        const { error } = await adminClient
+          .from('lgpd_requests')
+          .update(patch)
+          .eq('id', requestId);
+        if (error) return json(500, { error: error.message }, req);
+        console.log(`[admin] lgpdCompleteRequest id=${requestId} status=${finalStatus} by admin=${user.id}`);
+        return json(200, { ok: true }, req);
+      }
+
       // Global app_settings — read all
       case 'getGlobalSettings': {
         const { data, error } = await adminClient

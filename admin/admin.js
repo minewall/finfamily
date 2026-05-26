@@ -83,7 +83,7 @@ const Admin = (() => {
       { section: 'Sistema' },
       { page: 'logs',     icon: 'scroll-text',     label: 'Logs' },
       { page: 'settings', icon: 'settings-2',      label: 'Configurações' },
-      { page: 'lgpd',     icon: 'shield-check',    label: 'LGPD',          soon: true },
+      { page: 'lgpd',     icon: 'shield-check',    label: 'LGPD' },
     ];
 
     const items = nav.map(n => {

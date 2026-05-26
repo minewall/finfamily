@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — LGPD · Haile</title>
+  <link rel="stylesheet" href="../app/css/main.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<aside id="admin-sidebar"></aside>
+
+<div id="admin-main">
+  <header id="admin-topbar">
+    <div>
+      <div class="admin-page-title">LGPD — Solicitações</div>
+      <div class="admin-page-sub">Acesso, portabilidade, exclusão e oposição (Lei 13.709/2018)</div>
+    </div>
+    <div class="admin-topbar-actions" style="display:flex;gap:8px">
+      <select class="form-select" id="filterStatus" style="max-width:160px;font-size:12px">
+        <option value="pending" selected>Pendentes</option>
+        <option value="completed">Concluídas</option>
+        <option value="rejected">Rejeitadas</option>
+        <option value="">Todas</option>
+      </select>
+      <button class="btn btn-secondary" id="btnRefresh" style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <svg data-lucide="refresh-cw" width="13" height="13" stroke="currentColor" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#lucide-refresh-cw"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <main id="admin-content">
+    <div class="admin-table-card">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Solicitações</span>
+        <span id="reqCount" style="font-size:11px;color:var(--text-4)">—</span>
+      </div>
+      <div class="admin-table-wrap">
+        <div id="reqList" class="admin-loading" style="padding:24px">Carregando…</div>
+      </div>
+    </div>
+
+    <div class="admin-table-card" style="margin-top:18px">
+      <div class="admin-table-header">
+        <span class="admin-table-header-title">Direitos LGPD cobertos pelo Haile</span>
+      </div>
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Art. 18, II — Acesso</div>
+          <div class="admin-setting-value" style="color:var(--green)">Implementado</div>
+          <div class="admin-setting-hint">Action <code>exportUser</code> retorna JSON completo do user</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Art. 18, V — Portabilidade</div>
+          <div class="admin-setting-value" style="color:var(--green)">Implementado</div>
+          <div class="admin-setting-hint">Export em formato JSON estruturado</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Art. 18, VI — Exclusão</div>
+          <div class="admin-setting-value" style="color:var(--green)">Implementado</div>
+          <div class="admin-setting-hint">Action <code>deleteUser</code> · CASCADE deleta tudo</div>
+        </div>
+        <div class="admin-setting-row">
+          <div class="admin-setting-label">Art. 18, III — Retificação</div>
+          <div class="admin-setting-value muted">User faz no app</div>
+          <div class="admin-setting-hint">Edit no perfil + dados financeiros direto pelo user</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../app/js/supabase-client.js"></script>
+<script src="admin.js"></script>
+<script>
+const TYPE_LABEL = { export: 'Exportar dados', delete: 'Excluir conta', rectify: 'Retificar', object: 'Opor-se ao tratamento' };
+const TYPE_COLOR = { export: 'var(--blue)', delete: 'var(--red)', rectify: 'var(--amber)', object: 'var(--text-3)' };
+const STATUS_BADGE = { pending: ['warning','Pendente'], completed: ['success','Concluída'], rejected: ['danger','Rejeitada'] };
+
+document.addEventListener('DOMContentLoaded', async () => {
+  Admin.renderSidebar('lgpd');
+  const ok = await Admin.boot('lgpd');
+  if (!ok) return;
+  document.getElementById('btnRefresh').addEventListener('click', load);
+  document.getElementById('filterStatus').addEventListener('change', load);
+  document.getElementById('reqList').addEventListener('click', handleAction);
+  load();
+});
+
+async function load() {
+  const status = document.getElementById('filterStatus').value;
+  try {
+    const res = await SupabaseSync.adminCall('lgpdListRequests', status ? { status } : {});
+    renderList(res.requests || []);
+  } catch (e) {
+    document.getElementById('reqList').innerHTML = `<div class="admin-empty" style="padding:32px;text-align:center;color:var(--text-4)">Erro: ${e.message || e}</div>`;
+  }
+}
+
+function renderList(items) {
+  document.getElementById('reqCount').textContent = `${items.length} solicitação${items.length === 1 ? '' : 'ões'}`;
+  if (!items.length) {
+    document.getElementById('reqList').innerHTML = '<div class="admin-empty" style="padding:32px;text-align:center;color:var(--text-4)">Nenhuma solicitação encontrada.</div>';
+    return;
+  }
+  document.getElementById('reqList').innerHTML = `
+    <table class="admin-table">
+      <thead><tr>
+        <th>User</th><th>Tipo</th><th>Status</th><th>Solicitado em</th><th style="text-align:right">Ações</th>
+      </tr></thead>
+      <tbody>${items.map(r => {
+        const [badge, lbl] = STATUS_BADGE[r.status] || ['warning', r.status];
+        const isPending = r.status === 'pending';
+        return `<tr data-id="${r.id}" data-user="${r.user_id}" data-type="${r.request_type}">
+          <td>
+            <div style="font-weight:500">${r.user_email || '—'}</div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">${r.user_id.slice(0, 8)}…</div>
+          </td>
+          <td><span style="font-size:11.5px;font-weight:600;color:${TYPE_COLOR[r.request_type] || 'var(--text-2)'}">${TYPE_LABEL[r.request_type] || r.request_type}</span></td>
+          <td><span class="badge badge-${badge}">${lbl}</span></td>
+          <td style="font-size:12px;color:var(--text-3)">${new Date(r.requested_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td style="text-align:right;white-space:nowrap;display:flex;gap:4px;justify-content:flex-end">
+            ${isPending ? `
+              ${r.request_type === 'export' ? `<button class="btn-xs" data-act="run-export">Executar export</button>` : ''}
+              ${r.request_type === 'delete' ? `<button class="btn-xs danger" data-act="run-delete">Executar exclusão</button>` : ''}
+              <button class="btn-xs success" data-act="mark-done">Marcar OK</button>
+              <button class="btn-xs warning" data-act="reject">Rejeitar</button>
+            ` : `<span style="font-size:11px;color:var(--text-4)">${r.completed_at ? new Date(r.completed_at).toLocaleString('pt-BR', { dateStyle: 'short' }) : ''}</span>`}
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+async function handleAction(e) {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const tr = btn.closest('tr');
+  const id     = tr.dataset.id;
+  const userId = tr.dataset.user;
+  const type   = tr.dataset.type;
+  const act    = btn.dataset.act;
+
+  try {
+    if (act === 'run-export') {
+      const data = await SupabaseSync.adminCall('exportUser', { userId });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `lgpd-export-${userId.slice(0,8)}-${Date.now()}.json` });
+      a.click();
+      URL.revokeObjectURL(url);
+      // Marca como completed após download
+      await SupabaseSync.adminCall('lgpdCompleteRequest', { requestId: id, status: 'completed', notes: 'Export gerado e baixado' });
+      Admin.toast('Export gerado e baixado · solicitação marcada como concluída', 'success');
+      load();
+    } else if (act === 'run-delete') {
+      if (!confirm(`ATENÇÃO: deletar permanentemente a conta do user ${userId.slice(0,8)}…?\n\nIrreversível.`)) return;
+      await SupabaseSync.adminCall('deleteUser', { userId });
+      await SupabaseSync.adminCall('lgpdCompleteRequest', { requestId: id, status: 'completed', notes: 'Conta excluída' });
+      Admin.toast('Conta excluída · solicitação marcada como concluída', 'success');
+      load();
+    } else if (act === 'mark-done') {
+      const notes = prompt('Notas internas sobre o atendimento (opcional):') || undefined;
+      await SupabaseSync.adminCall('lgpdCompleteRequest', { requestId: id, status: 'completed', notes });
+      Admin.toast('Marcada como concluída', 'success');
+      load();
+    } else if (act === 'reject') {
+      const notes = prompt('Motivo da rejeição:');
+      if (!notes) return;
+      await SupabaseSync.adminCall('lgpdCompleteRequest', { requestId: id, status: 'rejected', notes });
+      Admin.toast('Solicitação rejeitada', 'success');
+      load();
+    }
+  } catch (err) {
+    Admin.toast(err.message || String(err), 'error');
+  }
+}
+</script>
+</body>
+</html>

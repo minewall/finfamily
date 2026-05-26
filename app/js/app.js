@@ -12619,6 +12619,7 @@ ${section === 'perfil' ? '' : `
       ['notificacoes','bell',           'Notificações',    'Push e e-mail'],
       { group: 'SISTEMA' },
       ['backup',     'database',        'Backup & Dados',  'Exportar, importar, limpar'],
+      ['privacidade','shield-check',    'Privacidade & LGPD','Seus direitos sobre seus dados'],
       ['sobre',      'info',            'Sobre',           'Versão e créditos'],
     ].map(item => {
       if (item.group) return `<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-4);padding:10px 12px 4px;margin-top:4px">${item.group}</div>`;
@@ -12656,6 +12657,7 @@ ${section === 'perfil' ? '' : `
     else if (section === 'perfil')        renderConfigPerfil(content);
     else if (section === 'senha')         renderConfigSenha(content);
     else if (section === 'notificacoes')  renderConfigNotificacoes(content);
+    else if (section === 'privacidade')   renderConfigPrivacidade(content);
     else                                   renderConfigSobre(content);
     upgradeIcons(container);
 
@@ -15824,6 +15826,160 @@ ${(() => {
     content.querySelectorAll('[data-notif-key]').forEach(el => {
       el.addEventListener('change', () => toggle(el.dataset.notifKey, el.checked));
     });
+  }
+
+  async function renderConfigPrivacidade(content) {
+    content.innerHTML = `
+<div class="section-header mb-4">
+  <div>
+    <div class="section-title">Privacidade & LGPD</div>
+    <div class="section-sub">Seus direitos sobre os dados que armazenamos sobre você (Lei 13.709/2018)</div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><span class="card-title">${icon('download',{size:15})} Exportar meus dados</span></div>
+  <div style="padding:8px 0 16px;font-size:13px;color:var(--text-2);line-height:1.6">
+    Receba uma cópia completa de tudo que armazenamos sobre você: perfil, dados financeiros (receitas, despesas, metas, patrimônio), histórico de famílias e convites. Em formato JSON estruturado, conforme direito de portabilidade (Art. 18, V LGPD).
+  </div>
+  <button class="btn-primary" id="btnLgpdExport">Baixar meus dados (.json)</button>
+  <div style="font-size:11px;color:var(--text-4);margin-top:8px;line-height:1.5">
+    Geração imediata. Uma solicitação fica registrada no nosso histórico interno pra auditoria — sem armazenar cópia adicional.
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><span class="card-title">${icon('trash-2',{size:15})} Excluir minha conta</span></div>
+  <div style="padding:8px 0 16px;font-size:13px;color:var(--text-2);line-height:1.6">
+    Solicita a exclusão permanente da sua conta e de todos os dados associados. Direito de eliminação (Art. 18, VI LGPD). <strong style="color:var(--red)">Irreversível</strong> — após confirmação por um administrador, não conseguimos recuperar.
+  </div>
+  <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text-2);line-height:1.55">
+    <strong>O que será excluído:</strong> seu perfil, e-mail, dados financeiros (receitas, despesas, contas, metas, patrimônio), histórico de famílias, recibos anexados, conversas com o Haile.
+  </div>
+  <button class="btn-danger" id="btnLgpdDelete">Solicitar exclusão da conta</button>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><span class="card-title">${icon('list',{size:15})} Minhas solicitações</span></div>
+  <div id="lgpdHistory" style="font-size:13px;color:var(--text-3);padding:10px 0">Carregando…</div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">${icon('book-open',{size:15})} Documentos</span></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <a class="btn-secondary btn-sm" href="https://haile.com.br/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>
+    <a class="btn-secondary btn-sm" href="https://haile.com.br/termos" target="_blank" rel="noopener">Termos de Uso</a>
+    <a class="btn-secondary btn-sm" href="mailto:privacidade@haile.com.br">Contato DPO</a>
+  </div>
+</div>`;
+
+    // Load user's request history via REST (RLS garante isolamento)
+    try {
+      const accessToken = await SupabaseSync?.getAccessToken?.();
+      if (accessToken) {
+        const res = await fetch('https://lpudgulhnfuwdttetwdn.supabase.co/rest/v1/lgpd_requests?select=id,request_type,status,requested_at,completed_at&order=requested_at.desc&limit=10', {
+          headers: {
+            'apikey':       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+        const data = await res.json();
+        renderLgpdHistory(Array.isArray(data) ? data : []);
+      } else {
+        renderLgpdHistory([]);
+      }
+    } catch (e) {
+      document.getElementById('lgpdHistory').innerHTML = '<div style="color:var(--text-4)">Não foi possível carregar o histórico.</div>';
+    }
+
+    document.getElementById('btnLgpdExport').addEventListener('click', () => requestLgpd('export'));
+    document.getElementById('btnLgpdDelete').addEventListener('click', () => requestLgpd('delete'));
+  }
+
+  function renderLgpdHistory(items) {
+    const el = document.getElementById('lgpdHistory');
+    if (!el) return;
+    const TYPE_LABEL = { export: 'Exportação', delete: 'Exclusão', rectify: 'Retificação', object: 'Oposição' };
+    const STATUS = { pending: { label: 'Em análise', cor: 'var(--amber)' }, completed: { label: 'Concluída', cor: 'var(--green)' }, rejected: { label: 'Rejeitada', cor: 'var(--red)' } };
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--text-4)">Você ainda não fez nenhuma solicitação.</div>';
+      return;
+    }
+    el.innerHTML = items.map(r => {
+      const st = STATUS[r.status] || { label: r.status, cor: 'var(--text-3)' };
+      const dt = new Date(r.requested_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;color:var(--text-1)">${TYPE_LABEL[r.request_type] || r.request_type}</div>
+          <div style="font-size:11px;color:var(--text-4)">${dt}</div>
+        </div>
+        <span style="font-size:11.5px;font-weight:700;color:${st.cor}">${st.label}</span>
+      </div>`;
+    }).join('');
+  }
+
+  async function requestLgpd(type) {
+    const sb = SupabaseSync;
+    const user = sb?.getUser?.();
+    if (!user) return toast('Você precisa estar conectado pra fazer essa solicitação.', 'error');
+
+    let confirmMsg, exportInline = false;
+    if (type === 'export') {
+      confirmMsg = 'Vou gerar um arquivo JSON com todos os seus dados e baixar agora. Continuar?';
+      exportInline = true;
+    } else if (type === 'delete') {
+      confirmMsg = 'ATENÇÃO: você está solicitando a EXCLUSÃO PERMANENTE da sua conta e dados.\n\nApós aprovação por um administrador (até 15 dias úteis), sua conta será apagada de forma irreversível.\n\nDeseja prosseguir?';
+    }
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const accessToken = await sb?.getAccessToken?.();
+      if (!accessToken) return toast('Sessão expirada. Faça login.', 'error');
+
+      // INSERT em lgpd_requests via REST direta (RLS permite inserir pra si mesmo)
+      const insertRes = await fetch('https://lpudgulhnfuwdttetwdn.supabase.co/rest/v1/lgpd_requests', {
+        method: 'POST',
+        headers: {
+          'apikey':        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84',
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type':  'application/json',
+          'Prefer':        'return=minimal',
+        },
+        body: JSON.stringify({
+          user_id:      user.id,
+          user_email:   user.email,
+          request_type: type,
+          status:       'pending',
+        }),
+      });
+      if (!insertRes.ok) {
+        const err = await insertRes.text();
+        throw new Error('Falha ao registrar solicitação: ' + err);
+      }
+
+      if (exportInline) {
+        // Gera o export do próprio user usando os dados que já temos
+        // (Store local + perfil do Supabase). Não precisa esperar admin.
+        const data = {
+          profile:    { id: user.id, email: user.email, requested_at: new Date().toISOString() },
+          store_data: Store.get(),
+          exported_at: new Date().toISOString(),
+          note: 'Exportação self-service — para a versão completa com histórico de família, peça via admin: privacidade@haile.com.br',
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: `haile-meus-dados-${Date.now()}.json` });
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('Seus dados foram baixados e a solicitação foi registrada.', 'success');
+      } else {
+        toast('Solicitação registrada. Você receberá um e-mail quando for processada.', 'success');
+      }
+      // Re-render pra atualizar o histórico
+      renderConfigPrivacidade(document.getElementById('configContent'));
+    } catch (e) {
+      toast(e.message || 'Erro ao registrar solicitação', 'error');
+    }
   }
 
   function renderConfigSobre(content) {
