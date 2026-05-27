@@ -1140,6 +1140,13 @@ ${(() => {
       <svg class="welcome-step-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
   </div>
+  <div class="welcome-coach-shortcut">
+    <button type="button" data-coach-import-cta class="welcome-coach-shortcut-btn">
+      ${icon('paperclip',{size:14})}
+      <span>Ou importe seu extrato bancário e eu organizo tudo pra você</span>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
   <div class="welcome-coach-footer">
     <span>Conforme você for adicionando seus dados, eu vou aprendendo sobre você e personalizando minhas sugestões.</span>
   </div>
@@ -1647,7 +1654,19 @@ ${renderPrevisaoCaixa(saldo)}
       if (filter.pay)    filtered = filtered.filter(d => d.pay === filter.pay);
       if (filter.pessoa) filtered = filtered.filter(d => d.split && d.split.some(s => s.person === filter.pessoa));
       const total = filtered.reduce((a, d) => a + d.amount, 0);
-      if (filtered.length === 0) return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamentos encontrado com os filtros aplicados.</div>';
+      if (filtered.length === 0) {
+        const hasFilters = !!(filter.search || filter.cat || filter.sub || filter.pay || filter.pessoa);
+        if (rows.length === 0 && !hasFilters) {
+          return coachEmptyHTML({
+            titulo: 'Aqui você vai cadastrar lançamentos',
+            texto: 'Cada compra, conta paga ou recebimento entra aqui. Cadastre manualmente ou importe seu extrato — eu organizo por categoria automaticamente.',
+            ctaLabel: '+ Adicionar primeiro lançamento',
+            ctaId: 'btnCoachEmptyLanc',
+            showImportCta: true,
+          });
+        }
+        return '<div style="text-align:center;padding:40px;color:var(--text-4);font-size:13px">Nenhum lançamento encontrado com os filtros aplicados.</div>';
+      }
       return `<table class="data-table">
 <thead><tr>
   <th>Data</th><th>Descrição</th><th>Categoria</th><th>Pessoa</th><th>Pagamento</th><th class="num">Valor</th><th>Status</th>
@@ -3991,7 +4010,7 @@ ${indicadores.filter(m => m.type !== 'reserva').length ? `
     }, 50);
   }
 
-  // Handler de snapshot (chamado pelo botão 📸 do card de reserva)
+  // Handler de snapshot (chamado pelo botão de câmera do card de reserva)
   function _bindMetaSnapshot(container) {
     container.querySelectorAll('[data-action="snap-meta"]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -13011,7 +13030,7 @@ ${tipos.map(t => {
   </div>
   <div class="form-group">
     <label class="form-label">Ícone</label>
-    <input class="form-input" id="fTIcon" value="${Utils.escapeHtml(t.icon || '✦')}" maxlength="2" placeholder="🎯">
+    <input class="form-input" id="fTIcon" value="${Utils.escapeHtml(t.icon || '✦')}" maxlength="2" placeholder="✦">
   </div>
   <div class="form-group">
     <label class="form-label">Cor</label>
@@ -17458,7 +17477,7 @@ ${(() => {
       const reservasStr = reservas.length === 0 ? '  (sem investimentos)' :
         reservas.slice(0, 12).map(r => {
           const val = r.valorAtual || r.valorInvestido || 0;
-          return `  - ${r.nome} (${r.tipo || '—'}): R$ ${val.toFixed(2)}${r.rendimento ? ` @ ${r.rendimento}% a.a.` : ''}${r.carencia ? ` 🔒 até ${r.carencia}` : ''}`;
+          return `  - ${r.nome} (${r.tipo || '—'}): R$ ${val.toFixed(2)}${r.rendimento ? ` @ ${r.rendimento}% a.a.` : ''}${r.carencia ? ` (carência até ${r.carencia})` : ''}`;
         }).join('\n');
       const totalInv = reservas.reduce((s,r) => s + (r.valorAtual || r.valorInvestido || 0), 0);
 
@@ -17603,8 +17622,8 @@ ${(() => {
   ];
   // Alertas de portfólio
   const alertas = [];
-  if (nTipos === 1) alertas.push('⚠️ Portfólio concentrado em um único tipo de ativo — considere diversificar.');
-  if (taxaMedia < 10 && taxaMedia > 0) alertas.push(`⚠️ Taxa média (${taxaMedia.toFixed(1)}% a.a.) abaixo da SELIC — verifique se os produtos estão competitivos.`);
+  if (nTipos === 1) alertas.push('Portfólio concentrado em um único tipo de ativo — considere diversificar.');
+  if (taxaMedia < 10 && taxaMedia > 0) alertas.push(`Taxa média (${taxaMedia.toFixed(1)}% a.a.) abaixo da SELIC — verifique se os produtos estão competitivos.`);
   if (alertas.length) lines.push('Alertas:\n' + alertas.map(a=>'  '+a).join('\n'));
   return lines.join('\n');
 })()}

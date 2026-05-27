@@ -3023,6 +3023,31 @@ body.sidebar-open { overflow: hidden; }
   line-height: 1.5;
 }
 
+.welcome-coach-shortcut {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+}
+.welcome-coach-shortcut-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px dashed var(--teal-coach, #2dcfc0);
+  color: var(--teal-coach, #2dcfc0);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.welcome-coach-shortcut-btn:hover {
+  background: color-mix(in srgb, var(--teal-coach, #2dcfc0) 10%, transparent);
+  border-style: solid;
+}
+
 /* ── Greeting ──────────────────────────────────────────────── */
 .dash-greeting {
   display: flex;

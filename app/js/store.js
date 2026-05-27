@@ -2876,7 +2876,7 @@ const Store = (function () {
 
   // ── PERFIL & SENHA ────────────────────────────────────────────
   function getProfile() {
-    return _data.profile || { name: 'Usuário', avatar: '👤', timezone: 'America/Sao_Paulo' };
+    return _data.profile || { name: 'Usuário', avatar: null, timezone: 'America/Sao_Paulo' };
   }
 
   function setProfile(fields) {
