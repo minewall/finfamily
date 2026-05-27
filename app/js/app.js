@@ -224,6 +224,10 @@ const App = (function () {
       document.getElementById('modalTitle').textContent = title;
       document.getElementById('modalBody').innerHTML = bodyHTML;
 
+      // Limpa footer de uma abertura anterior (close() só roda se o user fecha;
+      // se outra parte do código chama open() sequencialmente, footer acumula).
+      modalEl.querySelectorAll('.modal-footer').forEach(el => el.remove());
+
       if (!opts.hideFooter) {
         const footer = document.createElement('div');
         footer.className = 'modal-footer';
@@ -16621,6 +16625,97 @@ ${(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
       localStorage.setItem('ff_theme', 'dark');
     })();
+
+    // Convidar amigos — modal com link de indicação personalizado
+    document.getElementById('navInvite')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      _openInviteModal();
+    });
+
+    function _getOrCreateRefSlug() {
+      const data = Store.get();
+      const profile = Store.getProfile ? Store.getProfile() : (data.profile || {});
+      if (profile.refSlug) return profile.refSlug;
+      const slug = Math.random().toString(36).slice(2, 8);
+      try { Store.setProfile({ refSlug: slug }); } catch { /* sem-op */ }
+      return slug;
+    }
+
+    function _openInviteModal() {
+      const profile = Store.getProfile ? Store.getProfile() : {};
+      const nome = (profile.name || (Store.get().pessoas?.[0]) || 'Eu');
+      const firstName = (nome || '').split(' ')[0];
+      const ref = _getOrCreateRefSlug();
+      const url = `https://haile.com.br/?ref=${ref}`;
+      const mensagem = `Tô usando o Haile pra organizar a minha vida financeira — uma IA que entende minha rotina e me ajuda a decidir melhor. Quer testar comigo? ${url}`;
+      const waMsg   = encodeURIComponent(mensagem);
+      const mailSub = encodeURIComponent('Acho que você ia curtir o Haile');
+      const mailBody = encodeURIComponent(mensagem);
+      Modal.open(`Convide quem você gosta`, `
+<div style="display:flex;flex-direction:column;gap:18px;padding:4px 0">
+  <div style="display:flex;align-items:flex-start;gap:12px">
+    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--haile-indigo),var(--accent-2,#06B6D4));display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+      <img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:24px;height:24px"/>
+    </div>
+    <div style="flex:1;font-size:13.5px;line-height:1.55;color:var(--text-2)">
+      Convide quem ${firstName ? `você acha que precisa, ${Utils.escapeHtml(firstName)}` : 'precisa de uma mão com finanças'}. O Haile ainda está em beta — sua indicação ajuda a moldar o produto. Cada convite gera um link rastreável.
+    </div>
+  </div>
+
+  <div>
+    <label class="form-label" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;display:block">Seu link pessoal</label>
+    <div style="display:flex;gap:8px;align-items:stretch">
+      <input id="inviteLinkInput" class="form-input" readonly value="${url}" style="flex:1;font-family:var(--mono);font-size:12.5px">
+      <button class="btn-secondary" id="inviteCopyBtn" style="padding:0 14px;font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px">
+        ${icon('copy', { size: 13 })} Copiar
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <label class="form-label" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;display:block">Mensagem sugerida</label>
+    <textarea id="inviteMsgInput" class="form-input" rows="3" style="resize:vertical;font-size:13px;line-height:1.5">${Utils.escapeHtml(mensagem)}</textarea>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <a href="https://wa.me/?text=${waMsg}" target="_blank" rel="noopener" class="btn-primary" style="background:#25D366;border-color:#25D366;text-decoration:none;font-size:12.5px;padding:9px 14px;display:inline-flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1l-.9 1.2c-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5L9 6.6c-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.4-.2.3-.9.9-.9 2.2 0 1.3.9 2.5 1.1 2.7.1.2 1.9 2.9 4.6 4.1 2.7 1.1 2.7.8 3.2.7.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.4 5L2 22l5.2-1.4c1.4.8 3.1 1.3 4.8 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.3c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 15 3.7 13.5 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.3-8.3 8.3z"/></svg>
+      WhatsApp
+    </a>
+    <a href="mailto:?subject=${mailSub}&body=${mailBody}" class="btn-secondary" style="text-decoration:none;font-size:12.5px;padding:9px 14px;display:inline-flex;align-items:center;gap:6px">
+      ${icon('mail', { size: 13 })} E-mail
+    </a>
+    <button class="btn-secondary" id="inviteCopyMsgBtn" style="font-size:12.5px;padding:9px 14px;display:inline-flex;align-items:center;gap:6px">
+      ${icon('clipboard-list', { size: 13 })} Copiar mensagem
+    </button>
+  </div>
+
+  <div style="font-size:11.5px;color:var(--text-4);line-height:1.5;border-top:1px solid var(--border);padding-top:12px">
+    Quem clicar no link entra na fila de cadastro com sua indicação registrada. Você pode acompanhar quantos aceitaram quando o painel de convites estiver disponível.
+  </div>
+</div>
+`, null, { size: 'lg', hideFooter: true });
+
+      // Wires após renderização
+      setTimeout(() => {
+        const copyLink = () => {
+          const inp = document.getElementById('inviteLinkInput');
+          if (!inp) return;
+          inp.select();
+          try { navigator.clipboard.writeText(inp.value); } catch { document.execCommand('copy'); }
+          toast('Link copiado!', 'success');
+        };
+        const copyMsg = () => {
+          const ta = document.getElementById('inviteMsgInput');
+          if (!ta) return;
+          ta.select();
+          try { navigator.clipboard.writeText(ta.value); } catch { document.execCommand('copy'); }
+          toast('Mensagem copiada!', 'success');
+        };
+        document.getElementById('inviteCopyBtn')?.addEventListener('click', copyLink);
+        document.getElementById('inviteCopyMsgBtn')?.addEventListener('click', copyMsg);
+      }, 50);
+    }
 
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
       if (!confirm('Sair da conta?')) return;
