@@ -382,7 +382,11 @@ serve(async (req) => {
 
         const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
           redirectTo: redirectTo || 'https://haile.com.br/login.html',
-          data: { invited_by_admin: user.id },
+          data: {
+            admin_invite: true,
+            invited_by_admin: user.id,
+            initial_tier: tier,
+          },
         });
         if (error) {
           console.error('[admin] inviteUser error:', error);

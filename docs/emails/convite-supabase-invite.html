@@ -1,0 +1,248 @@
+<!--
+  ═══════════════════════════════════════════════════════════════════════
+  TEMPLATE: Supabase Auth → Email Templates → Invite user (DUAL CONTEXT)
+  ═══════════════════════════════════════════════════════════════════════
+  Este template é usado tanto pelo fluxo family-invite quanto pelo
+  admin.inviteUser. Ramifica via `{{ if .Data.admin_invite }}` para
+  ajustar copy e visual conforme o contexto.
+
+  Como instalar:
+    1. Dashboard → Authentication → Email Templates → Invite user
+    2. Subject: Convite para o Haile
+    3. Body: cole o conteúdo abaixo (do <!DOCTYPE> até </html>)
+    4. Salve e teste com cada fluxo (admin + family-invite)
+
+  Variáveis Supabase Auth (Go templating):
+    {{ .ConfirmationURL }}   URL de aceite (gerada pelo Supabase)
+    {{ .Email }}             E-mail do convidado
+    {{ .Data.<chave> }}      Qualquer chave do user_metadata passada no invite
+
+  Metadata por fluxo:
+    family-invite : { invited_by, family_name, role, pessoa_name, family_id }
+    admin-invite  : { admin_invite: true, invited_by_admin, initial_tier }
+  ═══════════════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>{{ if .Data.admin_invite }}Sua conta no Haile está pronta{{ else }}Você foi convidado para o Haile{{ end }}</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #0B1020; font-family: 'DM Sans', Arial, sans-serif; -webkit-text-size-adjust: 100%; }
+    a { color: inherit; text-decoration: none; }
+    img { border: 0; display: block; max-width: 100%; }
+    .email-wrapper { background-color: #0B1020; padding: 40px 16px; }
+    .email-container { max-width: 560px; margin: 0 auto; }
+    .header { padding: 32px 0 24px; text-align: center; }
+    .header img { margin: 0 auto; height: 28px; width: auto; }
+    .card { background-color: #131929; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; }
+    .body { padding: 32px 40px; }
+    .body-text { font-size: 15px; line-height: 1.65; color: #94A3B8; margin-bottom: 24px; }
+    .body-text strong { color: #F8FAFC; font-weight: 600; }
+    .highlight-box { background: rgba(115,103,240,0.1); border: 1px solid rgba(115,103,240,0.25); border-radius: 12px; padding: 20px 24px; margin-bottom: 28px; }
+    .cta-wrap { text-align: center; margin-bottom: 28px; }
+    .cta-btn { display: inline-block; background: linear-gradient(135deg, #7367F0, #5B4FCE); color: #ffffff !important; font-size: 15px; font-weight: 600; padding: 14px 36px; border-radius: 12px; letter-spacing: 0.01em; text-decoration: none; box-shadow: 0 4px 16px rgba(115,103,240,0.4); }
+    .link-fallback { font-size: 12px; color: #334155; line-height: 1.6; margin-bottom: 28px; text-align: center; }
+    .link-fallback a { color: #7367F0 !important; word-break: break-all; }
+    .divider { border: 0; border-top: 1px solid rgba(255,255,255,0.06); margin: 4px 0 28px; }
+    .features-title { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #334155; margin-bottom: 16px; }
+    .feature-row { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start; }
+    .feature-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .feature-text { font-size: 13px; color: #94A3B8; line-height: 1.5; }
+    .feature-text strong { color: #F8FAFC; display: block; margin-bottom: 2px; }
+    .footer { padding: 24px 40px 32px; text-align: center; }
+    .footer-logo { margin: 0 auto 16px; }
+    .footer-text { font-size: 12px; color: #334155; line-height: 1.7; }
+    .footer-text a { color: #7367F0 !important; }
+    .footer-divider { border: 0; border-top: 1px solid rgba(255,255,255,0.04); margin: 20px 0 16px; }
+    @media only screen and (max-width: 600px) {
+      .email-wrapper { padding: 20px 12px; }
+      .body { padding: 24px 24px; }
+      .footer { padding: 20px 24px 28px; }
+      .cta-btn { display: block !important; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="email-wrapper">
+  <div class="email-container">
+
+    <!-- Logo header -->
+    <div class="header">
+      <img src="https://haile.com.br/assets/svg/haile-wordmark-white.svg" alt="Haile" height="24" />
+    </div>
+
+    <div class="card">
+
+      {{ if .Data.admin_invite }}
+      <!-- ════════════════════ FLOW: ADMIN INVITE ════════════════════ -->
+      <div style="background: linear-gradient(135deg, #06B6D4 0%, #7367F0 100%); padding: 36px 40px 32px; text-align: center;">
+        <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:8px;font-family:'DM Sans',Arial,sans-serif">
+          Convite oficial
+        </p>
+        <p style="font-size:24px;font-weight:700;color:#ffffff;line-height:1.3;font-family:'DM Sans',Arial,sans-serif">
+          Sua conta no <strong>Haile</strong> está pronta
+        </p>
+      </div>
+
+      <div class="body">
+        <p class="body-text">
+          Oi! O time do <strong>Haile</strong> liberou seu acesso à plataforma. O Haile é uma inteligência financeira que te ajuda a entender, organizar e fazer escolhas melhores com o seu dinheiro — sozinho ou em família.
+        </p>
+        <p class="body-text">
+          Ao aceitar, sua conta é ativada{{ if .Data.initial_tier }} no plano <strong>{{ .Data.initial_tier }}</strong>{{ end }} e você pode começar a usar imediatamente.
+        </p>
+
+        <div class="cta-wrap">
+          <a href="{{ .ConfirmationURL }}" class="cta-btn">Ativar minha conta →</a>
+        </div>
+
+        <p class="link-fallback">
+          Se o botão não funcionar, copie e cole este link no seu navegador:<br>
+          <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
+        </p>
+
+        <hr class="divider" />
+
+        <p class="features-title">O que você ganha</p>
+        <div class="feature-row">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F8FAFC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>
+            </svg>
+          </div>
+          <div class="feature-text">
+            <strong>Inteligência contextual</strong>
+            O Haile analisa seu padrão e oferece orientação personalizada — sem jargão, sem susto.
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F8FAFC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+            </svg>
+          </div>
+          <div class="feature-text">
+            <strong>Visão de fluxo, metas e patrimônio</strong>
+            Tudo num lugar só, atualizado em tempo real.
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F8FAFC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
+          <div class="feature-text">
+            <strong>Privacidade primeiro</strong>
+            Seus dados ficam protegidos. As conversas não treinam modelos.
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <hr class="footer-divider" />
+        <img src="https://haile.com.br/assets/svg/haile-mark-white.svg" alt="Haile" height="20" class="footer-logo" />
+        <p class="footer-text">
+          Este convite foi enviado pelo time do <strong style="color:#94A3B8">Haile</strong>.<br>
+          Se você não esperava este e-mail, pode ignorá-lo com segurança.<br>
+          Este link expira em <strong style="color:#94A3B8">7 dias</strong>.
+        </p>
+        <p class="footer-text" style="margin-top:12px">
+          <a href="https://haile.com.br">haile.com.br</a>
+          &nbsp;·&nbsp;
+          <a href="https://haile.com.br/privacidade">Privacidade</a>
+        </p>
+      </div>
+      <!-- ══════════════════ END FLOW: ADMIN INVITE ════════════════════ -->
+
+      {{ else }}
+      <!-- ════════════════════ FLOW: FAMILY INVITE ════════════════════ -->
+      <div style="background: linear-gradient(135deg, #7367F0 0%, #06B6D4 100%); padding: 36px 40px 32px; text-align: center;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
+          <tr>
+            <td align="center">
+              <p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:8px;font-family:'DM Sans',Arial,sans-serif">
+                Convite para grupo familiar
+              </p>
+              <p style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.3;font-family:'DM Sans',Arial,sans-serif">
+                {{ if .Data.invited_by }}<strong>{{ .Data.invited_by }}</strong> te convidou<br>{{ else }}Você foi convidado<br>{{ end }}
+                <span style="color:rgba(255,255,255,0.8);font-weight:400;font-size:18px">para o Haile</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="body">
+        <p class="body-text">
+          Oi! {{ if .Data.invited_by }}<strong>{{ .Data.invited_by }}</strong>{{ else }}Alguém{{ end }} está usando o <strong>Haile</strong> para organizar as finanças{{ if .Data.family_name }} do grupo <strong>{{ .Data.family_name }}</strong>{{ end }} e quer que você faça parte também.
+        </p>
+
+        <div class="highlight-box">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
+            <tr><td style="padding:4px 0">
+              <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>
+                <td style="width:8px;padding-right:12px;vertical-align:middle"><div style="width:8px;height:8px;border-radius:4px;background:#7367F0"></div></td>
+                <td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">Ver <strong style="color:#F8FAFC">receitas e despesas</strong> do grupo em tempo real</td>
+              </tr></table>
+            </td></tr>
+            <tr><td style="padding:4px 0">
+              <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>
+                <td style="width:8px;padding-right:12px;vertical-align:middle"><div style="width:8px;height:8px;border-radius:4px;background:#06B6D4"></div></td>
+                <td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">Lançar seus <strong style="color:#F8FAFC">próprios gastos e receitas</strong> com privacidade</td>
+              </tr></table>
+            </td></tr>
+            <tr><td style="padding:4px 0">
+              <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>
+                <td style="width:8px;padding-right:12px;vertical-align:middle"><div style="width:8px;height:8px;border-radius:4px;background:#10B981"></div></td>
+                <td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">Receber <strong style="color:#F8FAFC">insights do Haile</strong> sobre as decisões financeiras da família</td>
+              </tr></table>
+            </td></tr>
+          </table>
+        </div>
+
+        <div class="cta-wrap">
+          <a href="{{ .ConfirmationURL }}" class="cta-btn">Aceitar convite →</a>
+        </div>
+
+        <p class="link-fallback">
+          Se o botão não funcionar, copie e cole este link no seu navegador:<br>
+          <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
+        </p>
+      </div>
+
+      <div class="footer">
+        <hr class="footer-divider" />
+        <img src="https://haile.com.br/assets/svg/haile-mark-white.svg" alt="Haile" height="20" class="footer-logo" />
+        <p class="footer-text">
+          Este convite foi enviado por {{ if .Data.invited_by }}<strong style="color:#94A3B8">{{ .Data.invited_by }}</strong>{{ else }}um membro do grupo{{ end }} usando o Haile.<br>
+          Se você não esperava este e-mail, pode ignorá-lo com segurança.<br>
+          Este link expira em <strong style="color:#94A3B8">7 dias</strong>.
+        </p>
+        <p class="footer-text" style="margin-top:12px">
+          <a href="https://haile.com.br">haile.com.br</a>
+          &nbsp;·&nbsp;
+          <a href="https://haile.com.br/privacidade">Privacidade</a>
+        </p>
+      </div>
+      <!-- ══════════════════ END FLOW: FAMILY INVITE ══════════════════ -->
+      {{ end }}
+
+    </div>
+
+    <p style="text-align:center;font-size:11px;color:#1E293B;margin-top:24px;font-family:'DM Sans',Arial,sans-serif">
+      © 2026 Haile · Averse Tecnologia
+    </p>
+
+  </div>
+</div>
+</body>
+</html>

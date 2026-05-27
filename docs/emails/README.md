@@ -9,7 +9,8 @@ Cada template usa gradiente diferente no hero para distinguir visualmente o tipo
 
 | Arquivo | Trigger | Gradiente hero |
 |---|---|---|
-| `convite-familiar.html` | Convite para grupo familiar | Violeta → Teal |
+| `convite-supabase-invite.html` | Supabase: **Invite user** (admin **+** family-invite, dual-context) | Teal → Violeta (admin) / Violeta → Teal (family) |
+| `convite-familiar.html` | Referência design family-only (substituído por `convite-supabase-invite.html` no Dashboard) | Violeta → Teal |
 | `confirmacao-cadastro.html` | Supabase: confirm signup | Verde → Teal |
 | `recuperacao-senha.html` | Supabase: reset password | Violeta → Rosa |
 | `magic-link.html` | Supabase: magic link login | Teal → Violeta |
@@ -20,7 +21,22 @@ Cada template usa gradiente diferente no hero para distinguir visualmente o tipo
 
 Os templates usam `{{ variavel }}` — compatível com Supabase e Resend.
 
-### `convite-familiar.html`
+### `convite-supabase-invite.html` (dual-context, em uso no Dashboard)
+Template oficial colado em **Authentication → Email Templates → Invite user**. Ramifica em `{{ if .Data.admin_invite }}` para alternar copy/visual:
+
+| Variável Supabase | Quando aparece | Descrição |
+|---|---|---|
+| `{{ .ConfirmationURL }}` | sempre | URL de aceite gerada pelo Supabase |
+| `{{ .Data.admin_invite }}` | admin | Flag boolean — true ⇒ flow admin/oficial |
+| `{{ .Data.initial_tier }}` | admin | Tier inicial (`free`, `plus`, `premium`, `always_free`) |
+| `{{ .Data.invited_by }}` | family | Nome do membro que convidou |
+| `{{ .Data.family_name }}` | family | Nome do grupo familiar |
+
+Metadata enviada por cada fluxo:
+- `family-invite` → `{ invited_by, family_name, role, pessoa_name, family_id }`
+- `admin.inviteUser` → `{ admin_invite: true, invited_by_admin, initial_tier }`
+
+### `convite-familiar.html` (referência design — não em uso)
 | Variável | Descrição |
 |---|---|
 | `{{ inviter_name }}` | Nome de quem convidou |
