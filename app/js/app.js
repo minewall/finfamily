@@ -18268,6 +18268,39 @@ FORMATO DA RESPOSTA (importante):
       document.body.appendChild(t);
     }
 
+    // Garante que toda tool_use no último assistant message tenha tool_result
+    // pareado no próximo user message. Se faltam, injeta tool_results sintéticos
+    // de "abortado". Roda antes de cada POST e no catch para evitar erros 400 da
+    // Anthropic ("tool_use ids found without tool_result blocks immediately
+    // after"). Causa típica: loop interrompido por exceção/timeout entre o
+    // assistant tool_use e o push dos tool_results.
+    function _sanitizeHistoryToolUsePairs() {
+      for (let i = 0; i < history.length; i++) {
+        const m = history[i];
+        if (m.role !== 'assistant' || !Array.isArray(m.content)) continue;
+        const toolUses = m.content.filter(b => b.type === 'tool_use');
+        if (!toolUses.length) continue;
+        const next = history[i + 1];
+        const nextResults = (next && next.role === 'user' && Array.isArray(next.content))
+          ? next.content.filter(b => b.type === 'tool_result')
+          : [];
+        const haveIds = new Set(nextResults.map(r => r.tool_use_id));
+        const missing = toolUses.filter(tu => !haveIds.has(tu.id));
+        if (!missing.length) continue;
+        const synthetic = missing.map(tu => ({
+          type: 'tool_result',
+          tool_use_id: tu.id,
+          is_error: true,
+          content: 'Ação não concluída — fluxo foi interrompido. Se o usuário quiser, peça novamente.',
+        }));
+        if (next && next.role === 'user' && Array.isArray(next.content)) {
+          next.content = [...synthetic, ...next.content];
+        } else {
+          history.splice(i + 1, 0, { role: 'user', content: synthetic });
+        }
+      }
+    }
+
     async function sendMessage(text, opts = {}) {
       // Modo normal: text é string + history ganha {role:'user', content:text}
       // Modo pré-construído: opts.message é mensagem inteira (suporta documents/images)
@@ -18288,6 +18321,9 @@ FORMATO DA RESPOSTA (importante):
         input.value = '';
         input.style.height = 'auto';
       }
+      // Sanitiza antes de mandar — protege contra estado tóxico residual de
+      // alguma sessão anterior (ex: usuário recarregou no meio de um tool loop).
+      _sanitizeHistoryToolUsePairs();
       showTyping();
 
       try {
@@ -18413,9 +18449,10 @@ FORMATO DA RESPOSTA (importante):
       } catch (e) {
         removeTyping();
         appendMsg('assistant', `Erro ao conectar com o Coach: ${e.message}`);
-        // Remove qualquer mensagem inválida no fim do history
-        while (history.length && history[history.length - 1].role !== 'user') history.pop();
-        if (history.length && typeof history[history.length - 1].content !== 'string') history.pop();
+        // Sanitiza tool_use órfãos pra não corromper a próxima request.
+        // Substitui o cleanup antigo (pop ingênuo) que deixava história tóxica
+        // quando o for loop era abortado entre tool_use e push dos tool_results.
+        _sanitizeHistoryToolUsePairs();
         statusEl.textContent = 'Erro na conexão';
         statusEl.style.color = 'var(--red)';
       } finally {
