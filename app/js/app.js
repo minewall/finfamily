@@ -246,6 +246,12 @@ const App = (function () {
     '⛽':'fuel','💊':'pill','🏥':'stethoscope','📱':'phone','💼':'briefcase',
     '🛍️':'shopping-bag','🎵':'music','📺':'tv','✨':'sparkles',
   };
+  // Mapa de migração específico pra ícones de TIPO (retro-compat com user-data antigo)
+  const _TIPO_ICON_TO_LUCIDE = {
+    '🔴':'shield-alert','⚖️':'scale','⚖':'scale',
+    '🟡':'lock','🟢':'circle-check',
+    '⏱️':'calendar-days','⏱':'calendar-days',
+  };
   function icon(name, opts = {}) {
     // Migra emoji → Lucide se necessário; fallback pra 'tag' se nome inválido
     let n = name || 'tag';
@@ -12951,7 +12957,7 @@ ${tipos.map(t => {
          ondragleave="this.style.borderColor='transparent'"
          ondrop="event.preventDefault();this.style.borderColor='transparent'">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:16px">${t.icon||'✦'}</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;color:${t.color}">${icon(_TIPO_ICON_TO_LUCIDE[t.icon] || t.icon || 'circle', {size:16, color: t.color})}</span>
         <span style="font-size:12px;font-weight:700;color:${t.color};text-transform:uppercase;letter-spacing:.06em">${Utils.escapeHtml(t.label)}</span>
         <span style="font-size:11px;color:var(--text-4);margin-left:auto">${catsDoTipo.length} categoria${catsDoTipo.length===1?'':'s'}</span>
       </div>
@@ -13005,6 +13011,14 @@ ${tipos.map(t => {
     upgradeIcons(content);
   }
 
+  // Ícones Lucide oferecidos no picker do modal de Tipo (finance-flavored)
+  const TIPO_ICONS = [
+    'shield-alert','scale','lock','circle-check','calendar-days',
+    'circle','circle-dot','alert-circle','clock','leaf',
+    'shield','target','wallet','briefcase','heart',
+    'gift','home','car','star','flag',
+  ];
+
   function _openTipoModal(tipo, onSaved) {
     const isEdit = !!tipo;
     const t = tipo || {};
@@ -13017,6 +13031,10 @@ ${tipos.map(t => {
       ['eventual',     'calendar-days', '#0EA5E9', 'Eventual',     'Não é mensal — pontual'],
     ];
     const COLORS = ['#EF4444','#A78BFA','#F59E0B','#22C55E','#0EA5E9','#7C6EF8','#14B8A6','#EC4899','#F97316','#06B6D4'];
+    // Resolve ícone atual: migra emoji legado e cai pro fallback se nome desconhecido
+    let currentTipoIcon = t.icon || '';
+    if (_TIPO_ICON_TO_LUCIDE[currentTipoIcon]) currentTipoIcon = _TIPO_ICON_TO_LUCIDE[currentTipoIcon];
+    if (!TIPO_ICONS.includes(currentTipoIcon)) currentTipoIcon = TIPO_ICONS[0];
     const html = `
 <div class="form-grid">
   <div class="form-group form-full">
@@ -13028,9 +13046,12 @@ ${tipos.map(t => {
     <label class="form-label">Descrição</label>
     <input class="form-input" id="fTDesc" value="${Utils.escapeHtml(t.desc || '')}" placeholder="Quando esse tipo se aplica? Ex.: itens que melhoram meu dia mas posso cortar">
   </div>
-  <div class="form-group">
+  <div class="form-group form-full">
     <label class="form-label">Ícone</label>
-    <input class="form-input" id="fTIcon" value="${Utils.escapeHtml(t.icon || '✦')}" maxlength="2" placeholder="✦">
+    <div class="cat-icon-grid">
+      ${TIPO_ICONS.map(n => `<button type="button" class="cat-icon-pick ${n === currentTipoIcon ? 'active' : ''}" data-tipo-icon="${n}" title="${n}">${icon(n, { size: 18 })}</button>`).join('')}
+    </div>
+    <input type="hidden" id="fTIcon" value="${currentTipoIcon}">
   </div>
   <div class="form-group">
     <label class="form-label">Cor</label>
@@ -13056,20 +13077,20 @@ ${tipos.map(t => {
     Modal.open(isEdit ? `Editar Tipo — ${t.label || ''}` : 'Novo Tipo', html, () => {
       const label = document.getElementById('fTLabel').value.trim();
       const descricao = document.getElementById('fTDesc').value.trim();
-      const icon = document.getElementById('fTIcon').value.trim() || '✦';
+      const iconName = document.getElementById('fTIcon').value.trim() || 'circle';
       const colorEl = document.querySelector('input[name="fTColor"]:checked');
       const compEl = document.querySelector('input[name="fTComp"]:checked');
       const color = colorEl ? colorEl.value : '#7C6EF8';
       const comportamento = compEl ? compEl.value : 'opcional';
       try {
         if (isEdit) {
-          const patch = { icon, color, desc: descricao };
+          const patch = { icon: iconName, color, desc: descricao };
           if (!isBuiltin) { patch.label = label; patch.comportamento = comportamento; }
           Store.updateTipo(t.id, patch);
           toast('Tipo atualizado', 'success');
         } else {
           if (!label) return toast('Informe o nome', 'error');
-          Store.addTipo({ label, descricao, color, icon, comportamento });
+          Store.addTipo({ label, descricao, color, icon: iconName, comportamento });
           toast('Tipo criado', 'success');
         }
       } catch (err) { return toast(err.message, 'error'); }
@@ -13080,6 +13101,19 @@ ${tipos.map(t => {
       try { Store.deleteTipo(t.id); Modal.close(); toast('Tipo removido', 'success'); if (onSaved) onSaved(); }
       catch (err) { toast(err.message, 'error'); }
     } : null);
+    // Interatividade do picker de ícones
+    setTimeout(() => {
+      const modal = document.getElementById('modal');
+      if (!modal) return;
+      modal.querySelectorAll('[data-tipo-icon]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modal.querySelectorAll('[data-tipo-icon]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const hidden = document.getElementById('fTIcon');
+          if (hidden) hidden.value = btn.dataset.tipoIcon;
+        });
+      });
+    }, 50);
   }
 
   function _openSelectTipoForCat(cat, onSaved) {
@@ -13092,7 +13126,7 @@ ${tipos.map(t => {
     ${tipos.map(t => `
     <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;${current===t.id?'background:var(--bg-elevated);border-color:'+t.color:''}">
       <input type="radio" name="catTipo" value="${Utils.escapeHtml(t.id)}" ${current===t.id?'checked':''}>
-      <span style="font-size:18px">${Utils.escapeHtml(t.icon||'✦')}</span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:${t.color}1a;color:${t.color};flex-shrink:0">${icon(_TIPO_ICON_TO_LUCIDE[t.icon] || t.icon || 'circle', {size:14, color: t.color})}</span>
       <div>
         <div style="font-size:13px;font-weight:600;color:${t.color}">${Utils.escapeHtml(t.label)}</div>
         <div style="font-size:11px;color:var(--text-3)">${Utils.escapeHtml(t.desc || '')}</div>
@@ -14001,7 +14035,6 @@ ${isConnected && isAdmin ? `
     else if (mq.addListener) mq.addListener(handler);
   })();
 
-  const AVATAR_OPTIONS = ['👤','👨','👩','🧑','👨‍💼','👩‍💼','🧔','👱','🧑‍💻','👨‍💻','👩‍💻'];
   const TIMEZONES = [
     'America/Sao_Paulo','America/Manaus','America/Belem','America/Fortaleza',
     'America/Recife','America/Maceio','America/Bahia','America/Campo_Grande',

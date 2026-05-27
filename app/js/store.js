@@ -3384,11 +3384,11 @@ const Store = (function () {
 
   // ── TIPOS (5 defaults + customizáveis) ─────────────────────────
   const TIPOS_BUILTIN = [
-    { id: 'essencial',    label: 'Essencial',    color: '#EF4444', icon: '🔴', comportamento: 'essencial',    desc: 'Não posso viver sem isso este mês',                  ordem: 1, builtin: true },
-    { id: 'obrigatorio',  label: 'Obrigatório',  color: '#A78BFA', icon: '⚖️', comportamento: 'obrigatorio',  desc: 'Saída imposta por terceiros (pensão, multa, IR)',     ordem: 2, builtin: true },
-    { id: 'comprometido', label: 'Comprometido', color: '#F59E0B', icon: '🟡', comportamento: 'comprometido', desc: 'Posso cortar mas com custo (multa, perda, dor)',      ordem: 3, builtin: true },
-    { id: 'opcional',     label: 'Opcional',     color: '#22C55E', icon: '🟢', comportamento: 'opcional',     desc: 'Posso cortar amanhã sem grande impacto',              ordem: 4, builtin: true },
-    { id: 'eventual',     label: 'Eventual',     color: '#0EA5E9', icon: '⏱️', comportamento: 'eventual',     desc: 'Não é mensal — vem de vez em quando',                 ordem: 5, builtin: true },
+    { id: 'essencial',    label: 'Essencial',    color: '#EF4444', icon: 'shield-alert',  comportamento: 'essencial',    desc: 'Não posso viver sem isso este mês',                  ordem: 1, builtin: true },
+    { id: 'obrigatorio',  label: 'Obrigatório',  color: '#A78BFA', icon: 'scale',         comportamento: 'obrigatorio',  desc: 'Saída imposta por terceiros (pensão, multa, IR)',     ordem: 2, builtin: true },
+    { id: 'comprometido', label: 'Comprometido', color: '#F59E0B', icon: 'lock',          comportamento: 'comprometido', desc: 'Posso cortar mas com custo (multa, perda, dor)',      ordem: 3, builtin: true },
+    { id: 'opcional',     label: 'Opcional',     color: '#22C55E', icon: 'circle-check',  comportamento: 'opcional',     desc: 'Posso cortar amanhã sem grande impacto',              ordem: 4, builtin: true },
+    { id: 'eventual',     label: 'Eventual',     color: '#0EA5E9', icon: 'calendar-days', comportamento: 'eventual',     desc: 'Não é mensal — vem de vez em quando',                 ordem: 5, builtin: true },
   ];
 
   // Mapeia chaves antigas hardcoded → ids do novo modelo
@@ -3400,6 +3400,26 @@ const Store = (function () {
     pontual:                'eventual',
   };
 
+  // Migração de ícones de TIPO: emoji legado → nome Lucide
+  const _TIPO_ICON_EMOJI_TO_LUCIDE = {
+    '🔴': 'shield-alert',
+    '⚖️': 'scale',
+    '⚖':  'scale',
+    '🟡': 'lock',
+    '🟢': 'circle-check',
+    '⏱️': 'calendar-days',
+    '⏱':  'calendar-days',
+  };
+  function _migrateTipoIcon(t) {
+    if (!t || !t.icon) return;
+    if (_TIPO_ICON_EMOJI_TO_LUCIDE[t.icon]) { t.icon = _TIPO_ICON_EMOJI_TO_LUCIDE[t.icon]; return; }
+    // Se não bate em /^[a-z0-9-]+$/ → fallback pro builtin correspondente ou genérico
+    if (!/^[a-z0-9-]+$/.test(t.icon)) {
+      const builtin = TIPOS_BUILTIN.find(b => b.id === t.id);
+      t.icon = builtin ? builtin.icon : 'circle';
+    }
+  }
+
   function _ensureTipos() {
     if (!_data.tipos || !Array.isArray(_data.tipos) || _data.tipos.length === 0) {
       _data.tipos = TIPOS_BUILTIN.map(t => ({ ...t }));
@@ -3409,6 +3429,8 @@ const Store = (function () {
       TIPOS_BUILTIN.forEach(b => {
         if (!ids.has(b.id)) _data.tipos.push({ ...b });
       });
+      // Migra ícones legados (emoji) → Lucide
+      _data.tipos.forEach(_migrateTipoIcon);
     }
   }
 
@@ -3428,7 +3450,7 @@ const Store = (function () {
     const novo = {
       id, label, desc: descricao || '',
       color: color || '#7C6EF8',
-      icon: icon || '✦',
+      icon: icon || 'circle',
       comportamento: comportamento || 'opcional',
       ordem: maxOrdem + 1,
       builtin: false,
