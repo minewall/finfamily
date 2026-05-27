@@ -2996,17 +2996,77 @@ const Store = (function () {
     _data.onboarding.answers = answers || {};
     _markAllOnboardingStepsCompleted();
 
-    // Mapeia respostas ao ICP (Coach conhece melhor o usuário desde o dia 1)
+    // Mapeia respostas do onboarding ao ICP — Coach já tem contexto do dia 1.
+    // ATENÇÃO: usar exatamente as chaves geradas pelo fluxo (objetivo, familia,
+    // situacao, etc.), não nomes em inglês como antes (a.goal / a.family) que
+    // nunca casavam e deixavam o ICP em 0%.
     const a = answers || {};
-    if (a.goal)   addContextoResposta('basic',  { perguntaId: 'onb_goal',   pergunta: 'Prioridade financeira principal',   resposta: a.goal,   version: 1 });
-    if (a.family) addContextoResposta('family', { perguntaId: 'onb_family', pergunta: 'Composição familiar e financeira',  resposta: a.family, version: 1 });
-    if (a.income) addContextoResposta('money',  { perguntaId: 'onb_income', pergunta: 'Faixa de renda mensal familiar',    resposta: a.income, version: 1 });
 
-    // Salva nome na lista de pessoas se fornecido e posição 0 estiver vazia
-    if (a.name && _data.pessoas && (!_data.pessoas[0] || _data.pessoas[0] === 'Você')) {
-      _data.pessoas[0] = a.name;
-    } else if (a.name && _data.pessoas && _data.pessoas.length === 0) {
-      _data.pessoas.push(a.name);
+    // Labels human-readable pros enums (pra resposta ficar útil pro Coach
+    // quando ele leia o contexto, em vez do enum cru).
+    const _OBJETIVO_LABELS = {
+      dividas: 'Sair do vermelho / quitar dívidas',
+      reserva: 'Montar reserva de emergência',
+      imovel:  'Comprar imóvel ou veículo',
+      investir:'Investir e crescer patrimônio',
+      controle:'Organizar e ter controle',
+    };
+    const _FAMILIA_LABELS = {
+      solo:   'Mora sozinho',
+      casal:  'Mora com parceira(o)',
+      filhos: 'Família com filhos',
+      outro:  'Outro arranjo familiar',
+    };
+    const _SITUACAO_LABELS = {
+      apertado:    'Apertado — dívidas e contas no limite',
+      organizando: 'Em organização — conhecendo onde o dinheiro vai',
+      no_controle: 'Em controle — paga tudo em dia, sobra pouco',
+      sobrando:    'Folgado — sobra todo mês, quer fazer render',
+    };
+    const _PERSONALIDADE_LABELS = {
+      mentor:       'Tom mentor — direto, foca em decisões',
+      educador:     'Tom educador — explica conceitos com paciência',
+      profissional: 'Tom profissional — fala como consultor financeiro',
+    };
+    const _PRIM_ACAO_LABELS = {
+      meta:        'Quer começar definindo uma meta',
+      lancamento:  'Quer começar registrando lançamentos',
+      conta:       'Quer começar cadastrando contas',
+      explorar:    'Quer explorar o app livremente',
+    };
+
+    if (a.objetivo) {
+      addContextoResposta('dreams', { perguntaId: 'onb_objetivo', pergunta: 'Prioridade financeira agora',
+        resposta: _OBJETIVO_LABELS[a.objetivo] || a.objetivo, version: 1 });
+    }
+    if (a.familia) {
+      addContextoResposta('family', { perguntaId: 'onb_familia', pergunta: 'Como é a sua família',
+        resposta: _FAMILIA_LABELS[a.familia] || a.familia, version: 1 });
+    }
+    if (a.situacao) {
+      addContextoResposta('money', { perguntaId: 'onb_situacao', pergunta: 'Situação financeira atual',
+        resposta: _SITUACAO_LABELS[a.situacao] || a.situacao, version: 1 });
+    }
+    if (a.personalidade) {
+      addContextoResposta('values', { perguntaId: 'onb_personalidade', pergunta: 'Como prefere ser orientado',
+        resposta: _PERSONALIDADE_LABELS[a.personalidade] || a.personalidade, version: 1 });
+    }
+    if (a.primeira_acao) {
+      addContextoResposta('money', { perguntaId: 'onb_primeira_acao', pergunta: 'Por onde quis começar',
+        resposta: _PRIM_ACAO_LABELS[a.primeira_acao] || a.primeira_acao, version: 1 });
+    }
+    if (a.nome && a.nome.name) {
+      addContextoResposta('basic', { perguntaId: 'onb_nome', pergunta: 'Como você gosta de ser chamado',
+        resposta: a.nome.name, version: 1 });
+    }
+
+    // Salva nome na lista de pessoas. A.name antigo era plano, novo está em
+    // a.nome.name — aceita ambos pra retro-compat.
+    const profileName = (a.nome && a.nome.name) || a.name;
+    if (profileName && _data.pessoas && (!_data.pessoas[0] || _data.pessoas[0] === 'Você')) {
+      _data.pessoas[0] = profileName;
+    } else if (profileName && _data.pessoas && _data.pessoas.length === 0) {
+      _data.pessoas.push(profileName);
     }
 
     persist();
@@ -4045,7 +4105,7 @@ const Store = (function () {
   }
 
   return {
-    init, get, persist,
+    init, get, persist, save,
     parseExtrato,
     CATEGORIES, SUBCATEGORIES, PAYMENT_METHODS, PESSOAS, BANKS, ACCOUNT_TYPES,
     CARD_TYPES, BENEFIT_EMISSORES, BENEFIT_USOS,
