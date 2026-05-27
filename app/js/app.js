@@ -17216,6 +17216,10 @@ ${(() => {
 
     let history = []; // [{role, content}]
     let isLoading = false;
+    // Resolvers de cards de confirmação pendentes. Cancelamos todos quando
+    // o usuário reseta a conversa (clear, closePanel), pra não deixar Promises
+    // penduradas que travariam o tool loop e deixariam tool_use órfãos.
+    const _pendingConfirmResolvers = new Set();
     let panelWidth = parseInt(UISettings.get('coachWidth', '380'), 10);
     let lastActivity = Date.now();
     const INACTIVITY_MS = 4 * 60 * 60 * 1000; // 4 horas
@@ -17223,6 +17227,10 @@ ${(() => {
     const layout = document.getElementById('app');
 
     function resetConversation() {
+      // Resolve qualquer confirm pendente como 'cancel' antes de apagar o history,
+      // pra liberar o tool loop e deixá-lo terminar limpo.
+      _pendingConfirmResolvers.forEach(r => { try { r('cancel'); } catch {} });
+      _pendingConfirmResolvers.clear();
       history = [];
       // Build context-aware suggestions baseado no estado do user.
       // Banido: "orçamento", "limite", "controle de gastos" (skill haile-design).
@@ -18146,63 +18154,72 @@ FORMATO DA RESPOSTA (importante):
       getCotacoes:      { confirmar: 'Consultar cotações',     concluido: 'Cotações atualizadas', cor: 'var(--accent)', icone: 'refresh-cw' },
     };
 
-    // Renderiza card de confirmação inline e retorna Promise<'confirm'|'cancel'>
+    // Helpers de render compartilhados entre confirm single e batch.
+    // Formata um item de bulkAdd em "DD/MM · descrição · valor · categoria".
+    function _fmtBulkItem(it) {
+      const d = typeof it?.data === 'string' && /^\d{4}-\d{2}-\d{2}/.test(it.data)
+        ? it.data.slice(8, 10) + '/' + it.data.slice(5, 7) : (it?.data || '');
+      const desc = it?.descricao || it?.desc || '';
+      const valor = typeof it?.valor === 'number'
+        ? it.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        : (it?.valor || '');
+      const cat = it?.categoria || it?.type || '';
+      const left = [d, desc].filter(Boolean).join(' · ');
+      const right = [valor, cat].filter(Boolean).join(' · ');
+      return `${Utils.escapeHtml(left)}${right ? ` <span style="color:var(--text-4)">${Utils.escapeHtml(right)}</span>` : ''}`;
+    }
+    // Renderiza o "valor" de um par chave/valor — trata array de objetos.
+    function _renderToolInputValue(v) {
+      if (typeof v === 'number') {
+        return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      }
+      if (Array.isArray(v)) {
+        if (v.length === 0) return '<span style="color:var(--text-4)">vazio</span>';
+        const isObjArr = typeof v[0] === 'object' && v[0] !== null;
+        if (isObjArr) {
+          const MAX = 8;
+          const head = v.slice(0, MAX).map(it =>
+            `<li style="padding:4px 0;border-bottom:1px solid var(--border);font-size:11.5px;line-height:1.4;list-style:none">${_fmtBulkItem(it)}</li>`).join('');
+          const rest = v.length > MAX
+            ? `<li style="padding:6px 0 0;font-size:11px;color:var(--text-4);list-style:none">… e mais ${v.length - MAX} ${v.length - MAX === 1 ? 'item' : 'itens'}</li>`
+            : '';
+          return `<ul style="margin:0;padding:0;max-height:240px;overflow-y:auto;text-align:left">${head}${rest}</ul>`;
+        }
+        return Utils.escapeHtml(v.map(String).join(', '));
+      }
+      if (v && typeof v === 'object') {
+        try { return `<pre style="margin:0;font-size:11px;white-space:pre-wrap;color:var(--text-2);text-align:left">${Utils.escapeHtml(JSON.stringify(v, null, 2))}</pre>`; }
+        catch { return Utils.escapeHtml(String(v)); }
+      }
+      return Utils.escapeHtml(String(v));
+    }
+    // Renderiza os campos de uma chamada de tool (label + value, layout
+    // adaptativo se for lista longa).
+    function _renderToolFields(toolInput) {
+      return Object.entries(toolInput).map(([k, v]) => {
+        const isList = Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
+        const count  = Array.isArray(v) ? ` <span style="color:var(--text-4);font-weight:400">(${v.length})</span>` : '';
+        if (isList) {
+          return `<div style="padding:6px 0;font-size:12px">
+            <div style="color:var(--text-4);text-transform:capitalize;margin-bottom:6px">${Utils.escapeHtml(k)}${count}</div>
+            <div style="color:var(--text-1)">${_renderToolInputValue(v)}</div>
+          </div>`;
+        }
+        return `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12px"><span style="color:var(--text-4);text-transform:capitalize">${Utils.escapeHtml(k)}${count}</span><span style="color:var(--text-1);font-weight:600;text-align:right;max-width:60%;word-break:break-word">${_renderToolInputValue(v)}</span></div>`;
+      }).join('');
+    }
+
+    // Renderiza card de confirmação inline e retorna Promise<'confirm'|'cancel'>.
+    // O resolver é tracked em _pendingConfirmResolvers; resetConversation()
+    // resolve todos como 'cancel' pra não deixar Promise pendurada.
     function _renderToolConfirmCard(toolName, toolInput) {
       const meta = TOOL_LABELS[toolName]
         ? { titulo: TOOL_LABELS[toolName].confirmar, cor: TOOL_LABELS[toolName].cor, icone: TOOL_LABELS[toolName].icone }
         : { titulo: toolName, cor: 'var(--text-3)', icone: 'sparkles' };
       return new Promise(resolve => {
+        _pendingConfirmResolvers.add(resolve);
         const id = 'toolconf-' + Math.random().toString(36).slice(2, 8);
-        // Helper: formata um item de bulkAdd em "DD/MM · descrição · R$ X,XX"
-        const _fmtBulkItem = (it) => {
-          const d = typeof it?.data === 'string' && /^\d{4}-\d{2}-\d{2}/.test(it.data)
-            ? it.data.slice(8, 10) + '/' + it.data.slice(5, 7) : (it?.data || '');
-          const desc = it?.descricao || it?.desc || '';
-          const valor = typeof it?.valor === 'number'
-            ? it.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-            : (it?.valor || '');
-          const cat = it?.categoria || it?.type || '';
-          const left = [d, desc].filter(Boolean).join(' · ');
-          const right = [valor, cat].filter(Boolean).join(' · ');
-          return `${Utils.escapeHtml(left)}${right ? ` <span style="color:var(--text-4)">${Utils.escapeHtml(right)}</span>` : ''}`;
-        };
-        // Helper: renderiza o "valor" de um par chave/valor — trata array de objetos
-        const _renderValue = (v) => {
-          if (typeof v === 'number') {
-            return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          }
-          if (Array.isArray(v)) {
-            if (v.length === 0) return '<span style="color:var(--text-4)">vazio</span>';
-            const isObjArr = typeof v[0] === 'object' && v[0] !== null;
-            if (isObjArr) {
-              const MAX = 8;
-              const head = v.slice(0, MAX).map(it =>
-                `<li style="padding:4px 0;border-bottom:1px solid var(--border);font-size:11.5px;line-height:1.4;list-style:none">${_fmtBulkItem(it)}</li>`).join('');
-              const rest = v.length > MAX
-                ? `<li style="padding:6px 0 0;font-size:11px;color:var(--text-4);list-style:none">… e mais ${v.length - MAX} ${v.length - MAX === 1 ? 'item' : 'itens'}</li>`
-                : '';
-              return `<ul style="margin:0;padding:0;max-height:240px;overflow-y:auto;text-align:left">${head}${rest}</ul>`;
-            }
-            return Utils.escapeHtml(v.map(String).join(', '));
-          }
-          if (v && typeof v === 'object') {
-            try { return `<pre style="margin:0;font-size:11px;white-space:pre-wrap;color:var(--text-2);text-align:left">${Utils.escapeHtml(JSON.stringify(v, null, 2))}</pre>`; }
-            catch { return Utils.escapeHtml(String(v)); }
-          }
-          return Utils.escapeHtml(String(v));
-        };
-        const fields = Object.entries(toolInput).map(([k, v]) => {
-          const isList = Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
-          const count  = Array.isArray(v) ? ` <span style="color:var(--text-4);font-weight:400">(${v.length})</span>` : '';
-          // Listas longas ficam em layout block (label em cima, conteúdo embaixo) pra caber bem.
-          if (isList) {
-            return `<div style="padding:6px 0;font-size:12px">
-              <div style="color:var(--text-4);text-transform:capitalize;margin-bottom:6px">${Utils.escapeHtml(k)}${count}</div>
-              <div style="color:var(--text-1)">${_renderValue(v)}</div>
-            </div>`;
-          }
-          return `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12px"><span style="color:var(--text-4);text-transform:capitalize">${Utils.escapeHtml(k)}${count}</span><span style="color:var(--text-1);font-weight:600;text-align:right;max-width:60%;word-break:break-word">${_renderValue(v)}</span></div>`;
-        }).join('');
+        const fields = _renderToolFields(toolInput);
         const card = document.createElement('div');
         card.className = 'coach-msg assistant';
         card.id = id;
@@ -18219,12 +18236,63 @@ FORMATO DA RESPOSTA (importante):
         msgs.appendChild(card);
         msgs.scrollTop = msgs.scrollHeight;
         const done = (answer) => {
-          // desabilita os botões e marca status visual
+          if (!_pendingConfirmResolvers.has(resolve)) return; // já resolvido
+          _pendingConfirmResolvers.delete(resolve);
           card.querySelector('[data-conf-ok]').disabled = true;
           card.querySelector('[data-conf-cancel]').disabled = true;
           const status = document.createElement('div');
           status.style.cssText = `margin-top:8px;font-size:11px;color:${answer === 'confirm' ? meta.cor : 'var(--text-4)'};font-weight:600`;
           status.textContent = answer === 'confirm' ? 'Confirmado' : 'Cancelado pelo usuário';
+          card.querySelector('.coach-bubble').appendChild(status);
+          resolve(answer);
+        };
+        card.querySelector('[data-conf-ok]').addEventListener('click', () => done('confirm'));
+        card.querySelector('[data-conf-cancel]').addEventListener('click', () => done('cancel'));
+      });
+    }
+
+    // Card consolidado para múltiplos tool_use no mesmo turno (caso típico:
+    // bulkAddReceitas + bulkAddDespesas em paralelo após import de extrato).
+    // Renderiza UMA seção por tool dentro de UM card, com decisão única que
+    // se aplica a todos. Evita o cenário onde o usuário confirma o primeiro,
+    // perde de vista o segundo card e o tool_use fica órfão.
+    // Retorna Promise<'confirm'|'cancel'> aplicada a todos.
+    function _renderToolBatchConfirmCard(toolUseBlocks) {
+      return new Promise(resolve => {
+        _pendingConfirmResolvers.add(resolve);
+        // Cor/ícone do batch: usa o accent (neutro) já que pode misturar tipos.
+        const headerCor = 'var(--accent)';
+        const sections = toolUseBlocks.map(tu => {
+          const meta = TOOL_LABELS[tu.name]
+            ? { titulo: TOOL_LABELS[tu.name].confirmar, cor: TOOL_LABELS[tu.name].cor, icone: TOOL_LABELS[tu.name].icone }
+            : { titulo: tu.name, cor: 'var(--text-3)', icone: 'sparkles' };
+          return `<div style="border:1px solid ${meta.cor}33;border-radius:8px;padding:10px 12px;margin-bottom:10px;background:${meta.cor}08">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;color:${meta.cor};font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em">${icon(meta.icone,{size:13})} ${Utils.escapeHtml(meta.titulo)}</div>
+            <div>${_renderToolFields(tu.input || {})}</div>
+          </div>`;
+        }).join('');
+        const card = document.createElement('div');
+        card.className = 'coach-msg assistant';
+        card.innerHTML = `
+          <div class="coach-msg-avatar coach-msg-avatar--ai"><img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:14px;height:auto;display:block"></div>
+          <div class="coach-bubble" style="border:1.5px solid ${headerCor}44;background:linear-gradient(135deg,${headerCor}10,transparent);padding:14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:${headerCor};font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em">${icon('check-check',{size:14})} Confirmar ${toolUseBlocks.length} ações</div>
+            <div style="margin-bottom:12px">${sections}</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn-secondary" data-conf-cancel style="padding:6px 12px;font-size:12px">Cancelar tudo</button>
+              <button class="btn-primary" data-conf-ok style="padding:6px 14px;font-size:12px;background:${headerCor};border-color:${headerCor}">Confirmar tudo</button>
+            </div>
+          </div>`;
+        msgs.appendChild(card);
+        msgs.scrollTop = msgs.scrollHeight;
+        const done = (answer) => {
+          if (!_pendingConfirmResolvers.has(resolve)) return;
+          _pendingConfirmResolvers.delete(resolve);
+          card.querySelector('[data-conf-ok]').disabled = true;
+          card.querySelector('[data-conf-cancel]').disabled = true;
+          const status = document.createElement('div');
+          status.style.cssText = `margin-top:8px;font-size:11px;color:${answer === 'confirm' ? headerCor : 'var(--text-4)'};font-weight:600`;
+          status.textContent = answer === 'confirm' ? `${toolUseBlocks.length} ações confirmadas` : 'Cancelado pelo usuário';
           card.querySelector('.coach-bubble').appendChild(status);
           resolve(answer);
         };
@@ -18401,7 +18469,16 @@ FORMATO DA RESPOSTA (importante):
             break;
           }
 
-          // Tem tool_use → processar cada bloco (confirmar + executar)
+          // Tem tool_use → confirmar (batch quando >=2 que pedem confirm) e executar
+          const SKIP_CONFIRM = new Set(['getCotacoes']);
+          const needConfirm = toolUseBlocks.filter(tu => COACH_TOOL_HANDLERS[tu.name] && !SKIP_CONFIRM.has(tu.name));
+          // Decisão batch: se há 2+ tools pedindo confirm no mesmo turno, mostra
+          // UM card consolidado em vez de N cards sequenciais — evita o caso
+          // onde o usuário confirma o primeiro e perde de vista o segundo.
+          let batchAnswer = null;
+          if (needConfirm.length >= 2) {
+            batchAnswer = await _renderToolBatchConfirmCard(needConfirm);
+          }
           const toolResults = [];
           for (const tu of toolUseBlocks) {
             const handler = COACH_TOOL_HANDLERS[tu.name];
@@ -18410,11 +18487,11 @@ FORMATO DA RESPOSTA (importante):
                 content: `Tool desconhecida: ${tu.name}` });
               continue;
             }
-            // Tools de leitura/atualização-de-cache não precisam de confirmação
-            const SKIP_CONFIRM = new Set(['getCotacoes']);
             const answer = SKIP_CONFIRM.has(tu.name)
               ? 'confirm'
-              : await _renderToolConfirmCard(tu.name, tu.input || {});
+              : (batchAnswer !== null
+                  ? batchAnswer
+                  : await _renderToolConfirmCard(tu.name, tu.input || {}));
             if (answer === 'cancel') {
               toolResults.push({ type: 'tool_result', tool_use_id: tu.id, is_error: false,
                 content: 'Usuário cancelou esta ação. Não execute nem ofereça novamente sem novo pedido.' });
