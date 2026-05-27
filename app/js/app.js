@@ -10651,18 +10651,17 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
   function currentPessoa() {
     const ctx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
     if (ctx?.pessoaName) return ctx.pessoaName;
-    // Resolve o nome usado nos lançamentos (data.pessoas) — match inteligente:
-    // 1) profile.firstName se existir em PESSOAS
-    // 2) primeiro nome do profile.name se existir em PESSOAS
-    // 3) profile.name completo se existir em PESSOAS
-    // 4) primeiro PESSOAS como fallback
+    // Resolve o nome do dono da conta — profile é a fonte canônica.
+    // Antes a função priorizava pessoas[0] como fallback quando profile não
+    // batia, causando inconsistência visual: sidebar mostrava "Ricardo
+    // Oliveira" (profile) e painel mostrava "Olá, Roberto" (pessoas[0]).
+    // Agora: profile.firstName > primeiro nome do profile.name > pessoas[0].
     const profile = Store.getProfile() || {};
     const pessoas = Store.PESSOAS || [];
-    if (profile.firstName && pessoas.includes(profile.firstName)) return profile.firstName;
+    if (profile.firstName && profile.firstName.trim()) return profile.firstName.trim();
     if (profile.name) {
-      const first = profile.name.split(' ')[0];
-      if (pessoas.includes(first)) return first;
-      if (pessoas.includes(profile.name)) return profile.name;
+      const first = (profile.name.split(' ')[0] || '').trim();
+      if (first) return first;
     }
     return pessoas[0] || profile.name || 'Usuário';
   }
@@ -12423,11 +12422,14 @@ ${outrs.length ? `
   </div>
 </div>
 
-${renderPageMonthPicker(container)}
-
 <div id="painelWidgetsArea" style="display:flex;flex-direction:column;gap:14px">
   ${buildPainel()}
 </div>`;
+
+    // Insere month picker no DOM depois do innerHTML setado — a função
+    // muta o DOM (insertBefore) e retorna undefined, então não pode ser
+    // interpolada no template (virava string "undefined" no header).
+    renderPageMonthPicker(container);
 
     // ── Eventos ───────────────────────────────────────────────────
     document.getElementById('btnPersonalizarPainel')?.addEventListener('click', () => {

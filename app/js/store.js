@@ -3060,13 +3060,25 @@ const Store = (function () {
         resposta: a.nome.name, version: 1 });
     }
 
-    // Salva nome na lista de pessoas. A.name antigo era plano, novo está em
-    // a.nome.name — aceita ambos pra retro-compat.
+    // Salva nome na lista de pessoas E no profile. A.name antigo era plano,
+    // novo está em a.nome.name — aceita ambos pra retro-compat.
+    // Mantém profile.name e pessoas[0] em sincronia pra evitar divergência
+    // entre sidebar ("Ricardo Oliveira" do profile) e painel ("Olá, Roberto"
+    // do pessoas[0]).
     const profileName = (a.nome && a.nome.name) || a.name;
-    if (profileName && _data.pessoas && (!_data.pessoas[0] || _data.pessoas[0] === 'Você')) {
-      _data.pessoas[0] = profileName;
-    } else if (profileName && _data.pessoas && _data.pessoas.length === 0) {
-      _data.pessoas.push(profileName);
+    if (profileName) {
+      if (_data.pessoas && (!_data.pessoas[0] || _data.pessoas[0] === 'Você')) {
+        _data.pessoas[0] = profileName;
+      } else if (_data.pessoas && _data.pessoas.length === 0) {
+        _data.pessoas.push(profileName);
+      }
+      // Atualiza profile.name se estava vazio ou no default — não sobrescreve
+      // nomes já preenchidos (vindos do cadastro/Supabase) pra não apagar
+      // sobrenome que o user já tinha.
+      if (!_data.profile) _data.profile = {};
+      if (!_data.profile.name || _data.profile.name === 'Usuário' || _data.profile.name === 'Você') {
+        _data.profile.name = profileName;
+      }
     }
 
     persist();
