@@ -365,6 +365,48 @@ serve(async (req) => {
         return json(200, { ok: true }, req);
       }
 
+      // Convidar usuário via Supabase Auth: { email, tier?, redirectTo? }
+      // Cria auth user + envia magic link via SMTP configurado (Resend).
+      // Tier inicial é gravado em profiles após criação.
+      case 'inviteUser': {
+        const { email, tier = 'free', redirectTo } = params as {
+          email?: string; tier?: string; redirectTo?: string;
+        };
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+          return json(400, { error: 'email válido é obrigatório' }, req);
+        }
+        const validTiers = ['free', 'always_free', 'plus', 'premium'];
+        if (!validTiers.includes(tier)) {
+          return json(400, { error: `tier deve ser um de: ${validTiers.join(', ')}` }, req);
+        }
+
+        const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+          redirectTo: redirectTo || 'https://haile.com.br/login.html',
+          data: { invited_by_admin: user.id },
+        });
+        if (error) {
+          console.error('[admin] inviteUser error:', error);
+          return json(400, { error: error.message || 'Falha ao enviar convite' }, req);
+        }
+
+        // Define tier inicial no profile (upsert pra cobrir o caso do trigger
+        // ter criado o row ou não).
+        if (data?.user?.id && tier !== 'free') {
+          const { error: profErr } = await adminClient
+            .from('profiles')
+            .upsert(
+              { id: data.user.id, email, tier, updated_at: new Date().toISOString() },
+              { onConflict: 'id' }
+            );
+          if (profErr) {
+            console.warn('[admin] inviteUser profile upsert warning:', profErr.message);
+          }
+        }
+
+        console.log(`[admin] inviteUser email=${email} tier=${tier} by admin=${user.id}`);
+        return json(200, { ok: true, userId: data?.user?.id || null }, req);
+      }
+
       default:
         return json(400, { error: `Unknown action: ${action}` }, req);
     }
