@@ -158,13 +158,36 @@ const App = (function () {
 </div>`;
   }
 
+  // Estado do file picker do attach do Coach. Compartilhado entre o handler
+  // de click-outside (em initCoach) e qualquer caller externo (ex: CTA
+  // "importar do extrato" nos empty states). Quando `open=true`, o painel
+  // não minimiza ao receber mousedown que vaza do diálogo do SO.
+  const _coachAttach = { open: false };
+  function _openCoachAttachPicker() {
+    const input = document.getElementById('coachAttachInput');
+    if (!input) return;
+    _coachAttach.open = true;
+    input.click();
+    const reset = () => {
+      _coachAttach.open = false;
+      window.removeEventListener('focus', reset);
+      clearTimeout(safetyTimer);
+    };
+    // Triplo fallback: focus volta à janela quando o dialog fecha (caso comum),
+    // evento 'cancel' do input em browsers novos, e timeout de 30s caso nada
+    // dispare (evita flag grudada eternamente).
+    setTimeout(() => window.addEventListener('focus', reset, { once: true }), 300);
+    input.addEventListener('cancel', reset, { once: true });
+    const safetyTimer = setTimeout(reset, 30000);
+  }
+
   // Handler global: clicar "ou importe do extrato" em qualquer coach-empty card
-  // abre o Coach e dispara o paperclip — usuário escolhe arquivo direto
+  // abre o Coach e dispara o paperclip — usuário escolhe arquivo direto.
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-coach-import-cta]');
     if (!btn) return;
     document.getElementById('btnCoach')?.click();
-    setTimeout(() => { document.getElementById('coachAttachInput')?.click(); }, 200);
+    setTimeout(() => _openCoachAttachPicker(), 200);
   });
 
   // ── MODAL ──────────────────────────────────────────────────────
@@ -17326,8 +17349,12 @@ ${(() => {
     updateWidthPresetActive();
 
     // Click outside → minimiza (preserva conversa)
+    // Suprimido quando o file picker do attach do extrato está aberto:
+    // o mousedown do SO/diálogo vaza pro document e fechava o painel
+    // sem feedback (bug reportado em 2026-05-27).
     document.addEventListener('mousedown', (e) => {
       if (!panel.classList.contains('open')) return;
+      if (_coachAttach.open) return;
       if (panel.contains(e.target)) return;
       if (btnOpen.contains(e.target)) return; // toggle já trata
       minimizePanel();
@@ -18403,8 +18430,13 @@ FORMATO DA RESPOSTA (importante):
     const attachBtn   = document.getElementById('coachAttachBtn');
     const attachInput = document.getElementById('coachAttachInput');
     if (attachBtn && attachInput) {
-      attachBtn.addEventListener('click', () => attachInput.click());
+      attachBtn.addEventListener('click', () => _openCoachAttachPicker());
       attachInput.addEventListener('change', async () => {
+        // Reseta flag e garante que o painel está aberto antes de processar
+        // (caso algum mousedown residual tenha minimizado entre o click do
+        // paperclip e a chegada do change event).
+        _coachAttach.open = false;
+        if (!panel.classList.contains('open')) openPanel();
         const file = attachInput.files?.[0];
         if (!file) return;
         const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
