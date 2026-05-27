@@ -17834,6 +17834,19 @@ PROIBIDO
 - Promessas genéricas ("vamos fazer juntos sua vida financeira melhorar")
 - Tom: CFO pessoal direto, não professor.
 
+USO DE TOOLS (criar, editar, apagar, consultar):
+- queryDespesas / queryReceitas: use SEMPRE que precisar de uma lista específica pra responder análise precisa ("quanto gastei com mercado em maio?", "todas as receitas do Roberto este ano"). Mais confiável que tentar contar a partir do CONTEXTO acima.
+- updateDespesa / updateReceita: use quando o usuário pedir pra corrigir/ajustar um lançamento ("mude a categoria daquele aluguel pra moradia"). Antes, descubra o id via queryDespesas/queryReceitas filtrando por descrição/data. Patch parcial — só envie o que muda.
+- deleteDespesa / deleteReceita: só com pedido EXPLÍCITO de apagar/remover/excluir. O sistema mostra um card de confirmação visual com botões — você não precisa pedir confirmação textual antes.
+- addDespesa / addReceita / addMeta: pra criação avulsa.
+- bulkAddDespesas / bulkAddReceitas: pra import em lote de extrato.
+- getCotacoes: pra atualizar valores de USD/EUR/USDT/BTC.
+
+REGRAS DE TOOL USE
+- NUNCA invente IDs. Sempre obtenha via query primeiro.
+- Ao corrigir/apagar, se houver múltiplos candidatos na query, liste os top 3-5 e pergunte qual.
+- Após executar uma ação, comente brevemente o resultado em UMA frase. O sistema já mostra toast + card visual — não repita os detalhes.
+
 FORMATO DA RESPOSTA (importante):
 - Texto corrido em parágrafos curtos. NÃO use cabeçalhos (#), listas com - ou *, tabelas, blocos de código.
 - Para enumerar inline: "1) ... 2) ... 3) ..."
@@ -18012,6 +18025,90 @@ FORMATO DA RESPOSTA (importante):
           required: ['itens'],
         },
       },
+      {
+        name: 'queryDespesas',
+        description: 'Buscar despesas com filtros. Use quando precisar de uma lista específica pra responder algo analítico (ex: "quanto gastei com mercado em maio?", "todas as despesas do Roberto este ano"). Retorna até 50 itens + agregado por categoria. Read-only, não confirma.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            periodoInicio: { type: 'string', description: 'Data inicial YYYY-MM-DD (opcional)' },
+            periodoFim:    { type: 'string', description: 'Data final YYYY-MM-DD (opcional)' },
+            categoria:     { type: 'string', description: 'Chave da categoria (ex: alimentacao). Opcional.' },
+            pessoa:        { type: 'string', description: 'Nome da pessoa (opcional)' },
+            descricaoContem: { type: 'string', description: 'Texto a buscar na descrição, case-insensitive (opcional)' },
+          },
+        },
+      },
+      {
+        name: 'queryReceitas',
+        description: 'Buscar receitas com filtros. Mesma semântica de queryDespesas. Use pra responder perguntas analíticas sobre entradas. Read-only.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            periodoInicio: { type: 'string', description: 'Data inicial YYYY-MM-DD (opcional)' },
+            periodoFim:    { type: 'string', description: 'Data final YYYY-MM-DD (opcional)' },
+            pessoa:        { type: 'string', description: 'Nome da pessoa (opcional)' },
+            descricaoContem: { type: 'string', description: 'Texto a buscar na descrição (opcional)' },
+            tipo:          { type: 'string', enum: ['salario','contrato','pensao','emprestimo','outros'], description: 'Tipo de receita (opcional)' },
+          },
+        },
+      },
+      {
+        name: 'updateDespesa',
+        description: 'Atualizar campos de uma despesa existente. Use quando o usuário pedir pra corrigir/mudar/ajustar um lançamento de despesa. Confirma antes de executar. Patch parcial — só envie os campos que mudam.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            id:        { type: 'string', description: 'ID da despesa (obtido via queryDespesas)' },
+            descricao: { type: 'string' },
+            valor:     { type: 'number' },
+            data:      { type: 'string', description: 'YYYY-MM-DD' },
+            pessoa:    { type: 'string' },
+            categoria: { type: 'string' },
+            sub:       { type: 'string' },
+            pay:       { type: 'string' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'updateReceita',
+        description: 'Atualizar campos de uma receita existente. Use quando o usuário pedir pra corrigir/mudar/ajustar um lançamento de receita. Confirma antes. Patch parcial.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            id:        { type: 'string', description: 'ID da receita (obtido via queryReceitas)' },
+            descricao: { type: 'string' },
+            valor:     { type: 'number' },
+            data:      { type: 'string' },
+            pessoa:    { type: 'string' },
+            type:      { type: 'string', enum: ['salario','contrato','pensao','emprestimo','outros'] },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'deleteDespesa',
+        description: 'Apagar uma despesa. Use só quando o usuário pedir explicitamente pra apagar/remover/excluir. Confirma antes. Há undo no toast de 8s.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'ID da despesa' },
+          },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'deleteReceita',
+        description: 'Apagar uma receita. Use só quando o usuário pedir explicitamente pra apagar/remover/excluir. Confirma antes. Há undo no toast.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'ID da receita' },
+          },
+          required: ['id'],
+        },
+      },
     ];
 
     // Handlers: cada um retorna { result: <texto pro Coach>, undo: fn }
@@ -18139,6 +18236,178 @@ FORMATO DA RESPOSTA (importante):
           summary: `${created.length} ${created.length === 1 ? 'receita' : 'receitas'} · total ${Utils.currency(total)}`,
         };
       },
+      queryDespesas: (input) => {
+        const all = Store.get().despesas || [];
+        const ini = input?.periodoInicio || null;
+        const fim = input?.periodoFim    || null;
+        const cat = (input?.categoria || '').toLowerCase();
+        const pess= (input?.pessoa || '').toLowerCase();
+        const ndesc=(input?.descricaoContem || '').toLowerCase();
+        const filtered = all.filter(d => {
+          if (ini && d.date < ini) return false;
+          if (fim && d.date > fim) return false;
+          if (cat && (d.category || '').toLowerCase() !== cat) return false;
+          if (pess) {
+            const peopleHit = (d.person || '').toLowerCase() === pess
+              || (Array.isArray(d.split) && d.split.some(s => (s.person || '').toLowerCase() === pess));
+            if (!peopleHit) return false;
+          }
+          if (ndesc && !(d.desc || '').toLowerCase().includes(ndesc)) return false;
+          return true;
+        }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const total = filtered.reduce((s, d) => s + (d.amount || 0), 0);
+        const byCat = filtered.reduce((acc, d) => {
+          const k = d.category || 'sem_categoria';
+          acc[k] = (acc[k] || 0) + (d.amount || 0);
+          return acc;
+        }, {});
+        const top = Object.entries(byCat).sort((a,b) => b[1]-a[1]).slice(0, 8);
+        const MAX = 50;
+        const sample = filtered.slice(0, MAX).map(d =>
+          `[${d.id}] ${d.date} · ${d.desc} · R$ ${(d.amount || 0).toFixed(2)} · ${d.person || '—'} · ${d.category || '—'}${d.sub ? '/' + d.sub : ''}`
+        ).join('\n');
+        const more = filtered.length > MAX ? `\n… e mais ${filtered.length - MAX} itens não listados` : '';
+        const filtros = [
+          ini && `inicio=${ini}`, fim && `fim=${fim}`,
+          cat && `categoria=${cat}`, pess && `pessoa=${pess}`,
+          ndesc && `descricao~${ndesc}`,
+        ].filter(Boolean).join(', ') || 'sem filtros';
+        return {
+          result: `Encontradas ${filtered.length} despesas (${filtros}) — total R$ ${total.toFixed(2)}.\n\nPor categoria (top): ${top.map(([k,v]) => `${k}: R$ ${v.toFixed(2)}`).join(' · ')}\n\nItens:\n${sample}${more}`,
+          undo: null, summary: null,
+        };
+      },
+      queryReceitas: (input) => {
+        const all = Store.get().receitas || [];
+        const ini = input?.periodoInicio || null;
+        const fim = input?.periodoFim    || null;
+        const pess= (input?.pessoa || '').toLowerCase();
+        const ndesc=(input?.descricaoContem || '').toLowerCase();
+        const tipo= (input?.tipo || '').toLowerCase();
+        const filtered = all.filter(r => {
+          if (ini && r.date < ini) return false;
+          if (fim && r.date > fim) return false;
+          if (pess && (r.person || '').toLowerCase() !== pess) return false;
+          if (ndesc && !(r.desc || '').toLowerCase().includes(ndesc)) return false;
+          if (tipo && (r.type || '').toLowerCase() !== tipo) return false;
+          return true;
+        }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const total = filtered.reduce((s, r) => s + (r.amount || 0), 0);
+        const byPess = filtered.reduce((acc, r) => {
+          const k = r.person || 'sem_pessoa';
+          acc[k] = (acc[k] || 0) + (r.amount || 0);
+          return acc;
+        }, {});
+        const MAX = 50;
+        const sample = filtered.slice(0, MAX).map(r =>
+          `[${r.id}] ${r.date} · ${r.desc} · R$ ${(r.amount || 0).toFixed(2)} · ${r.person || '—'} · ${r.type || 'outros'}`
+        ).join('\n');
+        const more = filtered.length > MAX ? `\n… e mais ${filtered.length - MAX} itens não listados` : '';
+        const filtros = [
+          ini && `inicio=${ini}`, fim && `fim=${fim}`,
+          pess && `pessoa=${pess}`, ndesc && `descricao~${ndesc}`, tipo && `tipo=${tipo}`,
+        ].filter(Boolean).join(', ') || 'sem filtros';
+        return {
+          result: `Encontradas ${filtered.length} receitas (${filtros}) — total R$ ${total.toFixed(2)}.\n\nPor pessoa: ${Object.entries(byPess).map(([k,v]) => `${k}: R$ ${v.toFixed(2)}`).join(' · ')}\n\nItens:\n${sample}${more}`,
+          undo: null, summary: null,
+        };
+      },
+      updateDespesa: (input) => {
+        const id = input?.id;
+        if (!id) throw new Error('id obrigatório');
+        const original = (Store.get().despesas || []).find(d => d.id === id);
+        if (!original) throw new Error(`Despesa não encontrada: id=${id}`);
+        const snapshot = { ...original }; // pra undo
+        const patch = {};
+        if (input.descricao !== undefined) patch.desc = input.descricao;
+        if (input.valor     !== undefined) patch.amount = input.valor;
+        if (input.data      !== undefined) {
+          patch.date = input.data;
+          patch.year  = parseInt(input.data.slice(0, 4), 10);
+          patch.month = parseInt(input.data.slice(5, 7), 10);
+        }
+        if (input.pessoa    !== undefined) patch.person = input.pessoa;
+        if (input.categoria !== undefined) patch.category = input.categoria;
+        if (input.sub       !== undefined) patch.sub = input.sub;
+        if (input.pay       !== undefined) patch.pay = input.pay;
+        if (Object.keys(patch).length === 0) {
+          return { result: `Nenhum campo pra atualizar na despesa ${id}.`, undo: null, summary: null };
+        }
+        Store.updateDespesa(id, patch);
+        const changes = Object.entries(patch)
+          .filter(([k]) => k !== 'year' && k !== 'month')
+          .map(([k, v]) => `${k}: ${snapshot[k] ?? '—'} → ${v}`)
+          .join('; ');
+        return {
+          result: `Despesa ${id} atualizada (${original.desc}). Alterações: ${changes}`,
+          undo: () => Store.updateDespesa(id, {
+            desc: snapshot.desc, amount: snapshot.amount, date: snapshot.date,
+            year: snapshot.year, month: snapshot.month, person: snapshot.person,
+            category: snapshot.category, sub: snapshot.sub, pay: snapshot.pay,
+          }),
+          summary: `${snapshot.desc} · ${changes.length > 60 ? changes.slice(0, 60) + '…' : changes}`,
+        };
+      },
+      updateReceita: (input) => {
+        const id = input?.id;
+        if (!id) throw new Error('id obrigatório');
+        const original = (Store.get().receitas || []).find(r => r.id === id);
+        if (!original) throw new Error(`Receita não encontrada: id=${id}`);
+        const snapshot = { ...original };
+        const patch = {};
+        if (input.descricao !== undefined) patch.desc = input.descricao;
+        if (input.valor     !== undefined) patch.amount = input.valor;
+        if (input.data      !== undefined) {
+          patch.date = input.data;
+          patch.year  = parseInt(input.data.slice(0, 4), 10);
+          patch.month = parseInt(input.data.slice(5, 7), 10);
+        }
+        if (input.pessoa    !== undefined) patch.person = input.pessoa;
+        if (input.type      !== undefined) patch.type   = input.type;
+        if (Object.keys(patch).length === 0) {
+          return { result: `Nenhum campo pra atualizar na receita ${id}.`, undo: null, summary: null };
+        }
+        Store.updateReceita(id, patch);
+        const changes = Object.entries(patch)
+          .filter(([k]) => k !== 'year' && k !== 'month')
+          .map(([k, v]) => `${k}: ${snapshot[k] ?? '—'} → ${v}`)
+          .join('; ');
+        return {
+          result: `Receita ${id} atualizada (${original.desc}). Alterações: ${changes}`,
+          undo: () => Store.updateReceita(id, {
+            desc: snapshot.desc, amount: snapshot.amount, date: snapshot.date,
+            year: snapshot.year, month: snapshot.month, person: snapshot.person,
+            type: snapshot.type,
+          }),
+          summary: `${snapshot.desc} · ${changes.length > 60 ? changes.slice(0, 60) + '…' : changes}`,
+        };
+      },
+      deleteDespesa: (input) => {
+        const id = input?.id;
+        if (!id) throw new Error('id obrigatório');
+        const original = (Store.get().despesas || []).find(d => d.id === id);
+        if (!original) throw new Error(`Despesa não encontrada: id=${id}`);
+        const snapshot = { ...original };
+        Store.deleteDespesa(id);
+        return {
+          result: `Despesa ${id} apagada: "${original.desc}" R$ ${(original.amount || 0).toFixed(2)} em ${original.date}.`,
+          undo: () => Store.addDespesa(snapshot),
+          summary: `${snapshot.desc} · ${Utils.currency(snapshot.amount || 0)}`,
+        };
+      },
+      deleteReceita: (input) => {
+        const id = input?.id;
+        if (!id) throw new Error('id obrigatório');
+        const original = (Store.get().receitas || []).find(r => r.id === id);
+        if (!original) throw new Error(`Receita não encontrada: id=${id}`);
+        const snapshot = { ...original };
+        Store.deleteReceita(id);
+        return {
+          result: `Receita ${id} apagada: "${original.desc}" R$ ${(original.amount || 0).toFixed(2)} em ${original.date}.`,
+          undo: () => Store.addReceita(snapshot),
+          summary: `${snapshot.desc} · ${Utils.currency(snapshot.amount || 0)}`,
+        };
+      },
     };
 
     // Mapa central de tools → metadados visíveis.
@@ -18152,6 +18421,12 @@ FORMATO DA RESPOSTA (importante):
       bulkAddDespesas:  { confirmar: 'Criar despesas em lote', concluido: 'Despesas criadas', cor: 'var(--red)',   icone: 'trending-down' },
       bulkAddReceitas:  { confirmar: 'Criar receitas em lote', concluido: 'Receitas criadas', cor: 'var(--green)', icone: 'trending-up' },
       getCotacoes:      { confirmar: 'Consultar cotações',     concluido: 'Cotações atualizadas', cor: 'var(--accent)', icone: 'refresh-cw' },
+      queryDespesas:    { confirmar: 'Buscar despesas',  concluido: 'Despesas listadas',  cor: 'var(--accent)', icone: 'search' },
+      queryReceitas:    { confirmar: 'Buscar receitas',  concluido: 'Receitas listadas',  cor: 'var(--accent)', icone: 'search' },
+      updateDespesa:    { confirmar: 'Atualizar despesa', concluido: 'Despesa atualizada', cor: 'var(--accent-2, var(--accent))', icone: 'pencil' },
+      updateReceita:    { confirmar: 'Atualizar receita', concluido: 'Receita atualizada', cor: 'var(--accent-2, var(--accent))', icone: 'pencil' },
+      deleteDespesa:    { confirmar: 'Apagar despesa',    concluido: 'Despesa apagada',    cor: 'var(--red)',    icone: 'trash-2' },
+      deleteReceita:    { confirmar: 'Apagar receita',    concluido: 'Receita apagada',    cor: 'var(--red)',    icone: 'trash-2' },
     };
 
     // Helpers de render compartilhados entre confirm single e batch.
@@ -18470,7 +18745,7 @@ FORMATO DA RESPOSTA (importante):
           }
 
           // Tem tool_use → confirmar (batch quando >=2 que pedem confirm) e executar
-          const SKIP_CONFIRM = new Set(['getCotacoes']);
+          const SKIP_CONFIRM = new Set(['getCotacoes', 'queryDespesas', 'queryReceitas']);
           const needConfirm = toolUseBlocks.filter(tu => COACH_TOOL_HANDLERS[tu.name] && !SKIP_CONFIRM.has(tu.name));
           // Decisão batch: se há 2+ tools pedindo confirm no mesmo turno, mostra
           // UM card consolidado em vez de N cards sequenciais — evita o caso
