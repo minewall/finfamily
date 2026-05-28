@@ -9667,7 +9667,20 @@ ${_embed ? '' : `<div class="page-head mb-4">
       : `A taxa de ${(i*100).toFixed(2)}% a.m. não é suficiente pro rendimento superar o aporte de ${Utils.currency(A)}/mês no horizonte de ${n} meses.`}
     ${tempoDobrar > 0 ? `<br>Sem novos aportes, o capital inicial de ${Utils.currency(C)} dobraria em <strong>~${tempoDobrar.toFixed(0)} meses</strong> (regra dos juros compostos).` : ''}
   </div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+  <button class="btn-coach" id="jCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Haile
+  </button>
 </div>`;
+        document.getElementById('jCoachBtn')?.addEventListener('click', () => {
+          const msg = `Simulei juros compostos com capital inicial de R$ ${C.toFixed(2)}, aporte mensal R$ ${A.toFixed(2)}, taxa ${(i*100).toFixed(2)}% a.m. (${((Math.pow(1+i,12)-1)*100).toFixed(2)}% a.a.) em ${n} meses, IR ${(ir*100).toFixed(0)}%.
+Montante bruto: R$ ${saldoAcc.toFixed(2)} · líquido após IR: R$ ${totalLiq.toFixed(2)} · total aportado: R$ ${totalAportado.toFixed(2)} · rendimento líquido: R$ ${rendimentoLiq.toFixed(2)}.
+${mTurningPoint > 0 ? `Rendimento mensal supera o aporte no mês ${mTurningPoint}.` : `Taxa insuficiente pro rendimento superar o aporte no horizonte.`}
+Faz sentido pra meu perfil e objetivos? Como otimizar (aporte, taxa, prazo)?`;
+          window.FFCoach?.ask(msg);
+        });
         if (window._chartJuros) window._chartJuros.destroy();
         window._chartJuros = Charts.Line(document.getElementById('chartJuros'),
           { labels, datasets: [
@@ -9758,6 +9771,12 @@ ${_embed ? '' : `<div class="page-head mb-4">
   </div>
 </div>
 ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon">${Utils.icon.check}</span><div class="alert-text"><div class="alert-title">Amortização extra economiza ${Utils.currency(economiaExtra.juros)} em juros e quita ${economiaExtra.meses} meses antes</div></div></div>` : ''}
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+  <button class="btn-coach" id="aCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Haile
+  </button>
+</div>
 <div class="table-wrap"><table class="data-table">
   <thead><tr><th>Mês</th><th class="num">Parcela</th><th class="num">Amortização</th><th class="num">Juros</th><th class="num">Saldo</th></tr></thead>
   <tbody>${rows.map(r => `<tr><td>${r.mes}</td><td class="num">${Utils.currency(r.parcela)}</td><td class="num">${Utils.currency(r.amort)}</td><td class="num negative">${Utils.currency(r.juros)}</td><td class="num">${Utils.currency(r.saldo)}</td></tr>`).join('')}</tbody>
@@ -9771,6 +9790,13 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
             { label: 'Juros Acumulados', values: chartJurosAcc, color: '#F59E0B', dashed: true },
           ],
         }, { height: 200 });
+        document.getElementById('aCoachBtn')?.addEventListener('click', () => {
+          const msg = `Simulei um financiamento SAC: valor R$ ${PV.toFixed(2)}, taxa ${(i*100).toFixed(2)}% a.m. (${((Math.pow(1+i,12)-1)*100).toFixed(2)}% a.a.), prazo ${n} meses${extra > 0 ? `, com amortização extra de R$ ${extra.toFixed(2)}/mês` : ''}.
+Total de juros: R$ ${totalJuros.toFixed(2)} · prazo real: ${mes} meses · custo total: R$ ${(PV + totalJuros).toFixed(2)}.
+${economiaExtra ? `A amortização extra economiza R$ ${economiaExtra.juros.toFixed(2)} em juros e quita ${economiaExtra.meses} meses antes.` : ''}
+Vale a pena tomar esse financiamento? Faz mais sentido amortizar antecipado ou investir o excedente?`;
+          window.FFCoach?.ask(msg);
+        });
       });
       autoCalc(['aValor','aTaxa','aPrazo','aExtra'], 'btnCalcAmort');
     }
@@ -9871,7 +9897,19 @@ ${economiaExtra ? `<div class="alert-strip success mb-4"><span class="alert-icon
   <div style="font-size:12.5px;color:var(--text-2);line-height:1.65">
     ${ratioTexto}${difTexto ? `<br>${difTexto}` : ''}
   </div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+  <button class="btn-coach" id="fCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Haile
+  </button>
 </div>`;
+        document.getElementById('fCoachBtn')?.addEventListener('click', () => {
+          const msg = `Simulei meu FIRE (independência financeira): patrimônio atual R$ ${P0.toFixed(2)}, poupando R$ ${aporte.toFixed(2)}/mês, despesa-alvo na IF de R$ ${despIF.toFixed(2)}/mês, retorno real ${(r*100).toFixed(1)}% a.a., SWR ${(swr*100).toFixed(1)}%.
+Patrimônio alvo: R$ ${alvo.toFixed(2)} · prazo: ${anos} anos${mesesRest > 0 ? ' e ' + mesesRest + ' meses' : ''} (atingimento em ${meses < 600 ? anoAtingimento : '> ' + anoAtingimento}).
+Considerando meu fluxo de caixa real e meus objetivos de vida, esse plano é realista? O que acelerar primeiro: aporte, retorno ou redução de despesa-alvo?`;
+          window.FFCoach?.ask(msg);
+        });
         if (window._chartFIRE) window._chartFIRE.destroy();
         window._chartFIRE = Charts.Line(document.getElementById('chartFIRE'),
           { labels, datasets: [
@@ -9970,7 +10008,19 @@ ${(() => {
     ${pctAtual > 0 ? `Você está com <strong>${pctAtual.toFixed(0)}% da meta</strong> conquistados.` : 'Partindo do zero.'}${adiantar > 0 ? ` Aportar <strong>${Utils.currency(aporteMais - aporte)}/mês a mais</strong> (10% extra) adianta <strong>${adiantar} ${adiantar === 1 ? 'mês' : 'meses'}</strong>.` : ''}${jurosPct > 5 ? `<br>Dos ${Utils.currency(alvo - base)} que faltam, <strong style="color:var(--green)">${jurosPct.toFixed(0)}% vem dos juros compostos</strong> — não só do seu aporte.` : ''}
   </div>
 </div>`;
-})()}`;
+})()}
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+  <button class="btn-coach" id="mCoachBtn" style="padding:10px 18px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
+    Consultar Haile
+  </button>
+</div>`;
+        document.getElementById('mCoachBtn')?.addEventListener('click', () => {
+          const msg = `Simulei a meta "${desc}": alvo R$ ${alvo.toFixed(2)}, já tenho R$ ${base.toFixed(2)} (${alvo > 0 ? ((base/alvo)*100).toFixed(0) : 0}%), aportando R$ ${aporte.toFixed(2)}/mês a ${(i*100).toFixed(2)}% a.m.
+${meses < 600 ? `Prazo: ${prazoTexto} (conclusão prevista em ${dtFmt}).` : 'Prazo: não atingível nos parâmetros atuais.'}
+Considerando minhas outras metas ativas e meu fluxo de caixa, vale priorizar essa? Como ajustar aporte ou prazo pra ficar mais realista?`;
+          window.FFCoach?.ask(msg);
+        });
         if (window._chartMeta) window._chartMeta.destroy();
         const step = Math.max(1, Math.floor(meses/24));
         const lFiltered = labels.filter((_,idx) => idx % step === 0 || idx === labels.length-1);
