@@ -4901,6 +4901,7 @@ ${contas.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fi
   texto: 'Adicione suas contas bancárias e saldos. Vou te ajudar a enxergar onde seu dinheiro está, em tempo real.',
   ctaLabel: '+ Adicionar primeira conta',
   ctaId: 'btnCoachEmptyConta',
+  showImportCta: true,
 })}
 ` : ''}
 
