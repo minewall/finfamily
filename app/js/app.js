@@ -10702,34 +10702,6 @@ Considerando meu fluxo e liquidez, o que recomenda?`;
     });
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // RECADOS — localStorage store
-  // ══════════════════════════════════════════════════════════════
-  const Recados = {
-    _key: 'ff_recados',
-    getAll() {
-      try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; }
-    },
-    save(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
-    add(from, to, content, linkedId, linkedType) {
-      const list = this.getAll();
-      const rec = { id: Date.now() + '_' + Math.random().toString(36).slice(2,7), from, to, content, read: false, created_at: new Date().toISOString(), linked_id: linkedId || null, linked_type: linkedType || null };
-      list.unshift(rec);
-      this.save(list);
-      return rec;
-    },
-    markRead(id) {
-      const list = this.getAll().map(r => r.id === id ? { ...r, read: true } : r);
-      this.save(list);
-    },
-    markAllRead(forPessoa) {
-      const list = this.getAll().map(r => (r.to === forPessoa || r.to === 'Todos') && !r.read ? { ...r, read: true } : r);
-      this.save(list);
-    },
-    delete(id) { this.save(this.getAll().filter(r => r.id !== id)); },
-    unreadFor(pessoa) { return this.getAll().filter(r => (r.to === pessoa || r.to === 'Todos') && !r.read).length; },
-  };
-
   function currentPessoa() {
     const ctx = typeof SupabaseSync !== 'undefined' ? SupabaseSync.getFamilyContext() : null;
     if (ctx?.pessoaName) return ctx.pessoaName;
