@@ -2938,6 +2938,19 @@ const Store = (function () {
     return _data.onboarding;
   }
 
+  // ─── Flags genéricas (persistidas no blob user_data, sincroniza cross-device) ──
+  // Pra estado de produto leve que não é UI pref nem onboarding:
+  // ex: haileFirstRunDismissed (usuário dispensou o takeover do 1º acesso).
+  function getFlag(key, fallback = false) {
+    return (_data.flags && key in _data.flags) ? _data.flags[key] : fallback;
+  }
+  function setFlag(key, value) {
+    if (!_data.flags) _data.flags = {};
+    _data.flags[key] = value;
+    persist();
+    return value;
+  }
+
   function getOnboardingSteps() {
     return ONBOARDING_STEPS.slice();
   }
@@ -4172,6 +4185,7 @@ const Store = (function () {
     getProfile, setProfile, getCredHash, setCredHash,
     getOnboarding, getOnboardingSteps, completeOnboarding, resetOnboarding, pauseOnboarding,
     createOnboardingGoal, getOnboardingGoal, markOnboardingStep,
+    getFlag, setFlag,
     addMeta,
     applyMemberFilter,
     syncFromCloud,

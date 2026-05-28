@@ -2445,6 +2445,97 @@ body.sidebar-open { overflow: hidden; }
 .coach-panel.open {
   transform: translateX(0);
 }
+
+/* ── Takeover de 1º acesso (Notion-style) ─────────────────────────────
+   Reusa o mesmo painel/engine de chat, mas reposicionado no centro do
+   palco com backdrop. Disparado só quando o usuário tem onboarding
+   completo + zero dados + não dispensou. Colapsa no drawer na 1ª ação. */
+.coach-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(8, 11, 20, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  z-index: 340;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+.coach-backdrop.show { opacity: 1; pointer-events: auto; }
+
+.coach-panel--takeover {
+  top: 50%; left: 50%; right: auto; bottom: auto;
+  width: min(680px, 94vw);
+  height: min(740px, 88vh);
+  border: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  z-index: 350;
+  transform: translate(-50%, -48%) scale(.98);
+  opacity: 0;
+  transition: opacity .3s ease, transform .3s cubic-bezier(.4,0,.2,1);
+}
+.coach-panel--takeover.open {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+/* controles de drawer não fazem sentido no palco central */
+.coach-panel--takeover .coach-resize-handle,
+.coach-panel--takeover .coach-width-presets { display: none; }
+
+/* Chips de entrada — opções principais clicáveis (substituem o welcome estático no takeover) */
+.haile-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 2px 0 4px 34px; /* alinha sob a bolha do Haile (avatar 26 + gap 8) */
+  animation: fadeInUp .25s ease;
+}
+.haile-chip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.haile-chip:hover {
+  border-color: var(--haile-teal);
+  background: var(--accent)12;
+  transform: translateX(2px);
+}
+.haile-chip svg { color: var(--haile-teal); flex-shrink: 0; }
+/* followups: pílulas menores, horizontais */
+.haile-chips--followup { flex-direction: row; flex-wrap: wrap; }
+.haile-chips--followup .haile-chip { padding: 7px 12px; font-size: 12px; border-radius: 20px; }
+/* link discreto pra sair do takeover */
+.haile-dismiss-row { margin: 8px 0 2px 34px; }
+.haile-dismiss-link {
+  background: none; border: none;
+  color: var(--text-3);
+  font-size: 12px; cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.haile-dismiss-link:hover { color: var(--text-1); }
+
+@media (max-width: 560px) {
+  .coach-panel--takeover {
+    width: 100vw; height: 100dvh;
+    border-radius: 0;
+    inset: 0;
+    transform: none;
+  }
+  .coach-panel--takeover.open { transform: none; }
+}
+
 .coach-resize-handle {
   position: absolute;
   left: 0; top: 0; bottom: 0;

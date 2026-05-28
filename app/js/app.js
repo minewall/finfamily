@@ -16876,6 +16876,25 @@ ${(() => {
       // conforme o usuário responde (no wizard atual ou no Coach-led futuro).
       Store.createOnboardingGoal();
       setTimeout(() => showOnboarding(), 400);
+    } else {
+      // Haile proativo no 1º acesso: onboarding completo, mas ainda sem dados.
+      // Reaparece a cada visita enquanto o app estiver vazio, até o usuário
+      // trazer o 1º dado OU dispensar ("explorar sozinho").
+      maybeHaileFirstRun();
+    }
+  }
+
+  // Gate do takeover de 1º acesso. Compartilhado entre o boot e o fim do onboarding.
+  function maybeHaileFirstRun(delay = 600) {
+    try {
+      if (!Store.getOnboarding().completed) return;
+      if (Store.getFlag('haileFirstRunDismissed', false)) return;
+      const d = Store.get();
+      const zeroData = !(d.receitas?.length) && !(d.despesas?.length) && !(d.contas?.length);
+      if (!zeroData) return;
+      setTimeout(() => window.FFCoach?.firstRun?.(), delay);
+    } catch (e) {
+      (window.Logger || console).warn('maybeHaileFirstRun falhou:', e);
     }
   }
 
@@ -17344,6 +17363,10 @@ ${(() => {
         else if (act === 'lancamento') Router.navigate('#lancamentos');
         else                           renderDashboard?.();
       }, 300);
+
+      // Haile assume o protagonismo logo após o onboarding (se ainda sem dados
+      // e o usuário não escolheu ir direto criar algo).
+      if (act !== 'meta' && act !== 'lancamento') maybeHaileFirstRun(900);
     }
 
     render();
@@ -17479,9 +17502,13 @@ ${(() => {
     }
 
     btnOpen.addEventListener('click', () => {
+      if (panel.classList.contains('coach-panel--takeover')) { dismissTakeover(); return; }
       panel.classList.contains('open') ? minimizePanel() : openPanel();
     });
-    btnClose.addEventListener('click', closePanel);
+    btnClose.addEventListener('click', () => {
+      if (panel.classList.contains('coach-panel--takeover')) { dismissTakeover(); return; }
+      closePanel();
+    });
 
     btnClear.addEventListener('click', () => {
       resetConversation();
@@ -17513,6 +17540,8 @@ ${(() => {
     // sem feedback (bug reportado em 2026-05-27).
     document.addEventListener('mousedown', (e) => {
       if (!panel.classList.contains('open')) return;
+      // No takeover o backdrop trata o dismiss — não minimizar aqui
+      if (panel.classList.contains('coach-panel--takeover')) return;
       if (_coachAttach.open) return;
       if (panel.contains(e.target)) return;
       if (btnOpen.contains(e.target)) return; // toggle já trata
@@ -18801,6 +18830,9 @@ FORMATO DA RESPOSTA (importante):
       if (isLoading) return;
       if (!opts.message && (!text || !text.trim())) return;
 
+      // 1ª ação real durante o takeover → colapsa no drawer pra ver o app
+      if (panel.classList.contains('coach-panel--takeover')) collapseToDrawer();
+
       lastActivity = Date.now();
       isLoading = true;
       sendBtn.disabled = true;
@@ -19089,6 +19121,215 @@ Se o PDF for de poupança/conta corrente e tiver poucos movimentos, pode pular o
     }
     bindSuggestions();
 
+    // ══════════════════════════════════════════════════════════════
+    // TAKEOVER DE 1º ACESSO (Notion-style)
+    // Reusa todo o engine de chat acima, mas no centro do palco com
+    // backdrop e respostas pré-canned (custo zero, latência zero) pra
+    // garantir a 1ª impressão. Colapsa no drawer na 1ª ação real.
+    // ══════════════════════════════════════════════════════════════
+    let _backdrop = null;
+    function ensureBackdrop() {
+      if (_backdrop) return _backdrop;
+      _backdrop = document.createElement('div');
+      _backdrop.className = 'coach-backdrop';
+      _backdrop.id = 'coachBackdrop';
+      _backdrop.addEventListener('click', () => dismissTakeover());
+      document.body.appendChild(_backdrop);
+      return _backdrop;
+    }
+
+    function _firstName() {
+      try {
+        const ob = Store.getOnboarding();
+        const n = ob?.answers?.nome?.name
+          || (Store.getProfile && Store.getProfile()?.name)
+          || '';
+        return (n || '').trim().split(/\s+/)[0] || '';
+      } catch { return ''; }
+    }
+
+    const HAILE_ICON_CLIP = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>';
+
+    // Catálogo de chips do takeover. action: import|tour|lancamento|dismiss; sem action = nó de texto.
+    const HAILE_FR_CHIPS = {
+      oque:       { label: 'O que você pode fazer?' },
+      como:       { label: 'Como você funciona?' },
+      dados:      { label: 'Quero trazer meus dados', icon: HAILE_ICON_CLIP, action: 'import' },
+      tour:       { label: 'Me dá um tour', action: 'tour' },
+      lancamento: { label: 'Criar meu primeiro lançamento', action: 'lancamento' },
+      depois:     { label: 'Prefiro explorar sozinho', action: 'dismiss' },
+    };
+
+    // Respostas determinísticas pros nós de texto (sem chamar a IA)
+    const HAILE_FR_NODES = {
+      oque: {
+        reply: [
+          'Posso te ajudar a enxergar e decidir melhor sobre o seu dinheiro:',
+          '• Entender pra onde ele está indo — por categoria e por pessoa',
+          '• Registrar receitas e despesas: você me conta, eu lanço',
+          '• Acompanhar metas, patrimônio e compromissos',
+          '• Simular cenários: quitar uma dívida, aportar, chegar num objetivo',
+          '• Ler seus extratos e faturas e importar tudo de uma vez',
+          '',
+          'O jeito mais rápido de começar é me trazendo seus dados.',
+        ].join('\n'),
+        chips: ['dados', 'tour', 'como'],
+      },
+      como: {
+        reply: [
+          'Funciono junto com os seus dados, que ficam na sua conta. Cada conversa é processada com segurança e não treina o modelo.',
+          '',
+          'Quanto mais contexto você me dá — seus lançamentos, suas metas, o que importa pra você — mais útil eu fico.',
+          '',
+          'E você está sempre no comando: eu sugiro, você decide. Antes de qualquer mudança nos seus dados, eu peço sua confirmação.',
+        ].join('\n'),
+        chips: ['dados', 'tour', 'oque'],
+      },
+    };
+
+    const HAILE_TOUR_STEPS = [
+      'Bora. Em quatro paradas rápidas você já pega o essencial.',
+      '**1. Visão Geral** — seu retrato do mês: o que entrou, o que saiu e quanto sobra. É a primeira tela ao abrir o app.',
+      '**2. Lançamentos** — onde vivem suas receitas e despesas. Você adiciona na mão ou me pede direto: "lança 80 de mercado hoje".',
+      '**3. Metas e Patrimônio** — pra onde você quer chegar e o que já construiu. Eu acompanho o progresso com você.',
+      '**4. Simulador** — testa cenários antes de decidir: vale antecipar a dívida? Quanto aportar pra chegar no objetivo?',
+      'É isso. Se você me trouxer seus dados agora, eu já te mostro tudo isso preenchido com a sua realidade.',
+    ];
+
+    function _clearChips() {
+      msgs.querySelectorAll('.haile-chips, .haile-dismiss-row').forEach(el => el.remove());
+    }
+
+    function renderChips(ids, { followup } = {}) {
+      const wrap = document.createElement('div');
+      wrap.className = 'haile-chips' + (followup ? ' haile-chips--followup' : '');
+      ids.forEach(id => {
+        const c = HAILE_FR_CHIPS[id];
+        if (!c) return;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'haile-chip';
+        b.innerHTML = (c.icon || '') + `<span>${Utils.escapeHtml(c.label)}</span>`;
+        b.addEventListener('click', () => onChip(id));
+        wrap.appendChild(b);
+      });
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function renderDismissRow() {
+      const row = document.createElement('div');
+      row.className = 'haile-dismiss-row';
+      const a = document.createElement('button');
+      a.type = 'button';
+      a.className = 'haile-dismiss-link';
+      a.textContent = 'Prefiro explorar sozinho';
+      a.addEventListener('click', () => dismissTakeover());
+      row.appendChild(a);
+      msgs.appendChild(row);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function onChip(id) {
+      const c = HAILE_FR_CHIPS[id];
+      if (!c) return;
+      _clearChips();
+      appendMsg('user', c.label); // ecoa a escolha (padrão Notion)
+      const act = c.action;
+      if (act === 'import') {
+        appendMsg('assistant', 'Perfeito. Escolhe o arquivo do seu banco — extrato ou fatura, em CSV, OFX ou PDF — que eu leio e organizo os lançamentos pra você.');
+        collapseToDrawer();
+        setTimeout(() => _openCoachAttachPicker(), 250);
+        return;
+      }
+      if (act === 'tour') { runTour(); return; }
+      if (act === 'lancamento') {
+        appendMsg('assistant', 'Boa. Te levo até os Lançamentos — clica em adicionar, ou me chama a qualquer momento que eu lanço pra você.');
+        dismissTakeover({ silent: true });
+        setTimeout(() => Router.navigate('#lancamentos'), 300);
+        return;
+      }
+      if (act === 'dismiss') { dismissTakeover(); return; }
+      // nó de texto pré-canned
+      const node = HAILE_FR_NODES[id];
+      if (!node) return;
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        appendMsg('assistant', node.reply);
+        renderChips(node.chips, { followup: true });
+        renderDismissRow();
+      }, 360);
+    }
+
+    function runTour() {
+      let i = 0;
+      (function next() {
+        if (i >= HAILE_TOUR_STEPS.length) {
+          renderChips(['dados', 'lancamento', 'depois'], { followup: true });
+          return;
+        }
+        showTyping();
+        setTimeout(() => {
+          removeTyping();
+          appendMsg('assistant', HAILE_TOUR_STEPS[i]);
+          i++;
+          setTimeout(next, 520);
+        }, 420);
+      })();
+    }
+
+    function renderTakeoverWelcome() {
+      history = [];
+      msgs.innerHTML = '';
+      const nome = _firstName();
+      appendMsg('assistant', `Bom te conhecer${nome ? ', ' + nome : ''}. Eu sou o Haile, sua inteligência financeira. Penso junto com você sobre dinheiro — sem julgamento, com foco nas suas escolhas. Por onde quer começar?`);
+      renderChips(['oque', 'como', 'dados', 'tour']);
+      renderDismissRow();
+    }
+
+    function openTakeover() {
+      if (panel.classList.contains('coach-panel--takeover') && panel.classList.contains('open')) return;
+      ensureBackdrop();
+      renderTakeoverWelcome();
+      panel.classList.add('coach-panel--takeover');
+      panel.style.width = ''; // takeover usa width do CSS
+      panel.setAttribute('aria-hidden', 'false');
+      btnOpen.classList.add('active');
+      lastActivity = Date.now();
+      requestAnimationFrame(() => {
+        _backdrop.classList.add('show');
+        panel.classList.add('open');
+      });
+      setTimeout(() => input.focus(), 320);
+    }
+
+    // Vira o drawer lateral normal preservando a conversa
+    function collapseToDrawer() {
+      _backdrop?.classList.remove('show');
+      panel.classList.remove('coach-panel--takeover');
+      panel.style.width = panelWidth + 'px';
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      layout.classList.add('coach-open');
+      sidebar.classList.add('icon-only');
+      layout.style.setProperty('--coach-panel-w', panelWidth + 'px');
+      btnOpen.classList.add('active');
+    }
+
+    // Dispensa o takeover e marca a flag (não reaparece mais)
+    function dismissTakeover(opts = {}) {
+      try { Store.setFlag('haileFirstRunDismissed', true); } catch {}
+      _backdrop?.classList.remove('show');
+      panel.classList.remove('coach-panel--takeover', 'open');
+      panel.setAttribute('aria-hidden', 'true');
+      panel.style.width = panelWidth + 'px';
+      btnOpen.classList.remove('active');
+      // reseta pro welcome normal (silent: adia pra não piscar durante navegação)
+      if (opts.silent) setTimeout(() => resetConversation(), 420);
+      else resetConversation();
+    }
+
     // Expõe API mínima pra outros módulos abrirem o Coach com um prompt pronto
     window.FFCoach = {
       ask(text) {
@@ -19097,6 +19338,8 @@ Se o PDF for de poupança/conta corrente e tiver poucos movimentos, pode pular o
         setTimeout(() => sendMessage(text), 120);
       },
       open: openPanel,
+      // Takeover de 1º acesso — chamado pelo boot/onboarding com o gate já validado
+      firstRun: openTakeover,
     };
   }
 
