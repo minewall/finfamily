@@ -12735,7 +12735,7 @@ ${outrs.length ? `
 <div class="recados-avatar-filter" id="rcAvatarFilter">
   ${PESSOA_CONFIG.map(p => `
     <div class="recados-persona${p.id === null ? ' active' : ''}" data-rc-pessoa="${p.id === null ? 'all' : p.id}">
-      <div class="recados-persona-avatar" style="background:${p.bg}">${p.initial}</div>
+      <div class="recados-persona-avatar" style="background:${p.bg}">${p.id === null ? `<img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:60%;height:auto;display:block">` : p.initial}</div>
       <div class="recados-persona-name">${p.label}</div>
     </div>
   `).join('')}
