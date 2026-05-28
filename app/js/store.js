@@ -3175,11 +3175,11 @@ const Store = (function () {
   ];
 
   const CONTEXTO_LEVELS = [
-    { min: 0,  max: 20,  name: 'Recém-chegado', desc: 'O Coach ainda não te conhece. As sugestões são genéricas.',  color: '#7c82a4' },
-    { min: 21, max: 40,  name: 'Apresentado',   desc: 'O Coach sabe o básico. Já adapta o tom à sua família.',      color: '#4aa8ff' },
-    { min: 41, max: 65,  name: 'Conhecido',     desc: 'O Coach personaliza dicas usando seu histórico e contexto.', color: '#6b5ef5' },
-    { min: 66, max: 85,  name: 'Próximo',       desc: 'O Coach antecipa decisões com base nos seus valores.',       color: '#2dcfc0' },
-    { min: 86, max: 100, name: 'Confidente',    desc: 'O Coach age como um mentor que te conhece de verdade.',      color: '#1dc97e' },
+    { min: 0,  max: 20,  name: 'Recém-chegado', desc: 'O Haile ainda não te conhece. As sugestões são genéricas.',  color: '#7c82a4' },
+    { min: 21, max: 40,  name: 'Apresentado',   desc: 'O Haile sabe o básico. Já adapta o tom à sua família.',      color: '#4aa8ff' },
+    { min: 41, max: 65,  name: 'Conhecido',     desc: 'O Haile personaliza dicas usando seu histórico e contexto.', color: '#6b5ef5' },
+    { min: 66, max: 85,  name: 'Próximo',       desc: 'O Haile antecipa decisões com base nos seus valores.',       color: '#2dcfc0' },
+    { min: 86, max: 100, name: 'Confidente',    desc: 'O Haile age como um mentor que te conhece de verdade.',      color: '#1dc97e' },
   ];
 
   /**

@@ -460,11 +460,11 @@ const App = (function () {
     return `
 <div class="coach-inline-card coach-inline--${tone} mb-4" id="${id}">
   <div class="coach-inline-avatar">
-    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
   </div>
   <div class="coach-inline-body">
     <div class="coach-inline-header">
-      <span class="coach-inline-titulo">${cfg.titulo || 'Análise do Coach'}</span>
+      <span class="coach-inline-titulo">${cfg.titulo || 'Análise do Haile'}</span>
       ${cfg.contexto ? `<span class="coach-inline-label">${cfg.contexto}</span>` : ''}
     </div>
     <div class="coach-inline-texto">${cfg.texto || ''}</div>
@@ -1312,13 +1312,13 @@ ${(() => {
 <!-- Coach inline (banner) -->
 <div class="coach-inline-card coach-inline--${coachInsight.tone} mb-6" id="coachInlineCard">
   <div class="coach-inline-avatar">
-    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
   </div>
   <div class="coach-inline-body">
     <div class="coach-inline-header">
       <span class="coach-inline-icon">${coachInsight.icon}</span>
       <span class="coach-inline-titulo">${coachInsight.titulo}</span>
-      <span class="coach-inline-label">Coach Haile</span>
+      <span class="coach-inline-label">Haile</span>
     </div>
     <div class="coach-inline-texto">${coachInsight.texto}</div>
   </div>
@@ -2603,12 +2603,12 @@ ${(() => {
     // ── Coach inline contextual (redesign 2026-05) ───────────────
     const _despCoach = (() => {
       if (despesas.length === 0) return { tone: 'neutral', titulo: 'Sem despesas no período',
-        texto: 'Comece registrando seus gastos para o Coach analisar padrões e categorias.' };
+        texto: 'Comece registrando seus gastos para o Haile analisar padrões e categorias.' };
       const topCat = catSorted[0];
       const topPct = total > 0 ? (topCat[1] / total * 100) : 0;
       const catLabel = Utils.escapeHtml(Store.CATEGORIES[topCat[0]]?.label || topCat[0]);
       if (anomalias.length >= 2) return { tone: 'critical', titulo: `${anomalias.length} categorias com salto detectado`,
-        texto: `O Coach identificou aumentos significativos em <strong>${anomalias.slice(0,2).map(a => Utils.escapeHtml(Store.CATEGORIES[a.cat]?.label || a.cat)).join(', ')}</strong> este mês. Vale revisar antes de virar comprometimento.` };
+        texto: `O Haile identificou aumentos significativos em <strong>${anomalias.slice(0,2).map(a => Utils.escapeHtml(Store.CATEGORIES[a.cat]?.label || a.cat)).join(', ')}</strong> este mês. Vale revisar antes de virar comprometimento.` };
       if (topPct >= 50) return { tone: 'attention', titulo: `${catLabel} concentra ${topPct.toFixed(0)}% das despesas`,
         texto: `${Utils.currency(topCat[1])} foi em <strong>${catLabel}</strong>. Uma única categoria com mais de metade dos gastos vale uma revisão por subcategoria.` };
       if (topPct >= 35) return { tone: 'attention', titulo: 'Concentração em uma categoria',
@@ -3630,7 +3630,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
       }
       if (atencao.length > 0) {
         return { icon: icon('bar-chart-2',{size:14}), tone:'neutral', titulo: `${atencao.length} indicador(es) pedindo atenção`,
-          texto: `${atencao.map(m => Utils.escapeHtml(m.label)).join(', ')} ${atencao.length === 1 ? 'está' : 'estão'} próximo(s) do limite. ${noAlvo.length > 0 ? `${noAlvo.length} no alvo.` : ''} Veja o Coach para recomendações.` };
+          texto: `${atencao.map(m => Utils.escapeHtml(m.label)).join(', ')} ${atencao.length === 1 ? 'está' : 'estão'} próximo(s) do limite. ${noAlvo.length > 0 ? `${noAlvo.length} no alvo.` : ''} Veja o Haile para recomendações.` };
       }
       if (objsOk.length > 0) {
         return { icon: icon('party-popper',{size:14}), tone:'pos', titulo: `${objsOk.length} objetivo${objsOk.length > 1 ? 's' : ''} atingido${objsOk.length > 1 ? 's' : ''}!`,
@@ -3641,7 +3641,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
           texto: `${Utils.currency(topObj.p.current)} de ${Utils.currency(topObj.p.target)}. ${topObj.p.pct < 0.5 ? 'Você está na metade do caminho — continue!' : 'Quase lá! Faltam ' + Utils.currency(Math.max(0, topObj.p.target - topObj.p.current)) + '.'}` };
       }
       return { icon: icon('lightbulb',{size:14}), tone:'neutral', titulo: 'Defina suas metas financeiras',
-        texto: 'Adicione limites de despesa, metas de receita, reservas e objetivos para que o Coach acompanhe sua evolução automaticamente.' };
+        texto: 'Adicione limites de despesa, metas de receita, reservas e objetivos para que o Haile acompanhe sua evolução automaticamente.' };
     })();
 
     // ── AllocationBanner: Poder de Escolha → metas ────────────────
@@ -3686,13 +3686,13 @@ ${despesas.length === 0 ? coachEmptyHTML({
 
 <div class="coach-inline-card coach-inline--${metasInsight.tone} mb-6">
   <div class="coach-inline-avatar">
-    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Coach" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
+    <img src="/assets/favicon/apple-touch-icon-180.png" alt="Haile" width="36" height="36" style="border-radius:50%;object-fit:cover"/>
   </div>
   <div class="coach-inline-body">
     <div class="coach-inline-header">
       <span class="coach-inline-icon">${metasInsight.icon}</span>
       <span class="coach-inline-titulo">${metasInsight.titulo}</span>
-      <span class="coach-inline-label">Coach Haile</span>
+      <span class="coach-inline-label">Haile</span>
     </div>
     <div class="coach-inline-texto">${metasInsight.texto}</div>
   </div>
@@ -3842,7 +3842,7 @@ ${spotlightEntry ? (() => {
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
       <button class="btn-xs" data-action="ver-lanc-meta" data-id="${m.id}" style="white-space:nowrap">Ver lançamentos</button>
-      <button class="btn-xs" style="background:var(--teal-coach-dim,#0b2828);color:var(--teal-coach,#2dcfc0);border-color:var(--teal-coach,#2dcfc0);white-space:nowrap" id="btnSpotlightCoach">Consultar Coach</button>
+      <button class="btn-xs" style="background:var(--teal-coach-dim,#0b2828);color:var(--teal-coach,#2dcfc0);border-color:var(--teal-coach,#2dcfc0);white-space:nowrap" id="btnSpotlightCoach">Consultar Haile</button>
     </div>
   </div>
 </div>`;
@@ -4170,7 +4170,7 @@ ${(() => {
   const atrasadas = rows.filter(r => r.status === 'atrasado').length;
   let cc;
   if (contratos.length === 0) cc = { tone: 'neutral', titulo: 'Nenhum compromisso cadastrado',
-    texto: 'Adicione contratos recorrentes (assinaturas, aluguel) e dívidas (financiamento) para o Coach acompanhar parcelas e comprometimento automaticamente.' };
+    texto: 'Adicione contratos recorrentes (assinaturas, aluguel) e dívidas (financiamento) para o Haile acompanhar parcelas e comprometimento automaticamente.' };
   else if (atrasadas > 0) cc = { tone: 'critical', titulo: `${atrasadas} parcela${atrasadas>1?'s':''} atrasada${atrasadas>1?'s':''}`,
     texto: `Há compromissos com pagamento em atraso. Quitar primeiro evita juros e mantém sua Saúde Financeira em verde.` };
   else if (pctComp >= 70) cc = { tone: 'critical', titulo: 'Comprometimento crítico',
@@ -5374,7 +5374,7 @@ ${(() => {
   const pctTopClass = total > 0 ? (concentrado / total * 100) : 0;
   let pc;
   if (total === 0) pc = { tone: 'neutral', titulo: 'Comece a construir seu patrimônio',
-    texto: 'Registre seus investimentos, imóveis e ativos para o Coach acompanhar evolução, distribuição por classe e estratégia de aporte.' };
+    texto: 'Registre seus investimentos, imóveis e ativos para o Haile acompanhar evolução, distribuição por classe e estratégia de aporte.' };
   else if (pctRend >= 12) pc = { tone: 'positive', titulo: 'Rendimento acima do CDI',
     texto: `Seus investimentos rendem em média <strong style="color:var(--green)">${pctRend.toFixed(1)}% ao ano</strong>. Mantenha o foco em produtos isentos (LCI/LCA) e acima de 100% CDI.` };
   else if (pctTopClass >= 70) pc = { tone: 'attention', titulo: 'Concentração elevada em uma classe',
@@ -7794,7 +7794,7 @@ ${(() => {
     investir:  { tone: 'neutral', titulo: 'Compare antes de investir',
       texto: 'Use o comparador de produtos para ver CDB vs LCI vs Tesouro lado a lado. Considere prazo, liquidez e imposto antes de decidir.' },
     objetivos: { tone: 'neutral', titulo: 'Defina prazo + valor + rentabilidade',
-      texto: 'Cada simulador exige 3 inputs: quanto você quer, em quanto tempo, e a rentabilidade esperada. O Coach sugere quanto aportar por mês.' },
+      texto: 'Cada simulador exige 3 inputs: quanto você quer, em quanto tempo, e a rentabilidade esperada. O Haile sugere quanto aportar por mês.' },
     dividas:   { tone: 'attention', titulo: 'Quitar dívida cara é o melhor investimento',
       texto: 'Dívidas com juros acima de 1% ao mês geralmente rendem mais quitar do que investir. Use a amortização SAC para ver o impacto de antecipar parcelas.' },
   };
@@ -10225,7 +10225,7 @@ ${(() => {
   <button class="btn-primary" id="vSaveBtn">→ Converter em meta + aporte</button>
   <button class="btn-coach" id="vCoachBtn" style="padding:10px 18px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
-    Consultar Coach
+    Consultar Haile
   </button>
 </div>
 
@@ -10366,7 +10366,7 @@ ${(() => {
   ${!jaCompleta ? `<button class="btn-primary" id="rSaveBtn">→ Converter em meta + aporte</button>` : ''}
   <button class="btn-coach" id="rCoachBtn" style="padding:10px 18px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
-    Consultar Coach
+    Consultar Haile
   </button>
 </div>
 ${!jaCompleta ? `<div class="table-wrap" style="max-height:260px;overflow-y:auto"><table class="data-table">
@@ -10558,7 +10558,7 @@ ${(() => {
     : `<button class="btn-primary" id="cSaveContrato">→ Criar compromisso com as ${n} parcelas</button>`}
   <button class="btn-coach" id="cCoachBtn" style="padding:10px 18px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8L12 3z" fill="currentColor"/></svg>
-    Consultar Coach
+    Consultar Haile
   </button>
 </div>`;
 
@@ -12139,7 +12139,7 @@ ${outrs.length ? `
       if (!recados.length) return `
 <div class="card widget-card" data-widget="coach">
   <div class="card-header"><span class="card-title">${icon('sparkles',{size:15})} Recados do Haile</span></div>
-  <div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Nenhum recado novo. O Coach vai se manifestar em breve.</p></div>
+  <div class="empty-state" style="padding:20px"><p style="font-size:12px;color:var(--text-4)">Nenhum recado novo. O Haile vai se manifestar em breve.</p></div>
 </div>`;
       return `
 <div class="card widget-card" data-widget="coach">
@@ -12491,7 +12491,7 @@ ${outrs.length ? `
     };
 
     const PESSOA_CONFIG = [
-      { id: null,       label: 'Coach IA', initial: '✦', bg: 'linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-teal) 100%)' },
+      { id: null,       label: 'Haile', initial: '✦', bg: 'linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-teal) 100%)' },
       { id: 'roberto',  label: 'Roberto',  initial: 'R', bg: 'var(--haile-indigo)' },
       { id: 'mariana',  label: 'Mariana',  initial: 'M', bg: 'var(--green)' },
       { id: 'familia',  label: 'Família',  initial: 'F', bg: 'var(--amber)' },
@@ -12771,7 +12771,7 @@ ${section === 'perfil' ? '' : `
       // mas o refino visual foi backlogado. Coach responde cotações sob demanda
       // via tool getCotacoes; buildContext injeta valores atuais no system prompt.
       { group: 'PERSONALIZAÇÃO' },
-      ['coach',      'sparkles',        'Haile Coach',     'Personalidade e preferências da IA'],
+      ['coach',      'sparkles',        'Haile',           'Personalidade e preferências da IA'],
       ['aparencia',  'palette',         'Aparência',       'Tema claro/escuro'],
       ['notificacoes','bell',           'Notificações',    'Push e e-mail'],
       { group: 'SISTEMA' },
@@ -15479,7 +15479,7 @@ ${isConnected && isAdmin ? `
     },
     {
       id: 'risk_eye', titulo: 'Olho no risco', icon: 'scale', color: '#ff4a68',
-      desc: 'Concluiu a categoria Tolerância a Risco — o Coach agora calibra todas as sugestões com seu perfil.',
+      desc: 'Concluiu a categoria Tolerância a Risco — o Haile agora calibra todas as sugestões com seu perfil.',
       check: (cats) => {
         const r = cats.find(c => c.id === 'risk');
         return !!r && r.total > 0 && r.answered >= r.total;
@@ -15492,7 +15492,7 @@ ${isConnected && isAdmin ? `
     },
     {
       id: 'confidant', titulo: 'Confidente', icon: 'sparkles', color: '#1dc97e',
-      desc: 'Atingiu o nível máximo do ICP (86%+). O Coach age como um mentor que te conhece de verdade.',
+      desc: 'Atingiu o nível máximo do ICP (86%+). O Haile age como um mentor que te conhece de verdade.',
       check: (cats, totalResp, icp) => icp >= 86,
     },
   ];
@@ -15554,7 +15554,7 @@ ${isConnected && isAdmin ? `
     content.innerHTML = `
 <div class="section-header mb-4"><div>
   <div class="section-title">Perfil</div>
-  <div class="section-sub">Suas informações pessoais — o Coach usa esses dados pra te conhecer melhor.</div>
+  <div class="section-sub">Suas informações pessoais — o Haile usa esses dados pra te conhecer melhor.</div>
 </div></div>
 <div class="card" style="max-width:640px">
   <!-- Header com avatar + nome em destaque -->
@@ -15618,7 +15618,7 @@ ${isConnected && isAdmin ? `
     </div>
   </div>
   <div style="margin-top:14px;font-size:11px;color:var(--text-4);line-height:1.5">
-    Esses dados ficam armazenados em sua conta e são usados para personalizar o Coach. Você pode editá-los a qualquer momento.
+    Esses dados ficam armazenados em sua conta e são usados para personalizar o Haile. Você pode editá-los a qualquer momento.
   </div>
   <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn-primary" id="btnSavePerfil">Salvar</button>
@@ -15643,8 +15643,8 @@ ${(() => {
   return `
 <div class="section-header mb-4" style="margin-top:32px">
   <div>
-    <div class="section-title">Contexto pessoal pro Coach</div>
-    <div class="section-sub">Quanto mais o Coach te conhece, mais útil ele consegue ser. Você decide o que quer compartilhar.</div>
+    <div class="section-title">Contexto pessoal pro Haile</div>
+    <div class="section-sub">Quanto mais o Haile te conhece, mais útil ele consegue ser. Você decide o que quer compartilhar.</div>
   </div>
 </div>
 
@@ -15699,7 +15699,7 @@ ${(() => {
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
         Nível · ${level.name}
       </div>
-      <h2 class="icp-hero-title">${icp === 0 ? 'O Coach ainda está te conhecendo.' : icp >= 86 ? 'O Coach te conhece de verdade.' : 'O Coach está aprendendo sobre você.'}</h2>
+      <h2 class="icp-hero-title">${icp === 0 ? 'O Haile ainda está te conhecendo.' : icp >= 86 ? 'O Haile te conhece de verdade.' : 'O Haile está aprendendo sobre você.'}</h2>
       <p class="icp-hero-desc">${level.desc}</p>
       ${next ? `
       <div class="icp-hero-next">
@@ -16144,10 +16144,10 @@ ${(() => {
       { key: 'pushAtivo',       label: 'Notificações Push',        sub: 'Alertas no dispositivo em tempo real',               default: true },
       { key: 'pushMeta',        label: 'Metas atingidas',          sub: 'Aviso quando uma meta for concluída',                default: true },
       { key: 'pushVencimento',  label: 'Vencimentos próximos',     sub: 'Compromissos e faturas vencendo em 3 dias',          default: true },
-      { key: 'pushCoach',       label: 'Insights do Coach',        sub: 'Quando o Coach tiver uma análise nova para você',    default: false },
+      { key: 'pushCoach',       label: 'Insights do Haile',        sub: 'Quando o Haile tiver uma análise nova para você',    default: false },
       { group: 'E-MAIL' },
       { key: 'emailResumoMes',  label: 'Resumo mensal',            sub: 'Relatório consolidado do mês no 1º dia útil',        default: true },
-      { key: 'emailInsights',   label: 'Insights personalizados',  sub: 'Análises e recomendações do Coach semanalmente',     default: false },
+      { key: 'emailInsights',   label: 'Insights personalizados',  sub: 'Análises e recomendações do Haile semanalmente',     default: false },
       { key: 'emailAlerta',     label: 'Alertas críticos',         sub: 'Orçamento estourado, meta em risco, etc.',           default: true },
     ];
 
@@ -16359,11 +16359,11 @@ ${(() => {
 
 <div class="card" id="adminAIConfig" style="display:none">
   <div class="card-header" style="margin-bottom:16px">
-    <span class="card-title">AI Coach — Configuração <span style="font-size:10px;font-weight:600;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:999px;margin-left:8px;letter-spacing:.04em;text-transform:uppercase">Admin</span></span>
+    <span class="card-title">Haile — Configuração <span style="font-size:10px;font-weight:600;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:999px;margin-left:8px;letter-spacing:.04em;text-transform:uppercase">Admin</span></span>
   </div>
 
   <div style="margin-bottom:16px;padding:12px;background:var(--green-dim,rgba(34,197,94,.08));border-radius:8px;border:1px solid rgba(34,197,94,.2)">
-    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px">Coach via Supabase Edge Function</div>
+    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:4px">Haile via Supabase Edge Function</div>
     <div style="font-size:12px;color:var(--text-3);line-height:1.6">
       A chave Anthropic fica armazenada com segurança no servidor Supabase — nunca exposta no browser.<br>
       Para ativar, configure o secret <code style="background:var(--bg-elevated);padding:1px 4px;border-radius:3px">ANTHROPIC_API_KEY</code> no painel Supabase e faça o deploy da Edge Function.
@@ -18779,7 +18779,7 @@ FORMATO DA RESPOSTA (importante):
             const accessToken = typeof SupabaseSync !== 'undefined'
               ? await SupabaseSync.getAccessToken() : null;
             if (!accessToken) {
-              throw new Error('Sessão expirada. Faça login novamente para usar o Coach.');
+              throw new Error('Sessão expirada. Faça login novamente para usar o Haile.');
             }
             res = await fetch(COACH_PROXY_URL, {
               method: 'POST',
@@ -18897,7 +18897,7 @@ FORMATO DA RESPOSTA (importante):
         }
       } catch (e) {
         removeTyping();
-        appendMsg('assistant', `Erro ao conectar com o Coach: ${e.message}`);
+        appendMsg('assistant', `Erro ao conectar com o Haile: ${e.message}`);
         // Sanitiza tool_use órfãos pra não corromper a próxima request.
         // Substitui o cleanup antigo (pop ingênuo) que deixava história tóxica
         // quando o for loop era abortado entre tool_use e push dos tool_results.
