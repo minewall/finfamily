@@ -682,9 +682,14 @@ const Store = (function () {
       { id: 'r16', date: '2026-04-01', desc: 'Pensão – PLR',           amount: 12125.43,category:'receita', person: 'Manuela', type: 'pensao',     month: 4, year: 2026 },
     ];
 
-    // Despesas Jan-Abr 2026: inseridas pela migração _cleanupDespesas2026Q1
-    // (canônico da planilha oficial). Aluguel: vem do Contrato cadastrado.
-    const despesas = [];
+    // Despesas Jan-Abr 2026 (canônico da planilha oficial) — carregadas
+    // DIRETO aqui no seed. Antes vinham da migração _cleanupDespesas2026Q1,
+    // que foi retirada por injetar esses dados em contas reais sem a flag
+    // (bug de despesas fantasma). Aluguel: vem do Contrato cadastrado.
+    const despesas = [
+      ...MORADIA_2026_Q1.map(e => ({ ...e, id: newId(), category: 'moradia', year: 2026 })),
+      ...DESPESAS_2026_Q1_OUTRAS.map(e => ({ ...e, id: newId(), year: 2026 })),
+    ];
 
     const metas = [
       { id: 'm1', label: 'Receita Mínima Mensal', target: 20000, type: 'receita_min', active: true },
@@ -864,22 +869,15 @@ const Store = (function () {
   }
 
   function _cleanupDespesas2026Q1() {
+    // RETIRADA (2026-05-28) — era um fix one-time da conta do dev (filtrava
+    // Jan-Abr/2026 não-contrato e inseria o canônico da planilha). Mas rodava
+    // em QUALQUER blob sem a flag `__cleanup_despesas2026q1`, o que:
+    //   1) DELETAVA despesas reais de Jan-Abr/2026 do usuário, e
+    //   2) INJETAVA as despesas pessoais do dev (bug das "despesas fantasma").
+    // O seed de exemplo agora carrega essas despesas direto em buildSeed(),
+    // então esta migração não precisa mais existir. Mantida como no-op
+    // idempotente que só carimba a flag em blobs legados (nunca toca dados).
     if (_data.__cleanup_despesas2026q1) return;
-    // Remove TODAS as despesas Jan-Abr 2026 que NÃO sejam de contrato
-    // (lançamentos com contratoId — ex. Aluguel — são preservados)
-    _data.despesas = _data.despesas.filter(d => {
-      if (d.year === 2026 && d.month >= 1 && d.month <= 4 && !d.contratoId) {
-        return false;
-      }
-      return true;
-    });
-    // Insere o canônico da planilha — Moradia + outras categorias
-    MORADIA_2026_Q1.forEach(e => {
-      _data.despesas.push({ ...e, id: newId(), category: 'moradia', year: 2026 });
-    });
-    DESPESAS_2026_Q1_OUTRAS.forEach(e => {
-      _data.despesas.push({ ...e, id: newId(), year: 2026 });
-    });
     _data.__cleanup_despesas2026q1 = true;
   }
 
@@ -949,16 +947,22 @@ const Store = (function () {
       });
     }
 
-    // Garante que educacao/beneficios/assessorias existem em _data.categorias
+    // Garante que categorias canônicas existam em _data.categorias.
+    // IMPORTANTE: só semeia o que tem definição nos constantes. `beneficios` e
+    // `assessorias` são categorias DESCONTINUADAS (renomeadas p/ `mesada` e
+    // `servicos_profissionais` por _migrateCategoriasV2/V3) e NÃO existem mais
+    // em CATEGORIES/SUBCATEGORIES. Sem o guard `&& CONST`, a linha de subcat
+    // fazia `[...undefined]` e travava o boot inteiro em qualquer blob com
+    // `subcategorias` parcial (sem a chave). Agora vira no-op pras deprecadas.
     if (_data.categorias) {
-      if (!_data.categorias.educacao)    _data.categorias.educacao    = CATEGORIES.educacao;
-      if (!_data.categorias.beneficios)  _data.categorias.beneficios  = CATEGORIES.beneficios;
-      if (!_data.categorias.assessorias) _data.categorias.assessorias = CATEGORIES.assessorias;
+      if (!_data.categorias.educacao    && CATEGORIES.educacao)    _data.categorias.educacao    = CATEGORIES.educacao;
+      if (!_data.categorias.beneficios  && CATEGORIES.beneficios)  _data.categorias.beneficios  = CATEGORIES.beneficios;
+      if (!_data.categorias.assessorias && CATEGORIES.assessorias) _data.categorias.assessorias = CATEGORIES.assessorias;
     }
     if (_data.subcategorias) {
-      if (!_data.subcategorias.educacao)    _data.subcategorias.educacao    = [...SUBCATEGORIES.educacao];
-      if (!_data.subcategorias.beneficios)  _data.subcategorias.beneficios  = [...SUBCATEGORIES.beneficios];
-      if (!_data.subcategorias.assessorias) _data.subcategorias.assessorias = [...SUBCATEGORIES.assessorias];
+      if (!_data.subcategorias.educacao    && SUBCATEGORIES.educacao)    _data.subcategorias.educacao    = [...SUBCATEGORIES.educacao];
+      if (!_data.subcategorias.beneficios  && SUBCATEGORIES.beneficios)  _data.subcategorias.beneficios  = [...SUBCATEGORIES.beneficios];
+      if (!_data.subcategorias.assessorias && SUBCATEGORIES.assessorias) _data.subcategorias.assessorias = [...SUBCATEGORIES.assessorias];
       if (Array.isArray(_data.subcategorias.educacao) && !_data.subcategorias.educacao.includes('Passeios Escolares')) {
         _data.subcategorias.educacao.push('Passeios Escolares');
       }
