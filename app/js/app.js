@@ -516,7 +516,16 @@ const App = (function () {
   function bindPeriodToggle(container, stateKey, onChange) {
     container.querySelectorAll(`[data-period-toggle="${stateKey}"] [data-period]`).forEach(btn => {
       btn.addEventListener('click', () => {
-        localStorage.setItem(stateKey, btn.dataset.period);
+        // stateKey vem com prefixo legado 'ff_'; UISettings espera a chave já
+        // migrada (sem prefixo, camelCase). Mapeia aqui pra preservar a
+        // assinatura existente do helper sem tocar nos 3 callers.
+        const LEGACY_TO_UI = {
+          'ff_lanc_period': 'lancPeriod',
+          'ff_rec_period':  'recPeriod',
+          'ff_desp_period': 'despPeriod',
+        };
+        const uiKey = LEGACY_TO_UI[stateKey] || stateKey;
+        UISettings.set(uiKey, btn.dataset.period);
         onChange();
       });
     });
@@ -8219,7 +8228,7 @@ ${reservas.length > 0 ? `
       }
 
       // Evolução patrimonial — toggle de período
-      const EVO_RANGE_KEY = 'ff_inv_evol_range';
+      const EVO_RANGE_KEY = 'invEvolRange'; // UISettings key (sincado)
       const VALID_RANGES = new Set(['current', 'prev', 'rolling12', 'all']);
 
       function _evoBuild(rangeKey) {
@@ -8309,7 +8318,7 @@ ${reservas.length > 0 ? `
         const evoEl = document.getElementById('chartInvEvolucao');
         const emptyEl = document.getElementById('evoEmpty');
         if (!evoEl) return;
-        let range = localStorage.getItem(EVO_RANGE_KEY) || 'current';
+        let range = UISettings.get(EVO_RANGE_KEY, 'current');
         if (!VALID_RANGES.has(range)) range = 'current';
         const series = _evoBuild(range);
         if (series.labels.length < 2) {
@@ -8332,13 +8341,13 @@ ${reservas.length > 0 ? `
       // Bind toggle
       const evoTabs = container.querySelector('#evoRangeTabs');
       if (evoTabs) {
-        const cur = localStorage.getItem(EVO_RANGE_KEY) || 'current';
+        const cur = UISettings.get(EVO_RANGE_KEY, 'current');
         evoTabs.querySelectorAll('[data-evo-range]').forEach(btn => {
           if (btn.getAttribute('data-evo-range') === cur) btn.classList.add('active');
           btn.addEventListener('click', () => {
             const r = btn.getAttribute('data-evo-range');
             if (!VALID_RANGES.has(r)) return;
-            localStorage.setItem(EVO_RANGE_KEY, r);
+            UISettings.set(EVO_RANGE_KEY, r);
             evoTabs.querySelectorAll('[data-evo-range]').forEach(b =>
               b.classList.toggle('active', b === btn));
             _evoRender();
@@ -11974,13 +11983,13 @@ ${outrs.length ? `
       { id: 'parcelas',       label: 'Próximas Parcelas',        icon: 'calendar-clock', default: false },
       { id: 'coach',          label: 'Recados do Haile',         icon: 'sparkles',       default: false },
     ];
-    const savedVis = JSON.parse(localStorage.getItem('painel_widgets') || 'null');
+    const savedVis = UISettings.get('painelWidgets', null);
     const vis = {}; // widget visibility
     WIDGETS_DEF.forEach(w => {
       vis[w.id] = savedVis ? (savedVis[w.id] !== undefined ? savedVis[w.id] : w.default) : w.default;
     });
 
-    function saveVis() { localStorage.setItem('painel_widgets', JSON.stringify(vis)); }
+    function saveVis() { UISettings.set('painelWidgets', vis); }
 
     // Variáveis legadas usadas por widgets opcionais
     const receita  = Store.sumReceitas(month, year);
