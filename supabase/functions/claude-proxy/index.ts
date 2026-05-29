@@ -235,6 +235,18 @@ serve(async (req) => {
       }).then(({ error }) => {
         if (error) console.warn(`[claude-proxy] log ai_usage falhou: ${error.message}`);
       }).catch((e) => console.warn(`[claude-proxy] log ai_usage exception: ${e?.message}`));
+
+      // Devolve o uso ATUAL (já incluindo esta chamada) pro frontend exibir
+      // medidor + aviso proativo, sem reexpor ai_usage_current_month ao client.
+      const usedNow = usedThisMonth + inTok + outTok;
+      if (parsed && typeof parsed === 'object') {
+        parsed.usage_haile = {
+          used: usedNow,
+          cap:  monthlyCap,
+          tier: userTier,
+          pct:  monthlyCap > 0 ? Math.min(100, Math.round((usedNow / monthlyCap) * 100)) : 0,
+        };
+      }
     }
 
     return new Response(JSON.stringify(parsed), {

@@ -18074,6 +18074,48 @@ FORMATO DA RESPOSTA (importante):
       return div;
     }
 
+    // ── Medidor de uso de IA ──────────────────────────────────────
+    // Alimentado pelo campo usage_haile que o claude-proxy devolve. Mostra
+    // um medidor + nudge de upgrade só pra tiers com cap apertado (free/plus)
+    // e quando passou de 50% — abaixo disso fica escondido pra não poluir.
+    let _usageNudgeShown = false;
+    const _USAGE_HIDE_TIERS = new Set(['admin', 'premium', 'always_free']);
+    function updateUsageMeter(u) {
+      if (!u) return;
+      let meter = document.getElementById('coachUsageMeter');
+      const pct = u.pct || 0;
+      if (_USAGE_HIDE_TIERS.has(u.tier) || pct < 50) {
+        if (meter) meter.style.display = 'none';
+        return;
+      }
+      if (!meter) {
+        meter = document.createElement('div');
+        meter.id = 'coachUsageMeter';
+        meter.className = 'coach-usage';
+        const inputArea = panel.querySelector('.coach-input-area');
+        panel.insertBefore(meter, inputArea);
+        meter.addEventListener('click', (e) => {
+          if (e.target.closest('[data-haile-upgrade]')) window.location.href = '../precos.html';
+        });
+      }
+      meter.style.display = '';
+      const level = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+      const label = pct >= 100 ? 'Limite mensal do Haile atingido' : `${pct}% do limite mensal do Haile`;
+      const showUpgrade = (u.tier === 'free' || u.tier === 'plus') && pct >= 80;
+      meter.innerHTML = `
+        <div class="coach-usage-bar"><div class="coach-usage-fill ${level}" style="width:${Math.min(100, pct)}%"></div></div>
+        <div class="coach-usage-meta">
+          <span>${label}</span>
+          ${showUpgrade ? `<button type="button" class="coach-usage-upgrade" data-haile-upgrade>Fazer upgrade</button>` : ''}
+        </div>`;
+      // Nudge inline único por sessão ao cruzar 80%
+      if (showUpgrade && !_usageNudgeShown) {
+        _usageNudgeShown = true;
+        const plano = u.tier === 'free' ? 'gratuito' : 'Plus';
+        appendMsg('assistant', `Você já usou ${pct}% do seu limite mensal do Haile no plano ${plano}. Quando chegar a 100%, preciso pausar até o próximo ciclo — considere um upgrade pra continuar sem interrupção.`);
+      }
+    }
+
     function showTyping() {
       const div = document.createElement('div');
       div.className = 'coach-msg assistant';
@@ -18905,6 +18947,7 @@ FORMATO DA RESPOSTA (importante):
           }
 
           const data = await res.json();
+          if (data.usage_haile) updateUsageMeter(data.usage_haile);
           const blocks = Array.isArray(data.content) ? data.content : [];
           const textBlocks = blocks.filter(b => b.type === 'text');
           const toolUseBlocks = blocks.filter(b => b.type === 'tool_use');

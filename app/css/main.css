@@ -2628,6 +2628,49 @@ body.sidebar-open { overflow: hidden; }
   border-color: rgba(45,207,192,0.55);
   color: var(--teal-coach, #2dcfc0);
 }
+/* Medidor de uso de IA — slim, acima do input. Só aparece pra tiers com cap apertado >50% */
+.coach-usage {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.coach-usage-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.coach-usage-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width .3s ease;
+}
+.coach-usage-fill.warn { background: var(--amber); }
+.coach-usage-fill.over { background: var(--red); }
+.coach-usage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+.coach-usage-upgrade {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.coach-usage-upgrade:hover { color: var(--haile-teal); }
+
 .coach-msg {
   display: flex;
   gap: 8px;
