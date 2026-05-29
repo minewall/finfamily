@@ -3815,11 +3815,11 @@ const Store = (function () {
     // YYYYMMDD[HHmmss...] (OFX)
     let m = s.match(/^(\d{4})(\d{2})(\d{2})/);
     if (m) return m[1] + '-' + m[2] + '-' + m[3];
-    // YYYY-MM-DD ou YYYY/MM/DD
-    m = s.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+    // YYYY-MM-DD ou YYYY/MM/DD ou YYYY.MM.DD
+    m = s.match(/^(\d{4})[\-\/.](\d{1,2})[\-\/.](\d{1,2})/);
     if (m) return m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
-    // DD/MM/YYYY ou DD-MM-YYYY
-    m = s.match(/^(\d{1,2})[\-\/](\d{1,2})[\-\/](\d{2,4})/);
+    // DD/MM/YYYY ou DD-MM-YYYY ou DD.MM.YYYY
+    m = s.match(/^(\d{1,2})[\-\/.](\d{1,2})[\-\/.](\d{2,4})/);
     if (m) {
       let y = m[3];
       if (y.length === 2) y = (parseInt(y, 10) >= 70 ? '19' : '20') + y;
@@ -3840,7 +3840,16 @@ const Store = (function () {
     if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
     // Remove R$, símbolos e espaços
     s = s.replace(/R\$|\s| /g, '');
-    // Sinal explícito
+    // Marcador débito/crédito ao final (comum em CSV de bancos BR): "123,45D" / "123,45C"
+    const cd = s.match(/[cd]$/i);
+    if (cd && /\d/.test(s.slice(0, -1))) {
+      if (/d/i.test(cd[0])) neg = true; // D = débito → negativo; C = crédito → positivo
+      s = s.slice(0, -1);
+    }
+    // Sinal ao final: "123,45-"
+    if (s.endsWith('-')) { neg = true; s = s.slice(0, -1); }
+    else if (s.endsWith('+')) { s = s.slice(0, -1); }
+    // Sinal explícito no início
     if (s.startsWith('-')) { neg = true; s = s.slice(1); }
     else if (s.startsWith('+')) { s = s.slice(1); }
     // Detecta separador decimal: se tem . e , o último é decimal
@@ -4012,12 +4021,23 @@ const Store = (function () {
         continue;
       }
       idx++;
+      let _valor = valor, _tipo;
+      if (opts.fatura) {
+        // Fatura de cartão: itens são despesas (compras), exceto pagamentos/
+        // estornos/créditos. Sinal-driven é frágil em fatura (cada banco usa
+        // uma convenção), então decidimos pela descrição.
+        const isCredito = /pagamento|estorno|cr[eé]dito\b|reembolso|saldo\s*anterior|ajuste\s*a\s*cr[eé]dito|devolu[cç][aã]o/i.test(desc);
+        _tipo = isCredito ? 'receita' : 'despesa';
+        _valor = isCredito ? Math.abs(valor) : -Math.abs(valor);
+      } else {
+        _tipo = valor < 0 ? 'despesa' : 'receita';
+      }
       txs.push({
         id: 'tmp-' + idx,
         data: dt,
         descricao: desc,
-        valor,
-        tipo: valor < 0 ? 'despesa' : 'receita',
+        valor: _valor,
+        tipo: _tipo,
         sugestaoCategoria: _categorizarPorKeyword(desc),
         raw: raw.slice(0, 300),
       });
@@ -4043,6 +4063,47 @@ const Store = (function () {
       hasHeader: true,
       headerMap: { date: ['data', 'date'], desc: ['t[ií]tulo', 'titulo', 'descri', 'description'], valor: ['valor', 'amount', 'value'] },
     });
+  }
+
+  // Fatura Nubank (cartão): export CSV em inglês — date,title,amount.
+  function _parseFaturaNubank(text) {
+    return _parseCsvCommon(text, {
+      formato: 'fatura-nubank',
+      sep: ',',
+      dateCol: 0, descCol: 1, valorCol: 2,
+      hasHeader: true,
+      fatura: true,
+      headerMap: { date: ['date', 'data'], desc: ['title', 't[ií]tulo', 'titulo', 'descri'], valor: ['amount', 'valor', 'value'] },
+    });
+  }
+
+  // Fatura genérica (qualquer banco) — acionada quando o tipo='fatura' é
+  // passado explicitamente (ex: usuário/Coach sabe que é fatura de cartão).
+  // Trata todos os lançamentos como despesa, exceto pagamentos/estornos.
+  function _parseFaturaGenerico(text) {
+    const lines = _splitLines(text).filter(l => l.trim().length > 0);
+    if (!lines.length) {
+      return { formato: 'fatura-generico', transacoes: [], totalLinhas: 0, warnings: [], errors: ['Arquivo vazio'] };
+    }
+    const sep = _detectSeparator(lines[0] + '\n' + (lines[1] || ''));
+    const firstCols = _parseCsvLine(lines[0], sep).map(h => h.toLowerCase());
+    const hasHeader = firstCols.some(c => /data|date|hist|descri|description|valor|amount|value|t[ií]tulo|titulo|estabelec/i.test(c));
+    const result = _parseCsvCommon(text, {
+      formato: 'fatura-generico',
+      sep,
+      dateCol: hasHeader ? -1 : 0,
+      descCol: hasHeader ? -1 : 1,
+      valorCol: hasHeader ? -1 : 2,
+      hasHeader,
+      fatura: true,
+      headerMap: {
+        date: ['data', 'date'],
+        desc: ['descri', 'description', 'hist', 't[ií]tulo', 'titulo', 'memo', 'lan', 'estabelec'],
+        valor: ['valor', 'amount', 'value', 'vlr'],
+      },
+    });
+    result.warnings.unshift('Fatura de cartão — lançamentos tratados como despesas (exceto pagamentos/estornos)');
+    return result;
   }
 
   function _parseCsvGenerico(text) {
@@ -4074,6 +4135,8 @@ const Store = (function () {
   function _detectFormat(text) {
     const head = _stripBOM(String(text || '')).slice(0, 2048);
     if (/<OFX|OFXHEADER|<STMTTRN>/i.test(head)) return 'ofx';
+    // Fatura Nubank (cartão): header em inglês date,title,amount
+    if (/^\s*"?date"?\s*,\s*"?title"?\s*,\s*"?amount"?/i.test(head)) return 'fatura-nubank';
     // Nubank header: Data,Categoria,Título,Valor (vírgula)
     if (/data\s*,\s*categoria\s*,\s*(t[ií]tulo|titulo)\s*,\s*valor/i.test(head)) return 'nubank-csv';
     // Itaú: ; e cabeçalho Data/Histórico/Valor
@@ -4107,6 +4170,8 @@ const Store = (function () {
     let parsed;
     try {
       if (fmt === 'ofx') parsed = _parseOFX(conteudo);
+      else if (fmt === 'fatura-nubank') parsed = _parseFaturaNubank(conteudo);
+      else if (fmt === 'fatura' || fmt === 'fatura-generico') parsed = _parseFaturaGenerico(conteudo);
       else if (fmt === 'itau-csv') parsed = _parseItauCsv(conteudo);
       else if (fmt === 'nubank-csv') parsed = _parseNubankCsv(conteudo);
       else parsed = _parseCsvGenerico(conteudo);
