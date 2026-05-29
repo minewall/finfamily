@@ -12632,11 +12632,15 @@ ${outrs.length ? `
       conquista:   { iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.4 9.4l-4.6 1.8L12 15.8l-1.8-4.6L5.6 9.4l4.6-1.8z"/></svg>',           label: 'Conquista',    iconColor: 'var(--accent-2)',   bgColor: 'var(--accent-dim)' },
     };
 
+    // Filtro por pessoa: gerado dinamicamente a partir dos recados que de fato
+    // têm uma pessoa associada (antes era hardcoded com Roberto/Mariana/Família
+    // — nomes do dev — e, pior, a maioria dos recados tem pessoa:null, então
+    // os chips filtravam pra vazio). "Haile" = todos. Só mostramos chips de
+    // pessoa que realmente possuem recados, com os nomes reais do usuário.
+    const _pessoasComRecado = [...new Set((Store.get().recados || []).map(r => r.pessoa).filter(Boolean))];
     const PESSOA_CONFIG = [
-      { id: null,       label: 'Haile', initial: '✦', bg: 'linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-teal) 100%)' },
-      { id: 'roberto',  label: 'Roberto',  initial: 'R', bg: 'var(--haile-indigo)' },
-      { id: 'mariana',  label: 'Mariana',  initial: 'M', bg: 'var(--green)' },
-      { id: 'familia',  label: 'Família',  initial: 'F', bg: 'var(--amber)' },
+      { id: null, label: 'Haile', initial: '', bg: 'linear-gradient(135deg, var(--haile-indigo) 0%, var(--haile-teal) 100%)' },
+      ..._pessoasComRecado.map(p => ({ id: p, label: p, initial: Utils.personInitial(p), bg: Utils.personColor(p) })),
     ];
 
     let selectedPessoa = 'all'; // 'all' = Coach IA (sem filtro), ou id da pessoa
@@ -12823,14 +12827,14 @@ ${outrs.length ? `
   </div>
 </div>
 
-<div class="recados-avatar-filter" id="rcAvatarFilter">
+${PESSOA_CONFIG.length > 1 ? `<div class="recados-avatar-filter" id="rcAvatarFilter">
   ${PESSOA_CONFIG.map(p => `
     <div class="recados-persona${p.id === null ? ' active' : ''}" data-rc-pessoa="${p.id === null ? 'all' : p.id}">
-      <div class="recados-persona-avatar" style="background:${p.bg}">${p.id === null ? `<img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:60%;height:auto;display:block">` : p.initial}</div>
-      <div class="recados-persona-name">${p.label}</div>
+      <div class="recados-persona-avatar" style="background:${p.bg}">${p.id === null ? `<img src="../assets/svg/haile-mark-white.svg" alt="Haile" style="width:60%;height:auto;display:block">` : Utils.escapeHtml(p.initial)}</div>
+      <div class="recados-persona-name">${Utils.escapeHtml(p.label)}</div>
     </div>
   `).join('')}
-</div>
+</div>` : ''}
 
 <div id="rcCardsBox"></div>`;
 
