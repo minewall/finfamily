@@ -2548,6 +2548,7 @@ ${(() => {
       <div class="form-group"><label class="form-label">Subcategoria</label><select class="form-select" id="fRecSub">
         ${Store.SUBCATEGORIES.receita.map(s => `<option value="${Utils.escapeHtml(s)}">${Utils.escapeHtml(s)}</option>`).join('')}
       </select></div>
+      ${contaSelectField('fRecConta', null)}
     </div>`;
     Modal.open('Nova Receita', html, () => {
       const desc   = document.getElementById('fRecDesc').value.trim();
@@ -2557,8 +2558,9 @@ ${(() => {
       const sub    = document.getElementById('fRecSub').value;
       const natureza = Store.DEFAULT_RECEITA_NATUREZA[sub] || 'eventual';
       if (!desc || !amount || !date) return toast('Preencha todos os campos', 'error');
+      const contaId = readContaField('fRecConta');
       const d = new Date(date);
-      Store.addReceita({ desc, amount, date, person, sub, natureza, category: 'receita', month: d.getMonth()+1, year: d.getFullYear() });
+      Store.addReceita({ desc, amount, date, person, sub, natureza, category: 'receita', month: d.getMonth()+1, year: d.getFullYear(), ...(contaId ? { contaId } : {}) });
       Modal.close();
       renderReceitas(refreshContainer);
       toast('Receita adicionada!', 'success');
@@ -2993,6 +2995,32 @@ ${despesas.length === 0 ? coachEmptyHTML({
 </div>`;
   }
 
+  // ─── Helper reutilizável: campo de Conta (opcional) ─────────────
+  // Amarra o lançamento a uma conta via contaId. Default sticky (última
+  // conta usada, persistida em UISettings). Não renderiza nada se o user
+  // ainda não tem contas cadastradas. `fieldId` é o id do <select>.
+  function contaSelectField(fieldId, selectedId) {
+    const contas = Store.getContas();
+    if (!contas.length) return '';
+    const sel = selectedId != null ? selectedId : (UISettings.get('lastContaId', '') || '');
+    const opts = ['<option value="">— Nenhuma —</option>']
+      .concat(contas.map(c => {
+        const label = c.nome || c.banco || 'Conta';
+        return `<option value="${Utils.escapeHtml(c.id)}"${c.id === sel ? ' selected' : ''}>${Utils.escapeHtml(label)}</option>`;
+      })).join('');
+    return `<div class="form-group">
+      <label class="form-label">Conta <span style="color:var(--text-4);font-weight:400">(opcional)</span></label>
+      <select class="form-select" id="${Utils.escapeHtml(fieldId)}">${opts}</select>
+    </div>`;
+  }
+
+  // Lê o contaId selecionado e atualiza o sticky. Retorna null se vazio.
+  function readContaField(fieldId) {
+    const v = document.getElementById(fieldId)?.value || '';
+    if (v) UISettings.set('lastContaId', v);
+    return v || null;
+  }
+
   // ─── Helpers reutilizáveis: campo de Anexo (recibo) ─────────────
   function anexoFieldHTML(prefix, currentAttachment) {
     const hasCurrent = !!(currentAttachment && currentAttachment.path);
@@ -3363,6 +3391,7 @@ ${despesas.length === 0 ? coachEmptyHTML({
       <div class="form-group" id="fDCartaoRow" style="display:none"><label class="form-label">Cartão</label>
         <select class="form-select" id="fDCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${Utils.escapeHtml(c.id)}">${Utils.escapeHtml(c.name)}</option>`).join('')}</select>
       </div>
+      ${contaSelectField('fDConta', null)}
       <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:4px 0">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
           <input type="checkbox" id="fDParcelado" style="width:16px;height:16px;accent-color:var(--accent)">
@@ -3449,6 +3478,8 @@ ${despesas.length === 0 ? coachEmptyHTML({
       const extraFields = temDesconto && economia > 0 ? { desconto: true, valorOriginal, economia } : {};
       if (split) extraFields.split = split;
       if (cartaoId) extraFields.cartaoId = cartaoId;
+      const contaId = readContaField('fDConta');
+      if (contaId) extraFields.contaId = contaId;
       extraFields.visibilidade = visibilidade;
       if (temReembolso) extraFields.reembolso = {
         para: currentPessoa(), de: reembolsoDe, valor: reembolsoVal, status: 'pendente', criadoEm: new Date().toISOString().slice(0,10)
@@ -4623,6 +4654,55 @@ ${contratos.length === 0 ? coachEmptyHTML({
   // ══════════════════════════════════════════════════════════════
   // PAGE: CONTAS & CARTÕES
   // ══════════════════════════════════════════════════════════════
+  // Drilldown de Conta: clique no card abre saldo + fluxo do mês + últimos
+  // lançamentos amarrados via contaId. "Editar conta" no footer abre o modal de edição.
+  function openContaDrilldown(ct, container) {
+    const { despesas, receitas } = Store.getLancamentosByConta(ct.id);
+    const month = getMonth(), year = getYear();
+    const inMonth = (x) => x.year === year && x.month === month;
+    const entradasMes = receitas.filter(inMonth).reduce((s, r) => s + (r.amount || 0), 0);
+    const saidasMes   = despesas.filter(inMonth).reduce((s, d) => s + (d.amount || 0), 0);
+    const totalCount  = despesas.length + receitas.length;
+    const movimentos = [
+      ...receitas.map(r => ({ ...r, _pos: true })),
+      ...despesas.map(d => ({ ...d, _pos: false })),
+    ].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 12);
+
+    const rows = movimentos.length ? movimentos.map(m => {
+      const catLabel = m.category ? (Store.CATEGORIES[m.category]?.label || m.category) : '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:0">
+          <div style="font-size:13px;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(m.desc || '—')}</div>
+          <div style="font-size:11px;color:var(--text-4)">${Utils.escapeHtml(m.date || '')}${catLabel ? ' · ' + Utils.escapeHtml(catLabel) : ''}</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;font-family:var(--mono);color:${m._pos ? 'var(--green)' : 'var(--red)'};white-space:nowrap">${m._pos ? '+' : '−'} ${Utils.currency(m.amount || 0)}</div>
+      </div>`;
+    }).join('') : `<div style="text-align:center;color:var(--text-4);padding:24px 8px;font-size:13px">Nenhum lançamento amarrado a esta conta ainda.<br><span style="font-size:11px">Ao criar ou editar uma despesa/receita, selecione esta conta no campo "Conta".</span></div>`;
+
+    const html = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">${Utils.escapeHtml(ct.banco || '')}${ct.tipo ? ' · ' + Utils.escapeHtml(ct.tipo) : ''}</div>
+      <div style="font-size:24px;font-weight:800;font-family:var(--mono);color:${ct.cor}">${Utils.currency(ct.saldo)}</div>
+      <div style="font-size:11px;color:var(--text-4)">saldo cadastrado</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <div style="flex:1;background:var(--bg-elevated);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase">Entradas (mês)</div>
+        <div style="font-size:15px;font-weight:700;color:var(--green);font-family:var(--mono)">+ ${Utils.currency(entradasMes)}</div>
+      </div>
+      <div style="flex:1;background:var(--bg-elevated);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase">Saídas (mês)</div>
+        <div style="font-size:15px;font-weight:700;color:var(--red);font-family:var(--mono)">− ${Utils.currency(saidasMes)}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Últimos lançamentos${totalCount > movimentos.length ? ` <span style="font-weight:400;color:var(--text-4)">(${movimentos.length} de ${totalCount})</span>` : ''}</div>
+    <div>${rows}</div>`;
+
+    Modal.open(ct.nome || 'Conta', html, () => {
+      openContaModal(ct, container);
+    }, { okText: 'Editar conta', cancelText: 'Fechar', size: 'md' });
+  }
+
   function openContaModal(conta, container) {
     const isEdit = !!conta;
     const ct = conta || {};
@@ -5126,7 +5206,7 @@ ${(() => {
     container.querySelectorAll('[data-edit-conta]').forEach(card => {
       card.addEventListener('click', () => {
         const ct = Store.get().contas.find(c => c.id === card.dataset.editConta);
-        if (ct) openContaModal(ct, container);
+        if (ct) openContaDrilldown(ct, container);
       });
     });
     container.querySelectorAll('[data-edit-cartao]').forEach(card => {
@@ -7297,6 +7377,7 @@ ${topCats.length ? `
   <div class="form-group" id="nCartaoRow" style="display:none"><label class="form-label">Cartão</label>
     <select class="form-select" id="nCartao">${(Store.get().cartoes||[]).map(c=>`<option value="${Utils.escapeHtml(c.id)}">${Utils.escapeHtml(c.name)}</option>`).join('')}</select>
   </div>
+  ${contaSelectField('nConta', null)}
   <div class="form-group form-full" style="display:flex;align-items:center;gap:20px;padding:2px 0">
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
       <input type="checkbox" id="nParcelado" style="width:16px;height:16px;accent-color:var(--accent)">
@@ -7339,6 +7420,7 @@ ${topCats.length ? `
     <option value="salario">Salário</option><option value="contrato">Contrato</option>
     <option value="pensao">Pensão</option><option value="outros">Outros</option>
   </select></div>
+  ${contaSelectField('nRConta', null)}
 </div>`;
     Modal.open('Novo Lançamento', html, () => {
       const isDesp = !document.getElementById('formDesp').classList.contains('hidden');
@@ -7357,6 +7439,7 @@ ${topCats.length ? `
         const economia=temDesc&&valorOrig>amount?valorOrig-amount:0;
         const extraD=temDesc&&economia>0?{desconto:true,valorOriginal:valorOrig,economia}:{};
         if (cartaoId) extraD.cartaoId=cartaoId;
+        const contaIdD=readContaField('nConta'); if(contaIdD) extraD.contaId=contaIdD;
         if (!desc||!amount||!date) return toast('Preencha todos os campos','error');
         const splitVal = novaEntradaSplitApi?.read() || null;
         if (splitVal) extraD.split=splitVal;
@@ -7375,8 +7458,9 @@ ${topCats.length ? `
         const person=document.getElementById('nRPerson').value;
         const type=document.getElementById('nRType').value;
         if (!desc||!amount||!date) return toast('Preencha todos os campos','error');
+        const contaIdR=readContaField('nRConta');
         const d=new Date(date);
-        Store.addReceita({desc,amount,date,person,type,category:'receita',month:d.getMonth()+1,year:d.getFullYear()});
+        Store.addReceita({desc,amount,date,person,type,category:'receita',month:d.getMonth()+1,year:d.getFullYear(),...(contaIdR?{contaId:contaIdR}:{})});
         toast('Receita adicionada!', 'success');
       }
       Modal.close();
@@ -7624,6 +7708,7 @@ ${topCats.length ? `
           </div>
         </div>
       </div>
+      ${contaSelectField('eDConta', d.contaId || '')}
       ${anexoFieldHTML('eD', d.attachment)}
     </div>`;
 
@@ -7656,6 +7741,7 @@ ${topCats.length ? `
         desconto: temDesc && economia > 0, valorOriginal: valorOrig, economia,
         split: split || null,
         tipoOverride: tipoOverride || null,
+        contaId: readContaField('eDConta'),
         visibilidade,
         reembolso: temReembolso ? {
           para: d.reembolso?.para || currentPessoa(),
@@ -7747,6 +7833,7 @@ ${topCats.length ? `
           <option value="outros"${r.type==='outros'?' selected':''}>Outros</option>
         </select>
       </div>
+      ${contaSelectField('eRConta', r.contaId || '')}
     </div>`;
 
     Modal.open('Editar Receita', html, () => {
@@ -7760,6 +7847,7 @@ ${topCats.length ? `
       Store.updateReceita(id, {
         desc, amount, date, person, type,
         month: dt.getMonth() + 1, year: dt.getFullYear(),
+        contaId: readContaField('eRConta'),
       });
       Modal.close();
       toast('Receita atualizada!', 'success');

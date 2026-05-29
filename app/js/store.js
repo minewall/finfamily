@@ -1824,6 +1824,25 @@ const Store = (function () {
     return (_data.contas || []).filter(c => (c.categoria || 'bancaria') === categoria);
   }
 
+  function getContas() {
+    _ensureContasCategoria();
+    return _data.contas || [];
+  }
+
+  function getContaById(id) {
+    return (_data.contas || []).find(c => c.id === id) || null;
+  }
+
+  // Lançamentos (despesas + receitas) amarrados a uma conta via contaId.
+  // Usado no drilldown de Conta e em relatórios de fluxo por banco.
+  function getLancamentosByConta(contaId) {
+    if (!contaId) return { despesas: [], receitas: [] };
+    return {
+      despesas: (_data.despesas || []).filter(d => d.contaId === contaId),
+      receitas: (_data.receitas || []).filter(r => r.contaId === contaId),
+    };
+  }
+
   function deleteConta(id) {
     _data.contas = (_data.contas || []).filter(c => c.id !== id);
     persist();
@@ -4145,6 +4164,7 @@ const Store = (function () {
     addReceita, addDespesa, deleteReceita, updateReceita, deleteDespesa, updateDespesa,
     addDespesaParcelada, getReembolsosPendentes, marcarReembolsoPago,
     addConta, deleteConta, updateConta, getContasByCategoria,
+    getContas, getContaById, getLancamentosByConta,
     getTributos, getTributosByTipo, addTributo, updateTributo, deleteTributo,
     addCartao, deleteCartao,
     updateMeta, deleteMeta,
