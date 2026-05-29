@@ -590,21 +590,33 @@
       setLoading(true);
 
       try {
-        const { error } = await sb.from('waitlist').insert({
-          name,
-          email,
-          profile,
-          source: getSource(),
+        // Cadastro via Edge Function (valida + rate-limit por IP + insert via
+        // service role). Substitui o INSERT direto via anon key, que tinha
+        // policy WITH CHECK(true) e era vetor de spam.
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/waitlist-signup`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+          },
+          body: JSON.stringify({ name, email, profile, source: getSource() }),
         });
+        const result = await resp.json().catch(() => ({}));
 
-        if (error) {
-          // código 23505 = unique violation (e-mail duplicado)
-          if (error.code === '23505') {
-            formWrap.style.display  = 'none';
-            dupEl.classList.add('visible');
-            return;
-          }
-          throw error;
+        // e-mail já cadastrado
+        if (result.code === 'duplicate') {
+          formWrap.style.display  = 'none';
+          dupEl.classList.add('visible');
+          return;
+        }
+        // rate-limit por IP
+        if (resp.status === 429 || result.code === 'rate_limited') {
+          showError('Muitos cadastros deste dispositivo. Tente novamente mais tarde.');
+          return;
+        }
+        if (!resp.ok || !result.ok) {
+          throw new Error(result.message || `HTTP ${resp.status}`);
         }
 
         // sucesso
