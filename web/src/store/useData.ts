@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { UserData, Despesa, Receita } from '@haile/shared'
+import type { UserData, Despesa, Receita, Conta } from '@haile/shared'
 import { supabase } from '@/lib/supabase'
 
 const LOCAL_KEY = 'haile_duo_user_data'
@@ -19,6 +19,9 @@ interface DataState {
   addReceita: (input: Omit<Receita, 'id' | 'month' | 'year'> & Partial<Pick<Receita, 'id' | 'month' | 'year'>>) => void
   updateReceita: (id: string, patch: Partial<Receita>) => void
   deleteReceita: (id: string) => void
+  addConta: (input: Omit<Conta, 'id'> & Partial<Pick<Conta, 'id'>>) => void
+  updateConta: (id: string, patch: Partial<Conta>) => void
+  deleteConta: (id: string) => void
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -151,6 +154,21 @@ export const useData = create<DataState>((set, get) => {
     deleteReceita: (id) => {
       const d = ensure()
       persist({ ...d, receitas: (d.receitas ?? []).filter((x) => x.id !== id) })
+    },
+
+    addConta: (input) => {
+      const d = ensure()
+      const entry: Conta = { ...input, id: input.id ?? newId() } as Conta
+      persist({ ...d, contas: [...(d.contas ?? []), entry] })
+    },
+    updateConta: (id, patch) => {
+      const d = ensure()
+      const list = (d.contas ?? []).map((c) => (c.id === id ? { ...c, ...patch } : c))
+      persist({ ...d, contas: list })
+    },
+    deleteConta: (id) => {
+      const d = ensure()
+      persist({ ...d, contas: (d.contas ?? []).filter((c) => c.id !== id) })
     },
   }
 })

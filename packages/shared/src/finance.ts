@@ -79,3 +79,47 @@ export function personInitial(name?: string | null): string {
   if (!name) return '?';
   return name.trim().charAt(0).toUpperCase() || '?';
 }
+
+// Resumo + lançamentos recentes amarrados a uma conta via contaId.
+// Espelha Store.getLancamentosByConta do Dino — usado no drilldown.
+export interface ContaResumo {
+  entradasMes: number;
+  saidasMes: number;
+  countTotal: number;
+  recentes: UnifiedLancamento[]; // já com sinal, ordenados DESC
+}
+
+export function getContaResumo(
+  data: UserData,
+  contaId: string,
+  opts: { month: number; year: number; limite?: number },
+): ContaResumo {
+  const limite = opts.limite ?? 12;
+  const recs = (data.receitas ?? []).filter((r) => r.contaId === contaId);
+  const desp = (data.despesas ?? []).filter((d) => d.contaId === contaId);
+  const inMonth = (x: { month?: number; year?: number }) =>
+    x.month === opts.month && x.year === opts.year;
+  const entradasMes = recs.filter(inMonth).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const saidasMes = desp.filter(inMonth).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const recentes: UnifiedLancamento[] = [
+    ...recs.map((r) => {
+      const amount = Math.abs(Number(r.amount) || 0);
+      return {
+        id: r.id, kind: 'receita' as const, date: r.date, desc: r.desc ?? '',
+        amount, amountSigned: amount, person: r.person, category: r.category,
+        sub: null, contaId: r.contaId ?? null,
+      };
+    }),
+    ...desp.map((d) => {
+      const amount = Math.abs(Number(d.amount) || 0);
+      return {
+        id: d.id, kind: 'despesa' as const, date: d.date, desc: d.desc ?? '',
+        amount, amountSigned: -amount, person: d.person, category: d.category,
+        sub: d.sub ?? null, contaId: d.contaId ?? null,
+      };
+    }),
+  ]
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .slice(0, limite);
+  return { entradasMes, saidasMes, countTotal: recs.length + desp.length, recentes };
+}
