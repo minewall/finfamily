@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* ── Tokens da marca Haile (portados do Dino main.css) ──────────────
+   Tailwind v4 CSS-first: variáveis --color-* viram utilitários
+   (bg-bg, text-ink, border-line, etc.). */
+@theme {
+  --color-bg: #0d0f1c;
+  --color-sidebar: #141627;
+  --color-surface: #1b1e31;
+  --color-elevated: #242842;
+  --color-hover: #2c3054;
+
+  --color-indigo: #6b5ef5;
+  --color-indigo-deep: #5a4ee4;
+  --color-violet-light: #8a7ef8;
+  --color-teal: #2dcfc0;
+  --color-green: #1dc97e;
+  --color-amber: #ffa930;
+  --color-red: #ff4a68;
+  --color-blue: #4aa8ff;
+
+  --color-ink: #edf0ff;   /* texto primário (text-1) */
+  --color-mist: #7c82a4;  /* texto secundário (text-2) */
+  --color-slate: #454b6d; /* texto terciário (text-3) */
+  --color-faint: #353958; /* texto fraco (text-4) */
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-2: rgba(255, 255, 255, 0.11);
+
+  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-serif: "DM Serif Display", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

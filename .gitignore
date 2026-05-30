@@ -6,3 +6,10 @@ supabase/.temp/
 pre-production/
 pre_production_no_commit/
 tmp/
+
+# DUO (Node/Vite monorepo)
+node_modules/
+dist/
+*.tsbuildinfo
+.env.local
+.env.*.local
