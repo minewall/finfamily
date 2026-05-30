@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import { sumReceitas, sumDespesas, saldoMes, currencyBRL } from '@haile/shared'
 import { useData } from '@/store/useData'
-import { useAuth } from '@/lib/auth'
-import { Button } from '@/components/ui/button'
 
 function Kpi({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
@@ -15,11 +13,10 @@ function Kpi({ label, value, tone }: { label: string; value: string; tone: strin
 
 export default function VisaoGeral() {
   const { data, loading, error, load } = useData()
-  const { signOut } = useAuth()
 
   useEffect(() => {
-    void load()
-  }, [load])
+    if (!data && !loading) void load()
+  }, [data, loading, load])
 
   const now = new Date()
   const month = now.getMonth() + 1
@@ -33,12 +30,9 @@ export default function VisaoGeral() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <div className="font-serif text-2xl text-ink">Haile</div>
-          <div className="text-sm text-mist">Visão Geral · {String(month).padStart(2, '0')}/{year}</div>
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => void signOut()}>Sair</Button>
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold text-ink">Visão Geral</h1>
+        <p className="text-sm text-mist">{String(month).padStart(2, '0')}/{year}</p>
       </header>
 
       {loading && <p className="text-mist">Carregando seus dados…</p>}
