@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import {
   getLancamentos,
   currencyBRL,
@@ -10,6 +10,8 @@ import {
   type UnifiedLancamento,
 } from '@haile/shared'
 import { useData } from '@/store/useData'
+import { Button } from '@/components/ui/button'
+import { LancamentoModal } from '@/components/LancamentoModal'
 
 function fmtDayHeader(dateISO: string): string {
   const [y, m, d] = dateISO.split('-').map(Number)
@@ -19,11 +21,16 @@ function fmtDayHeader(dateISO: string): string {
 }
 
 export default function Lancamentos() {
-  const { data, loading, error, load } = useData()
+  const { data, loading, error, load, syncStatus } = useData()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [q, setQ] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<UnifiedLancamento | null>(null)
+
+  function openNew() { setEditing(null); setModalOpen(true) }
+  function openEdit(it: UnifiedLancamento) { setEditing(it); setModalOpen(true) }
 
   useEffect(() => {
     if (!data && !loading) void load()
@@ -76,30 +83,41 @@ export default function Lancamentos() {
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-ink">Lançamentos</h1>
-          <p className="text-sm text-mist">Receitas e despesas do mês.</p>
+          <p className="text-sm text-mist">
+            Receitas e despesas do mês.
+            {syncStatus === 'syncing' && <span className="ml-2 text-faint">· salvando…</span>}
+            {syncStatus === 'synced' && <span className="ml-2 text-green/80">· sincronizado</span>}
+            {syncStatus === 'error' && <span className="ml-2 text-red">· erro de sync</span>}
+          </p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-line bg-surface px-1.5 py-1.5">
-          <button
-            type="button"
-            onClick={() => shiftMonth(-1)}
-            className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-ink"
-            aria-label="Mês anterior"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <div className="min-w-[140px] text-center text-sm font-medium capitalize text-ink">
-            {monthLabel}
-          </div>
-          <button
-            type="button"
-            onClick={() => shiftMonth(1)}
-            className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-ink"
-            aria-label="Próximo mês"
-          >
-            <ChevronRight size={16} />
-          </button>
+        <div className="flex items-center gap-3">
+          <Button size="sm" onClick={openNew}>
+            <Plus size={14} /> Novo
+          </Button>
         </div>
       </header>
+
+      <div className="mb-5 flex w-fit items-center gap-2 rounded-xl border border-line bg-surface px-1.5 py-1.5">
+        <button
+          type="button"
+          onClick={() => shiftMonth(-1)}
+          className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-ink"
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="min-w-[140px] text-center text-sm font-medium capitalize text-ink">
+          {monthLabel}
+        </div>
+        <button
+          type="button"
+          onClick={() => shiftMonth(1)}
+          className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-ink"
+          aria-label="Próximo mês"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">
@@ -122,16 +140,17 @@ export default function Lancamentos() {
         </div>
       </div>
 
-      {loading && <p className="text-mist">Carregando…</p>}
-      {error && <p className="text-red">Erro: {error}</p>}
+      {loading && !data && <p className="text-mist">Carregando…</p>}
+      {/* error de carga só impede a lista se NÃO há dado em memória/local */}
+      {error && !data && <p className="text-red">Erro: {error}</p>}
 
-      {!loading && !error && items.length === 0 && (
+      {!loading && items.length === 0 && (data || !error) && (
         <div className="rounded-2xl border border-line bg-surface p-8 text-center">
           <p className="text-sm text-mist">Nenhum lançamento neste mês.</p>
         </div>
       )}
 
-      {!loading && !error && items.length > 0 && (
+      {items.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-line bg-surface">
           {groups.map(([dateKey, rows]) => (
             <div key={dateKey}>
@@ -139,9 +158,11 @@ export default function Lancamentos() {
                 {fmtDayHeader(dateKey)}
               </div>
               {rows.map((it) => (
-                <div
+                <button
+                  type="button"
                   key={it.id}
-                  className="flex items-center gap-3 border-b border-line/70 px-4 py-3 last:border-b-0 hover:bg-elevated/30"
+                  onClick={() => openEdit(it)}
+                  className="flex w-full items-center gap-3 border-b border-line/70 px-4 py-3 text-left last:border-b-0 hover:bg-elevated/30 focus:outline-none focus:bg-elevated/40"
                 >
                   <div
                     className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
@@ -171,12 +192,14 @@ export default function Lancamentos() {
                   >
                     {it.amountSigned >= 0 ? '+' : '−'} {currencyBRL(it.amount)}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ))}
         </div>
       )}
+
+      <LancamentoModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} />
     </div>
   )
 }
