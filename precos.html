@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- SEO -->
-    <meta name="description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
+    <meta name="description" content="Conheça os planos do Haile: Trial gratuito de 21 dias, Individual e Premium Family. Comece sem cartão de crédito." />
     <meta name="robots" content="index, follow" />
     <!-- Canonical sem .html depende do rewrite extensionless do host (Vercel/Netlify).
          A URL pública é /precos; o arquivo no repo é precos.html. Não mudar
@@ -20,7 +20,7 @@
     <meta property="og:type"        content="website" />
     <meta property="og:site_name"   content="Haile" />
     <meta property="og:title"       content="Planos e Preços — Haile" />
-    <meta property="og:description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
+    <meta property="og:description" content="Conheça os planos do Haile: Trial gratuito de 21 dias, Individual e Premium Family. Comece sem cartão de crédito." />
     <meta property="og:url"         content="https://haile.com.br/precos" />
     <meta property="og:image"       content="https://haile.com.br/assets/social/og-image-1200x630.png" />
     <meta property="og:image:width"  content="1200" />
@@ -31,7 +31,7 @@
     <!-- Twitter / X -->
     <meta name="twitter:card"        content="summary_large_image" />
     <meta name="twitter:title"       content="Planos e Preços — Haile" />
-    <meta name="twitter:description" content="Conheça os planos do Haile: Trial gratuito de 14 dias, Individual, Premium Family e Family Office. Comece sem cartão de crédito." />
+    <meta name="twitter:description" content="Conheça os planos do Haile: Trial gratuito de 21 dias, Individual e Premium Family. Comece sem cartão de crédito." />
     <meta name="twitter:image"       content="https://haile.com.br/assets/social/og-image-1200x630.png" />
   <title>Haile — Planos e Preços</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -189,9 +189,9 @@
       margin-top: -28px; /* slightly overlap hero */
     }
     .pricing-grid {
-      max-width: 1280px; margin: 0 auto;
+      max-width: 1040px; margin: 0 auto;
       display: grid;
-      grid-template-columns: 1fr 1fr 1.08fr 1fr;
+      grid-template-columns: 1fr 1fr 1.08fr;
       gap: 16px;
       align-items: start;
     }
@@ -437,7 +437,7 @@
 
     /* ── responsive ──────────────────────────────────────────────── */
     @media (max-width: 1024px) {
-      .pricing-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 460px; gap: 16px; }
       .plan-card.featured { transform: none; }
       .plan-card.featured:hover { transform: translateY(-4px); }
       .compare-table { display: none; }
@@ -497,7 +497,7 @@
       <div class="plan-card trial reveal" data-delay="1">
         <p class="plan-label">Trial</p>
         <h3 class="plan-name">Experimente</h3>
-        <p class="plan-tagline">14 dias do Premium Family, grátis. Sem cartão.</p>
+        <p class="plan-tagline">21 dias do Premium Family, grátis. Sem cartão.</p>
         <div class="plan-price-row">
           <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
         </div>
@@ -604,48 +604,6 @@
         <a href="waitlist.html?plan=family" class="btn plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center;background:#fff;color:var(--violet)">Quero ser avisado</a>
       </div>
 
-      <!-- family office -->
-      <div class="plan-card office reveal" data-delay="4">
-        <p class="plan-label">Family Office</p>
-        <h3 class="plan-name">Patrimônio &amp; IA avançada</h3>
-        <p class="plan-tagline">Para famílias que gerenciam patrimônio complexo.</p>
-        <div class="plan-price-row">
-          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Plano personalizado</span>
-        </div>
-        <p class="price-annual-note">Tamanho e estrutura sob medida</p>
-        <ul class="plan-features">
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Tudo do Premium Family
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Membros ilimitados
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Análise patrimonial avançada com IA
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Múltiplos patrimônios e investimentos
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Relatórios executivos personalizados
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Consultoria com especialista Haile
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Suporte prioritário
-          </li>
-        </ul>
-        <a href="contato.html?assunto=Family%20Office" class="btn plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center;border:1px solid rgba(0,0,0,0.18);color:var(--slate);background:transparent">Falar com o time</a>
-      </div>
-
     </div>
   </section>
 
@@ -659,111 +617,73 @@
       <table class="compare-table reveal">
         <thead>
           <tr>
-            <th style="width:36%">Recurso</th>
+            <th style="width:40%">Recurso</th>
             <th class="center">Trial</th>
             <th class="center">Individual</th>
             <th class="center featured-col">Premium Family</th>
-            <th class="center">Family Office</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="cat-row"><td colspan="5">Inteligência Haile</td></tr>
+          <tr class="cat-row"><td colspan="4">Inteligência Haile</td></tr>
           <tr>
             <td>Orientações da inteligência</td>
             <td class="center">Ilimitado</td>
             <td class="center">Ilimitado</td>
             <td class="center featured-col">Ilimitado</td>
-            <td class="center">Ilimitado</td>
           </tr>
           <tr>
             <td>Contexto familiar</td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
-            <td class="center"><span class="tick">✓</span></td>
           </tr>
           <tr>
             <td>Análise antes de gastar</td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
-            <td class="center"><span class="tick">✓</span></td>
-          </tr>
-          <tr>
-            <td>Análise patrimonial avançada</td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center featured-col"><span class="dash">—</span></td>
-            <td class="center"><span class="tick">✓</span></td>
           </tr>
 
-          <tr class="cat-row"><td colspan="5">Família</td></tr>
+          <tr class="cat-row"><td colspan="4">Família</td></tr>
           <tr>
             <td>Membros da família</td>
             <td class="center">Até 5</td>
             <td class="center">1</td>
             <td class="center featured-col">Até 5</td>
-            <td class="center">Ilimitado</td>
           </tr>
           <tr>
             <td>Conquistas compartilhadas</td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
-            <td class="center"><span class="tick">✓</span></td>
           </tr>
           <tr>
             <td>Colaboração e responsabilidades</td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
-            <td class="center"><span class="tick">✓</span></td>
           </tr>
 
-          <tr class="cat-row"><td colspan="5">Patrimônio</td></tr>
+          <tr class="cat-row"><td colspan="4">Patrimônio</td></tr>
           <tr>
             <td>Contas bancárias conectadas</td>
             <td class="center">Ilimitado</td>
             <td class="center">Ilimitado</td>
             <td class="center featured-col">Ilimitado</td>
-            <td class="center">Ilimitado</td>
           </tr>
           <tr>
             <td>Projeções patrimoniais</td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
-            <td class="center"><span class="tick">✓</span></td>
-          </tr>
-          <tr>
-            <td>Múltiplos patrimônios</td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center featured-col"><span class="dash">—</span></td>
-            <td class="center"><span class="tick">✓</span></td>
           </tr>
 
-          <tr class="cat-row"><td colspan="5">Suporte</td></tr>
+          <tr class="cat-row"><td colspan="4">Suporte</td></tr>
           <tr>
             <td>Relatório mensal</td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
-            <td class="center">Executivo</td>
-          </tr>
-          <tr>
-            <td>Consultoria com especialista</td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center featured-col"><span class="dash">—</span></td>
-            <td class="center"><span class="tick">✓</span></td>
-          </tr>
-          <tr>
-            <td>Suporte prioritário</td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center"><span class="dash">—</span></td>
-            <td class="center featured-col"><span class="dash">—</span></td>
-            <td class="center"><span class="tick">✓</span></td>
           </tr>
         </tbody>
       </table>
@@ -780,7 +700,7 @@
       <div class="faq-list reveal">
         <div class="faq-item">
           <button class="faq-q">O Trial é realmente grátis? <span class="faq-icon">+</span></button>
-          <div class="faq-a">Sim. 14 dias de acesso completo ao Premium Family, sem precisar de cartão de crédito. No final do período, você escolhe o plano que faz sentido para sua família.</div>
+          <div class="faq-a">Sim. 21 dias de acesso completo ao Premium Family, sem precisar de cartão de crédito. No final do período, você escolhe o plano que faz sentido para sua família.</div>
         </div>
         <div class="faq-item">
           <button class="faq-q">Posso cancelar a qualquer momento? <span class="faq-icon">+</span></button>
@@ -792,15 +712,11 @@
         </div>
         <div class="faq-item">
           <button class="faq-q">Como funciona o desconto anual? <span class="faq-icon">+</span></button>
-          <div class="faq-a">Você paga 12 meses pelo preço de 9,6 meses, equivalente a 20% de desconto. O valor é cobrado à vista uma vez por ano.</div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q">O Family Office tem self-serve ou preciso falar com alguém? <span class="faq-icon">+</span></button>
-          <div class="faq-a">O Family Office é um plano personalizado. Nossa equipe fará uma conversa inicial para entender o patrimônio e as necessidades da família antes de configurar o acesso.</div>
+          <div class="faq-a">No plano anual você paga 12 meses como 10 — dois meses de desconto (cerca de 17%) — em 10 parcelas mensais, sem precisar pagar tudo de uma vez.</div>
         </div>
         <div class="faq-item">
           <button class="faq-q">Quantos membros posso adicionar no Premium Family? <span class="faq-icon">+</span></button>
-          <div class="faq-a">Até 5 membros. Cabe casais com filhos, mães e pais solo com filhos adultos, famílias recompostas, ou pessoas cuidando dos pais. Para famílias maiores ou com estrutura patrimonial mais complexa, o Family Office é o caminho certo.</div>
+          <div class="faq-a">Até 5 membros. Cabe casais com filhos, mães e pais solo com filhos adultos, famílias recompostas, ou pessoas cuidando dos pais.</div>
         </div>
       </div>
     </div>

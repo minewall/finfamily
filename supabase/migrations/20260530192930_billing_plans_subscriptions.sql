@@ -93,5 +93,7 @@ insert into public.app_settings (key, value, description) values
   ('trial_reminder_days', '[14,18,20]'::jsonb, 'Dias do trial em que disparar lembrete editorial'),
   ('trial_requires_card', 'false'::jsonb, 'Exigir cartão na entrada do trial'),
   ('pricing_currency', '"BRL"'::jsonb, 'Moeda dos planos'),
-  ('founder_pricing_enabled', 'false'::jsonb, 'Ativar preço founder time-boxed (Cenário C)')
+  ('founder_pricing_enabled', 'false'::jsonb, 'Ativar preço founder time-boxed (Cenário C)'),
+  ('annual_installments', '10'::jsonb, 'Plano anual cobrado em N parcelas mensais (Asaas recorrência)'),
+  ('annual_discount_months', '2'::jsonb, 'Desconto do anual expresso em meses grátis (12 pagando 10)')
 on conflict (key) do nothing;

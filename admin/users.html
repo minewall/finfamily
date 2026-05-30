@@ -62,10 +62,10 @@
       <input class="form-input" id="inviteEmail" type="email" placeholder="usuario@exemplo.com" autocomplete="off">
       <label class="form-label" for="inviteTier" style="margin-top:12px">Tier inicial</label>
       <select class="form-input" id="inviteTier">
-        <option value="free">Free</option>
-        <option value="always_free">Always free (parceiro)</option>
-        <option value="plus">Plus</option>
+        <option value="always_free">Beta / Founder — acesso pleno grátis</option>
         <option value="premium">Premium</option>
+        <option value="plus">Plus</option>
+        <option value="free">Free (limitado)</option>
       </select>
       <div id="inviteError" class="invite-modal-error" style="display:none"></div>
     </div>
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inviteSubmit = document.getElementById('inviteSubmit');
   const openInvite = () => {
     inviteEmail.value = '';
-    inviteTier.value = 'free';
+    inviteTier.value = 'always_free'; // beta: convidados nascem founder (acesso pleno grátis)
     inviteError.style.display = 'none';
     inviteError.textContent = '';
     inviteSubmit.disabled = false;
