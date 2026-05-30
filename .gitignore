@@ -6,3 +6,10 @@ supabase/.temp/
 pre-production/
 pre_production_no_commit/
 tmp/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
