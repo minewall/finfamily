@@ -479,6 +479,7 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app/js/pwned-password.js?v=1"></script>
 <script>
   const SUPABASE_URL = 'https://lpudgulhnfuwdttetwdn.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdWRndWxobmZ1d2R0dGV0d2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Nzg3MDUsImV4cCI6MjA5NDQ1NDcwNX0.cT0l012GjSeWV3mgA_-RIq4MEtrLvTUeGwd_cEuhH84';
@@ -768,6 +769,16 @@
     if (p1.length < 8) return _showResetError('A senha precisa ter ao menos 8 caracteres.');
     if (p1 !== p2)     return _showResetError('As senhas não coincidem.');
     _setResetLoading(true);
+    // Verificação de senha vazada (HIBP, client-side). Fail-open na falha.
+    if (window.HailePwned) {
+      try {
+        const r = await window.HailePwned.checkPwnedPassword(p1);
+        if (r.pwned) {
+          _setResetLoading(false);
+          return _showResetError('Essa senha apareceu em vazamentos públicos conhecidos. Por segurança, escolha outra.');
+        }
+      } catch (_) { /* fail-open */ }
+    }
     try {
       const { data, error } = await sb.auth.updateUser({ password: p1 });
       if (error) {
@@ -810,7 +821,18 @@
     if (isSignUp) {
       const confirm = document.getElementById('fPassConfirm').value;
       if (pass !== confirm) { setLoading(false); return showError('As senhas não coincidem.'); }
-      if (pass.length < 6)  { setLoading(false); return showError('Senha deve ter ao menos 6 caracteres.'); }
+      if (pass.length < 8)  { setLoading(false); return showError('Senha deve ter ao menos 8 caracteres.'); }
+      // Verificação de senha vazada (HaveIBeenPwned, client-side k-anonymity).
+      // Fail-open se a checagem falhar — não bloqueia cadastro por instabilidade externa.
+      if (window.HailePwned) {
+        try {
+          const r = await window.HailePwned.checkPwnedPassword(pass);
+          if (r.pwned) {
+            setLoading(false);
+            return showError('Essa senha apareceu em vazamentos públicos conhecidos. Por segurança, escolha outra.');
+          }
+        } catch (_) { /* fail-open */ }
+      }
       const { error } = await sb.auth.signUp({
         email,
         password: pass,
