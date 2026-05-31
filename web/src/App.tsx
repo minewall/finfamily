@@ -7,6 +7,7 @@ import Login from '@/pages/Login'
 import VisaoGeral from '@/pages/VisaoGeral'
 import Lancamentos from '@/pages/Lancamentos'
 import Contas from '@/pages/Contas'
+import Metas from '@/pages/Metas'
 import Placeholder from '@/pages/Placeholder'
 
 const queryClient = new QueryClient()
@@ -30,7 +31,7 @@ export default function App() {
               <Route path="/receitas" element={<Lancamentos kindFilter="receita" />} />
               <Route path="/despesas" element={<Lancamentos kindFilter="despesa" />} />
               <Route path="/contas" element={<Contas />} />
-              <Route path="/metas" element={<Placeholder title="Metas" />} />
+              <Route path="/metas" element={<Metas />} />
               <Route path="/simulador" element={<Placeholder title="Simulador" hint="Vai nascer como Simulador Guiado." />} />
             </Route>
           </Routes>

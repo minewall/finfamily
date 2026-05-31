@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { UserData, Despesa, Receita, Conta } from '@haile/shared'
+import type { UserData, Despesa, Receita, Conta, Meta } from '@haile/shared'
 import { supabase } from '@/lib/supabase'
 
 const LOCAL_KEY = 'haile_duo_user_data'
@@ -22,6 +22,9 @@ interface DataState {
   addConta: (input: Omit<Conta, 'id'> & Partial<Pick<Conta, 'id'>>) => void
   updateConta: (id: string, patch: Partial<Conta>) => void
   deleteConta: (id: string) => void
+  addMeta: (input: Omit<Meta, 'id'> & Partial<Pick<Meta, 'id'>>) => void
+  updateMeta: (id: string, patch: Partial<Meta>) => void
+  deleteMeta: (id: string) => void
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -169,6 +172,21 @@ export const useData = create<DataState>((set, get) => {
     deleteConta: (id) => {
       const d = ensure()
       persist({ ...d, contas: (d.contas ?? []).filter((c) => c.id !== id) })
+    },
+
+    addMeta: (input) => {
+      const d = ensure()
+      const entry: Meta = { active: true, ...input, id: input.id ?? newId() } as Meta
+      persist({ ...d, metas: [...(d.metas ?? []), entry] })
+    },
+    updateMeta: (id, patch) => {
+      const d = ensure()
+      const list = (d.metas ?? []).map((m) => (m.id === id ? { ...m, ...patch } : m))
+      persist({ ...d, metas: list })
+    },
+    deleteMeta: (id) => {
+      const d = ensure()
+      persist({ ...d, metas: (d.metas ?? []).filter((m) => m.id !== id) })
     },
   }
 })
