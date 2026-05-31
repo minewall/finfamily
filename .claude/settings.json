@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DATE=$(date +%Y-%m-%d); printf 'AUTO-CHAPTER (regra do projeto Haile): marque um chapter logo no início desta sessão usando mcp__ccd_session__mark_chapter com title=\"Haile · %s\" (substitua %s pela data atual). Resumo curto refletindo o que o usuário pediu. Faça isso ANTES de qualquer outro tool call, exceto leituras óbvias de orientação.' \"$DATE\" \"$DATE\""
+          }
+        ]
+      }
+    ]
+  }
+}

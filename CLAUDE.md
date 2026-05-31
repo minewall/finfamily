@@ -22,3 +22,7 @@ Regras permanentes que devem ser seguidas em todas as sessões.
 
 - Sempre criar commits novos (nunca `--amend` em commits anteriores)
 - Co-autoria: `Co-Authored-By: Averse Tecnologia / Claude <noreply@anthropic.com>`
+
+## Sessões
+
+- **Marcar chapter no início de cada sessão** via `mcp__ccd_session__mark_chapter` com title `Haile · YYYY-MM-DD` (data atual) e um summary curto refletindo o que o usuário pediu. Facilita localizar sessões depois. Hook `SessionStart` em `.claude/settings.json` injeta essa instrução no boot — se por algum motivo o hook falhar, fazer manual ainda assim.

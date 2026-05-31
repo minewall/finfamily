@@ -1,5 +1,8 @@
 .DS_Store
-.claude/
+# Claude Code: ignora apenas arquivos local-only.
+# settings.json e launch.json são versionados (defaults compartilhados).
+.claude/settings.local.json
+.claude/worktrees/
 *.xlsx
 gestor-financeiro-familiar.html
 supabase/.temp/
