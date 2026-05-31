@@ -8,7 +8,7 @@ import VisaoGeral from '@/pages/VisaoGeral'
 import Lancamentos from '@/pages/Lancamentos'
 import Contas from '@/pages/Contas'
 import Metas from '@/pages/Metas'
-import Placeholder from '@/pages/Placeholder'
+import Simulador from '@/pages/Simulador'
 
 const queryClient = new QueryClient()
 
@@ -32,7 +32,7 @@ export default function App() {
               <Route path="/despesas" element={<Lancamentos kindFilter="despesa" />} />
               <Route path="/contas" element={<Contas />} />
               <Route path="/metas" element={<Metas />} />
-              <Route path="/simulador" element={<Placeholder title="Simulador" hint="Vai nascer como Simulador Guiado." />} />
+              <Route path="/simulador" element={<Simulador />} />
             </Route>
           </Routes>
         </BrowserRouter>

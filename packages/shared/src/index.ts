@@ -6,3 +6,5 @@ export * from './coach-context';
 export * from './coach-tools';
 export * from './parser';
 export * from './pwned-password';
+export * from './sim-fluxo';
+export * from './sim-fluxos';
