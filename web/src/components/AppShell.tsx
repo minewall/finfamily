@@ -11,8 +11,11 @@ import {
   Menu,
   X,
   LogOut,
+  Sparkles,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { useCoach } from '@/store/useCoach'
+import { HailePanel } from '@/components/HailePanel'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -34,6 +37,7 @@ const NAV: NavItem[] = [
 export function AppShell() {
   const { session, signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const openHaile = useCoach((s) => s.setOpen)
   const email = session?.user?.email ?? ''
   const initial = (email[0] ?? '?').toUpperCase()
 
@@ -118,10 +122,32 @@ export function AppShell() {
             <Menu size={20} />
           </button>
           <div className="font-serif text-lg text-ink">Haile</div>
+          <button
+            type="button"
+            onClick={() => openHaile(true)}
+            className="ml-auto rounded-lg bg-gradient-to-br from-indigo to-teal p-2 text-white"
+            aria-label="Falar com o Haile"
+          >
+            <Sparkles size={16} />
+          </button>
         </header>
 
         <Outlet />
+
+        {/* Botão flutuante "Falar com o Haile" (desktop) */}
+        <button
+          type="button"
+          onClick={() => openHaile(true)}
+          className="fixed bottom-6 right-6 z-30 hidden items-center gap-2 rounded-full bg-gradient-to-br from-indigo to-teal px-4 py-3 text-sm font-semibold text-white shadow-xl shadow-indigo/30 transition-transform hover:scale-105 md:inline-flex"
+          aria-label="Falar com o Haile"
+        >
+          <Sparkles size={16} />
+          Falar com o Haile
+        </button>
       </main>
+
+      {/* Painel do Haile (drawer à direita) */}
+      <HailePanel />
     </div>
   )
 }
