@@ -27,6 +27,8 @@ export default function App() {
             >
               <Route path="/" element={<VisaoGeral />} />
               <Route path="/lancamentos" element={<Lancamentos />} />
+              <Route path="/receitas" element={<Lancamentos kindFilter="receita" />} />
+              <Route path="/despesas" element={<Lancamentos kindFilter="despesa" />} />
               <Route path="/contas" element={<Contas />} />
               <Route path="/metas" element={<Placeholder title="Metas" />} />
               <Route path="/simulador" element={<Placeholder title="Simulador" hint="Vai nascer como Simulador Guiado." />} />

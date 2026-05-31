@@ -10,6 +10,8 @@ interface Props {
   onClose: () => void
   /** se vier, é edição. Se undefined, é novo. */
   editing?: UnifiedLancamento | null
+  /** quando criando novo, pré-seleciona despesa ou receita (esconde tabs) */
+  defaultKind?: 'receita' | 'despesa'
 }
 
 const expenseCats = Object.entries(CATEGORIES).filter(([k]) => k !== 'receita')
@@ -18,7 +20,7 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function LancamentoModal({ open, onClose, editing }: Props) {
+export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) {
   const data = useData((s) => s.data)
   const addDespesa = useData((s) => s.addDespesa)
   const updateDespesa = useData((s) => s.updateDespesa)
@@ -31,7 +33,7 @@ export function LancamentoModal({ open, onClose, editing }: Props) {
   const contas = data?.contas ?? []
 
   const isEdit = !!editing
-  const [kind, setKind] = useState<'despesa' | 'receita'>(editing?.kind ?? 'despesa')
+  const [kind, setKind] = useState<'despesa' | 'receita'>(editing?.kind ?? defaultKind ?? 'despesa')
   const [desc, setDesc] = useState(editing?.desc ?? '')
   const [amount, setAmount] = useState<string>(editing?.amount?.toString() ?? '')
   const [date, setDate] = useState(editing?.date ?? todayISO())
@@ -44,7 +46,7 @@ export function LancamentoModal({ open, onClose, editing }: Props) {
   // Reset ao reabrir
   useEffect(() => {
     if (!open) return
-    setKind(editing?.kind ?? 'despesa')
+    setKind(editing?.kind ?? defaultKind ?? 'despesa')
     setDesc(editing?.desc ?? '')
     setAmount(editing?.amount?.toString() ?? '')
     setDate(editing?.date ?? todayISO())
@@ -53,7 +55,7 @@ export function LancamentoModal({ open, onClose, editing }: Props) {
     setContaId(editing?.contaId ?? '')
     setError(null)
     setSubmitting(false)
-  }, [open, editing, pessoas])
+  }, [open, editing, defaultKind, pessoas])
 
   // Se mudar o tipo num NOVO lançamento, ajusta categoria default
   useEffect(() => {
@@ -103,7 +105,15 @@ export function LancamentoModal({ open, onClose, editing }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? `Editar ${editing?.kind === 'receita' ? 'receita' : 'despesa'}` : 'Novo lançamento'}
+      title={
+        isEdit
+          ? `Editar ${editing?.kind === 'receita' ? 'receita' : 'despesa'}`
+          : defaultKind === 'receita'
+            ? 'Nova receita'
+            : defaultKind === 'despesa'
+              ? 'Nova despesa'
+              : 'Novo lançamento'
+      }
       size="md"
       footer={
         <>
@@ -119,7 +129,7 @@ export function LancamentoModal({ open, onClose, editing }: Props) {
         </>
       }
     >
-      {!isEdit && (
+      {!isEdit && !defaultKind && (
         <div className="mb-4 inline-flex rounded-lg border border-line-2 bg-elevated p-0.5">
           <button
             type="button"

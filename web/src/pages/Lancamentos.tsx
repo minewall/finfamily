@@ -20,7 +20,12 @@ function fmtDayHeader(dateISO: string): string {
   return dt.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
 }
 
-export default function Lancamentos() {
+interface LancamentosProps {
+  /** se 'receita' ou 'despesa', filtra a tela; undefined = ambos. */
+  kindFilter?: 'receita' | 'despesa'
+}
+
+export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
   const { data, loading, error, load, syncStatus } = useData()
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -29,8 +34,24 @@ export default function Lancamentos() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<UnifiedLancamento | null>(null)
 
-  function openNew() { setEditing(null); setModalOpen(true) }
+  // Pré-seleciona o tipo no modal quando a tela é filtrada por receitas/despesas.
+  // Truque: cria um "stub" de UnifiedLancamento só com kind, pra o modal
+  // entrar no modo "Novo" mas com a aba certa.
+  function openNew() {
+    if (kindFilter) {
+      setEditing({
+        id: '', kind: kindFilter, date: '', desc: '', amount: 0, amountSigned: 0,
+      } as UnifiedLancamento)
+    } else {
+      setEditing(null)
+    }
+    setModalOpen(true)
+  }
   function openEdit(it: UnifiedLancamento) { setEditing(it); setModalOpen(true) }
+
+  // Quando o modal é o "stub" pra novo (id===''), tratamos como Novo
+  const editingForModal = editing && editing.id === '' ? null : editing
+  const newKind = editing && editing.id === '' ? editing.kind : undefined
 
   useEffect(() => {
     if (!data && !loading) void load()
@@ -39,6 +60,7 @@ export default function Lancamentos() {
   const items = useMemo<UnifiedLancamento[]>(() => {
     if (!data) return []
     let xs = getLancamentos(data, { month, year })
+    if (kindFilter) xs = xs.filter((x) => x.kind === kindFilter)
     if (q.trim()) {
       const needle = q.toLowerCase()
       xs = xs.filter(
@@ -78,13 +100,21 @@ export default function Lancamentos() {
     month: 'long', year: 'numeric',
   })
 
+  const title = kindFilter === 'receita' ? 'Receitas' : kindFilter === 'despesa' ? 'Despesas' : 'Lançamentos'
+  const subtitle = kindFilter === 'receita'
+    ? 'Entradas do mês.'
+    : kindFilter === 'despesa'
+      ? 'Saídas do mês.'
+      : 'Receitas e despesas do mês.'
+  const newLabel = kindFilter === 'receita' ? 'Nova receita' : kindFilter === 'despesa' ? 'Nova despesa' : 'Novo'
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Lançamentos</h1>
+          <h1 className="text-2xl font-bold text-ink">{title}</h1>
           <p className="text-sm text-mist">
-            Receitas e despesas do mês.
+            {subtitle}
             {syncStatus === 'syncing' && <span className="ml-2 text-faint">· salvando…</span>}
             {syncStatus === 'synced' && <span className="ml-2 text-green/80">· sincronizado</span>}
             {syncStatus === 'error' && <span className="ml-2 text-red">· erro de sync</span>}
@@ -92,7 +122,7 @@ export default function Lancamentos() {
         </div>
         <div className="flex items-center gap-3">
           <Button size="sm" onClick={openNew}>
-            <Plus size={14} /> Novo
+            <Plus size={14} /> {newLabel}
           </Button>
         </div>
       </header>
@@ -130,12 +160,16 @@ export default function Lancamentos() {
           />
         </div>
         <div className="flex items-center gap-4 text-xs">
-          <span className="text-mist">
-            <span className="font-mono font-bold text-green">+{currencyBRL(totalRec)}</span> receitas
-          </span>
-          <span className="text-mist">
-            <span className="font-mono font-bold text-red">−{currencyBRL(totalDesp)}</span> despesas
-          </span>
+          {kindFilter !== 'despesa' && (
+            <span className="text-mist">
+              <span className="font-mono font-bold text-green">+{currencyBRL(totalRec)}</span> receitas
+            </span>
+          )}
+          {kindFilter !== 'receita' && (
+            <span className="text-mist">
+              <span className="font-mono font-bold text-red">−{currencyBRL(totalDesp)}</span> despesas
+            </span>
+          )}
           <span className="text-faint">· {items.length} {items.length === 1 ? 'item' : 'itens'}</span>
         </div>
       </div>
@@ -199,7 +233,12 @@ export default function Lancamentos() {
         </div>
       )}
 
-      <LancamentoModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} />
+      <LancamentoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        editing={editingForModal}
+        defaultKind={newKind}
+      />
     </div>
   )
 }

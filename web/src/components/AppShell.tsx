@@ -3,6 +3,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutGrid,
   Receipt,
+  TrendingUp,
+  TrendingDown,
   Wallet,
   Target,
   LineChart,
@@ -22,6 +24,8 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'Visão Geral', icon: <LayoutGrid size={18} /> },
   { to: '/lancamentos', label: 'Lançamentos', icon: <Receipt size={18} /> },
+  { to: '/receitas', label: 'Receitas', icon: <TrendingUp size={18} /> },
+  { to: '/despesas', label: 'Despesas', icon: <TrendingDown size={18} /> },
   { to: '/contas', label: 'Contas', icon: <Wallet size={18} /> },
   { to: '/metas', label: 'Metas', icon: <Target size={18} /> },
   { to: '/simulador', label: 'Simulador', icon: <LineChart size={18} /> },
