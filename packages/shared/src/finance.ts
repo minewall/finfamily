@@ -80,6 +80,98 @@ export function personInitial(name?: string | null): string {
   return name.trim().charAt(0).toUpperCase() || '?';
 }
 
+// ── Poder de Escolha (v1, heurística canônica) ────────────────────
+// No Dino o cálculo usa a engine de "tipos" editáveis pelo usuário
+// (essencial/obrigatório/comprometido/opcional). Aqui no DUO ainda
+// NÃO portamos essa engine — usamos uma heurística por categorias
+// canônicas. Quando portar os tipos, esta função deve passar a usar
+// data.tipos + data.settings.catTipo.
+const ESSENCIAIS_CANONICAS = new Set([
+  'moradia', 'saude', 'educacao', 'financeiro', 'transporte',
+]);
+
+export interface PoderDeEscolha {
+  receitas: number;
+  pisoSobrevivencia: number;
+  poderDeEscolha: number;
+  pct: number; // 0..1 — fração da receita "livre"
+}
+
+export function calcPoderDeEscolha(
+  data: UserData,
+  month: number,
+  year: number,
+): PoderDeEscolha {
+  const receitas = sumReceitas(data, month, year);
+  const piso = (data.despesas ?? [])
+    .filter((d) => d.month === month && d.year === year)
+    .filter((d) => ESSENCIAIS_CANONICAS.has(d.category ?? ''))
+    .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  return {
+    receitas,
+    pisoSobrevivencia: piso,
+    poderDeEscolha: receitas - piso,
+    pct: receitas > 0 ? (receitas - piso) / receitas : 0,
+  };
+}
+
+// Breakdown de despesas do mês por categoria canônica.
+// Retorna ordenado por total DESC; pct = fração do total de despesas.
+export interface CategoriaBreakdown {
+  category: string;
+  total: number;
+  pct: number;
+  count: number;
+}
+
+export function breakdownPorCategoria(
+  data: UserData,
+  month: number,
+  year: number,
+): CategoriaBreakdown[] {
+  const totals = new Map<string, { total: number; count: number }>();
+  let grand = 0;
+  for (const d of data.despesas ?? []) {
+    if (d.month !== month || d.year !== year) continue;
+    const k = d.category ?? 'outros';
+    const amt = Number(d.amount) || 0;
+    const cur = totals.get(k) ?? { total: 0, count: 0 };
+    cur.total += amt;
+    cur.count += 1;
+    totals.set(k, cur);
+    grand += amt;
+  }
+  return [...totals.entries()]
+    .map(([category, { total, count }]) => ({
+      category,
+      total,
+      count,
+      pct: grand > 0 ? total / grand : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+// Top N despesas individuais do mês (maiores valores).
+export function topDespesas(
+  data: UserData,
+  month: number,
+  year: number,
+  n = 5,
+) {
+  return (data.despesas ?? [])
+    .filter((d) => d.month === month && d.year === year)
+    .map((d) => ({
+      id: d.id,
+      desc: d.desc ?? '',
+      amount: Number(d.amount) || 0,
+      date: d.date,
+      person: d.person,
+      category: d.category,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, n);
+}
+
 // Resumo + lançamentos recentes amarrados a uma conta via contaId.
 // Espelha Store.getLancamentosByConta do Dino — usado no drilldown.
 export interface ContaResumo {
