@@ -4,3 +4,4 @@ export * from './categories';
 export * from './metas';
 export * from './coach-context';
 export * from './coach-tools';
+export * from './parser';

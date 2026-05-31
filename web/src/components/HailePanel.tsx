@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { Send, X, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ChangeEvent } from 'react'
+import { Send, X, Trash2, Paperclip } from 'lucide-react'
 import {
   buildCoachSystemPrompt,
   COACH_TOOLS,
   SKIP_CONFIRM,
+  parseExtrato,
+  currencyBRL,
   type CoachToolName,
 } from '@haile/shared'
 import { askCoachRaw, type ContentBlock, type CoachMessage } from '@/lib/coach'
@@ -142,6 +144,66 @@ export function HailePanel() {
   }
 
   function onSubmit(e: FormEvent) { e.preventDefault(); void send(input) }
+
+  // ── Importação de extrato (paper-clip) ─────────────────────────
+  // Lê arquivo (UTF-8 com fallback windows-1252 se vir "�"), parseia local,
+  // monta prompt sintético com a lista de transações + categorias sugeridas
+  // e dispara runTurn — o Haile categoriza/refina e chama bulkAdd via tool use.
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function readFileSmart(file: File): Promise<string> {
+    let conteudo = await file.text()
+    if (conteudo.includes('�')) {
+      // re-lê em windows-1252 (cobre extratos antigos com acentos ISO-8859)
+      const buf = await file.arrayBuffer()
+      conteudo = new TextDecoder('windows-1252').decode(buf)
+    }
+    return conteudo
+  }
+
+  async function onAttachFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite reanexar o mesmo arquivo
+    if (!file) return
+    setError(null)
+    try {
+      const conteudo = await readFileSmart(file)
+      const parsed = parseExtrato({ conteudo })
+      if (!parsed.ok || parsed.transacoes.length === 0) {
+        setError(`Não consegui ler o arquivo: ${parsed.errors[0] ?? 'sem transações reconhecidas'}.`)
+        return
+      }
+
+      const periodo = parsed.summary.periodo
+      const linhas = parsed.transacoes.map((t) =>
+        `- ${t.data} | ${t.descricao} | ${currencyBRL(Math.abs(t.valor))} | ${t.tipo} | ${t.sugestaoCategoria ?? '—'}`,
+      ).join('\n')
+
+      const userPrompt = [
+        `[Importação de extrato]`,
+        `Arquivo: ${file.name} (formato: ${parsed.formato})`,
+        periodo.inicio && periodo.fim ? `Período: ${periodo.inicio} → ${periodo.fim}` : '',
+        `Reconhecidas: ${parsed.totalReconhecidas} transações · ignoradas: ${parsed.ignoradas}`,
+        `Totais: despesas ${currencyBRL(parsed.summary.totalDespesas)} · receitas ${currencyBRL(parsed.summary.totalReceitas)}`,
+        ``,
+        `Lista (data | descrição | valor | tipo | sugestão de categoria):`,
+        linhas,
+        ``,
+        `INSTRUÇÃO: 1) Mostre um breve resumo agregado (quantas por categoria). 2) Mapeie cada transação pra uma categoria real (use as categorias canônicas do contexto). 3) Use bulkAddDespesas pra criar as despesas e bulkAddReceitas pra criar as receitas, em chamadas SEPARADAS. 4) Peça minha confirmação antes de criar.`,
+      ].filter(Boolean).join('\n')
+
+      // Sumário visível pro usuário (turno user-text curto)
+      const userVisible = `Importei ${parsed.totalReconhecidas} transações de ${file.name}.`
+      appendTurn({ id: newTurnId(), kind: 'user-text', text: userVisible })
+      const userMsg: CoachMessage = { role: 'user', content: userPrompt }
+      pushRaw(userMsg)
+      await runTurn([...rawHistory, userMsg])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao ler o arquivo.'
+      setError(msg)
+    }
+  }
+
   function onKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(input) }
   }
@@ -236,9 +298,26 @@ export function HailePanel() {
         )}
 
         <form onSubmit={onSubmit} className="border-t border-line p-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.ofx,.txt,text/csv,application/x-ofx"
+            onChange={onAttachFile}
+            className="hidden"
+          />
           <div className="flex items-end gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg text-mist hover:bg-elevated hover:text-ink disabled:opacity-50"
+              aria-label="Anexar extrato (CSV ou OFX)"
+              title="Anexar extrato (CSV ou OFX)"
+            >
+              <Paperclip size={16} />
+            </button>
             <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey}
-              placeholder="Pergunte ao Haile…" rows={1}
+              placeholder="Pergunte ao Haile ou anexe um extrato…" rows={1}
               className="flex-1 resize-none rounded-lg border border-line-2 bg-elevated px-3 py-2 text-sm text-ink placeholder:text-faint outline-none focus:border-indigo"
               disabled={loading} />
             <button type="submit" disabled={!input.trim() || loading}

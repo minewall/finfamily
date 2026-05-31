@@ -108,6 +108,75 @@ export function runCoachTool(name: CoachToolName, input: Input): HandlerResult {
       }
     }
 
+    case 'bulkAddDespesas': {
+      const itemsIn = input.items
+      if (!Array.isArray(itemsIn) || itemsIn.length === 0) {
+        return { content: 'Erro: lista de items vazia.', summary: 'erro', isError: true }
+      }
+      const valid: Parameters<typeof store.bulkAddDespesas>[0] = []
+      const erros: string[] = []
+      itemsIn.forEach((it, i) => {
+        const r = it as Record<string, unknown>
+        const descricao = asString(r.descricao)?.trim()
+        const valor = asNumber(r.valor)
+        const data = asString(r.data)
+        const categoria = asString(r.categoria)
+        if (!descricao || !valor || valor <= 0 || !data || !categoria) {
+          erros.push(`item ${i + 1}: campos faltando`)
+          return
+        }
+        valid.push({
+          desc: descricao, amount: valor, date: data,
+          category: categoria, sub: asString(r.sub) ?? null,
+          person: asString(r.pessoa),
+        })
+      })
+      if (valid.length === 0) {
+        return { content: 'Erro: nenhum item válido. ' + erros.join('; '), summary: '0 items', isError: true }
+      }
+      const created = store.bulkAddDespesas(valid)
+      const total = created.reduce((s, x) => s + (Number(x.amount) || 0), 0)
+      const aviso = erros.length > 0 ? ` (${erros.length} ignorados: ${erros.join('; ')})` : ''
+      return {
+        content: `Criadas ${created.length} despesas, total ${currencyBRL(total)}.${aviso}`,
+        summary: `${created.length} despesas · ${currencyBRL(total)}`,
+      }
+    }
+
+    case 'bulkAddReceitas': {
+      const itemsIn = input.items
+      if (!Array.isArray(itemsIn) || itemsIn.length === 0) {
+        return { content: 'Erro: lista de items vazia.', summary: 'erro', isError: true }
+      }
+      const valid: Parameters<typeof store.bulkAddReceitas>[0] = []
+      const erros: string[] = []
+      itemsIn.forEach((it, i) => {
+        const r = it as Record<string, unknown>
+        const descricao = asString(r.descricao)?.trim()
+        const valor = asNumber(r.valor)
+        const data = asString(r.data)
+        if (!descricao || !valor || valor <= 0 || !data) {
+          erros.push(`item ${i + 1}: campos faltando`)
+          return
+        }
+        valid.push({
+          desc: descricao, amount: valor, date: data,
+          person: asString(r.pessoa),
+          type: asString(r.tipo) ?? 'outros',
+          category: 'receita',
+        })
+      })
+      if (valid.length === 0) {
+        return { content: 'Erro: nenhum item válido. ' + erros.join('; '), summary: '0 items', isError: true }
+      }
+      const created = store.bulkAddReceitas(valid)
+      const total = created.reduce((s, x) => s + (Number(x.amount) || 0), 0)
+      return {
+        content: `Criadas ${created.length} receitas, total ${currencyBRL(total)}.`,
+        summary: `${created.length} receitas · ${currencyBRL(total)}`,
+      }
+    }
+
     case 'queryDespesas': {
       const data = useData.getState().data ?? {}
       const month = asNumber(input.month)

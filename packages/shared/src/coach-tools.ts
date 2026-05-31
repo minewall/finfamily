@@ -63,6 +63,55 @@ export const COACH_TOOLS = [
     },
   },
   {
+    name: 'bulkAddDespesas',
+    description: 'Cria várias despesas de uma vez. Use SEMPRE ao importar extrato bancário ou fatura — não chame addDespesa em loop. Mostre um resumo antes (quantas por categoria) e peça confirmação.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              descricao: { type: 'string' },
+              valor:     { type: 'number', description: 'Valor positivo em reais' },
+              data:      { type: 'string', description: 'YYYY-MM-DD' },
+              pessoa:    { type: 'string' },
+              categoria: { type: 'string' },
+              sub:       { type: 'string' },
+            },
+            required: ['descricao', 'valor', 'data', 'categoria'],
+          },
+        },
+      },
+      required: ['items'],
+    },
+  },
+  {
+    name: 'bulkAddReceitas',
+    description: 'Cria várias receitas de uma vez. Use ao importar extrato (entradas).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              descricao: { type: 'string' },
+              valor:     { type: 'number' },
+              data:      { type: 'string', description: 'YYYY-MM-DD' },
+              pessoa:    { type: 'string' },
+              tipo:      { type: 'string', enum: ['salario','contrato','pensao','emprestimo','outros'] },
+            },
+            required: ['descricao', 'valor', 'data'],
+          },
+        },
+      },
+      required: ['items'],
+    },
+  },
+  {
     name: 'queryDespesas',
     description: 'Busca despesas com filtros (mês/ano/categoria/pessoa/texto). Útil pra responder perguntas como "quanto gastei com X" sem inventar números.',
     input_schema: {
@@ -85,9 +134,11 @@ export const SKIP_CONFIRM: ReadonlySet<CoachToolName> = new Set(['queryDespesas'
 
 // Labels legíveis pra o card de confirmação.
 export const TOOL_LABELS: Record<CoachToolName, { titulo: string; verbo: string }> = {
-  addDespesa:    { titulo: 'Nova despesa',     verbo: 'Criar despesa' },
-  updateDespesa: { titulo: 'Editar despesa',   verbo: 'Atualizar despesa' },
-  deleteDespesa: { titulo: 'Excluir despesa',  verbo: 'Excluir despesa' },
-  addReceita:    { titulo: 'Nova receita',     verbo: 'Criar receita' },
-  queryDespesas: { titulo: 'Consulta',         verbo: 'Consultar' },
+  addDespesa:      { titulo: 'Nova despesa',         verbo: 'Criar despesa' },
+  updateDespesa:   { titulo: 'Editar despesa',       verbo: 'Atualizar despesa' },
+  deleteDespesa:   { titulo: 'Excluir despesa',      verbo: 'Excluir despesa' },
+  addReceita:      { titulo: 'Nova receita',         verbo: 'Criar receita' },
+  bulkAddDespesas: { titulo: 'Importar despesas',    verbo: 'Importar' },
+  bulkAddReceitas: { titulo: 'Importar receitas',    verbo: 'Importar' },
+  queryDespesas:   { titulo: 'Consulta',             verbo: 'Consultar' },
 }

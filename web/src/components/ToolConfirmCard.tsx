@@ -42,9 +42,26 @@ function formatFieldValue(k: string, v: unknown): string {
   return String(v ?? '—')
 }
 
+function bulkSummary(items: unknown): { count: number; total: number; samples: string[] } {
+  if (!Array.isArray(items)) return { count: 0, total: 0, samples: [] }
+  const count = items.length
+  let total = 0
+  const samples: string[] = []
+  items.forEach((it, i) => {
+    const r = it as Record<string, unknown>
+    const v = typeof r.valor === 'number' ? r.valor : parseFloat(String(r.valor ?? ''))
+    if (Number.isFinite(v)) total += v
+    if (i < 3) samples.push(`${r.descricao ?? '—'} · ${typeof v === 'number' && Number.isFinite(v)
+      ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}`)
+  })
+  return { count, total, samples }
+}
+
 export function ToolConfirmCard(props: Props) {
   const label = TOOL_LABELS[props.name]?.titulo ?? props.name
-  const fields = Object.entries(props.input).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  const isBulk = props.name === 'bulkAddDespesas' || props.name === 'bulkAddReceitas'
+  const fields = isBulk ? [] : Object.entries(props.input).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  const bulk = isBulk ? bulkSummary((props.input as Record<string, unknown>).items) : null
   const isDelete = props.name === 'deleteDespesa'
   const accentClass = isDelete ? 'border-red/40 bg-red/5' : 'border-indigo/40 bg-indigo/5'
 
@@ -66,14 +83,38 @@ export function ToolConfirmCard(props: Props) {
         )}
       </div>
 
-      <div className="space-y-1">
-        {fields.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-3 text-xs">
-            <span className="text-mist">{formatFieldKey(k)}</span>
-            <span className="text-ink font-medium text-right">{formatFieldValue(k, v)}</span>
+      {bulk ? (
+        <div className="space-y-1.5 text-xs">
+          <div className="flex justify-between gap-3">
+            <span className="text-mist">Total de itens</span>
+            <span className="text-ink font-bold">{bulk.count}</span>
           </div>
-        ))}
-      </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-mist">Soma</span>
+            <span className="text-ink font-mono font-bold">
+              {bulk.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          </div>
+          {bulk.samples.length > 0 && (
+            <div className="mt-2 border-t border-line pt-2 text-[11px] text-mist">
+              <div className="mb-1 text-faint">Primeiros itens:</div>
+              {bulk.samples.map((s, i) => <div key={i} className="truncate">· {s}</div>)}
+              {bulk.count > bulk.samples.length && (
+                <div className="text-faint">… +{bulk.count - bulk.samples.length} outros</div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {fields.map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-3 text-xs">
+              <span className="text-mist">{formatFieldKey(k)}</span>
+              <span className="text-ink font-medium text-right">{formatFieldValue(k, v)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {props.kind === 'pending' && (
         <div className="mt-3 flex justify-end gap-2">

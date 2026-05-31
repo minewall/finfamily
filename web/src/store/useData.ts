@@ -25,6 +25,12 @@ interface DataState {
   addMeta: (input: Omit<Meta, 'id'> & Partial<Pick<Meta, 'id'>>) => void
   updateMeta: (id: string, patch: Partial<Meta>) => void
   deleteMeta: (id: string) => void
+  bulkAddDespesas: (
+    inputs: Array<Omit<Despesa, 'id' | 'month' | 'year'> & Partial<Pick<Despesa, 'id' | 'month' | 'year'>>>,
+  ) => Despesa[]
+  bulkAddReceitas: (
+    inputs: Array<Omit<Receita, 'id' | 'month' | 'year'> & Partial<Pick<Receita, 'id' | 'month' | 'year'>>>,
+  ) => Receita[]
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -187,6 +193,27 @@ export const useData = create<DataState>((set, get) => {
     deleteMeta: (id) => {
       const d = ensure()
       persist({ ...d, metas: (d.metas ?? []).filter((m) => m.id !== id) })
+    },
+
+    bulkAddDespesas: (inputs) => {
+      const d = ensure()
+      const entries: Despesa[] = inputs.map((input) => ({
+        ...input,
+        id: input.id ?? newId(),
+        ...deriveMonthYear(String(input.date ?? '')),
+      } as Despesa))
+      persist({ ...d, despesas: [...(d.despesas ?? []), ...entries] })
+      return entries
+    },
+    bulkAddReceitas: (inputs) => {
+      const d = ensure()
+      const entries: Receita[] = inputs.map((input) => ({
+        ...input,
+        id: input.id ?? newId(),
+        ...deriveMonthYear(String(input.date ?? '')),
+      } as Receita))
+      persist({ ...d, receitas: [...(d.receitas ?? []), ...entries] })
+      return entries
     },
   }
 })
