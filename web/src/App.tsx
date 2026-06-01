@@ -9,6 +9,7 @@ import Lancamentos from '@/pages/Lancamentos'
 import Contas from '@/pages/Contas'
 import Metas from '@/pages/Metas'
 import Simulador from '@/pages/Simulador'
+import Familia from '@/pages/Familia'
 
 const queryClient = new QueryClient()
 
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/contas" element={<Contas />} />
               <Route path="/metas" element={<Metas />} />
               <Route path="/simulador" element={<Simulador />} />
+              <Route path="/familia" element={<Familia />} />
             </Route>
           </Routes>
         </BrowserRouter>

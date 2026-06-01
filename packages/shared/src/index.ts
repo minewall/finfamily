@@ -9,3 +9,4 @@ export * from './pwned-password';
 export * from './sim-fluxo';
 export * from './sim-fluxos';
 export * from './tipos';
+export * from './familia';

@@ -8,6 +8,7 @@ import {
   Wallet,
   Target,
   LineChart,
+  Users,
   Menu,
   X,
   LogOut,
@@ -33,6 +34,7 @@ const NAV: NavItem[] = [
   { to: '/despesas', label: 'Despesas', icon: <TrendingDown size={18} /> },
   { to: '/contas', label: 'Contas', icon: <Wallet size={18} /> },
   { to: '/metas', label: 'Metas', icon: <Target size={18} /> },
+  { to: '/familia', label: 'Família', icon: <Users size={18} /> },
   { to: '/simulador', label: 'Simulador', icon: <LineChart size={18} /> },
 ]
 

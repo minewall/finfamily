@@ -49,6 +49,7 @@ export interface UserData {
   despesas?: Despesa[];
   contas?: Conta[];
   metas?: Meta[];
+  pessoas?: string[];
   settings?: Record<string, unknown>;
   onboarding?: { completed?: boolean; [k: string]: unknown };
   flags?: Record<string, unknown>;

@@ -34,6 +34,10 @@ interface DataState {
   /** Flag genérica em data.flags (porta de Store.getFlag/setFlag do Dino). */
   getFlag: (key: string, fallback?: boolean) => boolean
   setFlag: (key: string, value: boolean) => void
+  // ── Pessoas (porta de Store.addPessoa/renamePessoa/deletePessoa) ──
+  addPessoa: (name: string) => void
+  renamePessoa: (oldName: string, newName: string) => void
+  deletePessoa: (name: string) => void
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -227,6 +231,60 @@ export const useData = create<DataState>((set, get) => {
       const d = ensure()
       const flags = { ...(d.flags as Record<string, boolean> | undefined ?? {}), [key]: value }
       persist({ ...d, flags })
+    },
+
+    addPessoa: (name) => {
+      const nome = (name || '').trim()
+      if (!nome) throw new Error('Nome obrigatório')
+      const d = ensure()
+      const list = d.pessoas ?? []
+      if (list.includes(nome)) throw new Error('Pessoa já cadastrada')
+      persist({ ...d, pessoas: [...list, nome] })
+    },
+    renamePessoa: (oldName, newName) => {
+      const nome = (newName || '').trim()
+      if (!nome) throw new Error('Nome obrigatório')
+      const d = ensure()
+      const list = d.pessoas ?? []
+      const idx = list.indexOf(oldName)
+      if (idx < 0) return
+      const novaLista = [...list]
+      novaLista[idx] = nome
+      // propagar pra receitas/despesas/splits
+      const receitas = (d.receitas ?? []).map((r) =>
+        r.person === oldName ? { ...r, person: nome } : r,
+      )
+      const despesas = (d.despesas ?? []).map((dd) => {
+        let next = dd
+        if (next.person === oldName) next = { ...next, person: nome }
+        if (next.split && next.split.length) {
+          const split = next.split.map((s) =>
+            s.person === oldName ? { ...s, person: nome } : s,
+          )
+          next = { ...next, split }
+        }
+        return next
+      })
+      persist({ ...d, pessoas: novaLista, receitas, despesas })
+    },
+    deletePessoa: (name) => {
+      const d = ensure()
+      const usageRec = (d.receitas ?? []).filter((r) => r.person === name).length
+      const usageDesp = (d.despesas ?? []).filter(
+        (dd) =>
+          dd.person === name ||
+          (Array.isArray(dd.split) && dd.split.some((s) => s.person === name)),
+      ).length
+      const usage = usageRec + usageDesp
+      if (usage > 0) {
+        throw new Error(`${usage} lançamento(s) ainda referenciam esta pessoa`)
+      }
+      const list = d.pessoas ?? []
+      const i = list.indexOf(name)
+      if (i < 0) return
+      const novaLista = [...list]
+      novaLista.splice(i, 1)
+      persist({ ...d, pessoas: novaLista })
     },
   }
 })
