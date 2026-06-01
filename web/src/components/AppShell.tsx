@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutGrid,
@@ -15,7 +15,9 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { useCoach } from '@/store/useCoach'
+import { useData } from '@/store/useData'
 import { HailePanel } from '@/components/HailePanel'
+import { HaileTakeover } from '@/components/HaileTakeover'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -38,8 +40,33 @@ export function AppShell() {
   const { session, signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const openHaile = useCoach((s) => s.setOpen)
+  const setTakeoverOpen = useCoach((s) => s.setTakeoverOpen)
+  const data = useData((s) => s.data)
+  const loading = useData((s) => s.loading)
+  const getFlag = useData((s) => s.getFlag)
+  const load = useData((s) => s.load)
   const email = session?.user?.email ?? ''
   const initial = (email[0] ?? '?').toUpperCase()
+
+  // Garante que carregamos o blob assim que o shell monta (algumas telas
+  // disparam load(), outras não; aqui é o lugar único de entrada).
+  useEffect(() => {
+    if (!data && !loading) void load()
+  }, [data, loading, load])
+
+  // Gate do takeover de 1º acesso: dispara quando o usuário acabou de
+  // carregar e está com zero dados + flag não dispensada. Mantemos o
+  // critério simples (sem depender de onboarding.completed que ainda não
+  // foi portado pro DUO) — beta sempre cai aqui na 1ª vez.
+  useEffect(() => {
+    if (!data) return
+    if (loading) return
+    if (getFlag('haileFirstRunDismissed', false)) return
+    const zero = !(data.receitas?.length) && !(data.despesas?.length) && !(data.contas?.length)
+    if (!zero) return
+    const t = setTimeout(() => setTakeoverOpen(true), 500)
+    return () => clearTimeout(t)
+  }, [data, loading, getFlag, setTakeoverOpen])
 
   return (
     <div className="flex min-h-dvh bg-bg text-ink">
@@ -148,6 +175,9 @@ export function AppShell() {
 
       {/* Painel do Haile (drawer à direita) */}
       <HailePanel />
+
+      {/* Takeover de 1º acesso (overlay central) */}
+      <HaileTakeover />
     </div>
   )
 }

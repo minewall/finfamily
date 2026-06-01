@@ -41,6 +41,8 @@ export interface RawMessage {
 
 interface CoachState {
   open: boolean
+  /** Takeover de 1º acesso (overlay central, controlado à parte do drawer) */
+  takeoverOpen: boolean
   turns: Turn[]
   rawHistory: RawMessage[]
   loading: boolean
@@ -48,6 +50,7 @@ interface CoachState {
   usage: CoachUsage | null
   setOpen: (open: boolean) => void
   toggle: () => void
+  setTakeoverOpen: (open: boolean) => void
   appendTurn: (t: Turn) => void
   resolveToolPending: (tool_use_id: string, into: Turn) => void
   setRawHistory: (h: RawMessage[]) => void
@@ -64,6 +67,7 @@ function uid() {
 
 export const useCoach = create<CoachState>((set) => ({
   open: false,
+  takeoverOpen: false,
   turns: [],
   rawHistory: [],
   loading: false,
@@ -71,6 +75,7 @@ export const useCoach = create<CoachState>((set) => ({
   usage: null,
   setOpen: (open) => set({ open }),
   toggle: () => set((s) => ({ open: !s.open })),
+  setTakeoverOpen: (takeoverOpen) => set({ takeoverOpen }),
   appendTurn: (t) => set((s) => ({ turns: [...s.turns, t] })),
   resolveToolPending: (tool_use_id, into) =>
     set((s) => ({

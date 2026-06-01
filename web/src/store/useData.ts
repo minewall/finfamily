@@ -31,6 +31,9 @@ interface DataState {
   bulkAddReceitas: (
     inputs: Array<Omit<Receita, 'id' | 'month' | 'year'> & Partial<Pick<Receita, 'id' | 'month' | 'year'>>>,
   ) => Receita[]
+  /** Flag genérica em data.flags (porta de Store.getFlag/setFlag do Dino). */
+  getFlag: (key: string, fallback?: boolean) => boolean
+  setFlag: (key: string, value: boolean) => void
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -214,6 +217,16 @@ export const useData = create<DataState>((set, get) => {
       } as Receita))
       persist({ ...d, receitas: [...(d.receitas ?? []), ...entries] })
       return entries
+    },
+
+    getFlag: (key, fallback = false) => {
+      const flags = (ensure().flags ?? {}) as Record<string, boolean>
+      return key in flags ? !!flags[key] : fallback
+    },
+    setFlag: (key, value) => {
+      const d = ensure()
+      const flags = { ...(d.flags as Record<string, boolean> | undefined ?? {}), [key]: value }
+      persist({ ...d, flags })
     },
   }
 })
