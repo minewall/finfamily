@@ -5,7 +5,7 @@ import {
   sumDespesas,
   saldoMes,
   currencyBRL,
-  calcPoderDeEscolha,
+  calcPoderDeEscolhaV2,
   breakdownPorCategoria,
   topDespesas,
   getCategoryLabel,
@@ -51,7 +51,7 @@ export default function VisaoGeral() {
   const rec = sumReceitas(d, month, year)
   const desp = sumDespesas(d, month, year)
   const saldo = saldoMes(d, month, year)
-  const pde = calcPoderDeEscolha(d, month, year)
+  const pde = calcPoderDeEscolhaV2(d, month, year)
   const cats = breakdownPorCategoria(d, month, year).slice(0, 6)
   const top = topDespesas(d, month, year, 5)
   const contas = d.contas ?? []

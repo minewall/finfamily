@@ -6,8 +6,8 @@ import type { UserData } from './types'
 import {
   sumReceitas, sumDespesas, currencyBRL,
   breakdownPorCategoria, topDespesas,
-  calcPoderDeEscolha,
 } from './finance'
+import { calcPoderDeEscolhaV2 } from './tipos'
 import { getCategoryLabel } from './categories'
 import { calcMetaProgresso, metaTipoLabel } from './metas'
 
@@ -17,7 +17,7 @@ export function buildCoachSystemPrompt(data: UserData, month: number, year: numb
   const rec = sumReceitas(data, month, year)
   const desp = sumDespesas(data, month, year)
   const saldo = rec - desp
-  const pde = calcPoderDeEscolha(data, month, year)
+  const pde = calcPoderDeEscolhaV2(data, month, year)
   const breakdown = breakdownPorCategoria(data, month, year).slice(0, 8)
   const top = topDespesas(data, month, year, 8)
   const metas = (data.metas ?? []).filter((m) => m.active !== false)

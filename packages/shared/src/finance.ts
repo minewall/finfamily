@@ -80,12 +80,11 @@ export function personInitial(name?: string | null): string {
   return name.trim().charAt(0).toUpperCase() || '?';
 }
 
-// ── Poder de Escolha (v1, heurística canônica) ────────────────────
-// No Dino o cálculo usa a engine de "tipos" editáveis pelo usuário
-// (essencial/obrigatório/comprometido/opcional). Aqui no DUO ainda
-// NÃO portamos essa engine — usamos uma heurística por categorias
-// canônicas. Quando portar os tipos, esta função deve passar a usar
-// data.tipos + data.settings.catTipo.
+// ── Poder de Escolha (v1, heurística canônica — DEPRECATED) ───────
+// Mantido pra retro-compat. NOVOS callers devem usar
+// `calcPoderDeEscolhaV2` (em ./tipos), que usa a engine real de tipos
+// editáveis (cat/subcat/override). v1 ainda funciona como fallback se
+// os dados não tiverem `settings.catTipo`.
 const ESSENCIAIS_CANONICAS = new Set([
   'moradia', 'saude', 'educacao', 'financeiro', 'transporte',
 ]);
