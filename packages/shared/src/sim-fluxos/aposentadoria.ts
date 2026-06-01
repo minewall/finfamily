@@ -6,7 +6,7 @@
 //      i_mensal real).
 // Cenário alternativo: se aportar 80% disso, em quanto tempo chega.
 import type { FluxoSpec, ResultBlock } from '../sim-fluxo'
-import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses } from '../sim-fluxo'
+import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses, sumContas, receitaMediaNMeses } from '../sim-fluxo'
 import { currencyBRL } from '../finance'
 
 const TAXA_REAL_SUGERIDA = 4.5 // % a.a. acima da inflação (renda fixa BR de longo prazo)
@@ -65,7 +65,11 @@ export const FLUXO_APOSENTADORIA: FluxoSpec = {
           id: 'rendaMensal',
           label: 'Renda mensal desejada',
           kind: 'currency',
-          defaultValue: () => 10000,
+          hint: 'Sugerimos a média das suas receitas dos últimos 3 meses — ajuste pra cima ou pra baixo conforme o padrão de vida que quer manter.',
+          defaultValue: (_, ctx) => {
+            const media = receitaMediaNMeses(ctx, 3)
+            return media > 0 ? Math.round(media) : 10000
+          },
           validate: (v) => (asNum(v) <= 0 ? 'Informe um valor > 0' : null),
         },
       ],
@@ -79,7 +83,8 @@ export const FLUXO_APOSENTADORIA: FluxoSpec = {
           id: 'patrimonioAtual',
           label: 'Patrimônio já acumulado',
           kind: 'currency',
-          defaultValue: () => 0,
+          hint: 'Sugerimos a soma dos saldos das suas contas — ajuste se você tem mais (ou menos) destinado pra aposentadoria.',
+          defaultValue: (_, ctx) => Math.round(sumContas(ctx)),
           validate: (v) => (asNum(v) < 0 ? 'Não pode ser negativo' : null),
         },
       ],

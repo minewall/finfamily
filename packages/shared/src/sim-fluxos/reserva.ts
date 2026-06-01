@@ -3,8 +3,9 @@
 // Inputs: alvo, saldo inicial, prazo, rendimento estimado. Saída:
 // aporte mensal + projeção + recomendação na voz do Haile.
 import type { FluxoSpec, ResultBlock } from '../sim-fluxo'
-import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses } from '../sim-fluxo'
+import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses, sumContas } from '../sim-fluxo'
 import { currencyBRL } from '../finance'
+import { calcPoderDeEscolhaV2 } from '../tipos'
 
 const SELIC_HINT_PCT = 12.25 // Selic atual aproximada (hardcoded — atualizar quando integrar cotações)
 
@@ -25,8 +26,14 @@ export const FLUXO_RESERVA: FluxoSpec = {
           id: 'alvo',
           label: 'Valor-alvo',
           kind: 'currency',
-          hint: 'Ex: R$ 30.000 (reserva de emergência), R$ 100.000 (entrada de imóvel), R$ 5.000 (viagem)',
-          defaultValue: () => 30000,
+          hint: 'Sugerimos 6× seus essenciais mensais (reserva de emergência clássica). Ajuste se preferir outro objetivo (entrada de imóvel, viagem, etc).',
+          defaultValue: (_, ctx) => {
+            if (!ctx) return 30000
+            const pde = calcPoderDeEscolhaV2(ctx.data, ctx.month, ctx.year)
+            const essenciais = pde.byTipo?.essencial ?? 0
+            if (essenciais > 0) return Math.round(essenciais * 6)
+            return 30000
+          },
           validate: (v) => (asNum(v) <= 0 ? 'Informe um valor > 0' : null),
         },
       ],
@@ -40,7 +47,8 @@ export const FLUXO_RESERVA: FluxoSpec = {
           id: 'inicial',
           label: 'Valor já guardado',
           kind: 'currency',
-          defaultValue: () => 0,
+          hint: 'Sugerimos a soma dos saldos das suas contas — ajuste pra refletir só o que você considera reserva.',
+          defaultValue: (_, ctx) => Math.round(sumContas(ctx)),
           validate: (v) => (asNum(v) < 0 ? 'Não pode ser negativo' : null),
         },
       ],

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronRight, ChevronLeft, RotateCcw, Sparkles, PlusCircle } from 'lucide-react'
-import { FLUXOS, fluxoById, type FluxoSpec, type FieldSpec, type ResultBlock } from '@haile/shared'
+import { FLUXOS, fluxoById, type FluxoSpec, type FieldSpec, type ResultBlock, type FluxoCtx } from '@haile/shared'
 import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
 import { useCoach } from '@/store/useCoach'
@@ -16,11 +16,18 @@ export default function Simulador() {
   const [view, setView] = useState<View>({ kind: 'list' })
   const openHaile = useCoach((s) => s.setOpen)
   const addMeta = useData((s) => s.addMeta)
+  const data = useData((s) => s.data)
+
+  // Contexto financeiro pros defaults inteligentes dos campos. Recomputa só
+  // quando data muda; mês/ano são do "agora".
+  const ctx: FluxoCtx | undefined = data
+    ? { data, month: new Date().getMonth() + 1, year: new Date().getFullYear() }
+    : undefined
 
   function start(fluxo: FluxoSpec) {
     const values: Record<string, unknown> = {}
     fluxo.steps[0].fields.forEach((f) => {
-      if (f.defaultValue) values[f.id] = f.defaultValue(values)
+      if (f.defaultValue) values[f.id] = f.defaultValue(values, ctx)
     })
     setView({ kind: 'flow', fluxoId: fluxo.id, stepIdx: 0, values, errors: {} })
   }
@@ -49,7 +56,7 @@ export default function Simulador() {
     const nextValues = { ...view.values }
     fluxo.steps[nextIdx].fields.forEach((f) => {
       if (f.defaultValue && nextValues[f.id] === undefined) {
-        nextValues[f.id] = f.defaultValue(nextValues)
+        nextValues[f.id] = f.defaultValue(nextValues, ctx)
       }
     })
     setView({ ...view, stepIdx: nextIdx, values: nextValues, errors: {} })

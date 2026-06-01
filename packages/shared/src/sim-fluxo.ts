@@ -8,6 +8,15 @@
 
 export type FieldKind = 'currency' | 'months' | 'years' | 'percent' | 'text' | 'select'
 
+import type { UserData } from './types'
+
+/** Contexto financeiro disponível pros defaults inteligentes dos fluxos. */
+export interface FluxoCtx {
+  data: UserData
+  month: number
+  year: number
+}
+
 export interface FieldSpec {
   id: string
   label: string
@@ -15,8 +24,8 @@ export interface FieldSpec {
   hint?: string
   /** Para 'select' */
   options?: { value: string; label: string }[]
-  /** Default que pode ser dinâmico (recebe os values já preenchidos) */
-  defaultValue?: (values: Record<string, unknown>) => string | number | undefined
+  /** Default dinâmico. Recebe (valores já preenchidos, contexto financeiro). */
+  defaultValue?: (values: Record<string, unknown>, ctx?: FluxoCtx) => string | number | undefined
   /** Validação simples — retorna null se OK ou mensagem de erro */
   validate?: (v: unknown, all: Record<string, unknown>) => string | null
   /** Mostrar campo só sob condição (ex: outro campo tem valor X) */
@@ -104,6 +113,36 @@ export function mesesNecessarios(fv: number, pv: number, pmt: number, i: number)
 /** Converte taxa anual % → mensal decimal (i_mensal = (1+i_anual)^(1/12) − 1). */
 export function aaToAmDecimal(taxaAnualPct: number): number {
   return Math.pow(1 + taxaAnualPct / 100, 1 / 12) - 1
+}
+
+// ── Helpers de contexto pros defaults inteligentes ────────────────
+// Pequenos atalhos pra fluxos lerem do UserData sem precisar conhecer
+// a estrutura interna. Todos defensivos (null-safe, fallback 0).
+
+/** Soma o saldo de todas as contas cadastradas (R$). */
+export function sumContas(ctx?: FluxoCtx): number {
+  if (!ctx) return 0
+  return (ctx.data.contas ?? []).reduce((s, c) => s + (Number(c.saldo) || 0), 0)
+}
+
+/** Receita média dos últimos N meses corridos (default 3). */
+export function receitaMediaNMeses(ctx: FluxoCtx | undefined, n = 3): number {
+  if (!ctx) return 0
+  const recs = ctx.data.receitas ?? []
+  if (recs.length === 0) return 0
+  let total = 0
+  let count = 0
+  for (let i = 0; i < n; i++) {
+    let m = ctx.month - i
+    let y = ctx.year
+    while (m <= 0) { m += 12; y -= 1 }
+    const soma = recs
+      .filter((r) => r.month === m && r.year === y)
+      .reduce((s, r) => s + (Number(r.amount) || 0), 0)
+    total += soma
+    count += 1
+  }
+  return count > 0 ? total / count : 0
 }
 
 /** Formata meses → "Xa Ym" ou "Xm" */
