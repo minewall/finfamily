@@ -11,3 +11,6 @@ export * from './sim-fluxos';
 export * from './tipos';
 export * from './familia';
 export * from './reembolsos';
+export * from './contratos';
+export * from './patrimonio';
+export * from './financiamentos';

@@ -1,6 +1,25 @@
 import { create } from 'zustand'
-import type { UserData, Despesa, Receita, Conta, Meta } from '@haile/shared'
+import type {
+  UserData,
+  Despesa,
+  Receita,
+  Conta,
+  Meta,
+  Contrato,
+  Equipamento,
+  Veiculo,
+  Imovel,
+  Ativo,
+  Passivo,
+  Financiamento,
+  EstrategiaAntecipacao,
+} from '@haile/shared'
+import { regenAllContratos, markAllPastParcelas } from '@haile/shared'
 import { supabase } from '@/lib/supabase'
+
+/** Buckets de patrimônio com CRUD genérico via helpers. */
+type PatrimonioBucket = 'equipamentos' | 'veiculos' | 'imoveis' | 'ativos' | 'passivos'
+type PatrimonioItem = Equipamento | Veiculo | Imovel | Ativo | Passivo
 
 const LOCAL_KEY = 'haile_duo_user_data'
 const SYNC_DEBOUNCE_MS = 2000
@@ -41,6 +60,23 @@ interface DataState {
   // ── Reembolsos ──
   marcarReembolsoPago: (despesaId: string) => void
   marcarReembolsoPendente: (despesaId: string) => void
+  // ── Compromissos (Contratos recorrentes + Dívidas) ──
+  addContrato: (input: Omit<Contrato, 'id' | 'parcelas'> & Partial<Pick<Contrato, 'id' | 'parcelas'>>) => Contrato
+  updateContrato: (id: string, patch: Partial<Contrato>) => void
+  deleteContrato: (id: string) => void
+  marcarParcelaPaga: (contratoId: string, mes: number, ano: number, valorPago?: number) => void
+  marcarParcelaPendente: (contratoId: string, mes: number, ano: number) => void
+  // ── Patrimônio (CRUD genérico por bucket) ──
+  addPatrimonioItem: <T extends PatrimonioItem>(bucket: PatrimonioBucket, item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>) => T
+  updatePatrimonioItem: <T extends PatrimonioItem>(bucket: PatrimonioBucket, id: string, patch: Partial<T>) => void
+  deletePatrimonioItem: (bucket: PatrimonioBucket, id: string) => void
+  // ── Financiamentos ──
+  addFinanciamento: (input: Omit<Financiamento, 'id'> & Partial<Pick<Financiamento, 'id'>>) => Financiamento
+  updateFinanciamento: (id: string, patch: Partial<Financiamento>) => void
+  deleteFinanciamento: (id: string) => void
+  /** Antecipa parcelas: aplica `valorExtra` reduzindo saldo. Estratégia 'prazo'
+   *  encurta prazo, 'parcela' mantém prazo. Conservador — apenas ajusta o blob. */
+  anteciparFinanciamento: (id: string, valorExtra: number, estrategia?: EstrategiaAntecipacao) => void
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -288,6 +324,152 @@ export const useData = create<DataState>((set, get) => {
         return { ...dd, reembolso: { ...rest, status: 'pendente' as const } }
       })
       persist({ ...d, despesas })
+    },
+
+    addContrato: (input) => {
+      const d = ensure()
+      const base: Contrato = {
+        active: true,
+        createdAt: new Date().toISOString(),
+        ...input,
+        id: input.id ?? newId(),
+      } as Contrato
+      const stamped = markAllPastParcelas(regenAllContratos(base))
+      persist({ ...d, contratos: [...(d.contratos ?? []), stamped] })
+      return stamped
+    },
+    updateContrato: (id, patch) => {
+      const d = ensure()
+      const list = (d.contratos ?? []).map((c) => {
+        if (c.id !== id) return c
+        const merged = { ...c, ...patch } as Contrato
+        // Se mudou algo que impacta geração de parcelas, regenera.
+        const regen =
+          'periodicidade' in patch ||
+          'dataInicio' in patch ||
+          'dataFim' in patch ||
+          'parcelasTotal' in patch ||
+          'diaVencimento' in patch
+        return regen ? markAllPastParcelas(regenAllContratos(merged)) : merged
+      })
+      persist({ ...d, contratos: list })
+    },
+    deleteContrato: (id) => {
+      const d = ensure()
+      persist({ ...d, contratos: (d.contratos ?? []).filter((c) => c.id !== id) })
+    },
+    marcarParcelaPaga: (contratoId, mes, ano, valorPago) => {
+      const d = ensure()
+      const today = new Date().toISOString().slice(0, 10)
+      const list = (d.contratos ?? []).map((c) => {
+        if (c.id !== contratoId) return c
+        const parcelas = (c.parcelas ?? []).map((p) => {
+          if (p.mes !== mes || p.ano !== ano) return p
+          return {
+            ...p,
+            status: 'pago' as const,
+            valorPago: typeof valorPago === 'number' ? valorPago : (p.valorPago ?? c.valorParcela),
+            date: p.date || today,
+          }
+        })
+        return { ...c, parcelas }
+      })
+      persist({ ...d, contratos: list })
+    },
+    marcarParcelaPendente: (contratoId, mes, ano) => {
+      const d = ensure()
+      const today = new Date().toISOString().slice(0, 10)
+      const list = (d.contratos ?? []).map((c) => {
+        if (c.id !== contratoId) return c
+        const parcelas = (c.parcelas ?? []).map((p) => {
+          if (p.mes !== mes || p.ano !== ano) return p
+          // Se a parcela voltou pra pendente e já venceu, marca como atrasada.
+          const novoStatus = p.date && p.date < today ? 'atrasada' as const : 'pendente' as const
+          // Drop valorPago ao reverter (não-pago não tem valor pago)
+          const { valorPago: _drop, ...rest } = p
+          void _drop
+          return { ...rest, status: novoStatus }
+        })
+        return { ...c, parcelas }
+      })
+      persist({ ...d, contratos: list })
+    },
+
+    // ── Patrimônio (CRUD genérico) ───────────────────────────────
+    addPatrimonioItem: <T extends PatrimonioItem>(
+      bucket: PatrimonioBucket,
+      item: Omit<T, 'id'> & Partial<Pick<T, 'id'>>,
+    ) => {
+      const d = ensure()
+      const idPrefix: Record<PatrimonioBucket, string> = {
+        equipamentos: 'eq', veiculos: 'v', imoveis: 'im', ativos: 'a', passivos: '_p',
+      }
+      const entry = {
+        ...item,
+        id: (item as { id?: string }).id ?? (idPrefix[bucket] + Date.now()),
+        createdAt: (item as { createdAt?: string }).createdAt ?? new Date().toISOString(),
+      } as unknown as T
+      const list = (d[bucket] ?? []) as T[]
+      persist({ ...d, [bucket]: [...list, entry] } as UserData)
+      return entry
+    },
+    updatePatrimonioItem: <T extends PatrimonioItem>(
+      bucket: PatrimonioBucket,
+      id: string,
+      patch: Partial<T>,
+    ) => {
+      const d = ensure()
+      const list = ((d[bucket] ?? []) as T[]).map((x) => (x.id === id ? { ...x, ...patch } : x))
+      persist({ ...d, [bucket]: list } as UserData)
+    },
+    deletePatrimonioItem: (bucket, id) => {
+      const d = ensure()
+      const list = ((d[bucket] ?? []) as Array<{ id: string }>).filter((x) => x.id !== id)
+      persist({ ...d, [bucket]: list } as UserData)
+    },
+
+    // ── Financiamentos ───────────────────────────────────────────
+    addFinanciamento: (input) => {
+      const d = ensure()
+      const entry: Financiamento = {
+        parcelasPagas: 0,
+        ...input,
+        id: input.id ?? newId(),
+      } as Financiamento
+      const list = (d.financiamentos as Financiamento[] | undefined) ?? []
+      persist({ ...d, financiamentos: [...list, entry] })
+      return entry
+    },
+    updateFinanciamento: (id, patch) => {
+      const d = ensure()
+      const list = ((d.financiamentos as Financiamento[] | undefined) ?? []).map((f) =>
+        f.id === id ? { ...f, ...patch } : f,
+      )
+      persist({ ...d, financiamentos: list })
+    },
+    deleteFinanciamento: (id) => {
+      const d = ensure()
+      const list = ((d.financiamentos as Financiamento[] | undefined) ?? []).filter((f) => f.id !== id)
+      persist({ ...d, financiamentos: list })
+    },
+    anteciparFinanciamento: (id, valorExtra, estrategia = 'prazo') => {
+      const d = ensure()
+      const list = (d.financiamentos as Financiamento[] | undefined) ?? []
+      const f = list.find((x) => x.id === id)
+      if (!f) return
+      type Antec = { data: string; valor: number; estrategia: string }
+      const prevLog = (f as unknown as { antecipacoes?: Antec[] }).antecipacoes
+      const log: Antec[] = Array.isArray(prevLog) ? [...prevLog] : []
+      log.push({ data: new Date().toISOString().slice(0, 10), valor: valorExtra, estrategia })
+      // Conservador: ambas as estratégias reduzem PV — a UI usa
+      // financiamentoAntecipar() pra simular o efeito detalhado.
+      const patched = {
+        ...f,
+        valorFinanciado: Math.max(0, (f.valorFinanciado || 0) - valorExtra),
+        antecipacoes: log,
+      } as Financiamento
+      const next = list.map((x) => (x.id === id ? patched : x))
+      persist({ ...d, financiamentos: next })
     },
 
     deletePessoa: (name) => {

@@ -1,6 +1,8 @@
 // Tipos do blob user_data (compartilhados entre Dino e DUO).
 // Modelo permissivo: o blob é solto; campos extras são tolerados via index signature.
 
+import type { Contrato } from './contratos';
+
 export interface Lancamento {
   id: string;
   desc: string;
@@ -64,6 +66,17 @@ export interface UserData {
   despesas?: Despesa[];
   contas?: Conta[];
   metas?: Meta[];
+  contratos?: Contrato[];
+  /** Financiamentos — tipo concreto em ./financiamentos.ts. Mantido como
+   *  unknown[] aqui pra evitar ciclo de import; consumidores castam. */
+  financiamentos?: unknown[];
+  // Patrimônio (porta do Dino) — buckets opcionais; tipos canônicos em
+  // ./patrimonio.ts. Mantemos referência mole aqui pra evitar ciclos.
+  equipamentos?: Array<Record<string, unknown> & { id: string }>;
+  veiculos?: Array<Record<string, unknown> & { id: string }>;
+  imoveis?: Array<Record<string, unknown> & { id: string }>;
+  ativos?: Array<Record<string, unknown> & { id: string }>;
+  passivos?: Array<Record<string, unknown> & { id: string }>;
   pessoas?: string[];
   settings?: Record<string, unknown>;
   onboarding?: { completed?: boolean; [k: string]: unknown };
