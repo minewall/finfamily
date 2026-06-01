@@ -38,6 +38,9 @@ interface DataState {
   addPessoa: (name: string) => void
   renamePessoa: (oldName: string, newName: string) => void
   deletePessoa: (name: string) => void
+  // ── Reembolsos ──
+  marcarReembolsoPago: (despesaId: string) => void
+  marcarReembolsoPendente: (despesaId: string) => void
 }
 
 function newId() { return '_' + Math.random().toString(36).slice(2) }
@@ -267,6 +270,26 @@ export const useData = create<DataState>((set, get) => {
       })
       persist({ ...d, pessoas: novaLista, receitas, despesas })
     },
+    marcarReembolsoPago: (despesaId) => {
+      const d = ensure()
+      const today = new Date().toISOString().slice(0, 10)
+      const despesas = (d.despesas ?? []).map((dd) => {
+        if (dd.id !== despesaId || !dd.reembolso) return dd
+        return { ...dd, reembolso: { ...dd.reembolso, status: 'pago' as const, paidAt: today } }
+      })
+      persist({ ...d, despesas })
+    },
+    marcarReembolsoPendente: (despesaId) => {
+      const d = ensure()
+      const despesas = (d.despesas ?? []).map((dd) => {
+        if (dd.id !== despesaId || !dd.reembolso) return dd
+        const { paidAt: _drop, ...rest } = dd.reembolso
+        void _drop
+        return { ...dd, reembolso: { ...rest, status: 'pendente' as const } }
+      })
+      persist({ ...d, despesas })
+    },
+
     deletePessoa: (name) => {
       const d = ensure()
       const usageRec = (d.receitas ?? []).filter((r) => r.person === name).length

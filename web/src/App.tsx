@@ -10,6 +10,7 @@ import Contas from '@/pages/Contas'
 import Metas from '@/pages/Metas'
 import Simulador from '@/pages/Simulador'
 import Familia from '@/pages/Familia'
+import Reembolsos from '@/pages/Reembolsos'
 
 const queryClient = new QueryClient()
 
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="/metas" element={<Metas />} />
               <Route path="/simulador" element={<Simulador />} />
               <Route path="/familia" element={<Familia />} />
+              <Route path="/reembolsos" element={<Reembolsos />} />
             </Route>
           </Routes>
         </BrowserRouter>

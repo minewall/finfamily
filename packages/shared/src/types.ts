@@ -20,9 +20,24 @@ export type Receita = Lancamento & { type?: string; natureza?: string };
 export type Despesa = Lancamento & {
   pay?: string | null;
   split?: Array<{ person: string; valor: number }> | null;
-  visibilidade?: string;
+  /** 'familiar' (default — entra no painel da família) | 'particular' (só do titular) */
+  visibilidade?: 'familiar' | 'particular' | string;
   cartaoId?: string | null;
+  /** Reembolso pendente: alguém deve devolver esse valor. Schema fiel ao Dino. */
+  reembolso?: ReembolsoInfo | null;
 };
+
+export interface ReembolsoInfo {
+  /** Quem PAGOU (vai receber de volta) — geralmente o "person" da despesa */
+  para: string;
+  /** Quem DEVE devolver (pode ser 'Família' como bucket coletivo) */
+  de: string;
+  /** Valor a ser reembolsado (pode ser parcial do amount total) */
+  valor: number;
+  status: 'pendente' | 'pago';
+  criadoEm: string; // YYYY-MM-DD
+  paidAt?: string;  // YYYY-MM-DD, presente só quando status='pago'
+}
 
 export interface Conta {
   id: string;
