@@ -143,7 +143,7 @@ function FluxosList({ onPick }: { onPick: (f: FluxoSpec) => void }) {
       </div>
 
       <p className="mt-6 text-center text-xs text-faint">
-        Mais fluxos em breve: aposentadoria, comprar × alugar veículo, comparar renda fixa.
+        Próximos fluxos: comparar dívidas × investir, viagem, troca de carro.
       </p>
     </div>
   )
