@@ -96,6 +96,16 @@ export interface UserData {
     [k: string]: unknown;
   };
   settings?: Record<string, unknown>;
+  /** Categorias custom criadas pelo usuário (somam-se às built-in de CATEGORIES). */
+  categoriasCustom?: Array<{ id: string; label: string; color: string; icon: string }>;
+  /** Ordem custom de exibição das categorias (lista de ids, built-in + custom). */
+  categoryOrder?: string[];
+  /** Subcategorias por categoria. Chave = catId, valor = lista de nomes. */
+  subcategorias?: Record<string, string[]>;
+  /** Tipos custom (somam-se aos TIPOS_BUILTIN). Não substituem os built-in. */
+  tiposCustom?: Array<{ id: string; label: string; comportamento: string; color: string }>;
+  /** Override de tipo por categoria (já lido por getCatTipo). */
+  catTipo?: Record<string, string>;
   onboarding?: OnboardingState;
   /** ICP / Contexto Pessoal — respostas por categoria. */
   contexto?: ContextoState;

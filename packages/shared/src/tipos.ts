@@ -71,10 +71,13 @@ function normalize(t: string | undefined): TipoId {
   return 'opcional'
 }
 
-/** Lê o tipo efetivo de uma categoria (override do user > default). */
+/** Lê o tipo efetivo de uma categoria (override do user > default).
+ *  Resolução: data.catTipo[cat] (DUO) > data.settings.catTipo[cat] (Dino) > DEFAULT. */
 export function getCatTipo(data: UserData, cat: string): TipoId {
-  const map = ((data.settings as Record<string, unknown> | undefined)?.catTipo ?? {}) as Record<string, string>
-  if (map[cat]) return normalize(map[cat])
+  const topMap = (data.catTipo ?? {}) as Record<string, string>
+  if (topMap[cat]) return normalize(topMap[cat])
+  const settingsMap = ((data.settings as Record<string, unknown> | undefined)?.catTipo ?? {}) as Record<string, string>
+  if (settingsMap[cat]) return normalize(settingsMap[cat])
   if (DEFAULT_CAT_TIPO[cat]) return DEFAULT_CAT_TIPO[cat]
   return 'opcional'
 }

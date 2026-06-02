@@ -1,12 +1,36 @@
 import { useState, type ReactNode } from 'react'
-import { User, Lock, Palette, DatabaseBackup } from 'lucide-react'
+import {
+  User,
+  Lock,
+  Palette,
+  DatabaseBackup,
+  Layers,
+  Tags,
+  Bell,
+  Shield,
+  Info,
+} from 'lucide-react'
 import { PerfilSection } from '@/components/config/PerfilSection'
 import { SenhaSection } from '@/components/config/SenhaSection'
 import { AparenciaSection } from '@/components/config/AparenciaSection'
 import { BackupSection } from '@/components/config/BackupSection'
+import { TiposSection } from '@/components/config/TiposSection'
+import { CategoriasSection } from '@/components/config/CategoriasSection'
+import { NotificacoesSection } from '@/components/config/NotificacoesSection'
+import { PrivacidadeSection } from '@/components/config/PrivacidadeSection'
+import { SobreSection } from '@/components/config/SobreSection'
 import { cn } from '@/lib/utils'
 
-type Tab = 'perfil' | 'senha' | 'aparencia' | 'backup'
+type Tab =
+  | 'perfil'
+  | 'tipos'
+  | 'categorias'
+  | 'senha'
+  | 'aparencia'
+  | 'notificacoes'
+  | 'backup'
+  | 'privacidade'
+  | 'sobre'
 
 interface TabDef {
   id: Tab
@@ -17,9 +41,14 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: 'perfil', label: 'Perfil', icon: <User size={16} />, render: () => <PerfilSection /> },
+  { id: 'tipos', label: 'Tipos', icon: <Layers size={16} />, render: () => <TiposSection /> },
+  { id: 'categorias', label: 'Categorias', icon: <Tags size={16} />, render: () => <CategoriasSection /> },
   { id: 'senha', label: 'Senha', icon: <Lock size={16} />, render: () => <SenhaSection /> },
   { id: 'aparencia', label: 'Aparência', icon: <Palette size={16} />, render: () => <AparenciaSection /> },
+  { id: 'notificacoes', label: 'Notificações', icon: <Bell size={16} />, render: () => <NotificacoesSection /> },
   { id: 'backup', label: 'Backup', icon: <DatabaseBackup size={16} />, render: () => <BackupSection /> },
+  { id: 'privacidade', label: 'Privacidade', icon: <Shield size={16} />, render: () => <PrivacidadeSection /> },
+  { id: 'sobre', label: 'Sobre', icon: <Info size={16} />, render: () => <SobreSection /> },
 ]
 
 export default function Configuracoes() {
@@ -31,7 +60,7 @@ export default function Configuracoes() {
       <header className="mb-6">
         <h1 className="font-serif text-3xl text-ink">Configurações</h1>
         <p className="mt-1 text-sm text-mist">
-          Conta, segurança, aparência e backup dos seus dados.
+          Conta, segurança, aparência, dados e privacidade.
         </p>
       </header>
 

@@ -100,6 +100,20 @@ interface DataState {
   // ── Reembolsos ──
   marcarReembolsoPago: (despesaId: string) => void
   marcarReembolsoPendente: (despesaId: string) => void
+  // ── Configurações: Categorias custom + Subcategorias + Tipos custom ──
+  addCategoria: (input: { label: string; color?: string; icon?: string; id?: string }) => { id: string; label: string; color: string; icon: string }
+  updateCategoria: (id: string, patch: Partial<{ label: string; color: string; icon: string }>) => void
+  deleteCategoria: (id: string) => void
+  reorderCategorias: (orderedIds: string[]) => void
+  addSubcategoria: (catId: string, name: string) => void
+  renameSubcategoria: (catId: string, oldName: string, newName: string) => void
+  deleteSubcategoria: (catId: string, name: string) => void
+  moveSubcategoria: (name: string, fromCat: string, toCat: string) => void
+  addTipo: (input: { label: string; comportamento: string; color?: string; id?: string }) => { id: string; label: string; comportamento: string; color: string }
+  updateTipo: (id: string, patch: Partial<{ label: string; comportamento: string; color: string }>) => void
+  deleteTipo: (id: string) => void
+  setCatTipo: (catId: string, tipoId: string) => void
+  getCategoriaUsage: (catId: string) => number
   // ── Compromissos (Contratos recorrentes + Dívidas) ──
   addContrato: (input: Omit<Contrato, 'id' | 'parcelas'> & Partial<Pick<Contrato, 'id' | 'parcelas'>>) => Contrato
   updateContrato: (id: string, patch: Partial<Contrato>) => void
@@ -719,6 +733,184 @@ export const useData = create<DataState>((set, get) => {
         profile,
         pessoas,
       })
+    },
+
+    // ── Configurações: Categorias custom ───────────────────────
+    addCategoria: (input) => {
+      const label = (input.label || '').trim()
+      if (!label) throw new Error('Nome da categoria é obrigatório')
+      const d = ensure()
+      const list = d.categoriasCustom ?? []
+      const id =
+        input.id ??
+        ('cat_' +
+          label
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '')
+            .slice(0, 24) +
+          '_' +
+          Math.random().toString(36).slice(2, 6))
+      const entry = {
+        id,
+        label,
+        color: input.color ?? '#7C6EF8',
+        icon: input.icon ?? 'circle',
+      }
+      persist({ ...d, categoriasCustom: [...list, entry] })
+      return entry
+    },
+    updateCategoria: (id, patch) => {
+      const d = ensure()
+      const list = (d.categoriasCustom ?? []).map((c) =>
+        c.id === id ? { ...c, ...patch } : c,
+      )
+      persist({ ...d, categoriasCustom: list })
+    },
+    deleteCategoria: (id) => {
+      const d = ensure()
+      const list = (d.categoriasCustom ?? []).filter((c) => c.id !== id)
+      // remove ordem + override de tipo + subcategorias da deletada
+      const order = (d.categoryOrder ?? []).filter((x) => x !== id)
+      const subs: Record<string, string[]> = { ...(d.subcategorias ?? {}) }
+      delete subs[id]
+      const catTipo: Record<string, string> = { ...(d.catTipo ?? {}) }
+      delete catTipo[id]
+      persist({
+        ...d,
+        categoriasCustom: list,
+        categoryOrder: order,
+        subcategorias: subs,
+        catTipo,
+      })
+    },
+    reorderCategorias: (orderedIds) => {
+      const d = ensure()
+      persist({ ...d, categoryOrder: [...orderedIds] })
+    },
+
+    addSubcategoria: (catId, name) => {
+      const nome = (name || '').trim()
+      if (!nome) throw new Error('Nome da subcategoria é obrigatório')
+      const d = ensure()
+      const subs: Record<string, string[]> = { ...(d.subcategorias ?? {}) }
+      const cur = subs[catId] ?? []
+      if (cur.includes(nome)) throw new Error('Subcategoria já existe')
+      subs[catId] = [...cur, nome]
+      persist({ ...d, subcategorias: subs })
+    },
+    renameSubcategoria: (catId, oldName, newName) => {
+      const nome = (newName || '').trim()
+      if (!nome) throw new Error('Nome obrigatório')
+      const d = ensure()
+      const subs: Record<string, string[]> = { ...(d.subcategorias ?? {}) }
+      const cur = subs[catId] ?? []
+      const idx = cur.indexOf(oldName)
+      if (idx < 0) return
+      const next = [...cur]
+      next[idx] = nome
+      subs[catId] = next
+      // propaga pra despesas/receitas que referenciam
+      const despesas = (d.despesas ?? []).map((dd) =>
+        dd.category === catId && dd.sub === oldName ? { ...dd, sub: nome } : dd,
+      )
+      const receitas = (d.receitas ?? []).map((r) =>
+        r.category === catId && r.sub === oldName ? { ...r, sub: nome } : r,
+      )
+      persist({ ...d, subcategorias: subs, despesas, receitas })
+    },
+    deleteSubcategoria: (catId, name) => {
+      const d = ensure()
+      const subs: Record<string, string[]> = { ...(d.subcategorias ?? {}) }
+      const cur = subs[catId] ?? []
+      subs[catId] = cur.filter((s) => s !== name)
+      persist({ ...d, subcategorias: subs })
+    },
+    moveSubcategoria: (name, fromCat, toCat) => {
+      if (fromCat === toCat) return
+      const d = ensure()
+      const subs: Record<string, string[]> = { ...(d.subcategorias ?? {}) }
+      const fromList = (subs[fromCat] ?? []).filter((s) => s !== name)
+      const toList = subs[toCat] ?? []
+      if (toList.includes(name)) {
+        subs[fromCat] = fromList
+      } else {
+        subs[fromCat] = fromList
+        subs[toCat] = [...toList, name]
+      }
+      // propaga em lançamentos
+      const despesas = (d.despesas ?? []).map((dd) =>
+        dd.category === fromCat && dd.sub === name
+          ? { ...dd, category: toCat }
+          : dd,
+      )
+      const receitas = (d.receitas ?? []).map((r) =>
+        r.category === fromCat && r.sub === name ? { ...r, category: toCat } : r,
+      )
+      persist({ ...d, subcategorias: subs, despesas, receitas })
+    },
+
+    // ── Configurações: Tipos custom ────────────────────────────
+    addTipo: (input) => {
+      const label = (input.label || '').trim()
+      if (!label) throw new Error('Nome do tipo é obrigatório')
+      const d = ensure()
+      const list = d.tiposCustom ?? []
+      const id =
+        input.id ??
+        ('tipo_' +
+          label
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '')
+            .slice(0, 24) +
+          '_' +
+          Math.random().toString(36).slice(2, 6))
+      const entry = {
+        id,
+        label,
+        comportamento: input.comportamento || 'opcional',
+        color: input.color ?? '#22C55E',
+      }
+      persist({ ...d, tiposCustom: [...list, entry] })
+      return entry
+    },
+    updateTipo: (id, patch) => {
+      const d = ensure()
+      const list = (d.tiposCustom ?? []).map((t) =>
+        t.id === id ? { ...t, ...patch } : t,
+      )
+      persist({ ...d, tiposCustom: list })
+    },
+    deleteTipo: (id) => {
+      const d = ensure()
+      const list = (d.tiposCustom ?? []).filter((t) => t.id !== id)
+      // tira qualquer catTipo apontando pro tipo deletado
+      const catTipo: Record<string, string> = { ...(d.catTipo ?? {}) }
+      for (const k of Object.keys(catTipo)) {
+        if (catTipo[k] === id) delete catTipo[k]
+      }
+      persist({ ...d, tiposCustom: list, catTipo })
+    },
+    setCatTipo: (catId, tipoId) => {
+      const d = ensure()
+      const catTipo: Record<string, string> = { ...(d.catTipo ?? {}) }
+      if (!tipoId) {
+        delete catTipo[catId]
+      } else {
+        catTipo[catId] = tipoId
+      }
+      persist({ ...d, catTipo })
+    },
+    getCategoriaUsage: (catId) => {
+      const d = ensure()
+      const inDesp = (d.despesas ?? []).filter((x) => x.category === catId).length
+      const inRec = (d.receitas ?? []).filter((x) => x.category === catId).length
+      return inDesp + inRec
     },
 
     deletePessoa: (name) => {

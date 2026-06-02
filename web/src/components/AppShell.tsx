@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid,
+  BarChart3,
   Receipt,
   TrendingUp,
   TrendingDown,
@@ -43,6 +44,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/', label: 'Visão Geral', icon: <LayoutGrid size={18} /> },
+  { to: '/comparativo', label: 'Comparativo', icon: <BarChart3 size={18} /> },
   { to: '/lancamentos', label: 'Lançamentos', icon: <Receipt size={18} /> },
   { to: '/receitas', label: 'Receitas', icon: <TrendingUp size={18} /> },
   { to: '/despesas', label: 'Despesas', icon: <TrendingDown size={18} /> },

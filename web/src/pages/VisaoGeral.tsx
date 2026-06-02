@@ -14,6 +14,7 @@ import {
   personInitial,
 } from '@haile/shared'
 import { useData } from '@/store/useData'
+import { StackedBars, type StackedBarsDatum } from '@/components/charts'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
@@ -59,6 +60,20 @@ export default function VisaoGeral() {
 
   const pdeRatio = clamp(pde.pct)            // fração da receita "livre"
   const comprometidoRatio = clamp(1 - pdeRatio) // do total comprometido (essenciais)
+
+  // Últimos 6 meses (mês atual + 5 anteriores) — receita vs despesa
+  const ultimos6Meses: StackedBarsDatum[] = (() => {
+    const out: StackedBarsDatum[] = []
+    for (let i = 5; i >= 0; i--) {
+      let m = month - i
+      let y = year
+      while (m <= 0) { m += 12; y -= 1 }
+      const r = sumReceitas(d, m, y)
+      const e = sumDespesas(d, m, y)
+      out.push({ label: MESES[m - 1].slice(0, 3), receita: r, despesa: e, saldo: r - e })
+    }
+    return out
+  })()
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
@@ -202,6 +217,15 @@ export default function VisaoGeral() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* ── Últimos 6 meses ──────────────────────────────────── */}
+      <section className="mt-7">
+        <StackedBars
+          data={ultimos6Meses}
+          height={220}
+          title="Últimos 6 meses"
+        />
       </section>
 
       {/* ── Resumo de contas ──────────────────────────────────── */}

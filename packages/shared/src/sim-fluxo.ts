@@ -22,8 +22,10 @@ export interface FieldSpec {
   label: string
   kind: FieldKind
   hint?: string
-  /** Para 'select' */
+  /** Para 'select' — opções estáticas. */
   options?: { value: string; label: string }[]
+  /** Para 'select' com opções dependentes do contexto (ex: lista de financiamentos). */
+  optionsFn?: (ctx?: FluxoCtx) => { value: string; label: string }[]
   /** Default dinâmico. Recebe (valores já preenchidos, contexto financeiro). */
   defaultValue?: (values: Record<string, unknown>, ctx?: FluxoCtx) => string | number | undefined
   /** Validação simples — retorna null se OK ou mensagem de erro */
@@ -65,8 +67,8 @@ export interface FluxoSpec<R = ResultBlock> {
   description: string
   icon?: string // nome lucide opcional
   steps: StepSpec[]
-  /** Recebe o values final → produz o ResultBlock */
-  compute: (values: Record<string, unknown>) => R
+  /** Recebe o values final + contexto financeiro opcional → produz o ResultBlock. */
+  compute: (values: Record<string, unknown>, ctx?: FluxoCtx) => R
 }
 
 // ── Helpers numéricos ─────────────────────────────────────────────

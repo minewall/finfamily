@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ChevronRight, ChevronLeft, RotateCcw, Sparkles, PlusCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ChevronRight, ChevronLeft, RotateCcw, Sparkles, PlusCircle, ExternalLink } from 'lucide-react'
 import { FLUXOS, fluxoById, type FluxoSpec, type FieldSpec, type ResultBlock, type FluxoCtx } from '@haile/shared'
 import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
@@ -17,6 +18,7 @@ export default function Simulador() {
   const openHaile = useCoach((s) => s.setOpen)
   const addMeta = useData((s) => s.addMeta)
   const data = useData((s) => s.data)
+  const navigate = useNavigate()
 
   // Contexto financeiro pros defaults inteligentes dos campos. Recomputa só
   // quando data muda; mês/ano são do "agora".
@@ -48,7 +50,7 @@ export default function Simulador() {
 
     const nextIdx = view.stepIdx + 1
     if (nextIdx >= fluxo.steps.length) {
-      const result = fluxo.compute(view.values)
+      const result = fluxo.compute(view.values, ctx)
       setView({ kind: 'result', fluxoId: view.fluxoId, values: view.values, result })
       return
     }
@@ -91,6 +93,11 @@ export default function Simulador() {
       }
       return
     }
+    if (action === 'navigate') {
+      const path = typeof payload === 'string' ? payload : ''
+      if (path) navigate(path)
+      return
+    }
   }
 
   return (
@@ -102,6 +109,7 @@ export default function Simulador() {
           stepIdx={view.stepIdx}
           values={view.values}
           errors={view.errors}
+          ctx={ctx}
           onChange={(id, v) => setView({ ...view, values: { ...view.values, [id]: v }, errors: { ...view.errors, [id]: null } })}
           onNext={next}
           onBack={back}
@@ -150,19 +158,20 @@ function FluxosList({ onPick }: { onPick: (f: FluxoSpec) => void }) {
       </div>
 
       <p className="mt-6 text-center text-xs text-faint">
-        Próximos fluxos: comparar dívidas × investir, viagem, troca de carro.
+        Mais fluxos chegando — sugira o seu pelo Haile.
       </p>
     </div>
   )
 }
 
 function FlowStep({
-  fluxo, stepIdx, values, errors, onChange, onNext, onBack,
+  fluxo, stepIdx, values, errors, ctx, onChange, onNext, onBack,
 }: {
   fluxo: FluxoSpec
   stepIdx: number
   values: Record<string, unknown>
   errors: Record<string, string | null>
+  ctx?: FluxoCtx
   onChange: (id: string, v: unknown) => void
   onNext: () => void
   onBack: () => void
@@ -187,7 +196,7 @@ function FlowStep({
 
       <div className="space-y-4">
         {step.fields.filter((f) => !f.visibleIf || f.visibleIf(values)).map((f) => (
-          <FieldRender key={f.id} field={f} value={values[f.id]} error={errors[f.id]} onChange={(v) => onChange(f.id, v)} />
+          <FieldRender key={f.id} field={f} value={values[f.id]} error={errors[f.id]} ctx={ctx} onChange={(v) => onChange(f.id, v)} />
         ))}
       </div>
 
@@ -205,13 +214,16 @@ function FlowStep({
   )
 }
 
-function FieldRender({ field, value, error, onChange }: { field: FieldSpec; value: unknown; error?: string | null; onChange: (v: unknown) => void }) {
+function FieldRender({ field, value, error, ctx, onChange }: { field: FieldSpec; value: unknown; error?: string | null; ctx?: FluxoCtx; onChange: (v: unknown) => void }) {
   const sufixo = field.kind === 'currency' ? 'R$' : field.kind === 'percent' ? '%' : field.kind === 'months' ? 'meses' : field.kind === 'years' ? 'anos' : ''
+  const opts = field.kind === 'select'
+    ? (field.optionsFn ? field.optionsFn(ctx) : (field.options ?? []))
+    : []
   return (
     <Field label={field.label} hint={error ?? field.hint}>
       {field.kind === 'select' ? (
         <Select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
-          {(field.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {opts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </Select>
       ) : (
         <div className="relative">
@@ -281,6 +293,7 @@ function ResultView({ fluxo, result, onCta, onRestart }: { fluxo: FluxoSpec; res
             const icon = c.action === 'create-meta' ? <PlusCircle size={14} />
                        : c.action === 'ask-haile' ? <Sparkles size={14} />
                        : c.action === 'adjust' ? <RotateCcw size={14} />
+                       : c.action === 'navigate' ? <ExternalLink size={14} />
                        : null
             return (
               <Button key={i} variant={isPrimary ? 'primary' : 'outline'} size="sm" onClick={() => onCta(c.action, c.payload)}>

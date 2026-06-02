@@ -35,6 +35,7 @@ import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/field'
 import { ConvidarMembroModal } from '@/components/ConvidarMembroModal'
 import { inviteStatus, type FamilyMemberRow } from '@/lib/family'
+import { DonutChart, type DonutChartDatum } from '@/components/charts'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
@@ -86,6 +87,16 @@ export default function Familia() {
   const saldoFamilia = totalRec - totalDesp
 
   const metasFamilia = useMemo(() => (data ? getMetasFamilia(data) : []), [data])
+
+  const donutDespesasPessoa: DonutChartDatum[] = useMemo(() => {
+    return pessoasOrdenadas
+      .map((pessoa) => ({
+        label: pessoa,
+        value: desp[pessoa]?.total ?? 0,
+        color: personColor(pessoa),
+      }))
+      .filter((d) => d.value > 0)
+  }, [pessoasOrdenadas, desp])
 
   if (loading && !data) {
     return <div className="mx-auto max-w-5xl px-5 py-8 text-mist">Carregando…</div>
@@ -273,6 +284,19 @@ export default function Familia() {
               </article>
             )
           })}
+        </section>
+      )}
+
+      {/* Donut: como vai a divisão de despesas */}
+      {donutDespesasPessoa.length > 0 && (
+        <section className="mb-8">
+          <DonutChart
+            data={donutDespesasPessoa}
+            totalLabel={currencyBRL(totalDesp)}
+            totalHint={`Despesas · ${MESES[month - 1]}`}
+            title="Como vai a divisão de despesas"
+            height={240}
+          />
         </section>
       )}
 
