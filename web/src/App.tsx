@@ -22,6 +22,7 @@ import Tributario from '@/pages/Tributario'
 import Recados from '@/pages/Recados'
 import Onboarding from '@/pages/Onboarding'
 import ContextoPessoal from '@/pages/ContextoPessoal'
+import Assinatura from '@/pages/Assinatura'
 
 const queryClient = new QueryClient()
 
@@ -57,6 +58,7 @@ export default function App() {
               <Route path="/meupainel" element={<MeuPainel />} />
               <Route path="/tributario" element={<Tributario />} />
               <Route path="/recados" element={<Recados />} />
+              <Route path="/assinatura" element={<Assinatura />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/contexto" element={<ContextoPessoal />} />

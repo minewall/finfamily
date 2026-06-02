@@ -18,6 +18,7 @@ import {
   Landmark,
   Banknote,
   Settings,
+  CreditCard,
   Brain,
   Menu,
   X,
@@ -60,6 +61,7 @@ const NAV: NavItem[] = [
   { to: '/simulador', label: 'Simulador', icon: <LineChart size={18} /> },
   { to: '/recados', label: 'Recados', icon: <Bell size={18} />, badge: 'recados' },
   { to: '/contexto', label: 'Contexto Pessoal', icon: <Brain size={18} /> },
+  { to: '/assinatura', label: 'Assinatura', icon: <CreditCard size={18} /> },
   { to: '/configuracoes', label: 'Configurações', icon: <Settings size={18} /> },
 ]
 
