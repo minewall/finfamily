@@ -2,6 +2,9 @@
 // Modelo permissivo: o blob é solto; campos extras são tolerados via index signature.
 
 import type { Contrato } from './contratos';
+import type { Tributo } from './tributos';
+import type { Recado } from './recados';
+import type { CotacoesAuto } from './cotacoes';
 
 export interface Lancamento {
   id: string;
@@ -78,6 +81,18 @@ export interface UserData {
   ativos?: Array<Record<string, unknown> & { id: string }>;
   passivos?: Array<Record<string, unknown> & { id: string }>;
   pessoas?: string[];
+  tributos?: Tributo[];
+  recados?: Recado[];
+  cotacoes?: CotacoesAuto;
+  /** Perfil do usuário no DUO (Sprint 5 — Configurações).
+   *  Avatar fica inline em base64 por enquanto; Supabase Storage entra
+   *  numa próxima sprint pra não estourar tamanho do blob. */
+  profile?: {
+    name?: string;
+    avatar?: string | null;
+    timezone?: string;
+    [k: string]: unknown;
+  };
   settings?: Record<string, unknown>;
   onboarding?: { completed?: boolean; [k: string]: unknown };
   flags?: Record<string, unknown>;

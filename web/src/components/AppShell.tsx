@@ -9,26 +9,35 @@ import {
   Target,
   LineChart,
   Users,
+  User,
   HandCoins,
   FileText,
+  FileSpreadsheet,
+  Bell,
   Landmark,
   Banknote,
+  Settings,
   Menu,
   X,
   LogOut,
   Sparkles,
 } from 'lucide-react'
+import { cotacoesExpiradas } from '@haile/shared'
 import { useAuth } from '@/lib/auth'
 import { useCoach } from '@/store/useCoach'
 import { useData } from '@/store/useData'
 import { HailePanel } from '@/components/HailePanel'
 import { HaileTakeover } from '@/components/HaileTakeover'
+import { ThemeApplier } from '@/components/ThemeApplier'
+import { RecadosBadge } from '@/components/RecadosBadge'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
   to: string
   label: string
   icon: ReactNode
+  /** Renderiza badge à direita do label (atualmente só recados). */
+  badge?: 'recados'
 }
 
 const NAV: NavItem[] = [
@@ -40,11 +49,17 @@ const NAV: NavItem[] = [
   { to: '/financiamentos', label: 'Financiamentos', icon: <Banknote size={18} /> },
   { to: '/contas', label: 'Contas', icon: <Wallet size={18} /> },
   { to: '/patrimonio', label: 'Patrimônio', icon: <Landmark size={18} /> },
+  { to: '/tributario', label: 'Tributário', icon: <FileSpreadsheet size={18} /> },
   { to: '/metas', label: 'Metas', icon: <Target size={18} /> },
   { to: '/familia', label: 'Família', icon: <Users size={18} /> },
+  { to: '/meupainel', label: 'Meu Painel', icon: <User size={18} /> },
   { to: '/reembolsos', label: 'Reembolsos', icon: <HandCoins size={18} /> },
   { to: '/simulador', label: 'Simulador', icon: <LineChart size={18} /> },
+  { to: '/recados', label: 'Recados', icon: <Bell size={18} />, badge: 'recados' },
+  { to: '/configuracoes', label: 'Configurações', icon: <Settings size={18} /> },
 ]
+
+const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 
 export function AppShell() {
   const { session, signOut } = useAuth()
@@ -55,6 +70,7 @@ export function AppShell() {
   const loading = useData((s) => s.loading)
   const getFlag = useData((s) => s.getFlag)
   const load = useData((s) => s.load)
+  const refreshCotacoes = useData((s) => s.refreshCotacoes)
   const email = session?.user?.email ?? ''
   const initial = (email[0] ?? '?').toUpperCase()
 
@@ -77,6 +93,16 @@ export function AppShell() {
     const t = setTimeout(() => setTakeoverOpen(true), 500)
     return () => clearTimeout(t)
   }, [data, loading, getFlag, setTakeoverOpen])
+
+  // Auto-refresh de cotações se mais antigas que 6h. Não bloqueia UI;
+  // falha silenciosa (rede offline ou CORS).
+  useEffect(() => {
+    if (!data) return
+    if (loading) return
+    if (!cotacoesExpiradas(data.cotacoes, SIX_HOURS_MS)) return
+    void refreshCotacoes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?._syncedAt, loading])
 
   return (
     <div className="flex min-h-dvh bg-bg text-ink">
@@ -123,7 +149,8 @@ export function AppShell() {
               }
             >
               {item.icon}
-              {item.label}
+              <span className="flex-1 truncate">{item.label}</span>
+              {item.badge === 'recados' && <RecadosBadge />}
             </NavLink>
           ))}
         </nav>
@@ -188,6 +215,9 @@ export function AppShell() {
 
       {/* Takeover de 1º acesso (overlay central) */}
       <HaileTakeover />
+
+      {/* Aplica tema (claro/escuro/auto) em <html data-theme> */}
+      <ThemeApplier />
     </div>
   )
 }

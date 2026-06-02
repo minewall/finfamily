@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Users, Pencil, Trash2, Target, TrendingUp, TrendingDown, Scale } from 'lucide-react'
+import {
+  Plus,
+  Users,
+  Pencil,
+  Trash2,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  Mail,
+  UserPlus,
+  Send,
+  X,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ShieldCheck,
+} from 'lucide-react'
 import {
   currencyBRL,
   personColor,
@@ -12,18 +29,39 @@ import {
   FAMILIA_COLETIVO,
 } from '@haile/shared'
 import { useData } from '@/store/useData'
+import { useFamily } from '@/store/useFamily'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/field'
+import { ConvidarMembroModal } from '@/components/ConvidarMembroModal'
+import { inviteStatus, type FamilyMemberRow } from '@/lib/family'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
 export default function Familia() {
   const { data, loading, error, load, addPessoa, renamePessoa, deletePessoa } = useData()
+  const {
+    members,
+    pendingInvites,
+    context,
+    loadFamily,
+    remove: removeMember,
+    resend: resendInvite,
+    cancel: cancelInvite,
+  } = useFamily()
 
   useEffect(() => {
     if (!data && !loading) void load()
   }, [data, loading, load])
+
+  useEffect(() => {
+    void loadFamily()
+  }, [loadFamily])
+
+  const [modalConvidar, setModalConvidar] = useState(false)
+  const [membroBusy, setMembroBusy] = useState<string | null>(null)
+  const [membroMsg, setMembroMsg] = useState<string | null>(null)
+  const [membroErr, setMembroErr] = useState<string | null>(null)
 
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -78,6 +116,35 @@ export default function Familia() {
     }
   }
 
+  async function handleResend(memberId: string) {
+    setMembroErr(null); setMembroMsg(null)
+    setMembroBusy(memberId)
+    const res = await resendInvite(memberId)
+    setMembroBusy(null)
+    if (res.error) setMembroErr(res.error)
+    else setMembroMsg('Convite reenviado.')
+  }
+
+  async function handleCancelInvite(memberId: string) {
+    if (!confirm('Cancelar este convite pendente?')) return
+    setMembroErr(null); setMembroMsg(null)
+    setMembroBusy(memberId)
+    const res = await cancelInvite(memberId)
+    setMembroBusy(null)
+    if (res.error) setMembroErr(res.error)
+    else setMembroMsg('Convite cancelado.')
+  }
+
+  async function handleRemoveMember(memberId: string) {
+    if (!confirm('Remover este membro? Ele perde acesso à família imediatamente.')) return
+    setMembroErr(null); setMembroMsg(null)
+    setMembroBusy(memberId)
+    const res = await removeMember(memberId)
+    setMembroBusy(null)
+    if (res.error) setMembroErr(res.error)
+    else setMembroMsg('Membro removido.')
+  }
+
   function handleDelete(pessoa: string) {
     setErroPessoa(null)
     try {
@@ -98,9 +165,14 @@ export default function Familia() {
           <h1 className="text-2xl font-bold text-ink">Painel da Família</h1>
           <p className="text-sm text-mist">Quem contribui com o quê — e como o saldo coletivo está {MESES[month - 1].toLowerCase()} de {year}.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setModalAdd(true)}>
-          <Plus size={14} /> Adicionar pessoa
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setModalAdd(true)}>
+            <Plus size={14} /> Adicionar pessoa
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setModalConvidar(true)}>
+            <UserPlus size={14} /> Convidar membro
+          </Button>
+        </div>
       </header>
 
       {/* Seletor mês/ano + saldo coletivo */}
@@ -204,6 +276,59 @@ export default function Familia() {
         </section>
       )}
 
+      {/* Membros da família + convites */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate">Membros da família</h2>
+          <Button variant="ghost" size="sm" onClick={() => setModalConvidar(true)}>
+            <UserPlus size={14} /> Convidar
+          </Button>
+        </div>
+
+        {(membroErr || membroMsg) && (
+          <div
+            className={`mb-3 rounded-lg border px-3 py-2 text-sm ${
+              membroErr ? 'border-red/40 bg-red/10 text-red' : 'border-green/40 bg-green/10 text-green'
+            }`}
+          >
+            {membroErr ?? membroMsg}
+          </div>
+        )}
+
+        {members.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line bg-surface p-6 text-center">
+            <Mail size={22} className="mx-auto mb-2 text-faint" />
+            <div className="font-medium text-ink">Ninguém convidado ainda</div>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-mist">
+              Convide cônjuge, filhos ou parceiro pra co-administrar as finanças. Eles recebem um link de acesso por e-mail.
+            </p>
+            <Button className="mt-4" variant="primary" size="sm" onClick={() => setModalConvidar(true)}>
+              <Send size={14} /> Enviar primeiro convite
+            </Button>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {members.map((m) => (
+              <MembroRow
+                key={m.id}
+                membro={m}
+                busy={membroBusy === m.id}
+                isOwner={!!context && context.role === 'admin'}
+                onResend={() => void handleResend(m.id)}
+                onCancel={() => void handleCancelInvite(m.id)}
+                onRemove={() => void handleRemoveMember(m.id)}
+              />
+            ))}
+          </ul>
+        )}
+
+        {pendingInvites.length > 0 && (
+          <p className="mt-2 text-[11px] text-faint">
+            {pendingInvites.length} convite{pendingInvites.length === 1 ? '' : 's'} ainda pendente{pendingInvites.length === 1 ? '' : 's'}.
+          </p>
+        )}
+      </section>
+
       {/* Metas de família */}
       {metasFamilia.length > 0 && (
         <section className="mb-8">
@@ -249,6 +374,9 @@ export default function Familia() {
         </div>
       </Modal>
 
+      {/* Modal: convidar membro */}
+      <ConvidarMembroModal open={modalConvidar} onClose={() => setModalConvidar(false)} />
+
       {/* Modal: editar/excluir pessoa */}
       <Modal
         open={!!modalEdit}
@@ -293,6 +421,102 @@ function Mini({ label, value, tone }: { label: string; value: string; tone: stri
       <div className="text-[10px] font-semibold uppercase tracking-wide text-faint">{label}</div>
       <div className={`mt-0.5 font-mono text-[13px] font-bold ${tone}`}>{value}</div>
     </div>
+  )
+}
+
+function MembroRow({
+  membro,
+  busy,
+  isOwner,
+  onResend,
+  onCancel,
+  onRemove,
+}: {
+  membro: FamilyMemberRow
+  busy: boolean
+  isOwner: boolean
+  onResend: () => void
+  onCancel: () => void
+  onRemove: () => void
+}) {
+  const status = inviteStatus(membro)
+  const email = membro.invited_email ?? '—'
+  const pessoa = membro.pessoa_name ?? null
+  const role = membro.role || 'member'
+
+  const statusBadge =
+    status === 'active' ? (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green/15 px-2 py-0.5 text-[11px] font-semibold text-green">
+        <CheckCircle2 size={11} /> Ativo
+      </span>
+    ) : status === 'expired' ? (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red/15 px-2 py-0.5 text-[11px] font-semibold text-red">
+        <AlertTriangle size={11} /> Expirado
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-semibold text-amber">
+        <Clock size={11} /> Pendente
+      </span>
+    )
+
+  return (
+    <li className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
+      <div
+        className="grid h-9 w-9 place-items-center rounded-full text-sm font-bold text-white"
+        style={{ backgroundColor: personColor(pessoa ?? email) }}
+      >
+        {personInitial(pessoa ?? email)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold text-ink">{pessoa ?? email}</span>
+          {statusBadge}
+          <span className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] text-mist">
+            <ShieldCheck size={11} /> {role}
+          </span>
+        </div>
+        {pessoa && <div className="truncate text-[11px] text-faint">{email}</div>}
+      </div>
+      {isOwner && (
+        <div className="flex items-center gap-1">
+          {status !== 'active' && (
+            <button
+              type="button"
+              onClick={onResend}
+              disabled={busy}
+              className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-ink disabled:opacity-40"
+              aria-label="Reenviar convite"
+              title="Reenviar convite"
+            >
+              <Send size={14} />
+            </button>
+          )}
+          {status === 'active' ? (
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={busy}
+              className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-red disabled:opacity-40"
+              aria-label="Remover membro"
+              title="Remover membro"
+            >
+              <Trash2 size={14} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              className="rounded-lg p-1.5 text-mist hover:bg-elevated hover:text-red disabled:opacity-40"
+              aria-label="Cancelar convite"
+              title="Cancelar convite"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+    </li>
   )
 }
 

@@ -13,8 +13,12 @@ import type {
   Passivo,
   Financiamento,
   EstrategiaAntecipacao,
+  Tributo,
+  Recado,
+  CotacoesAuto,
 } from '@haile/shared'
 import { regenAllContratos, markAllPastParcelas } from '@haile/shared'
+import { fetchCotacoes } from '@/lib/cotacoes'
 import { supabase } from '@/lib/supabase'
 
 /** Buckets de patrimônio com CRUD genérico via helpers. */
@@ -53,6 +57,26 @@ interface DataState {
   /** Flag genérica em data.flags (porta de Store.getFlag/setFlag do Dino). */
   getFlag: (key: string, fallback?: boolean) => boolean
   setFlag: (key: string, value: boolean) => void
+  // ── Perfil (Sprint 5 — Configurações) ──
+  getProfile: () => { name: string; timezone: string; avatar: string | null }
+  setProfile: (patch: Partial<{ name: string; timezone: string; avatar: string | null }>) => void
+  // ── Settings genéricas (theme, ui prefs, etc.) ──
+  getSetting: <T = unknown>(key: string, fallback?: T) => T
+  setSetting: (key: string, value: unknown) => void
+  // ── Substituir blob inteiro (import/reset de Backup) ──
+  replaceAll: (next: UserData) => void
+  // ── Tributário ──
+  addTributo: (input: Omit<Tributo, 'id'> & Partial<Pick<Tributo, 'id'>>) => Tributo
+  updateTributo: (id: string, patch: Partial<Tributo>) => void
+  deleteTributo: (id: string) => void
+  marcarParcelaTributoPaga: (id: string) => void
+  // ── Recados do Haile ──
+  addRecado: (input: Omit<Recado, 'id' | 'criadoEm'> & Partial<Pick<Recado, 'id' | 'criadoEm'>>) => Recado
+  marcarRecadoLido: (id: string) => void
+  marcarTodosLidos: () => void
+  deleteRecado: (id: string) => void
+  // ── Cotações ──
+  refreshCotacoes: () => Promise<CotacoesAuto | null>
   // ── Pessoas (porta de Store.addPessoa/renamePessoa/deletePessoa) ──
   addPessoa: (name: string) => void
   renamePessoa: (oldName: string, newName: string) => void
@@ -470,6 +494,116 @@ export const useData = create<DataState>((set, get) => {
       } as Financiamento
       const next = list.map((x) => (x.id === id ? patched : x))
       persist({ ...d, financiamentos: next })
+    },
+
+    // ── Perfil + Settings + replaceAll (Sprint 5) ────────────────
+    getProfile: () => {
+      const p = (ensure().profile ?? {}) as Record<string, unknown>
+      return {
+        name: typeof p.name === 'string' ? p.name : 'Usuário',
+        timezone: typeof p.timezone === 'string' ? p.timezone : 'America/Sao_Paulo',
+        avatar: typeof p.avatar === 'string' ? p.avatar : null,
+      }
+    },
+    setProfile: (patch) => {
+      const d = ensure()
+      const prev = (d.profile ?? {}) as Record<string, unknown>
+      persist({ ...d, profile: { ...prev, ...patch } })
+    },
+    getSetting: <T = unknown>(key: string, fallback?: T): T => {
+      const settings = (ensure().settings ?? {}) as Record<string, unknown>
+      return (key in settings ? settings[key] : fallback) as T
+    },
+    setSetting: (key, value) => {
+      const d = ensure()
+      const settings = { ...(d.settings ?? {}), [key]: value }
+      persist({ ...d, settings })
+    },
+    replaceAll: (next) => {
+      // Substitui o blob inteiro. Usado por import e reset.
+      // Limpa _syncedAt pra evitar resolução de conflito atravessada;
+      // persist() carimba um novo timestamp.
+      const clean = { ...(next || {}) } as UserData
+      delete (clean as Record<string, unknown>)._syncedAt
+      persist(clean)
+    },
+
+    // ── Tributário (Sprint 8) ────────────────────────────────────
+    addTributo: (input) => {
+      const d = ensure()
+      const entry: Tributo = {
+        parcelas: 1,
+        pagas: 0,
+        vencimentoMes: 1,
+        vencimentoDia: 10,
+        ano: new Date().getFullYear(),
+        valor: 0,
+        ...input,
+        id: input.id ?? newId(),
+        createdAt: new Date().toISOString(),
+      } as Tributo
+      persist({ ...d, tributos: [...(d.tributos ?? []), entry] })
+      return entry
+    },
+    updateTributo: (id, patch) => {
+      const d = ensure()
+      const list = (d.tributos ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t))
+      persist({ ...d, tributos: list })
+    },
+    deleteTributo: (id) => {
+      const d = ensure()
+      persist({ ...d, tributos: (d.tributos ?? []).filter((t) => t.id !== id) })
+    },
+    marcarParcelaTributoPaga: (id) => {
+      const d = ensure()
+      const list = (d.tributos ?? []).map((t) => {
+        if (t.id !== id) return t
+        const proximoPagas = Math.min((t.pagas || 0) + 1, t.parcelas || 1)
+        return { ...t, pagas: proximoPagas }
+      })
+      persist({ ...d, tributos: list })
+    },
+
+    // ── Recados (Sprint 8) ───────────────────────────────────────
+    addRecado: (input) => {
+      const d = ensure()
+      const entry: Recado = {
+        prioridade: 'info',
+        ...input,
+        id: input.id ?? newId(),
+        criadoEm: input.criadoEm ?? new Date().toISOString(),
+      } as Recado
+      persist({ ...d, recados: [...(d.recados ?? []), entry] })
+      return entry
+    },
+    marcarRecadoLido: (id) => {
+      const d = ensure()
+      const now = new Date().toISOString()
+      const list = (d.recados ?? []).map((r) =>
+        r.id === id ? { ...r, lidoEm: r.lidoEm ?? now } : r,
+      )
+      persist({ ...d, recados: list })
+    },
+    marcarTodosLidos: () => {
+      const d = ensure()
+      const now = new Date().toISOString()
+      const list = (d.recados ?? []).map((r) => (r.lidoEm ? r : { ...r, lidoEm: now }))
+      persist({ ...d, recados: list })
+    },
+    deleteRecado: (id) => {
+      const d = ensure()
+      persist({ ...d, recados: (d.recados ?? []).filter((r) => r.id !== id) })
+    },
+
+    // ── Cotações (Sprint 8) ──────────────────────────────────────
+    refreshCotacoes: async () => {
+      const cot = await fetchCotacoes()
+      if (!cot) return null
+      const d = ensure()
+      // Merge — preserva chaves que não vieram nesta atualização
+      const merged: CotacoesAuto = { ...(d.cotacoes ?? {}), ...cot }
+      persist({ ...d, cotacoes: merged })
+      return merged
     },
 
     deletePessoa: (name) => {

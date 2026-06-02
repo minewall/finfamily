@@ -14,3 +14,6 @@ export * from './reembolsos';
 export * from './contratos';
 export * from './patrimonio';
 export * from './financiamentos';
+export * from './tributos';
+export * from './recados';
+export * from './cotacoes';
