@@ -2,11 +2,15 @@
 // Endpoint público para receber webhooks do Asaas. Auth por token estático
 // no header `asaas-access-token` (configurado no painel Asaas).
 //
+// REGRA CRÍTICA: Asaas só considera HTTP 200 como sucesso. Qualquer não-200
+// (incluindo 401/400/500) conta como falha; 15 falhas seguidas PAUSAM a fila.
+// Por isso TODO retorno aqui é 200 — rejeições viram `{ ignored: <motivo> }`
+// no body, com log pra debug. Ref: https://docs.asaas.com/docs/fila-pausada
+//
 // Idempotência:
 //  - payload.id do Asaas vai em payment_events.asaas_event_id (UNIQUE).
 //  - Se já está gravado → 200 OK sem reprocessar.
-//  - Erro de processamento NÃO retorna 5xx: registra process_error e
-//    devolve 200 pra Asaas parar de bombardear retries (debug via tabela).
+//  - Erro de processamento também devolve 200 (registra process_error pra debug).
 //
 // Mapeamento user_id: payload.payment.subscription (asaas) corresponde a
 // subscriptions.asaas_subscription_id. payload.payment.externalReference
@@ -199,33 +203,46 @@ async function advanceSubscription(
 }
 
 serve(async (req) => {
-  // Asaas chama POST. Bloqueia o resto, mas devolve 200 em GET pra ping/health no painel.
+  // ATENÇÃO: Asaas considera APENAS HTTP 200 como sucesso. Qualquer outro
+  // código (4xx/5xx) conta como falha; 15 falhas consecutivas pausam a fila.
+  // Por isso TODO caminho aqui devolve 200 — rejeições viram log + body
+  // informativo, nunca status code de erro.
+  // Ref: https://docs.asaas.com/docs/fila-pausada
   if (req.method === 'GET') return json(200, { ok: true, service: 'asaas-webhook' });
-  if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
+  if (req.method !== 'POST') {
+    console.warn('[asaas-webhook] method ignorado:', req.method);
+    return json(200, { received: true, ignored: 'method_not_allowed' });
+  }
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
   const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY');
   const TOKEN        = Deno.env.get('ASAAS_WEBHOOK_TOKEN');
   if (!SUPABASE_URL || !SERVICE_KEY || !TOKEN) {
     console.error('[asaas-webhook] config: env ausente');
-    return json(500, { error: 'config' });
+    return json(200, { received: true, ignored: 'config_missing' });
   }
 
-  // ── Auth: token estático no header ──
+  // ── Auth: token estático no header. Reject vira 200+ignored pra não pausar a fila. ──
   const incoming = req.headers.get('asaas-access-token') || '';
   if (incoming !== TOKEN) {
-    console.warn('[asaas-webhook] token inválido');
-    return json(401, { error: 'unauthorized' });
+    console.warn('[asaas-webhook] token inválido (length=' + incoming.length + ')');
+    return json(200, { received: true, ignored: 'unauthorized' });
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
   let body: AsaasWebhookBody;
   try { body = await req.json(); }
-  catch { return json(400, { error: 'invalid_json' }); }
+  catch {
+    console.warn('[asaas-webhook] JSON inválido');
+    return json(200, { received: true, ignored: 'invalid_json' });
+  }
 
   const event = (body?.event || '').toUpperCase();
-  if (!event) return json(400, { error: 'event_missing' });
+  if (!event) {
+    console.warn('[asaas-webhook] event ausente, body.id=', body?.id);
+    return json(200, { received: true, ignored: 'event_missing' });
+  }
 
   // ── Idempotência: persiste event row ANTES de processar ──
   // asaas_event_id = body.id (estável por entrega). Se duplicado, retorna 200.
