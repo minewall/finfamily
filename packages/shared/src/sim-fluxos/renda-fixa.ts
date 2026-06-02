@@ -9,10 +9,11 @@
 //   361-720:         17.5%
 //   acima de 720:    15%
 import type { FluxoSpec, ResultBlock } from '../sim-fluxo'
-import { asNum, fmtMeses } from '../sim-fluxo'
+import { asNum, fmtMeses, getRiskProfile } from '../sim-fluxo'
 import { currencyBRL } from '../finance'
 
-const CDI_HINT_PCT = 12.0 // CDI ~ Selic - 0.1pp; hardcoded como sugestão
+// TODO: cotação viva (fase futura) — hoje hardcoded como sugestão.
+const CDI_HINT_PCT = 12.0 // CDI ~ Selic - 0.1pp
 
 function aliquotaIR(prazoDias: number): number {
   if (prazoDias <= 180) return 0.225
@@ -52,7 +53,13 @@ export const FLUXO_RENDA_FIXA: FluxoSpec = {
           id: 'meses',
           label: 'Prazo (meses)',
           kind: 'months',
-          defaultValue: () => 24,
+          // Conservador: 12m (liquidez/IR alto); Moderado: 24m; Agressivo: 36m+ (alíquota mínima).
+          defaultValue: (_, ctx) => {
+            const perfil = getRiskProfile(ctx)
+            if (perfil === 'conservador') return 12
+            if (perfil === 'agressivo') return 36
+            return 24
+          },
           validate: (v) => {
             const n = asNum(v)
             if (n <= 0) return 'Informe um prazo > 0'

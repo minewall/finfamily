@@ -9,6 +9,8 @@
 export type FieldKind = 'currency' | 'months' | 'years' | 'percent' | 'text' | 'select'
 
 import type { UserData } from './types'
+import { calcPoderDeEscolhaV2 } from './tipos'
+import { getRespostas } from './contexto'
 
 /** Contexto financeiro disponível pros defaults inteligentes dos fluxos. */
 export interface FluxoCtx {
@@ -145,6 +147,79 @@ export function receitaMediaNMeses(ctx: FluxoCtx | undefined, n = 3): number {
     count += 1
   }
   return count > 0 ? total / count : 0
+}
+
+/** Poder de Escolha mensal (sobra) no mês corrente do ctx. */
+export function getPoderEscolha(ctx?: FluxoCtx): number {
+  if (!ctx) return 0
+  const pde = calcPoderDeEscolhaV2(ctx.data, ctx.month, ctx.year)
+  return Math.max(0, pde.poderDeEscolha || 0)
+}
+
+/** Idade do usuário vinda do profile (campo opcional). null se não houver. */
+export function getProfileIdade(ctx?: FluxoCtx): number | null {
+  if (!ctx) return null
+  const raw = (ctx.data.profile as { idade?: unknown; birthYear?: unknown } | undefined) ?? {}
+  const idade = Number(raw.idade)
+  if (Number.isFinite(idade) && idade > 0 && idade < 120) return Math.round(idade)
+  const by = Number(raw.birthYear)
+  if (Number.isFinite(by) && by > 1900 && by < ctx.year) return ctx.year - by
+  return null
+}
+
+export type RiskProfile = 'conservador' | 'moderado' | 'agressivo'
+
+/** Perfil de risco extraído das respostas do ICP (categoria `risk`). */
+export function getRiskProfile(ctx?: FluxoCtx): RiskProfile {
+  if (!ctx) return 'moderado'
+  const respostas = getRespostas(ctx.data.contexto, 'risk')
+  const perfil = respostas.find((r) => r.perguntaId === 'risk_perfil')
+  if (perfil?.opcaoId === 'conservador') return 'conservador'
+  if (perfil?.opcaoId === 'arrojado') return 'agressivo'
+  if (perfil?.opcaoId === 'moderado') return 'moderado'
+  const reacao = respostas.find((r) => r.perguntaId === 'risk_perde')
+  if (reacao?.opcaoId === 'tira_tudo') return 'conservador'
+  if (reacao?.opcaoId === 'aporta_mais') return 'agressivo'
+  return 'moderado'
+}
+
+/** Número de dependentes via ICP (categoria `family`). 0 se não houver. */
+export function getDependentes(ctx?: FluxoCtx): number {
+  if (!ctx) return 0
+  const r = getRespostas(ctx.data.contexto, 'family').find((x) => x.perguntaId === 'family_dependentes')
+  if (!r?.opcaoId) return 0
+  if (r.opcaoId === '0') return 0
+  if (r.opcaoId === '1') return 1
+  if (r.opcaoId === '2_3') return 2
+  if (r.opcaoId === '4mais') return 4
+  return 0
+}
+
+/** Soma estimada de custo mensal de TODOS os veículos cadastrados no Patrimônio. */
+export function veiculosCustoMensalCadastrado(ctx?: FluxoCtx): number {
+  if (!ctx) return 0
+  const veiculos = (ctx.data.veiculos ?? []) as Array<Record<string, unknown>>
+  if (veiculos.length === 0) return 0
+  let total = 0
+  for (const v of veiculos) {
+    const ipva = Number(v.ipvaAnual) || 0
+    const seguro = Number(v.seguroAnual) || 0
+    const manut = Number(v.manutencaoMensal) || 0
+    total += ipva / 12 + seguro / 12 + manut
+  }
+  return total
+}
+
+/** Valor médio dos veículos cadastrados (compra ou atual). 0 se não houver. */
+export function veiculoValorCadastrado(ctx?: FluxoCtx): number {
+  if (!ctx) return 0
+  const veiculos = (ctx.data.veiculos ?? []) as Array<Record<string, unknown>>
+  if (veiculos.length === 0) return 0
+  const valores = veiculos
+    .map((v) => Number(v.valorAtual) || Number(v.valorCompra) || 0)
+    .filter((n) => n > 0)
+  if (valores.length === 0) return 0
+  return valores.reduce((s, n) => s + n, 0) / valores.length
 }
 
 /** Formata meses → "Xa Ym" ou "Xm" */

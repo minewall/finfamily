@@ -6,7 +6,7 @@
 //      i_mensal real).
 // Cenário alternativo: se aportar 80% disso, em quanto tempo chega.
 import type { FluxoSpec, ResultBlock } from '../sim-fluxo'
-import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses, sumContas, receitaMediaNMeses } from '../sim-fluxo'
+import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses, sumContas, receitaMediaNMeses, getProfileIdade, getPoderEscolha } from '../sim-fluxo'
 import { currencyBRL } from '../finance'
 
 const TAXA_REAL_SUGERIDA = 4.5 // % a.a. acima da inflação (renda fixa BR de longo prazo)
@@ -27,7 +27,7 @@ export const FLUXO_APOSENTADORIA: FluxoSpec = {
           id: 'idadeAtual',
           label: 'Idade atual',
           kind: 'years',
-          defaultValue: () => 35,
+          defaultValue: (_, ctx) => getProfileIdade(ctx) ?? 35,
           validate: (v) => {
             const n = asNum(v)
             if (n <= 0 || n > 100) return 'Informe uma idade entre 1 e 100'
@@ -109,12 +109,14 @@ export const FLUXO_APOSENTADORIA: FluxoSpec = {
       ],
     },
   ],
-  compute(values): ResultBlock {
+  compute(values, ctx): ResultBlock {
     const idadeAtual = Math.round(asNum(values.idadeAtual))
     const idadeAlvo = Math.round(asNum(values.idadeAlvoVal))
     const rendaMensal = asNum(values.rendaMensal)
     const patrimonioAtual = asNum(values.patrimonioAtual)
     const taxaRealAnual = asNum(values.taxaRealAnualPct)
+    const pde = getPoderEscolha(ctx)
+    const aporteSugerido = pde * 0.2
     const iMensalReal = aaToAmDecimal(taxaRealAnual)
     const anosAteAposentar = idadeAlvo - idadeAtual
     const mesesAteAposentar = anosAteAposentar * 12
@@ -159,6 +161,11 @@ export const FLUXO_APOSENTADORIA: FluxoSpec = {
           : 'Você não precisa aportar mais nada — o patrimônio atual já cobre o alvo.',
         Number.isFinite(mesesAlt) && pmt > 0
           ? `Se aportar 80% disso (${currencyBRL(pmtAlt)}/mês), você se aposenta aos ${idadeAlt.toFixed(1)} (em ${fmtMeses(mesesAlt)}).`
+          : '',
+        pde > 0 && pmt > 0
+          ? (pmt <= aporteSugerido
+              ? `Cabe folgado no seu Poder de Escolha (${currencyBRL(pde)}/mês). O aporte é ${Math.round((pmt / pde) * 100)}% da sua sobra — recomendamos até 20% pra meta de longo prazo.`
+              : `O aporte representa ${Math.round((pmt / pde) * 100)}% do seu Poder de Escolha (${currencyBRL(pde)}). Considere começar com ${currencyBRL(aporteSugerido)}/mês (20% da sobra) e escalar com a renda.`)
           : '',
       ].filter(Boolean),
       metrics: [

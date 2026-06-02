@@ -31,10 +31,21 @@ export function HailePanel() {
     open, turns, rawHistory, loading, error, usage,
     setOpen, appendTurn, resolveToolPending, pushRaw, setLoading, setError, setUsage, reset,
   } = useCoach()
+  const consumeSeed = useCoach((s) => s.consumeSeed)
+  const seedPrompt = useCoach((s) => s.seedPrompt)
   const data = useData((s) => s.data)
   const location = useLocation()
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Quando outra tela chama openWithSeed(prompt), o painel injeta o texto no
+  // input sem enviar — usuário revisa e dispara manualmente.
+  useEffect(() => {
+    if (open && seedPrompt) {
+      setInput((cur) => (cur.trim() ? cur : seedPrompt))
+      consumeSeed()
+    }
+  }, [open, seedPrompt, consumeSeed])
 
   useEffect(() => {
     if (!scrollRef.current) return
