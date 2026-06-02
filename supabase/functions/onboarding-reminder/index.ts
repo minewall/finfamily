@@ -8,19 +8,11 @@
 //
 // POST /functions/v1/onboarding-reminder
 //   Body opcional: { dryRun?: boolean = false, batchSize?: number = 200 }
-//
-// Critério de envio:
-//   - onboarding.completed != true
-//   - onboarding.startedAt < now() - 24h
-//   - onboarding.lastReminderAt IS NULL OR < now() - 7 days  (não spamma)
-//
-// Retorna: { sent: number, failed: number, skipped: number, errors: [...] }
 // ═══════════════════════════════════════════════════════════════════
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { renderEmail, escapeHtml, encodeAttr } from '../_shared/email-layout.ts';
 
-// [M1] CORS restritivo. Server-to-server (cron), mas mantemos allowlist
-// por consistência com as outras Edges.
 const ALLOWED_ORIGINS = new Set([
   'https://haile.com.br',
   'https://www.haile.com.br',
@@ -44,18 +36,19 @@ function corsHeaders(req: Request): Record<string, string> {
 const APP_BASE_URL = 'https://haile.com.br';
 const DEFAULT_BATCH = 200;
 const MAX_BATCH = 1000;
-const PAUSED_THRESHOLD_HOURS = 24;   // só lembra quem está parado há ≥24h
-const COOLDOWN_DAYS = 7;             // não reenvia antes de 7 dias
+const PAUSED_THRESHOLD_HOURS = 24;
+const COOLDOWN_DAYS = 7;
+const FROM = 'Haile <oi@haile.com.br>';
+const REPLY_TO = 'oi@haile.com.br';
 
-// Mapeia step key (Store.ONBOARDING_STEPS) → label amigável no e-mail
 const STEP_LABELS: Record<string, string> = {
-  apresentacao:  'Apresentação do Haile',
-  personalidade: 'Como o Haile fala com você',
+  apresentacao:  'Apresentacao do Haile',
+  personalidade: 'Como o Haile fala com voce',
   nome:          'Seu nome e avatar',
   familia:       'Sua estrutura familiar',
-  situacao:      'Sua situação financeira',
+  situacao:      'Sua situacao financeira',
   objetivo:      'Seu objetivo principal',
-  primeira_acao: 'Por onde começamos',
+  primeira_acao: 'Por onde comecamos',
 };
 const STEP_KEYS = Object.keys(STEP_LABELS);
 
@@ -73,21 +66,18 @@ serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    // [M8] Padronizado SERVICE_ROLE_KEY (fallback removido).
     const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY');
     const RESEND_KEY   = Deno.env.get('RESEND_API_KEY');
 
     if (!SUPABASE_URL || !SERVICE_KEY) return json(500, { error: 'SUPABASE_URL ou SERVICE_ROLE_KEY ausente' }, req);
     if (!RESEND_KEY)                   return json(500, { error: 'RESEND_API_KEY ausente' }, req);
 
-    // ── Auth: bearer == service role ──
     const auth = req.headers.get('authorization') ?? '';
     const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
     if (!token || token !== SERVICE_KEY) {
       return json(401, { error: 'service role bearer obrigatório' }, req);
     }
 
-    // ── Parse body ──
     let body: { dryRun?: boolean; batchSize?: number } = {};
     try {
       const raw = await req.text();
@@ -103,7 +93,6 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-    // ── Busca candidatos via RPC (definida na migration 008) ──
     const { data: candidates, error: fetchErr } = await admin.rpc('list_onboarding_reminders', {
       paused_hours: PAUSED_THRESHOLD_HOURS,
       cooldown_days: COOLDOWN_DAYS,
@@ -128,7 +117,6 @@ serve(async (req) => {
       }, req);
     }
 
-    // ── Loop de envio ──
     let sent = 0, failed = 0, skipped = 0;
     const errors: Array<{ email: string; type: string; message: string }> = [];
     const now = new Date();
@@ -138,14 +126,14 @@ serve(async (req) => {
         if (!c.email) { skipped++; continue; }
 
         const stepKey = STEP_KEYS[c.paused_at_step] ?? STEP_KEYS[0];
-        const stepLabel = STEP_LABELS[stepKey] ?? 'Sua configuração';
-        const firstName = firstNameOf(c.name);
+        const stepLabel = STEP_LABELS[stepKey] ?? 'Sua configuracao';
+        const fn = firstNameOf(c.name);
         const link = `${APP_BASE_URL}/app/app.html`;
 
         const emailRes = await sendEmail({
           apiKey: RESEND_KEY,
           to: c.email,
-          name: firstName,
+          name: fn,
           step: stepLabel,
           link,
         });
@@ -157,8 +145,6 @@ serve(async (req) => {
           continue;
         }
 
-        // Marca lastReminderAt no jsonb do user_data via RPC dedicada
-        // (jsonb_set não é atualizável via PATCH REST padrão)
         const { error: rpcErr } = await admin.rpc('mark_onboarding_reminder_sent', {
           target_user_id: c.user_id,
           reminded_at: now.toISOString(),
@@ -208,18 +194,18 @@ interface SendArgs {
 }
 
 async function sendEmail(args: SendArgs): Promise<{ ok: boolean; error?: string }> {
-  const subject = `${args.name || 'Olá'}, vamos terminar de configurar?`;
+  const subject = args.name
+    ? `${args.name}, continuar de onde paramos?`
+    : 'Continuar de onde paramos?';
   const html = renderTemplate(args.name, args.step, args.link);
   const body = JSON.stringify({
-    from: 'Haile <oi@haile.com.br>',
+    from: FROM,
     to: args.to,
+    reply_to: REPLY_TO,
     subject,
     html,
   });
 
-  // [M11] Retry com backoff exponencial em 429/5xx (mesma lógica do
-  // waitlist-launch). Sem isso, transientes do Resend faziam o cron
-  // marcar lastReminderAt sem o e-mail ter saído de fato.
   const MAX_ATTEMPTS = 3;
   let lastErr = '';
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -244,23 +230,30 @@ async function sendEmail(args: SendArgs): Promise<{ ok: boolean; error?: string 
 }
 
 function renderTemplate(nome: string, step: string, link: string): string {
-  return TEMPLATE_HTML
-    .replaceAll('{{ nome }}', escapeHtml(nome))
-    .replaceAll('{{ step }}', escapeHtml(step))
-    .replaceAll('{{ link }}', encodeAttr(link));
-}
+  const greeting = nome
+    ? `Oi, <strong>${escapeHtml(nome)}</strong>.`
+    : `Oi.`;
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+  const stepBlock = `
+      <div style="border:1px solid #E5E7EB;border-radius:10px;padding:16px 20px;margin:8px 0 20px;background:#F9FAFB">
+        <p style="font-family:'DM Sans',Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6B7280;margin:0 0 6px">Voce parou em</p>
+        <p style="font-family:'DM Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#111827;margin:0;line-height:1.4">${escapeHtml(step)}</p>
+      </div>`;
 
-function encodeAttr(s: string): string {
-  return s.replace(/"/g, '&quot;');
+  const bodyHtml = `
+      <h1>Continuar de onde paramos?</h1>
+      <p>${greeting} Sua conta no <strong>Haile</strong> esta esperando voce terminar a configuracao. Faltam poucos minutos pra ter o painel pronto e o Haile comecar a entender seus habitos.</p>
+${stepBlock}
+      <p class="muted">Seus dados estao salvos. Quando voltar, retomamos exatamente do mesmo ponto.</p>`;
+
+  return renderEmail({
+    preheader: `Faltam poucos minutos pra terminar de configurar o Haile.`,
+    bodyHtml,
+    ctaLabel: 'Continuar configuracao',
+    ctaUrl: encodeAttr(link),
+    ctaTone: 'indigo',
+    footerNote: `Voce recebeu este e-mail porque iniciou a configuracao da sua conta no Haile. Se preferir, e so ignorar.`,
+  });
 }
 
 function json(status: number, body: unknown, req?: Request): Response {
@@ -270,71 +263,3 @@ function json(status: number, body: unknown, req?: Request): Response {
     headers: { ...cors, 'content-type': 'application/json' },
   });
 }
-
-// Espelho compacto de /docs/emails/lembrete-onboarding.html
-// Manter sincronizado quando o template oficial mudar.
-const TEMPLATE_HTML = `<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><title>{{ nome }}, vamos terminar de configurar?</title>
-<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-body{background-color:#0B1020;font-family:'DM Sans',Arial,sans-serif;-webkit-text-size-adjust:100%}
-a{color:inherit;text-decoration:none}
-img{border:0;display:block;max-width:100%}
-.email-wrapper{background-color:#0B1020;padding:40px 16px}
-.email-container{max-width:560px;margin:0 auto}
-.header{padding:32px 0 24px;text-align:center}
-.header img{margin:0 auto;height:28px;width:auto}
-.card{background-color:#131929;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden}
-.hero-strip{background:linear-gradient(135deg,#7367F0 0%,#F472B6 100%);padding:36px 40px 32px;text-align:center}
-.body{padding:32px 40px}
-.body-text{font-size:15px;line-height:1.65;color:#94A3B8;margin-bottom:24px}
-.body-text strong{color:#F8FAFC;font-weight:600}
-.step-box{background:rgba(115,103,240,0.08);border:1px solid rgba(115,103,240,0.22);border-radius:12px;padding:18px 22px;margin-bottom:28px}
-.cta-wrap{text-align:center;margin-bottom:28px}
-.cta-btn{display:inline-block;background:linear-gradient(135deg,#7367F0,#5B4FCE);color:#ffffff !important;font-size:15px;font-weight:600;padding:14px 36px;border-radius:12px;letter-spacing:0.01em;text-decoration:none;box-shadow:0 4px 16px rgba(115,103,240,0.4)}
-.link-fallback{font-size:12px;color:#334155;line-height:1.6;margin-bottom:28px;text-align:center}
-.link-fallback a{color:#7367F0 !important;word-break:break-all}
-.divider{border:0;border-top:1px solid rgba(255,255,255,0.06);margin:4px 0 24px}
-.footer{padding:24px 40px 32px;text-align:center}
-.footer-logo{margin:0 auto 16px}
-.footer-text{font-size:12px;color:#334155;line-height:1.7}
-.footer-text a{color:#7367F0 !important}
-.footer-divider{border:0;border-top:1px solid rgba(255,255,255,0.04);margin:20px 0 16px}
-@media only screen and (max-width:600px){.email-wrapper{padding:20px 12px}.hero-strip{padding:28px 24px 24px}.body{padding:24px 24px}.footer{padding:20px 24px 28px}.cta-btn{display:block !important;text-align:center}}
-</style></head>
-<body><div class="email-wrapper"><div class="email-container">
-<div class="header"><img src="https://haile.com.br/assets/svg/haile-wordmark-white.svg" alt="Haile" height="24" /></div>
-<div class="card">
-<div class="hero-strip">
-<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
-<tr><td align="center">
-<p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.82);margin-bottom:10px;font-family:'DM Sans',Arial,sans-serif">Sem pressão</p>
-<p style="font-size:26px;font-weight:700;color:#ffffff;line-height:1.25;font-family:'DM Sans',Arial,sans-serif"><strong>{{ nome }}</strong>,<br><span style="color:rgba(255,255,255,0.88);font-weight:400;font-size:19px">que tal continuar de onde parou?</span></p>
-</td></tr></table>
-</div>
-<div class="body">
-<p class="body-text">Oi, <strong>{{ nome }}</strong>! Sem pressão &mdash; só passei pra avisar que sua conta no <strong>Haile</strong> está esperando você terminar a configuração.</p>
-<p class="body-text">Faltam poucos minutos pra você ter o painel pronto e o Coach começar a entender seus hábitos.</p>
-<div class="step-box">
-<p style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#7367F0;margin-bottom:6px;font-family:'DM Sans',Arial,sans-serif">Você parou em</p>
-<p style="font-size:16px;font-weight:600;color:#F8FAFC;line-height:1.4;font-family:'DM Sans',Arial,sans-serif;margin:0">{{ step }}</p>
-</div>
-<div class="cta-wrap">
-<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ link }}" style="height:50px;v-text-anchor:middle;width:260px" arcsize="24%" stroke="f" fillcolor="#7367F0"><w:anchorlock/><center style="color:#ffffff;font-family:'DM Sans',Arial,sans-serif;font-size:15px;font-weight:600">Continuar configuração</center></v:roundrect><![endif]-->
-<!--[if !mso]><!--><a href="{{ link }}" class="cta-btn">Continuar configuração &rarr;</a><!--<![endif]-->
-</div>
-<p class="link-fallback">Se o botão não funcionar, copie e cole este link no navegador:<br><a href="{{ link }}">{{ link }}</a></p>
-<hr class="divider" />
-<p class="body-text" style="font-size:13px;color:#64748B;margin-bottom:0">Seus dados continuam salvos. Quando voltar, retomamos exatamente de onde parou &mdash; nada pra refazer.</p>
-</div>
-<div class="footer">
-<hr class="footer-divider" />
-<img src="https://haile.com.br/assets/svg/haile-mark-white.svg" alt="Haile" height="20" class="footer-logo" />
-<p class="footer-text">Você recebeu este e-mail porque iniciou a configuração da sua conta no Haile.<br>Se preferir, é só ignorar &mdash; a gente não cobra nem reenvia.</p>
-<p class="footer-text" style="margin-top:12px"><a href="https://haile.com.br">haile.com.br</a> &middot; <a href="https://haile.com.br/privacidade">Privacidade</a></p>
-</div>
-</div>
-<p style="text-align:center;font-size:11px;color:#1E293B;margin-top:24px;font-family:'DM Sans',Arial,sans-serif">&copy; 2026 Haile &middot; Averse Tecnologia</p>
-</div></div></body></html>`;

@@ -11,10 +11,8 @@
 // ═══════════════════════════════════════════════════════════════════
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { renderEmail, escapeHtml, encodeAttr } from '../_shared/email-layout.ts';
 
-// [M1] CORS restritivo. Esta Edge é server-to-server (cron + admin only),
-// então origem do browser não é o vetor — mas mantemos allowlist para
-// consistência com as outras Edges.
 const ALLOWED_ORIGINS = new Set([
   'https://haile.com.br',
   'https://www.haile.com.br',
@@ -39,6 +37,8 @@ const TEMPLATE_EXPIRES_DAYS = 30;
 const DEFAULT_BATCH = 100;
 const MAX_BATCH = 500;
 const APP_BASE_URL = 'https://haile.com.br';
+const FROM = 'Haile <oi@haile.com.br>';
+const REPLY_TO = 'oi@haile.com.br';
 
 interface WaitlistRow {
   id: string;
@@ -62,8 +62,6 @@ serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    // [M8] Nome SERVICE_ROLE_KEY (sem prefixo SUPABASE_) pq o CLI rejeita
-    // esse prefixo nos secrets. Fallback removido — padronizado em todas as Edges.
     const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY');
     const RESEND_KEY   = Deno.env.get('RESEND_API_KEY');
 
@@ -74,7 +72,6 @@ serve(async (req) => {
       return json(500, { error: { type: 'config', message: 'RESEND_API_KEY ausente' } }, req);
     }
 
-    // ── Autenticação: exige bearer token igual ao service role ──
     const authHeader = req.headers.get('authorization') ?? '';
     const token = authHeader.toLowerCase().startsWith('bearer ')
       ? authHeader.slice(7).trim()
@@ -83,7 +80,6 @@ serve(async (req) => {
       return json(401, { error: { type: 'unauthorized', message: 'service role bearer token obrigatório' } }, req);
     }
 
-    // ── Parse do body (opcional) ──
     let body: LaunchBody = {};
     try {
       const raw = await req.text();
@@ -103,7 +99,6 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-    // ── Busca leads pendentes ──
     let query = admin
       .from('waitlist')
       .select('id, name, email, source')
@@ -126,7 +121,6 @@ serve(async (req) => {
       return json(200, { sent: 0, failed: 0, errors: [], message: 'nada a enviar' }, req);
     }
 
-    // ── Loop de disparo ──
     let sent = 0;
     let failed = 0;
     const errors: Array<{ email: string; type: string; message: string }> = [];
@@ -163,7 +157,6 @@ serve(async (req) => {
           .eq('id', lead.id);
 
         if (updErr) {
-          // E-mail saiu, mas DB não atualizou — registra como falha p/ retry manual.
           failed++;
           errors.push({ email: lead.email, type: 'db_update', message: updErr.message });
           console.error('[waitlist-launch] update fail (email sent):', lead.email, updErr);
@@ -214,24 +207,23 @@ interface SendArgs {
 }
 
 async function sendEmail(args: SendArgs): Promise<{ ok: boolean; error?: string }> {
-  const subject = `${args.name || 'Olá'}, o Haile está pronto`;
+  const subject = args.name
+    ? `${args.name}, o Haile esta pronto pra voce`
+    : 'O Haile esta pronto pra voce';
   const html = renderTemplate(args.name, args.link, args.expiresDays);
   const body = JSON.stringify({
-    from: 'Haile <oi@haile.com.br>',
+    from: FROM,
     to: args.to,
+    reply_to: REPLY_TO,
     subject,
     html,
   });
 
-  // [M11] Retry com backoff exponencial em 429/5xx. Sem isso, rate-limit
-  // transitório do Resend perdia e-mails (DB já marcava invited_at antes
-  // do retorno, então usuário nunca recebia e nunca seria re-tentado).
-  // 4xx não-429 (validação, payload inválido) → game over (não retenta).
-  const MAX_ATTEMPTS = 3; // 1 try + 2 retries
+  const MAX_ATTEMPTS = 3;
   let lastErr = '';
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) {
-      const delay = 500 * Math.pow(2, attempt - 1); // 500ms, 1000ms
+      const delay = 500 * Math.pow(2, attempt - 1);
       await new Promise(r => setTimeout(r, delay));
     }
     const res = await fetch('https://api.resend.com/emails', {
@@ -245,107 +237,32 @@ async function sendEmail(args: SendArgs): Promise<{ ok: boolean; error?: string 
     if (res.ok) return { ok: true };
     const text = await res.text().catch(() => '');
     lastErr = `HTTP ${res.status} — ${text.slice(0, 240)}`;
-    // Retry só em 429/5xx (transientes); outros 4xx (validação) param.
     if (res.status !== 429 && res.status < 500) break;
   }
   return { ok: false, error: lastErr };
 }
 
-// Substitui as variáveis do template waitlist-lancamento.html.
-// O template fica versionado em /docs/emails/ — aqui replicamos uma versão
-// inline para evitar I/O na cold start. Manter sincronizado manualmente.
 function renderTemplate(nome: string, link: string, expiresDays: number): string {
-  return TEMPLATE_HTML
-    .replaceAll('{{ nome }}', escapeHtml(nome))
-    .replaceAll('{{ link }}', encodeAttr(link))
-    .replaceAll('{{ expires_days }}', String(expiresDays));
-}
+  const safeName = escapeHtml(nome || 'tudo bem');
+  const greeting = nome
+    ? `Oi, <strong>${escapeHtml(nome)}</strong>.`
+    : `Oi, que bom te ver por aqui.`;
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+  const bodyHtml = `
+      <h1>${nome ? safeName + ', sua vez chegou' : 'Sua vez chegou'}</h1>
+      <p>${greeting} Abrimos uma nova rodada de acesso ao <strong>Haile</strong> e voce esta no lote. Em poucos minutos da pra criar a conta, configurar a familia e organizar as financas junto com quem importa.</p>
+      <p class="muted">Convite pessoal e unico. Vale por <strong>${expiresDays} dias</strong>. Setup guiado em menos de 5 minutos.</p>`;
 
-function encodeAttr(s: string): string {
-  return s.replace(/"/g, '&quot;');
+  return renderEmail({
+    preheader: `O Haile esta pronto pra voce. Seu convite expira em ${expiresDays} dias.`,
+    bodyHtml,
+    ctaLabel: 'Criar minha conta',
+    ctaUrl: encodeAttr(link),
+    eyebrow: 'Convite de lancamento',
+    ctaTone: 'indigo',
+    footerNote: `Obrigado por ter esperado. Se voce nao esperava este e-mail, pode ignorar com seguranca.`,
+  });
 }
-
-// Espelho do /docs/emails/waitlist-lancamento.html.
-// Mantenha sincronizado quando o template oficial mudar.
-const TEMPLATE_HTML = `<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><title>{{ nome }}, o Haile está pronto</title>
-<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-body{background-color:#0B1020;font-family:'DM Sans',Arial,sans-serif;-webkit-text-size-adjust:100%}
-a{color:inherit;text-decoration:none}
-img{border:0;display:block;max-width:100%}
-.email-wrapper{background-color:#0B1020;padding:40px 16px}
-.email-container{max-width:560px;margin:0 auto}
-.header{padding:32px 0 24px;text-align:center}
-.header img{margin:0 auto;height:28px;width:auto}
-.card{background-color:#131929;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden}
-.hero-strip{background:linear-gradient(135deg,#10B981 0%,#06B6D4 50%,#7367F0 100%);padding:36px 40px 32px;text-align:center}
-.body{padding:32px 40px}
-.body-text{font-size:15px;line-height:1.65;color:#94A3B8;margin-bottom:24px}
-.body-text strong{color:#F8FAFC;font-weight:600}
-.highlight-box{background:rgba(115,103,240,0.1);border:1px solid rgba(115,103,240,0.25);border-radius:12px;padding:20px 24px;margin-bottom:28px}
-.cta-wrap{text-align:center;margin-bottom:28px}
-.cta-btn{display:inline-block;background:linear-gradient(135deg,#7367F0,#5B4FCE);color:#ffffff !important;font-size:15px;font-weight:600;padding:14px 36px;border-radius:12px;letter-spacing:0.01em;text-decoration:none;box-shadow:0 4px 16px rgba(115,103,240,0.4)}
-.link-fallback{font-size:12px;color:#334155;line-height:1.6;margin-bottom:28px;text-align:center}
-.link-fallback a{color:#7367F0 !important;word-break:break-all}
-.divider{border:0;border-top:1px solid rgba(255,255,255,0.06);margin:4px 0 24px}
-.footer{padding:24px 40px 32px;text-align:center}
-.footer-logo{margin:0 auto 16px}
-.footer-text{font-size:12px;color:#334155;line-height:1.7}
-.footer-text a{color:#7367F0 !important}
-.footer-divider{border:0;border-top:1px solid rgba(255,255,255,0.04);margin:20px 0 16px}
-@media only screen and (max-width:600px){.email-wrapper{padding:20px 12px}.hero-strip{padding:28px 24px 24px}.body{padding:24px 24px}.footer{padding:20px 24px 28px}.cta-btn{display:block !important;text-align:center}}
-</style></head>
-<body><div class="email-wrapper"><div class="email-container">
-<div class="header"><img src="https://haile.com.br/assets/svg/haile-wordmark-white.svg" alt="Haile" height="24" /></div>
-<div class="card">
-<div class="hero-strip">
-<!--[if mso]><table width="100%"><tr><td align="center"><![endif]-->
-<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
-<tr><td align="center">
-<p style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.78);margin-bottom:10px;font-family:'DM Sans',Arial,sans-serif">Sua vez chegou</p>
-<p style="font-size:26px;font-weight:700;color:#ffffff;line-height:1.25;font-family:'DM Sans',Arial,sans-serif"><strong>{{ nome }}</strong>,<br><span style="color:rgba(255,255,255,0.9);font-weight:400;font-size:20px">o Haile está pronto pra você</span></p>
-</td></tr></table>
-<!--[if mso]></td></tr></table><![endif]-->
-</div>
-<div class="body">
-<p class="body-text">Oi, <strong>{{ nome }}</strong>!</p>
-<p class="body-text">Abrimos uma nova rodada de acesso ao <strong>Haile</strong> e você está no lote. Em poucos minutos dá pra criar a conta, configurar o grupo familiar e começar a organizar as finanças junto com quem importa.</p>
-<div class="highlight-box">
-<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse">
-<tr><td style="padding:4px 0"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td style="width:8px;padding-right:12px;vertical-align:middle"><div style="width:8px;height:8px;border-radius:4px;background:#7367F0"></div></td><td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">Convite <strong style="color:#F8FAFC">pessoal e único</strong> — não compartilhe</td></tr></table></td></tr>
-<tr><td style="padding:4px 0"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td style="width:8px;padding-right:12px;vertical-align:middle"><div style="width:8px;height:8px;border-radius:4px;background:#06B6D4"></div></td><td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle">Expira em <strong style="color:#F8FAFC">{{ expires_days }} dias</strong></td></tr></table></td></tr>
-<tr><td style="padding:4px 0"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td style="width:8px;padding-right:12px;vertical-align:middle"><div style="width:8px;height:8px;border-radius:4px;background:#10B981"></div></td><td style="font-size:14px;color:#94A3B8;font-family:'DM Sans',Arial,sans-serif;vertical-align:middle"><strong style="color:#F8FAFC">Setup guiado</strong> em menos de 5 minutos</td></tr></table></td></tr>
-</table>
-</div>
-<div class="cta-wrap">
-<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ link }}" style="height:50px;v-text-anchor:middle;width:240px" arcsize="24%" stroke="f" fillcolor="#7367F0"><w:anchorlock/><center style="color:#ffffff;font-family:'DM Sans',Arial,sans-serif;font-size:15px;font-weight:600">Criar minha conta</center></v:roundrect><![endif]-->
-<!--[if !mso]><!--><a href="{{ link }}" class="cta-btn">Criar minha conta &rarr;</a><!--<![endif]-->
-</div>
-<p class="link-fallback">Se o botão não funcionar, copie e cole este link no navegador:<br><a href="{{ link }}">{{ link }}</a></p>
-<hr class="divider" />
-<p class="body-text" style="font-size:13px;color:#64748B;margin-bottom:0">Obrigado por ter esperado. A gente sabe que dinheiro em família é assunto sensível — e construímos o Haile pra que isso vire conversa, não tensão.</p>
-</div>
-<div class="footer">
-<hr class="footer-divider" />
-<img src="https://haile.com.br/assets/svg/haile-mark-white.svg" alt="Haile" height="20" class="footer-logo" />
-<p class="footer-text">Este convite é pessoal e expira em <strong style="color:#94A3B8">{{ expires_days }} dias</strong>.<br>Se você não esperava este e-mail, pode ignorá-lo com segurança.</p>
-<p class="footer-text" style="margin-top:12px"><a href="https://haile.com.br">haile.com.br</a> &middot; <a href="https://haile.com.br/privacidade">Privacidade</a></p>
-</div>
-</div>
-<p style="text-align:center;font-size:11px;color:#1E293B;margin-top:24px;font-family:'DM Sans',Arial,sans-serif">&copy; 2026 Haile &middot; Averse Tecnologia</p>
-</div></div></body></html>`;
 
 function json(status: number, body: unknown, req?: Request): Response {
   const cors = req ? corsHeaders(req) : { 'Access-Control-Allow-Origin': 'https://haile.com.br' };
