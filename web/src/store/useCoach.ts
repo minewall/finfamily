@@ -48,6 +48,9 @@ interface CoachState {
   loading: boolean
   error: string | null
   usage: CoachUsage | null
+  /** Prompt seed injetado por outras telas (ex: Simulador "Refinar com Haile").
+   *  O panel consome no mount/abertura e limpa — usuário revisa antes de enviar. */
+  seedPrompt: string | null
   setOpen: (open: boolean) => void
   toggle: () => void
   setTakeoverOpen: (open: boolean) => void
@@ -58,6 +61,9 @@ interface CoachState {
   setLoading: (b: boolean) => void
   setError: (e: string | null) => void
   setUsage: (u: CoachUsage | null) => void
+  /** Abre o painel com prompt pré-preenchido no input (sem enviar). */
+  openWithSeed: (prompt: string) => void
+  consumeSeed: () => string | null
   reset: () => void
 }
 
@@ -65,7 +71,7 @@ function uid() {
   return 'turn_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export const useCoach = create<CoachState>((set) => ({
+export const useCoach = create<CoachState>((set, get) => ({
   open: false,
   takeoverOpen: false,
   turns: [],
@@ -73,6 +79,7 @@ export const useCoach = create<CoachState>((set) => ({
   loading: false,
   error: null,
   usage: null,
+  seedPrompt: null,
   setOpen: (open) => set({ open }),
   toggle: () => set((s) => ({ open: !s.open })),
   setTakeoverOpen: (takeoverOpen) => set({ takeoverOpen }),
@@ -88,6 +95,12 @@ export const useCoach = create<CoachState>((set) => ({
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   setUsage: (usage) => set({ usage }),
+  openWithSeed: (prompt) => set({ open: true, seedPrompt: prompt }),
+  consumeSeed: () => {
+    const s = get().seedPrompt
+    if (s) set({ seedPrompt: null })
+    return s
+  },
   reset: () => set({ turns: [], rawHistory: [], error: null }),
 }))
 

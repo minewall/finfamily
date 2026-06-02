@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ChevronLeft, RotateCcw, Sparkles, PlusCircle, ExternalLink } from 'lucide-react'
+import { ChevronRight, ChevronLeft, RotateCcw, Sparkles, PlusCircle, ExternalLink, Wand2 } from 'lucide-react'
 import { FLUXOS, fluxoById, type FluxoSpec, type FieldSpec, type ResultBlock, type FluxoCtx } from '@haile/shared'
+import { currencyBRL } from '@haile/shared'
 import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
 import { useCoach } from '@/store/useCoach'
@@ -15,7 +16,7 @@ type View =
 
 export default function Simulador() {
   const [view, setView] = useState<View>({ kind: 'list' })
-  const openHaile = useCoach((s) => s.setOpen)
+  const openWithSeed = useCoach((s) => s.openWithSeed)
   const addMeta = useData((s) => s.addMeta)
   const data = useData((s) => s.data)
   const navigate = useNavigate()
@@ -85,12 +86,8 @@ export default function Simulador() {
     }
     if (action === 'ask-haile') {
       const p = payload as { prompt?: string }
-      openHaile(true)
-      // Sem auto-send no momento — usuário cola o prompt
-      if (p?.prompt) {
-        navigator.clipboard.writeText(p.prompt).catch(() => {})
-        alert('Prompt copiado pra área de transferência — cole no Haile.')
-      }
+      // Prompt entra direto no input do painel — usuário revisa e envia.
+      openWithSeed(p?.prompt ?? 'Quero refinar a simulação que acabei de fazer.')
       return
     }
     if (action === 'navigate') {
@@ -118,8 +115,10 @@ export default function Simulador() {
       {view.kind === 'result' && (
         <ResultView
           fluxo={fluxoById(view.fluxoId)!}
+          values={view.values}
           result={view.result}
           onCta={handleCta}
+          onRefine={() => openWithSeed(buildRefinePrompt(view.fluxoId, view.values, view.result))}
           onRestart={() => setView({ kind: 'list' })}
         />
       )}
@@ -246,7 +245,40 @@ function FieldRender({ field, value, error, ctx, onChange }: { field: FieldSpec;
   )
 }
 
-function ResultView({ fluxo, result, onCta, onRestart }: { fluxo: FluxoSpec; result: ResultBlock; onCta: (a: string, p?: unknown) => void; onRestart: () => void }) {
+// Prompt template por fluxo. Cita números concretos pro Haile ter contexto.
+function buildRefinePrompt(fluxoId: string, values: Record<string, unknown>, result: ResultBlock): string {
+  const n = (k: string) => Number(values[k]) || 0
+  if (fluxoId === 'reserva') {
+    const alvo = currencyBRL(n('alvo'))
+    const meses = Math.round(n('meses'))
+    const aporte = result.metrics?.find((m) => m.label === 'Aporte mensal')?.value ?? '—'
+    return `Acabei de simular criar uma reserva de ${alvo} em ${meses} meses com aporte de ${aporte}/mês. Faz sentido pra meu momento? Tem alguma sugestão de ajuste?`
+  }
+  if (fluxoId === 'aposentadoria') {
+    const idadeAlvo = Math.round(n('idadeAlvoVal'))
+    const renda = currencyBRL(n('rendaMensal'))
+    const aporte = result.metrics?.find((m) => m.label === 'Aporte mensal')?.value ?? '—'
+    return `Simulei me aposentar aos ${idadeAlvo} anos com renda de ${renda}/mês. Aportando ${aporte}/mês a partir de agora. Esse plano é realista pro meu perfil? O que eu poderia melhorar?`
+  }
+  if (fluxoId === 'veiculo') {
+    const preco = currencyBRL(n('precoCarro'))
+    const aluguel = currencyBRL(n('mensalidadeAluguel'))
+    const tcoCompra = result.metrics?.find((m) => m.label === 'TCO Comprar')?.value ?? '—'
+    const tcoAlugar = result.metrics?.find((m) => m.label === 'TCO Alugar')?.value ?? '—'
+    return `Simulei comprar × alugar um carro de ${preco} (assinatura ${aluguel}/mês). TCO comprar: ${tcoCompra}, TCO alugar: ${tcoAlugar}. Vale a pena no meu caso? Considere meu Poder de Escolha e composição familiar.`
+  }
+  if (fluxoId === 'renda-fixa') {
+    const valor = currencyBRL(n('valorAplicado'))
+    const meses = Math.round(n('meses'))
+    const vencedor = result.metrics?.find((m) => m.label === '1º lugar')?.value ?? '—'
+    return `Comparei ${valor} em CDB vs LCI/LCA vs Tesouro Selic por ${meses} meses — ${vencedor} ganhou. Qual encaixa melhor no meu perfil de risco e liquidez?`
+  }
+  return `Acabei de fazer a simulação "${fluxoById(fluxoId)?.title ?? fluxoId}". ${result.headline} Pode revisar e sugerir ajustes pro meu contexto?`
+}
+
+function ResultView({ fluxo, values, result, onCta, onRefine, onRestart }: { fluxo: FluxoSpec; values: Record<string, unknown>; result: ResultBlock; onCta: (a: string, p?: unknown) => void; onRefine: () => void; onRestart: () => void }) {
+  // values é usado pelo buildRefinePrompt no parent; mantido aqui pra futura exibição de resumo.
+  void values
   return (
     <div>
       <header className="mb-5">
@@ -286,23 +318,23 @@ function ResultView({ fluxo, result, onCta, onRestart }: { fluxo: FluxoSpec; res
         </div>
       )}
 
-      {result.ctas && result.ctas.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {result.ctas.map((c, i) => {
-            const isPrimary = i === 0
-            const icon = c.action === 'create-meta' ? <PlusCircle size={14} />
-                       : c.action === 'ask-haile' ? <Sparkles size={14} />
-                       : c.action === 'adjust' ? <RotateCcw size={14} />
-                       : c.action === 'navigate' ? <ExternalLink size={14} />
-                       : null
-            return (
-              <Button key={i} variant={isPrimary ? 'primary' : 'outline'} size="sm" onClick={() => onCta(c.action, c.payload)}>
-                {icon} {c.label}
-              </Button>
-            )
-          })}
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2">
+        {result.ctas?.filter((c) => c.action !== 'ask-haile').map((c, i) => {
+          const isPrimary = i === 0
+          const icon = c.action === 'create-meta' ? <PlusCircle size={14} />
+                     : c.action === 'adjust' ? <RotateCcw size={14} />
+                     : c.action === 'navigate' ? <ExternalLink size={14} />
+                     : null
+          return (
+            <Button key={`cta-${i}`} variant={isPrimary ? 'primary' : 'outline'} size="sm" onClick={() => onCta(c.action, c.payload)}>
+              {icon} {c.label}
+            </Button>
+          )
+        })}
+        <Button variant="outline" size="sm" onClick={onRefine} className="border-indigo/40 text-indigo hover:bg-indigo/5">
+          <Wand2 size={14} /> Refinar com Haile
+        </Button>
+      </div>
     </div>
   )
 }

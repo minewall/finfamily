@@ -3,7 +3,7 @@
 // Inputs: alvo, saldo inicial, prazo, rendimento estimado. Saída:
 // aporte mensal + projeção + recomendação na voz do Haile.
 import type { FluxoSpec, ResultBlock } from '../sim-fluxo'
-import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses, sumContas } from '../sim-fluxo'
+import { aporteMensal, mesesNecessarios, aaToAmDecimal, asNum, fmtMeses, sumContas, getPoderEscolha } from '../sim-fluxo'
 import { currencyBRL } from '../finance'
 import { calcPoderDeEscolhaV2 } from '../tipos'
 
@@ -62,7 +62,8 @@ export const FLUXO_RESERVA: FluxoSpec = {
           id: 'meses',
           label: 'Prazo (meses)',
           kind: 'months',
-          defaultValue: () => 24,
+          // Default mais curto (12m) — reserva costuma ser meta de curto prazo.
+          defaultValue: () => 12,
           validate: (v) => {
             const n = asNum(v)
             if (n <= 0) return 'Informe um prazo > 0'
@@ -92,12 +93,14 @@ export const FLUXO_RESERVA: FluxoSpec = {
       ],
     },
   ],
-  compute(values): ResultBlock {
+  compute(values, ctx): ResultBlock {
     const alvo = asNum(values.alvo)
     const inicial = asNum(values.inicial)
     const meses = Math.max(1, Math.round(asNum(values.meses)))
     const taxaAnual = asNum(values.taxaAnualPct)
     const iMensal = aaToAmDecimal(taxaAnual)
+    const pde = getPoderEscolha(ctx)
+    const aporteSugerido = pde * 0.3
 
     if (inicial >= alvo) {
       return {
@@ -126,6 +129,13 @@ export const FLUXO_RESERVA: FluxoSpec = {
     const aaLabel = `${taxaAnual.toFixed(1)}% a.a.`
     const amLabel = `${(iMensal * 100).toFixed(2)}% a.m.`
 
+    const cabeNoPdE = pde > 0 && pmt <= aporteSugerido
+    const linhaPdE = pde > 0
+      ? (cabeNoPdE
+          ? `Cabe no seu Poder de Escolha: ${currencyBRL(pmt)} é cerca de ${Math.round((pmt / pde) * 100)}% da sua sobra mensal (${currencyBRL(pde)}). Recomendamos comprometer no máximo 30%.`
+          : `Atenção: ${currencyBRL(pmt)} representa ${Math.round((pmt / pde) * 100)}% do seu Poder de Escolha atual (${currencyBRL(pde)}). Considere estender o prazo ou começar com ${currencyBRL(aporteSugerido)}/mês (30% da sobra).`)
+      : ''
+
     return {
       headline: `Aportando ${currencyBRL(pmt)} por mês, você chega em ${fmtMeses(meses)}.`,
       details: [
@@ -135,7 +145,8 @@ export const FLUXO_RESERVA: FluxoSpec = {
           ? `Juros sobre o aplicado: ${currencyBRL(jurosGanhos)}.`
           : `Sem juros relevantes — o ganho vem só do seu aporte.`,
         `Se o aporte ficar apertado: pagando ${currencyBRL(pmtAlt)}/mês, você chega em ${fmtMeses(mesesAlt)}.`,
-      ],
+        linhaPdE,
+      ].filter(Boolean),
       metrics: [
         { label: 'Aporte mensal', value: currencyBRL(pmt), tone: pmt > 0 ? 'neutral' : 'pos' },
         { label: 'Em', value: fmtMeses(meses), tone: 'neutral' },

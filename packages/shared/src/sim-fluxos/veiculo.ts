@@ -8,7 +8,7 @@
 // Não modelamos custo de oportunidade do capital parado no carro porque
 // distrai sem mover muito o resultado em prazos curtos.
 import type { FluxoSpec, ResultBlock } from '../sim-fluxo'
-import { asNum } from '../sim-fluxo'
+import { asNum, veiculoValorCadastrado, veiculosCustoMensalCadastrado, getDependentes } from '../sim-fluxo'
 import { currencyBRL } from '../finance'
 
 /** Valor residual do veículo após N anos, modelo de depreciação simples. */
@@ -37,7 +37,11 @@ export const FLUXO_VEICULO: FluxoSpec = {
           id: 'precoCarro',
           label: 'Preço do carro',
           kind: 'currency',
-          defaultValue: () => 90000,
+          // Se já há veículo no Patrimônio, usa valor médio dele como ponto de partida.
+          defaultValue: (_, ctx) => {
+            const cadastrado = veiculoValorCadastrado(ctx)
+            return cadastrado > 0 ? Math.round(cadastrado) : 90000
+          },
           validate: (v) => (asNum(v) <= 0 ? 'Informe um valor > 0' : null),
         },
       ],
@@ -51,7 +55,12 @@ export const FLUXO_VEICULO: FluxoSpec = {
           id: 'custoAnualCompra',
           label: 'Custo anual (IPVA + seguro + manutenção)',
           kind: 'currency',
-          defaultValue: (v) => Math.round(asNum(v.precoCarro) * 0.06),
+          // Se há veículo cadastrado, anualiza o custo mensal real; senão usa 6% do preço.
+          defaultValue: (v, ctx) => {
+            const cadastradoMensal = veiculosCustoMensalCadastrado(ctx)
+            if (cadastradoMensal > 0) return Math.round(cadastradoMensal * 12)
+            return Math.round(asNum(v.precoCarro) * 0.06)
+          },
           validate: (v) => (asNum(v) < 0 ? 'Não pode ser negativo' : null),
         },
       ],
@@ -65,7 +74,11 @@ export const FLUXO_VEICULO: FluxoSpec = {
           id: 'mensalidadeAluguel',
           label: 'Mensalidade do aluguel/assinatura',
           kind: 'currency',
-          defaultValue: () => 2500,
+          // Estimativa rápida: ~3% do preço do carro/mês (típico de assinatura BR).
+          defaultValue: (v) => {
+            const preco = asNum(v.precoCarro)
+            return preco > 0 ? Math.round(preco * 0.03) : 2500
+          },
           validate: (v) => (asNum(v) <= 0 ? 'Informe um valor > 0' : null),
         },
       ],
@@ -79,7 +92,8 @@ export const FLUXO_VEICULO: FluxoSpec = {
           id: 'anos',
           label: 'Horizonte (anos)',
           kind: 'years',
-          defaultValue: () => 4,
+          // Família com dependentes tende a ficar mais tempo com o mesmo carro.
+          defaultValue: (_, ctx) => (getDependentes(ctx) >= 2 ? 5 : 4),
           validate: (v) => {
             const n = asNum(v)
             if (n <= 0) return 'Informe um prazo > 0'
