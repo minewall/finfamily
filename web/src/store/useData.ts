@@ -16,6 +16,7 @@ import type {
   Tributo,
   Recado,
   CotacoesAuto,
+  CotacaoSymbol,
 } from '@haile/shared'
 import type {
   ContextoState,
@@ -24,7 +25,7 @@ import type {
   OnboardingAnswers,
 } from '@haile/shared'
 import { regenAllContratos, markAllPastParcelas, aplicarResposta, mapeiaRespostasParaICP } from '@haile/shared'
-import { fetchCotacoes } from '@/lib/cotacoes'
+import { fetchCotacoes, fetchCotacaoUnica } from '@/lib/cotacoes'
 import { supabase } from '@/lib/supabase'
 
 /** Buckets de patrimônio com CRUD genérico via helpers. */
@@ -83,6 +84,7 @@ interface DataState {
   deleteRecado: (id: string) => void
   // ── Cotações ──
   refreshCotacoes: () => Promise<CotacoesAuto | null>
+  refreshCotacaoUnica: (symbol: CotacaoSymbol) => Promise<CotacoesAuto | null>
   // ── ICP / Contexto Pessoal ──
   getContexto: () => ContextoState
   addContextoResposta: (categoriaId: string, resp: Partial<ContextoResposta> & { perguntaId: string }) => void
@@ -630,8 +632,19 @@ export const useData = create<DataState>((set, get) => {
       const cot = await fetchCotacoes()
       if (!cot) return null
       const d = ensure()
-      // Merge — preserva chaves que não vieram nesta atualização
-      const merged: CotacoesAuto = { ...(d.cotacoes ?? {}), ...cot }
+      const prev = (d.cotacoes ?? {}) as CotacoesAuto
+      const mergedPer = { ...(prev._updatedAtPer ?? {}), ...(cot._updatedAtPer ?? {}) }
+      const merged: CotacoesAuto = { ...prev, ...cot, _updatedAtPer: mergedPer }
+      persist({ ...d, cotacoes: merged })
+      return merged
+    },
+    refreshCotacaoUnica: async (symbol) => {
+      const cot = await fetchCotacaoUnica(symbol)
+      if (!cot) return null
+      const d = ensure()
+      const prev = (d.cotacoes ?? {}) as CotacoesAuto
+      const mergedPer = { ...(prev._updatedAtPer ?? {}), ...(cot._updatedAtPer ?? {}) }
+      const merged: CotacoesAuto = { ...prev, ...cot, _updatedAtPer: mergedPer }
       persist({ ...d, cotacoes: merged })
       return merged
     },

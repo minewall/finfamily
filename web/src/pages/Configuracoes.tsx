@@ -9,6 +9,7 @@ import {
   Bell,
   Shield,
   Info,
+  TrendingUp,
 } from 'lucide-react'
 import { PerfilSection } from '@/components/config/PerfilSection'
 import { SenhaSection } from '@/components/config/SenhaSection'
@@ -19,6 +20,7 @@ import { CategoriasSection } from '@/components/config/CategoriasSection'
 import { NotificacoesSection } from '@/components/config/NotificacoesSection'
 import { PrivacidadeSection } from '@/components/config/PrivacidadeSection'
 import { SobreSection } from '@/components/config/SobreSection'
+import { CotacoesSection } from '@/components/config/CotacoesSection'
 import { cn } from '@/lib/utils'
 
 type Tab =
@@ -29,6 +31,7 @@ type Tab =
   | 'aparencia'
   | 'notificacoes'
   | 'backup'
+  | 'cotacoes'
   | 'privacidade'
   | 'sobre'
 
@@ -47,6 +50,7 @@ const TABS: TabDef[] = [
   { id: 'aparencia', label: 'Aparência', icon: <Palette size={16} />, render: () => <AparenciaSection /> },
   { id: 'notificacoes', label: 'Notificações', icon: <Bell size={16} />, render: () => <NotificacoesSection /> },
   { id: 'backup', label: 'Backup', icon: <DatabaseBackup size={16} />, render: () => <BackupSection /> },
+  { id: 'cotacoes', label: 'Cotações', icon: <TrendingUp size={16} />, render: () => <CotacoesSection /> },
   { id: 'privacidade', label: 'Privacidade', icon: <Shield size={16} />, render: () => <PrivacidadeSection /> },
   { id: 'sobre', label: 'Sobre', icon: <Info size={16} />, render: () => <SobreSection /> },
 ]

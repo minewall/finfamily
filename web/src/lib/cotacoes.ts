@@ -6,6 +6,7 @@
 
 import {
   parseCotacoes,
+  type CotacaoSymbol,
   type CotacoesAuto,
   type AwesomeApiResponse,
   type CoinGeckoResponse,
@@ -35,5 +36,23 @@ export async function fetchCotacoes(): Promise<CotacoesAuto | null> {
   ])
   if (!fiat && !cripto) return null
   const parsed = parseCotacoes(fiat, cripto)
+  return Object.keys(parsed).length > 0 ? parsed : null
+}
+
+/**
+ * Fetch só de UMA moeda. Útil pro refresh granular na tela de Configurações.
+ * Para USD/EUR/USDT chama AwesomeAPI; pra BTC chama CoinGecko.
+ */
+export async function fetchCotacaoUnica(symbol: CotacaoSymbol): Promise<CotacoesAuto | null> {
+  if (symbol === 'BTC') {
+    const cripto = await safeFetchJson<CoinGeckoResponse>(CRIPTO_URL)
+    if (!cripto) return null
+    const parsed = parseCotacoes(null, cripto)
+    return Object.keys(parsed).length > 0 ? parsed : null
+  }
+  const url = `https://economia.awesomeapi.com.br/last/${symbol}-BRL`
+  const fiat = await safeFetchJson<AwesomeApiResponse>(url)
+  if (!fiat) return null
+  const parsed = parseCotacoes(fiat, null)
   return Object.keys(parsed).length > 0 ? parsed : null
 }
