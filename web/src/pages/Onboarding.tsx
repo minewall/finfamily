@@ -1,6 +1,6 @@
 // Onboarding wizard — porte do onboarding.html do Dino pra React.
-// 6 steps: welcome → nome → objetivo → família → renda → done.
-// Ao final, alimenta o ICP automaticamente via completeOnboarding().
+// 9 steps: welcome → nome → objetivo → família → renda → sentimento → risco → valor → done.
+// Ao final, alimenta o ICP automaticamente via completeOnboarding() (Opção B).
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -10,10 +10,16 @@ import {
   OBJETIVO_LABELS,
   FAMILIA_LABELS,
   RENDA_LABELS,
+  SENTIMENTO_LABELS,
+  RISCO_LABELS,
+  VALOR_LABELS,
   type OnboardingAnswers,
   type OnboardingObjetivo,
   type OnboardingFamilia,
   type OnboardingRenda,
+  type OnboardingSentimento,
+  type OnboardingRisco,
+  type OnboardingValor,
 } from '@haile/shared'
 import { useData } from '@/store/useData'
 import { Button } from '@/components/ui/button'
@@ -172,6 +178,45 @@ export default function Onboarding() {
               </div>
             )}
 
+            {step.id === 'sentimento' && (
+              <CardGroup
+                value={answers.sentimento}
+                onChange={(v) => { update('sentimento', v); setTimeout(next, 250) }}
+                options={[
+                  { id: 'tranquilo',  label: 'Tranquilo(a)',     desc: 'Está sob controle' },
+                  { id: 'preocupado', label: 'Preocupado(a)',    desc: 'Sinto que poderia ir melhor' },
+                  { id: 'ansioso',    label: 'Ansioso(a)',       desc: 'Falta clareza ou sobra' },
+                  { id: 'sem_pensar', label: 'Não penso muito',  desc: 'Prefiro evitar o assunto' },
+                ]}
+              />
+            )}
+
+            {step.id === 'risco' && (
+              <CardGroup
+                value={answers.risco}
+                onChange={(v) => { update('risco', v); setTimeout(next, 250) }}
+                options={[
+                  { id: 'conservador', label: 'Conservador(a)', desc: 'Segurança em primeiro' },
+                  { id: 'moderado',    label: 'Moderado(a)',    desc: 'Aceito risco em parte' },
+                  { id: 'arrojado',    label: 'Arrojado(a)',    desc: 'Busco retorno alto' },
+                  { id: 'depende',     label: 'Depende',        desc: 'Varia conforme o momento' },
+                ]}
+              />
+            )}
+
+            {step.id === 'valor' && (
+              <CardGroup
+                value={answers.valor}
+                onChange={(v) => { update('valor', v); setTimeout(next, 250) }}
+                options={[
+                  { id: 'experiencias', label: 'Experiências', desc: 'Viagens, vivências' },
+                  { id: 'familia',      label: 'Família',      desc: 'Educação e qualidade de vida deles' },
+                  { id: 'futuro',       label: 'Futuro',       desc: 'Aposentadoria, segurança' },
+                  { id: 'sucesso',      label: 'Crescimento',  desc: 'Pessoal ou de negócio' },
+                ]}
+              />
+            )}
+
             {step.id === 'done' && (
               <div className="space-y-4">
                 <p className="text-base leading-relaxed text-ink">
@@ -185,6 +230,9 @@ export default function Onboarding() {
                     <DlRow label="Prioridade" value={answers.objetivo ? OBJETIVO_LABELS[answers.objetivo as OnboardingObjetivo] : '—'} />
                     <DlRow label="Família" value={answers.familia ? FAMILIA_LABELS[answers.familia as OnboardingFamilia] : '—'} />
                     <DlRow label="Renda mensal" value={answers.renda ? RENDA_LABELS[answers.renda as OnboardingRenda] : '—'} />
+                    <DlRow label="Sentimento" value={answers.sentimento ? SENTIMENTO_LABELS[answers.sentimento as OnboardingSentimento] : '—'} />
+                    <DlRow label="Perfil de risco" value={answers.risco ? RISCO_LABELS[answers.risco as OnboardingRisco] : '—'} />
+                    <DlRow label="Onde investir" value={answers.valor ? VALOR_LABELS[answers.valor as OnboardingValor] : '—'} />
                   </dl>
                 </div>
                 <p className="text-xs text-mist">
