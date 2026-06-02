@@ -5,6 +5,8 @@ import type { Contrato } from './contratos';
 import type { Tributo } from './tributos';
 import type { Recado } from './recados';
 import type { CotacoesAuto } from './cotacoes';
+import type { ContextoState } from './contexto';
+import type { OnboardingState } from './onboarding';
 
 export interface Lancamento {
   id: string;
@@ -94,7 +96,9 @@ export interface UserData {
     [k: string]: unknown;
   };
   settings?: Record<string, unknown>;
-  onboarding?: { completed?: boolean; [k: string]: unknown };
+  onboarding?: OnboardingState;
+  /** ICP / Contexto Pessoal — respostas por categoria. */
+  contexto?: ContextoState;
   flags?: Record<string, unknown>;
   [k: string]: unknown;
 }

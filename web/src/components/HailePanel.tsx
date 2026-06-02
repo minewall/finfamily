@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ChangeEvent } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Send, X, Trash2, Paperclip } from 'lucide-react'
 import {
   buildCoachSystemPrompt,
@@ -31,6 +32,7 @@ export function HailePanel() {
     setOpen, appendTurn, resolveToolPending, pushRaw, setLoading, setError, setUsage, reset,
   } = useCoach()
   const data = useData((s) => s.data)
+  const location = useLocation()
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -62,7 +64,9 @@ export function HailePanel() {
     try {
       let messages = initial
       const now = new Date()
-      const system = buildCoachSystemPrompt(data ?? {}, now.getMonth() + 1, now.getFullYear())
+      const system = buildCoachSystemPrompt(data ?? {}, now.getMonth() + 1, now.getFullYear(), {
+        screen: location.pathname,
+      })
 
       for (let loop = 0; loop < MAX_LOOPS; loop++) {
         const r = await askCoachRaw({ system, messages, tools: COACH_TOOLS as unknown as Record<string, unknown>[] })

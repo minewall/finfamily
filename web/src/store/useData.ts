@@ -17,7 +17,13 @@ import type {
   Recado,
   CotacoesAuto,
 } from '@haile/shared'
-import { regenAllContratos, markAllPastParcelas } from '@haile/shared'
+import type {
+  ContextoState,
+  ContextoResposta,
+  OnboardingState,
+  OnboardingAnswers,
+} from '@haile/shared'
+import { regenAllContratos, markAllPastParcelas, aplicarResposta, mapeiaRespostasParaICP } from '@haile/shared'
 import { fetchCotacoes } from '@/lib/cotacoes'
 import { supabase } from '@/lib/supabase'
 
@@ -77,6 +83,16 @@ interface DataState {
   deleteRecado: (id: string) => void
   // ── Cotações ──
   refreshCotacoes: () => Promise<CotacoesAuto | null>
+  // ── ICP / Contexto Pessoal ──
+  getContexto: () => ContextoState
+  addContextoResposta: (categoriaId: string, resp: Partial<ContextoResposta> & { perguntaId: string }) => void
+  removeContextoResposta: (categoriaId: string, perguntaId: string) => void
+  // ── Onboarding ──
+  getOnboarding: () => OnboardingState
+  setOnboardingAnswer: (key: keyof OnboardingAnswers | string, value: unknown) => void
+  pauseOnboarding: (stepIndex: number) => void
+  resetOnboarding: () => void
+  completeOnboarding: (answers?: OnboardingAnswers) => void
   // ── Pessoas (porta de Store.addPessoa/renamePessoa/deletePessoa) ──
   addPessoa: (name: string) => void
   renamePessoa: (oldName: string, newName: string) => void
@@ -604,6 +620,105 @@ export const useData = create<DataState>((set, get) => {
       const merged: CotacoesAuto = { ...(d.cotacoes ?? {}), ...cot }
       persist({ ...d, cotacoes: merged })
       return merged
+    },
+
+    // ── ICP / Contexto Pessoal (Sprint 6) ────────────────────────
+    getContexto: () => (ensure().contexto ?? {}) as ContextoState,
+    addContextoResposta: (categoriaId, resp) => {
+      const d = ensure()
+      const next = aplicarResposta(d.contexto, categoriaId, resp)
+      persist({ ...d, contexto: next })
+    },
+    removeContextoResposta: (categoriaId, perguntaId) => {
+      const d = ensure()
+      const next = aplicarResposta(d.contexto, categoriaId, { perguntaId, resposta: '' })
+      persist({ ...d, contexto: next })
+    },
+
+    // ── Onboarding (Sprint 6) ────────────────────────────────────
+    getOnboarding: () => {
+      const d = ensure()
+      const o = (d.onboarding ?? {}) as OnboardingState
+      return {
+        completed: !!o.completed,
+        completedAt: o.completedAt ?? null,
+        startedAt: o.startedAt ?? null,
+        pausedAtStep: typeof o.pausedAtStep === 'number' ? o.pausedAtStep : 0,
+        goalId: o.goalId ?? null,
+        answers: (o.answers ?? {}) as OnboardingAnswers,
+      }
+    },
+    setOnboardingAnswer: (key, value) => {
+      const d = ensure()
+      const prev = (d.onboarding ?? {}) as OnboardingState
+      const startedAt = prev.startedAt ?? new Date().toISOString()
+      const answers: OnboardingAnswers = { ...(prev.answers ?? {}), [key as string]: value }
+      persist({ ...d, onboarding: { ...prev, startedAt, answers } })
+    },
+    pauseOnboarding: (stepIndex) => {
+      const d = ensure()
+      const prev = (d.onboarding ?? {}) as OnboardingState
+      persist({ ...d, onboarding: { ...prev, pausedAtStep: stepIndex } })
+    },
+    resetOnboarding: () => {
+      const d = ensure()
+      const goalId = (d.onboarding as OnboardingState | undefined)?.goalId
+      const metasSemSetup = (d.metas ?? []).filter((m) => m.id !== goalId)
+      persist({
+        ...d,
+        onboarding: {
+          completed: false,
+          completedAt: null,
+          startedAt: null,
+          pausedAtStep: 0,
+          goalId: null,
+          answers: {},
+        },
+        metas: metasSemSetup,
+      })
+    },
+    completeOnboarding: (answers) => {
+      const d = ensure()
+      const prev = (d.onboarding ?? {}) as OnboardingState
+      const merged = { ...(prev.answers ?? {}), ...(answers ?? {}) } as OnboardingAnswers
+      const now = new Date().toISOString()
+
+      // Alimenta o ICP com as respostas mapeadas
+      let contexto = (d.contexto ?? {}) as ContextoState
+      for (const m of mapeiaRespostasParaICP(merged)) {
+        contexto = aplicarResposta(contexto, m.categoria, {
+          perguntaId: m.perguntaId,
+          pergunta: m.pergunta,
+          resposta: m.resposta,
+          version: 1,
+        })
+      }
+
+      // Atualiza profile.name se veio
+      const profile = (d.profile ?? {}) as Record<string, unknown>
+      if (merged.nome && !profile.name) {
+        profile.name = merged.nome
+      }
+
+      // Adiciona "Você" em pessoas se ainda vazio (com o nome)
+      let pessoas = d.pessoas ?? []
+      if (pessoas.length === 0 && typeof merged.nome === 'string' && merged.nome.trim()) {
+        pessoas = [merged.nome.trim()]
+      }
+
+      persist({
+        ...d,
+        onboarding: {
+          ...prev,
+          completed: true,
+          completedAt: now,
+          startedAt: prev.startedAt ?? now,
+          answers: merged as Record<string, unknown>,
+        },
+        contexto,
+        profile,
+        pessoas,
+      })
     },
 
     deletePessoa: (name) => {

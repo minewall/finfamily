@@ -17,3 +17,6 @@ export * from './financiamentos';
 export * from './tributos';
 export * from './recados';
 export * from './cotacoes';
+export * from './contexto';
+export * from './onboarding';
+export * from './coach-personalities';

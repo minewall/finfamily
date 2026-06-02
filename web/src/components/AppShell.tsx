@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid,
   Receipt,
@@ -17,6 +17,7 @@ import {
   Landmark,
   Banknote,
   Settings,
+  Brain,
   Menu,
   X,
   LogOut,
@@ -56,6 +57,7 @@ const NAV: NavItem[] = [
   { to: '/reembolsos', label: 'Reembolsos', icon: <HandCoins size={18} /> },
   { to: '/simulador', label: 'Simulador', icon: <LineChart size={18} /> },
   { to: '/recados', label: 'Recados', icon: <Bell size={18} />, badge: 'recados' },
+  { to: '/contexto', label: 'Contexto Pessoal', icon: <Brain size={18} /> },
   { to: '/configuracoes', label: 'Configurações', icon: <Settings size={18} /> },
 ]
 
@@ -63,12 +65,15 @@ const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 
 export function AppShell() {
   const { session, signOut } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const openHaile = useCoach((s) => s.setOpen)
   const setTakeoverOpen = useCoach((s) => s.setTakeoverOpen)
   const data = useData((s) => s.data)
   const loading = useData((s) => s.loading)
   const getFlag = useData((s) => s.getFlag)
+  const getOnboarding = useData((s) => s.getOnboarding)
   const load = useData((s) => s.load)
   const refreshCotacoes = useData((s) => s.refreshCotacoes)
   const email = session?.user?.email ?? ''
@@ -80,19 +85,31 @@ export function AppShell() {
     if (!data && !loading) void load()
   }, [data, loading, load])
 
-  // Gate do takeover de 1º acesso: dispara quando o usuário acabou de
-  // carregar e está com zero dados + flag não dispensada. Mantemos o
-  // critério simples (sem depender de onboarding.completed que ainda não
-  // foi portado pro DUO) — beta sempre cai aqui na 1ª vez.
+  // Gate do onboarding: se não está completo e não é uma rota de exceção
+  // (aceitar convite, próprio onboarding), redireciona pra /onboarding.
   useEffect(() => {
     if (!data) return
     if (loading) return
+    const onb = getOnboarding()
+    if (onb.completed) return
+    // rotas que podem ser acessadas mesmo sem onboarding
+    if (location.pathname === '/onboarding') return
+    if (location.pathname.startsWith('/aceitar/')) return
+    navigate('/onboarding', { replace: true })
+  }, [data, loading, getOnboarding, location.pathname, navigate])
+
+  // Gate do takeover de 1º acesso: só dispara DEPOIS que onboarding terminou
+  // e com zero dados.
+  useEffect(() => {
+    if (!data) return
+    if (loading) return
+    if (!getOnboarding().completed) return
     if (getFlag('haileFirstRunDismissed', false)) return
     const zero = !(data.receitas?.length) && !(data.despesas?.length) && !(data.contas?.length)
     if (!zero) return
     const t = setTimeout(() => setTakeoverOpen(true), 500)
     return () => clearTimeout(t)
-  }, [data, loading, getFlag, setTakeoverOpen])
+  }, [data, loading, getFlag, getOnboarding, setTakeoverOpen])
 
   // Auto-refresh de cotações se mais antigas que 6h. Não bloqueia UI;
   // falha silenciosa (rede offline ou CORS).
