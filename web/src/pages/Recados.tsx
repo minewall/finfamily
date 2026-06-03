@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import {
   countNaoLidos,
+  gerarRecadosAutomaticos,
   getRecados,
   type Recado,
   type RecadoPrioridade,
@@ -85,6 +86,25 @@ export default function Recados() {
       action: { kind: 'navigate', to: '/compromissos', label: 'Abrir Compromissos' },
     })
   }, [data, getFlag, setFlag, addRecado])
+
+  // Triggers automáticos — recados gerados por regras (saldo, metas, etc.).
+  // `gerarRecadosAutomaticos` é idempotente: usa IDs determinísticos
+  // (`auto:<trigger>:<periodo>`) e filtra os que já existem.
+  useEffect(() => {
+    if (!data) return
+    const novos = gerarRecadosAutomaticos(data)
+    for (const r of novos) {
+      addRecado(r)
+    }
+    // Roda quando o conteúdo de despesas/receitas/metas/contratos/ativos muda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    data?.despesas?.length,
+    data?.receitas?.length,
+    data?.metas?.length,
+    data?.contratos?.length,
+    data?.ativos?.length,
+  ])
 
   const totalRecados = data?.recados?.length ?? 0
   const naoLidos = useMemo(() => (data ? countNaoLidos(data) : 0), [data])
