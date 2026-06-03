@@ -10,8 +10,13 @@
 
 import type { UserData } from './types';
 import type { Contrato } from './contratos';
+import type { Ativo } from './patrimonio';
 import { sumReceitas, sumDespesas, saldoMes } from './finance';
 import { calcPoderDeEscolhaV2 } from './tipos';
+import {
+  totalPatrimonioLiquido,
+  ATIVO_CATEGORIAS,
+} from './patrimonio';
 
 export type RecadoPrioridade = 'info' | 'aviso' | 'urgente';
 
@@ -160,6 +165,25 @@ function ciclosAnteriores(ref: Date, n: number): CicloMes[] {
   return out;
 }
 
+/** Formata BRL sem dependência de Intl.NumberFormat local (mantém determinismo). */
+function fmtBRL(v: number): string {
+  const fixed = Math.abs(v).toFixed(2);
+  const [intPart, dec] = fixed.split('.');
+  const withSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `R$ ${withSep},${dec}`;
+}
+
+/** True quando o ativo deve ser tratado como investimento (renda fixa/variável/cripto/etc). */
+function ativoEhInvestimento(a: Ativo): boolean {
+  const catIds = new Set(ATIVO_CATEGORIAS.map((c) => c.id));
+  if (a.categoria && catIds.has(a.categoria)) return true;
+  if (a.kind === 'reserva' || a.kind === 'cripto' || a.kind === 'fiat') return true;
+  if (a.valorInvestido != null || a.valorAtual != null) return true;
+  if (a.qty != null && a.unitPrice != null) return true;
+  return false;
+}
+
+
 /**
  * Avalia triggers sobre `data` e devolve recados novos (que ainda não
  * existem em data.recados). Todos os triggers são determinísticos.
@@ -172,6 +196,10 @@ function ciclosAnteriores(ref: Date, n: number): CicloMes[] {
  *  - compromisso_vencendo (diário): parcela pendente nos próximos 3 dias.
  *  - sequencia_positiva (mensal): 3 meses seguidos com sobra positiva.
  *  - despesa_subiu (mensal): categoria com aumento >20% vs mediana 3 ciclos.
+ *  - big_expense (mensal): despesa única > 30% da média mensal de despesas (3 ciclos).
+ *  - new_investment (idempotente por ativo): primeiro ativo de investimento registrado.
+ *  - patrimonio_swing (mensal): variação > ±10% do patrimônio líquido.
+ *  - recurring_missing (mensal): compromisso recorrente sumiu este mês.
  */
 export function gerarRecadosAutomaticos(data: UserData | null | undefined): Recado[] {
   if (!data) return [];
@@ -344,6 +372,166 @@ export function gerarRecadosAutomaticos(data: UserData | null | undefined): Reca
       action: { kind: 'navigate', to: '/despesas', label: 'Ver despesas' },
     }));
   }
+
+  // ── 7) Despesa grande (single transaction) ───────────────────────
+  // Pega despesa única do mês corrente com valor > 30% da média mensal
+  // de despesas dos últimos 3 meses ANTERIORES. Threshold 30% capta
+  // gastos relevantes sem soar alarme em rotina (vs. mediana, usamos
+  // média simples — gasto pontual num mês inflaria mediana se incluído).
+  // Key inclui despesaId — assim ela só dispara 1x por despesa.
+  const despesasMes = (data.despesas ?? []).filter(
+    (d) => d.month === mes && d.year === ano,
+  );
+  if (despesasMes.length > 0) {
+    const totaisAnt = ciclos3Ant.map((c) =>
+      (data.despesas ?? [])
+        .filter((d) => d.month === c.month && d.year === c.year)
+        .reduce((s, d) => s + (Number(d.amount) || 0), 0),
+    ).filter((v) => v > 0);
+    if (totaisAnt.length >= 2) {
+      const mediaAnt = totaisAnt.reduce((a, b) => a + b, 0) / totaisAnt.length;
+      if (mediaAnt > 0) {
+        const limiar = mediaAnt * 0.30;
+        for (const d of despesasMes) {
+          const valor = Number(d.amount) || 0;
+          if (valor <= limiar) continue;
+          const cat = d.category || 'sem categoria';
+          push(buildRecado(`big_expense_${d.id}`, periodoMes, {
+            tipo: 'insight',
+            titulo: 'Despesa acima do seu padrão',
+            corpo:
+              `Notei um gasto de ${fmtBRL(valor)} em "${cat}" este mês — bem acima da sua média mensal. ` +
+              'Quer registrar como esperado ou é hora de revisar?',
+            prioridade: 'aviso',
+            action: { kind: 'navigate', to: `/lancamentos?despesaId=${d.id}`, label: 'Ver lançamento' },
+          }));
+        }
+      }
+    }
+  }
+
+  // ── 8) Novo investimento registrado ──────────────────────────────
+  // Celebrativo, baixa prioridade. Key inclui ativoId — só dispara
+  // 1x por ativo (sem janela de tempo). Filtra só ativos que parecem
+  // investimentos reais (ver heurística `ativoEhInvestimento`).
+  // Sem dependência de coachTriggers.lastInvestimentoCheckedAt — o
+  // próprio set de `existentes` já garante idempotência.
+  const ativosLista = (data.ativos ?? []) as Ativo[];
+  for (const a of ativosLista) {
+    if (!ativoEhInvestimento(a)) continue;
+    const nome = (a.nome as string | undefined)
+      || (a.platform as string | undefined)
+      || (a.sub as string | undefined)
+      || (a.tipo as string | undefined)
+      || 'novo ativo';
+    // Periodo fixo (sem mês) — quando aparece, aparece pra sempre como
+    // marco. Usar 'all' deixa explícito que não há renovação periódica.
+    push(buildRecado(`new_investment_${a.id}`, 'all', {
+      tipo: 'conquista',
+      titulo: 'Mais um passo em direção ao seu futuro',
+      corpo:
+        `Você acabou de registrar "${nome}" no seu patrimônio. ` +
+        'Quer que eu te ajude a acompanhar a evolução?',
+      prioridade: 'info',
+      action: { kind: 'navigate', to: '/patrimonio', label: 'Abrir patrimônio' },
+    }));
+  }
+
+  // ── 9) Variação significativa do patrimônio líquido (> 10% no mês) ─
+  // Threshold 10% pra evitar barulho de cotação BRL/USD em qualquer dia.
+  // TODO: quando existir `data.patrimonioSnapshots` (snapshots mensais),
+  //   usar diretamente snapshot.anterior vs atual. Hoje fazemos uma
+  //   aproximação: comparamos o patrimônio líquido atual com (atual
+  //   menos saldo do mês corrente). Isso mede só o "delta gerado pelo
+  //   fluxo do mês" — não captura variação por valorização/depreciação
+  //   de cotações ou imóveis. É heurístico, mas evita falso silêncio.
+  type WithSnapshots = UserData & {
+    patrimonioSnapshots?: Array<{ periodo: string; valor: number }>;
+  };
+  const snapshots = (data as WithSnapshots).patrimonioSnapshots;
+  const patrimAtual = totalPatrimonioLiquido(data);
+  let variacaoPct: number | null = null;
+  if (Array.isArray(snapshots) && snapshots.length > 0) {
+    // Snapshot do mês anterior (formato YYYY-MM).
+    const mesAnt = ciclosAnteriores(now, 1)[0];
+    const periodoAnt = `${mesAnt.year}-${String(mesAnt.month).padStart(2, '0')}`;
+    const snapAnt = snapshots.find((s) => s.periodo === periodoAnt);
+    if (snapAnt && snapAnt.valor > 0) {
+      variacaoPct = (patrimAtual - snapAnt.valor) / snapAnt.valor;
+    }
+  } else {
+    // Heurística: aproximação pelo saldo do mês.
+    const saldo = saldoMes(data, mes, ano);
+    const patrimAnterior = patrimAtual - saldo;
+    if (patrimAnterior > 1000) {
+      // Limiar 1k pra evitar divisão por valores irrisórios em estados
+      // iniciais (zero/quase-zero patrimônio).
+      variacaoPct = (patrimAtual - patrimAnterior) / patrimAnterior;
+    }
+  }
+  if (variacaoPct != null && Math.abs(variacaoPct) > 0.10) {
+    const pct = Math.round(Math.abs(variacaoPct) * 100);
+    if (variacaoPct > 0) {
+      push(buildRecado('patrimonio_swing_up', periodoMes, {
+        tipo: 'conquista',
+        titulo: `Seu patrimônio cresceu ${pct}% este mês`,
+        corpo:
+          `Comparando com o mês anterior, seu patrimônio líquido subiu cerca de ${pct}%. ` +
+          'Que tal aproveitar pra dar um próximo passo no seu plano?',
+        prioridade: 'info',
+        action: { kind: 'navigate', to: '/patrimonio', label: 'Ver patrimônio' },
+      }));
+    } else {
+      push(buildRecado('patrimonio_swing_down', periodoMes, {
+        tipo: 'alerta',
+        titulo: `Patrimônio recuou ${pct}% este mês`,
+        corpo:
+          `Seu patrimônio líquido caiu cerca de ${pct}% no comparativo com o mês passado. ` +
+          'Pode ser oscilação de mercado ou ajuste em algum ativo — bora dar uma olhada juntos?',
+        prioridade: 'aviso',
+        action: { kind: 'navigate', to: '/patrimonio', label: 'Investigar' },
+      }));
+    }
+  }
+
+  // ── 10) Recorrência sumida ───────────────────────────────────────
+  // Compromisso recorrente que estava sendo pago nos últimos 2 meses e
+  // este mês não tem parcela paga + a data já passou — pode ter sido
+  // cancelado ou só esqueceu de marcar. Threshold: data de vencimento
+  // já passou de >5 dias (margem pra delay normal de pagamento).
+  for (const c of contratos) {
+    if (c.active === false) continue;
+    if ((c.natureza || 'recorrente') !== 'recorrente') continue;
+    const parcelas = c.parcelas ?? [];
+    if (parcelas.length === 0) continue;
+
+    // Parcelas pagas dos últimos 2 meses anteriores ao corrente.
+    const doisUltimos = ciclosAnteriores(now, 2);
+    const teveHistorico = doisUltimos.every((cm) =>
+      parcelas.some((p) => p.mes === cm.month && p.ano === cm.year && p.status === 'pago'),
+    );
+    if (!teveHistorico) continue;
+
+    // Parcela do mês corrente.
+    const parcelaMes = parcelas.find((p) => p.mes === mes && p.ano === ano);
+    if (!parcelaMes) continue;
+    if (parcelaMes.status === 'pago') continue;
+
+    const venc = new Date(parcelaMes.date + 'T00:00:00Z');
+    const diasAtraso = Math.floor((now.getTime() - venc.getTime()) / 86_400_000);
+    if (diasAtraso <= 5) continue; // dá margem pro pagamento normal
+
+    push(buildRecado(`recurring_missing_${c.id}`, periodoMes, {
+      tipo: 'dica',
+      titulo: `${c.label} não apareceu este mês`,
+      corpo:
+        `"${c.label}" costuma cair certinho e ainda não foi marcado em ${periodoMes}. ` +
+        'Você cancelou ou só faltou registrar?',
+      prioridade: 'aviso',
+      action: { kind: 'navigate', to: '/compromissos', label: 'Abrir compromisso' },
+    }));
+  }
+
 
   return novos;
 }

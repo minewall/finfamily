@@ -96,13 +96,14 @@ export default function Recados() {
     for (const r of novos) {
       addRecado(r)
     }
-    // Roda quando o conteúdo de despesas/receitas/metas/contratos muda.
+    // Roda quando o conteúdo de despesas/receitas/metas/contratos/ativos muda.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     data?.despesas?.length,
     data?.receitas?.length,
     data?.metas?.length,
     data?.contratos?.length,
+    data?.ativos?.length,
   ])
 
   const totalRecados = data?.recados?.length ?? 0
