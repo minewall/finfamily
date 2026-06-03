@@ -20,3 +20,4 @@ export * from './cotacoes';
 export * from './contexto';
 export * from './onboarding';
 export * from './coach-personalities';
+export * from './coach-cadence';
