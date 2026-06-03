@@ -293,6 +293,46 @@ export async function acceptInvite(
   return { ok: true, invite: inv }
 }
 
+// ── data owner resolution (multi-user blob scoping) ─────────────────
+//
+// O blob `user_data` é indexado por user_id. Pra família funcionar,
+// membros precisam ler/escrever no blob do family head (não no próprio).
+// Esta função resolve, pro user logado, qual user_id detém o blob:
+//   - head/solo  → o próprio uid
+//   - membro     → head_user_id da família
+//
+// Cache em memória da sessão (sem persistência cross-reload) — invalidado
+// via invalidateDataOwnerCache() quando a composição da família muda.
+
+const _dataOwnerCache = new Map<string, string>()
+
+export function invalidateDataOwnerCache(myUserId?: string): void {
+  if (myUserId) _dataOwnerCache.delete(myUserId)
+  else _dataOwnerCache.clear()
+}
+
+export async function resolveDataOwnerId(myUserId: string): Promise<string> {
+  if (!myUserId) return myUserId
+  const cached = _dataOwnerCache.get(myUserId)
+  if (cached) return cached
+
+  // É membro aceito de alguma família? Pega o head dela.
+  const { data: membership } = await supabase
+    .from('family_members')
+    .select('family_id, family_groups(owner_id)')
+    .eq('user_id', myUserId)
+    .not('accepted_at', 'is', null)
+    .maybeSingle()
+
+  const m = membership as unknown as {
+    family_id: string
+    family_groups: { owner_id: string } | null
+  } | null
+  const ownerId = m?.family_groups?.owner_id ?? myUserId
+  _dataOwnerCache.set(myUserId, ownerId)
+  return ownerId
+}
+
 // ── family context (scope: am I owner or member?) ────────────────────
 
 /**

@@ -27,6 +27,7 @@ import type {
 import { regenAllContratos, markAllPastParcelas, aplicarResposta, mapeiaRespostasParaICP } from '@haile/shared'
 import { fetchCotacoes, fetchCotacaoUnica } from '@/lib/cotacoes'
 import { supabase } from '@/lib/supabase'
+import { resolveDataOwnerId } from '@/lib/family'
 
 /** Buckets de patrimônio com CRUD genérico via helpers. */
 type PatrimonioBucket = 'equipamentos' | 'veiculos' | 'imoveis' | 'ativos' | 'passivos'
@@ -148,9 +149,11 @@ async function pushToCloud(data: UserData) {
   const { data: userRes } = await supabase.auth.getUser()
   const uid = userRes.user?.id
   if (!uid) return { error: 'sem sessão' as const }
+  // Membros de família escrevem no blob do head.
+  const ownerId = await resolveDataOwnerId(uid)
   const { error } = await supabase
     .from('user_data')
-    .upsert({ user_id: uid, data }, { onConflict: 'user_id' })
+    .upsert({ user_id: ownerId, data }, { onConflict: 'user_id' })
   return { error: error ? error.message : null }
 }
 
@@ -200,10 +203,12 @@ export const useData = create<DataState>((set, get) => {
         set({ loading: false, error: 'Sessão ausente', data: local })
         return
       }
+      // Membros de família leem do blob do head.
+      const ownerId = await resolveDataOwnerId(uid)
       const { data, error } = await supabase
         .from('user_data')
         .select('data')
-        .eq('user_id', uid)
+        .eq('user_id', ownerId)
         .maybeSingle()
       if (error) {
         set({ loading: false, error: error.message, data: local })
