@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, X, Users, EyeOff, Receipt as ReceiptIcon } from 'lucide-react'
 import {
   CATEGORIES,
   FAMILIA_COLETIVO,
+  suggestCategory,
+  type CategorySuggestion,
   type Despesa,
   type Receita,
   type ReembolsoInfo,
@@ -41,6 +43,8 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   const addReceita = useData((s) => s.addReceita)
   const updateReceita = useData((s) => s.updateReceita)
   const deleteReceita = useData((s) => s.deleteReceita)
+  const recordCategoryChoice = useData((s) => s.recordCategoryChoice)
+  const recordCategoryCorrection = useData((s) => s.recordCategoryCorrection)
 
   const pessoas = (data?.pessoas as string[] | undefined) ?? ['Você']
   const contas = data?.contas ?? []
@@ -74,6 +78,10 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
 
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [suggestion, setSuggestion] = useState<CategorySuggestion | null>(null)
+  // Rastreia se o user mexeu manualmente no select — só auto-preenchemos
+  // categoria com a sugestão se ele ainda não escolheu nada explicitamente.
+  const categoryTouchedRef = useRef<boolean>(isEdit)
 
   // Reset ao reabrir
   useEffect(() => {
@@ -94,7 +102,23 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
     setReembValor(ed?.reembolso?.valor?.toString() ?? '')
     setError(null)
     setSubmitting(false)
+    setSuggestion(null)
+    categoryTouchedRef.current = !!editing
   }, [open, editing, defaultKind, pessoas])
+
+  // Sugere categoria a partir da descrição. KB pessoal tem prioridade sobre
+  // keywords genéricas (lógica em @haile/shared/categories-knowledge).
+  useEffect(() => {
+    if (!open || isEdit || kind !== 'despesa') {
+      setSuggestion(null)
+      return
+    }
+    const s = suggestCategory(desc, data?.iaKnowledge)
+    setSuggestion(s)
+    if (s && !categoryTouchedRef.current) {
+      setCategory(s.category)
+    }
+  }, [desc, open, isEdit, kind, data?.iaKnowledge])
 
   // Se mudar o tipo num NOVO lançamento, ajusta categoria default
   useEffect(() => {
@@ -203,6 +227,22 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
     } else {
       addDespesa(baseDesp as Despesa)
     }
+
+    // ── Knowledgebase pessoal ─────────────────────────────────────
+    // Aprende com a escolha do usuário pra despesas com categoria definida.
+    // Receitas vão sempre pra 'receita' — não trazem sinal útil.
+    const descTrim = desc.trim()
+    const isDespesa = (isEdit && editing?.kind === 'despesa') || (!isEdit && kind === 'despesa')
+    if (descTrim && isDespesa && category && category !== 'receita') {
+      const chosenSub = baseDesp.sub ?? undefined
+      const sugCat = suggestion?.category
+      if (sugCat && sugCat !== category) {
+        recordCategoryCorrection(descTrim, sugCat, category, chosenSub ?? undefined)
+      } else {
+        recordCategoryChoice(descTrim, category, chosenSub ?? undefined)
+      }
+    }
+
     onClose()
   }
 
@@ -294,11 +334,20 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
 
         {kind === 'despesa' && (
           <Field label="Categoria">
-            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <Select
+              value={category}
+              onChange={(e) => {
+                categoryTouchedRef.current = true
+                setCategory(e.target.value)
+              }}
+            >
               {expenseCats.map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </Select>
+            {suggestion?.source === 'knowledge' && (
+              <p className="mt-1 text-[10.5px] text-faint">Sugerido com base no seu histórico.</p>
+            )}
           </Field>
         )}
 
