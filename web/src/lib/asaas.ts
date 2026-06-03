@@ -201,23 +201,43 @@ export async function createCheckout(planId: string): Promise<CheckoutResponse> 
   return payload
 }
 
+interface CancelResponse {
+  ok: true
+  status: 'cancelled' | 'pending_period_end'
+  alreadyCancelled?: boolean
+  asaasError?: string
+  subscription?: Subscription
+}
+
 /**
- * Marca a assinatura pra cancelar no fim do período.
- * TODO: integrar com edge function `asaas-cancel` quando disponível para
- * propagar pro provedor. Por enquanto só atualiza a linha local.
+ * Marca a assinatura pra cancelar no fim do período via edge function
+ * `asaas-cancel`. Não chama Asaas (acesso mantido até o fim do ciclo);
+ * o cron diário converte em 'cancelled' depois.
  */
-export async function cancelSubscriptionAtPeriodEnd(reason: string | null) {
-  const { data: auth } = await supabase.auth.getUser()
-  const userId = auth.user?.id
-  if (!userId) throw new Error('Sem sessão.')
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({
-      cancel_at_period_end: true,
-      cancel_reason: reason,
-    })
-    .eq('user_id', userId)
+export async function cancelSubscriptionAtPeriodEnd(
+  reason: string | null,
+): Promise<CancelResponse> {
+  const { data, error } = await supabase.functions.invoke('asaas-cancel', {
+    body: { reason, immediate: false },
+  })
   if (error) throw new Error(error.message)
+  return data as CancelResponse
+}
+
+/**
+ * Cancela a assinatura imediatamente: chama Asaas /subscriptions/{id}/cancel
+ * e marca local como 'cancelled' na hora. Se o Asaas falhar, a edge faz
+ * best-effort (marca cancel_at_period_end local) e devolve `asaasError`.
+ * UI ainda não usa — expõe pra uso futuro.
+ */
+export async function cancelSubscriptionImmediate(
+  reason: string | null,
+): Promise<CancelResponse> {
+  const { data, error } = await supabase.functions.invoke('asaas-cancel', {
+    body: { reason, immediate: true },
+  })
+  if (error) throw new Error(error.message)
+  return data as CancelResponse
 }
 
 // ──────────────────────────────────────────────────────────────────────
