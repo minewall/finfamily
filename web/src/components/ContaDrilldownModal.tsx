@@ -41,7 +41,7 @@ export function ContaDrilldownModal({ open, onClose, conta, onEdit, month, year 
         <div className="text-[11px] uppercase tracking-wide text-slate">
           {conta.banco || ''}{conta.tipo ? ' · ' + conta.tipo : ''}
         </div>
-        <div className="font-mono text-2xl font-extrabold" style={{ color: conta.cor ?? '#6b5ef5' }}>
+        <div className="font-mono text-2xl font-extrabold" style={{ color: conta.cor ?? 'var(--color-indigo)' }}>
           {currencyBRL(conta.saldo)}
         </div>
         <div className="text-[11px] text-faint">saldo cadastrado</div>

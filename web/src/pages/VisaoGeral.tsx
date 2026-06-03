@@ -247,10 +247,10 @@ export default function VisaoGeral() {
               <div
                 key={c.id}
                 className="rounded-xl border border-line bg-surface px-3 py-2"
-                style={{ borderLeft: `3px solid ${c.cor ?? '#6b5ef5'}` }}
+                style={{ borderLeft: `3px solid ${c.cor ?? 'var(--color-indigo)'}` }}
               >
                 <div className="text-[10.5px] uppercase tracking-wide text-slate">{c.banco || c.nome}</div>
-                <div className="font-mono text-sm font-bold" style={{ color: c.cor ?? '#6b5ef5' }}>
+                <div className="font-mono text-sm font-bold" style={{ color: c.cor ?? 'var(--color-indigo)' }}>
                   {currencyBRL(c.saldo)}
                 </div>
               </div>

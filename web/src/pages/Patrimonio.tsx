@@ -225,7 +225,7 @@ export default function Patrimonio() {
                     type="button"
                     onClick={() => { setEqEditing(e); setEqOpen(true) }}
                     className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                    style={{ borderTop: '3px solid #6b5ef5' }}
+                    style={{ borderTop: '3px solid var(--color-indigo)' }}
                   >
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">
                       {(e.categoria as string) ?? 'eletronico'}
@@ -264,7 +264,7 @@ export default function Patrimonio() {
                     type="button"
                     onClick={() => { setVEditing(v); setVOpen(true) }}
                     className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                    style={{ borderTop: '3px solid #f59e0b' }}
+                    style={{ borderTop: '3px solid var(--color-amber)' }}
                   >
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">
                       {v.marca} {v.ano ? `· ${v.ano}` : ''}
@@ -274,7 +274,7 @@ export default function Patrimonio() {
                       {v.modelo}{idade ? ` · ${idade.toFixed(1)} anos de uso` : ''}
                     </div>
                     <div className="text-[11px] text-mist">Valor estimado</div>
-                    <div className="font-mono text-[20px] font-extrabold" style={{ color: '#f59e0b' }}>
+                    <div className="font-mono text-[20px] font-extrabold" style={{ color: 'var(--color-amber)' }}>
                       {currencyBRL(valor)}
                     </div>
                     {custoAno > 0 && (
@@ -307,7 +307,7 @@ export default function Patrimonio() {
                     type="button"
                     onClick={() => { setImEditing(im); setImOpen(true) }}
                     className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                    style={{ borderTop: '3px solid #2dcfc0' }}
+                    style={{ borderTop: '3px solid var(--color-teal)' }}
                   >
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">
                       {(im.tipo as string) ?? 'casa'}
@@ -368,7 +368,7 @@ export default function Patrimonio() {
                       type="button"
                       onClick={() => { setAEditing(a); setAOpen(true) }}
                       className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                      style={{ borderTop: '3px solid #1dc97e' }}
+                      style={{ borderTop: '3px solid var(--color-green)' }}
                     >
                       <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">{a.tipo || 'Investimento'}</div>
                       <div className="text-[15px] font-bold text-ink">{a.nome || '—'}</div>
@@ -404,7 +404,7 @@ export default function Patrimonio() {
                     type="button"
                     onClick={() => { setAEditing(a); setAOpen(true) }}
                     className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                    style={{ borderTop: '3px solid #6b5ef5' }}
+                    style={{ borderTop: '3px solid var(--color-indigo)' }}
                   >
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">{a.type || 'Ativo'}</div>
                     <div className="text-[15px] font-bold text-ink">{a.platform || '—'}</div>
@@ -440,7 +440,7 @@ export default function Patrimonio() {
                     type="button"
                     onClick={() => { setPEditing(p); setPOpen(true) }}
                     className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                    style={{ borderTop: '3px solid #ff4a68' }}
+                    style={{ borderTop: '3px solid var(--color-red)' }}
                   >
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">
                       {(p.tipo as string) ?? '—'}{p.credor ? ` · ${p.credor}` : ''}

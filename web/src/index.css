@@ -26,6 +26,17 @@
   --color-line: rgba(255, 255, 255, 0.07);
   --color-line-2: rgba(255, 255, 255, 0.11);
 
+  /* Superfícies/overlay/sombras semânticos (Track H) */
+  --color-bg-card-elevated: #242842;
+  --color-bg-overlay: rgba(0, 0, 0, 0.60);
+  --color-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.4);
+
+  /* Chips semânticos — backgrounds suaves */
+  --color-success-bg: rgba(29, 201, 126, 0.15);
+  --color-warn-bg: rgba(255, 169, 48, 0.15);
+  --color-danger-bg: rgba(255, 74, 104, 0.15);
+  --color-info-bg: rgba(107, 94, 245, 0.15);
+
   --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
   --font-serif: "DM Serif Display", Georgia, serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
@@ -47,21 +58,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Modo claro — Sprint 5 Configurações.
-   Inversão funcional dos tokens neutros (não pixel-perfect).
-   Cores de marca (indigo/teal/green/red/amber) ficam iguais.
-   Refinamento depois. */
+/* Modo claro — Sprint 5 Configurações + Track H.
+   Tokens neutros revisados pra contraste WCAG AA.
+   Cores de marca (indigo/teal/green/red/amber/blue) ficam iguais. */
 html[data-theme='light'] {
-  --color-bg: #f7f8fc;
-  --color-sidebar: #ffffff;
-  --color-surface: #ffffff;
-  --color-elevated: #eef0f7;
-  --color-hover: #e3e6f0;
+  --color-bg: #F4F5FA;
+  --color-sidebar: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-elevated: #F0F2F8;
+  --color-hover: #E7EAF4;
 
-  --color-ink: #11142b;
-  --color-mist: #5b6280;
-  --color-slate: #8a90ab;
-  --color-faint: #b4b9cd;
-  --color-line: rgba(17, 20, 43, 0.08);
-  --color-line-2: rgba(17, 20, 43, 0.14);
+  --color-ink: #0F1226;
+  --color-mist: #4A5174;
+  --color-slate: #7A82A2;
+  --color-faint: #B0B6CC;
+  --color-line: rgba(15, 18, 38, 0.08);
+  --color-line-2: rgba(15, 18, 38, 0.14);
+
+  --color-bg-card-elevated: #FBFCFF;
+  --color-bg-overlay: rgba(15, 18, 38, 0.40);
+  --color-shadow-card: 0 2px 12px rgba(15, 18, 38, 0.06);
+
+  --color-success-bg: #E6F7EF;
+  --color-warn-bg: #FFF4E0;
+  --color-danger-bg: #FFE8ED;
+  --color-info-bg: #EEEDFF;
 }

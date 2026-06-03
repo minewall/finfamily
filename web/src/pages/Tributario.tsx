@@ -219,13 +219,13 @@ export default function Tributario() {
             const corBorda =
               t.tipo === 'irpf'
                 ? t.aReceber
-                  ? '#1dc97e'
-                  : '#f59e0b'
+                  ? 'var(--color-green)'
+                  : 'var(--color-amber)'
                 : t.tipo === 'iptu'
-                  ? '#f59e0b'
+                  ? 'var(--color-amber)'
                   : t.tipo === 'ipva'
-                    ? '#6b5ef5'
-                    : '#94a3b8'
+                    ? 'var(--color-indigo)'
+                    : 'var(--color-slate)'
             return (
               <button
                 key={t.id}
@@ -319,10 +319,10 @@ interface KpiProps {
 
 function KpiCard({ label, value, sub, tone }: KpiProps) {
   const TONES: Record<KpiProps['tone'], string> = {
-    green:  '#1dc97e',
-    red:    '#ff4a68',
-    indigo: '#6b5ef5',
-    amber:  '#f59e0b',
+    green:  'var(--color-green)',
+    red:    'var(--color-red)',
+    indigo: 'var(--color-indigo)',
+    amber:  'var(--color-amber)',
   }
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">

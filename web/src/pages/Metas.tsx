@@ -7,11 +7,11 @@ import { MetaModal } from '@/components/MetaModal'
 
 function tipoColor(type?: string): string {
   switch (type) {
-    case 'objetivo':    return '#6b5ef5' // indigo
-    case 'reserva':     return '#2dcfc0' // teal
-    case 'limite_desp': return '#ff4a68' // red
-    case 'min_receita': return '#1dc97e' // green
-    default: return '#454b6d'
+    case 'objetivo':    return 'var(--color-indigo)'
+    case 'reserva':     return 'var(--color-teal)'
+    case 'limite_desp': return 'var(--color-red)'
+    case 'min_receita': return 'var(--color-green)'
+    default: return 'var(--color-slate)'
   }
 }
 
@@ -92,7 +92,7 @@ export default function Metas() {
 
                 <div className="mt-3">
                   <div className="mb-1 flex items-baseline justify-between text-xs">
-                    <span className="font-mono font-bold" style={{ color: prog.estourou ? '#ff4a68' : cor }}>
+                    <span className="font-mono font-bold" style={{ color: prog.estourou ? 'var(--color-red)' : cor }}>
                       {currencyBRL(prog.atual)}
                     </span>
                     <span className="text-faint">de {currencyBRL(prog.alvo)}</span>
@@ -102,7 +102,7 @@ export default function Metas() {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${Math.round(prog.pct * 100)}%`,
-                        background: prog.estourou ? '#ff4a68' : cor,
+                        background: prog.estourou ? 'var(--color-red)' : cor,
                       }}
                     />
                   </div>

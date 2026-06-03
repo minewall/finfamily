@@ -1,4 +1,4 @@
-import { Moon, Sun, MonitorSmartphone, Info } from 'lucide-react'
+import { Moon, Sun, MonitorSmartphone } from 'lucide-react'
 import { useData } from '@/store/useData'
 import { cn } from '@/lib/utils'
 
@@ -6,7 +6,7 @@ type Theme = 'light' | 'dark' | 'auto'
 
 const OPTIONS: Array<{ id: Theme; label: string; desc: string; icon: typeof Moon }> = [
   { id: 'dark', label: 'Escuro', desc: 'O modo padrão do Haile.', icon: Moon },
-  { id: 'light', label: 'Claro', desc: 'Em refinamento.', icon: Sun },
+  { id: 'light', label: 'Claro', desc: 'Suave e leve, ótimo pra dia claro.', icon: Sun },
   { id: 'auto', label: 'Automático', desc: 'Segue o sistema.', icon: MonitorSmartphone },
 ]
 
@@ -60,14 +60,6 @@ export function AparenciaSection() {
             )
           })}
         </fieldset>
-      </div>
-
-      <div className="flex items-start gap-3 rounded-xl border border-amber/30 bg-amber/10 px-4 py-3 text-sm text-amber">
-        <Info size={16} className="mt-0.5 shrink-0" />
-        <p>
-          O app está otimizado pra modo escuro. O modo claro ainda está em refinamento —
-          pode ter cantos a polir.
-        </p>
       </div>
     </div>
   )

@@ -29,9 +29,9 @@ const FILTER_LABEL: Record<Filtro, string> = {
 }
 
 const PRIORIDADE_VISUAL: Record<RecadoPrioridade, { color: string; Icon: typeof AlertCircle; label: string }> = {
-  urgente: { color: '#ff4a68', Icon: AlertTriangle, label: 'Urgente' },
-  aviso:   { color: '#f59e0b', Icon: AlertCircle,   label: 'Aviso' },
-  info:    { color: '#6b5ef5', Icon: Info,          label: 'Info' },
+  urgente: { color: 'var(--color-red)', Icon: AlertTriangle, label: 'Urgente' },
+  aviso:   { color: 'var(--color-amber)', Icon: AlertCircle,   label: 'Aviso' },
+  info:    { color: 'var(--color-indigo)', Icon: Info,          label: 'Info' },
 }
 
 function fmtRelTime(isoStr: string): string {
@@ -129,7 +129,7 @@ export default function Recados() {
         <div className="flex items-center gap-3">
           <div
             className="grid h-11 w-11 place-items-center rounded-xl text-white"
-            style={{ background: 'linear-gradient(135deg, #6b5ef5 0%, #20c4b5 100%)' }}
+            style={{ background: 'linear-gradient(135deg, var(--color-indigo) 0%, var(--color-teal) 100%)' }}
           >
             <Bell size={20} />
           </div>

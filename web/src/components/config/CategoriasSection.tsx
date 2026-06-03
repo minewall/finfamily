@@ -87,7 +87,7 @@ export function CategoriasSection() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState({
     label: '',
-    color: '#7C6EF8',
+    color: '#7C6EF8', // keep: default persistido em categoria.color
     icon: 'circle',
   })
   const [editingId, setEditingId] = useState<string | null>(null)
