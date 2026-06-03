@@ -113,13 +113,84 @@ ser `{ received: true, duplicate: true }` e nenhuma row duplicada em `invoices`.
 | `trial`    | default na criação (21d)         |
 | `active`   | webhook `PAYMENT_CONFIRMED/RECEIVED` |
 | `past_due` | webhook `PAYMENT_OVERDUE`        |
-| `cancelled`| webhook `SUBSCRIPTION_*`         |
-| `expired`  | (cron futuro — trial expirou sem pagamento) |
+| `cancelled`| webhook `SUBSCRIPTION_*` ou `asaas-cancel` (immediate=true) ou cron diário (cancel_at_period_end com período passado) |
+| `expired`  | cron diário (trial vencido sem invoice paga) |
 
-## 5. Pendências
+## 5. Fase 2 — cancelamento + cron de ciclo de vida
 
-- [ ] Frontend `/app/assinatura` consumindo `asaas-create-checkout`.
-- [ ] Cron de transição `trial → expired` quando passou `trial_end_at` sem pagamento.
+### 5.1 Edge function `asaas-cancel`
+
+URL: `https://lpudgulhnfuwdttetwdn.supabase.co/functions/v1/asaas-cancel`
+JWT: required (chama `supabase.auth.getUser(jwt)`).
+
+Body:
+
+```json
+{ "reason": "Texto opcional do user (max 500)", "immediate": false }
+```
+
+Comportamento:
+
+- `immediate=false` (padrão): marca `cancel_at_period_end=true` + `cancel_reason`.
+  **Não** chama Asaas. Acesso preservado até o fim do ciclo. O cron diário
+  converte em `cancelled` quando `current_period_end < now()`.
+- `immediate=true`: chama `POST {ASAAS_BASE_URL}/subscriptions/{id}/cancel`
+  no Asaas e seta `status='cancelled'` + `cancelled_at=now()` localmente.
+- Se já está em `cancelled`/`expired`: retorna `{ ok:true, alreadyCancelled:true }`.
+- Se o Asaas falhar em `immediate=true`: best-effort marca `cancel_at_period_end=true`
+  local + devolve `{ ok:true, asaasError:'<msg>' }` (UX não trava). Estado
+  é convergente — webhook `SUBSCRIPTION_DELETED` ou o cron limpam depois.
+
+Usa as mesmas secrets do checkout (`ASAAS_BASE_URL`, `ASAAS_API_KEY`).
+
+Front consome via `web/src/lib/asaas.ts`:
+- `cancelSubscriptionAtPeriodEnd(reason)` → `immediate:false`
+- `cancelSubscriptionImmediate(reason)` → `immediate:true` (exposto, sem botão ainda)
+
+### 5.2 Cron diário `subscription-lifecycle-daily`
+
+Schedule: `0 14 * * *` (14:00 UTC ≈ 11:00 BRT, alinhado com `onboarding-reminder`).
+
+Função SQL: `public.advance_subscription_lifecycle()` — `security definer`,
+`search_path=''`, execute revogado de `public/anon/authenticated`. Só
+service_role e o próprio pg_cron rodam.
+
+Transições aplicadas:
+
+1. `trial` + `trial_end_at < now()` + sem invoice `paid` → `expired`
+2. `active` + `cancel_at_period_end=true` + `current_period_end < now()` → `cancelled` (+ `cancelled_at`)
+
+`past_due` e renovações ativas continuam no webhook.
+
+**Rodar manualmente (testar/forçar processamento):**
+
+```sql
+-- via SQL Editor com role service_role (Dashboard → SQL Editor):
+select * from public.advance_subscription_lifecycle();
+```
+
+Retorna `(user_id, action, status)` das linhas que mudaram no último minuto
+— vazio significa que não havia nada pra avançar.
+
+**Conferir o job:**
+
+```sql
+select jobid, jobname, schedule, active
+  from cron.job
+ where jobname = 'subscription-lifecycle-daily';
+```
+
+**Conferir histórico de execução:**
+
+```sql
+select runid, status, return_message, start_time
+  from cron.job_run_details
+ where jobid = (select jobid from cron.job where jobname = 'subscription-lifecycle-daily')
+ order by start_time desc limit 10;
+```
+
+## 6. Pendências
+
 - [ ] Cron de lembrete (14/18/20 dias de trial) — `app_settings.trial_reminder_days`.
 - [ ] Trocar `ASAAS_BASE_URL` + `ASAAS_API_KEY` quando subir pra produção.
 - [ ] Cadastrar webhook em produção com nova URL/token.
