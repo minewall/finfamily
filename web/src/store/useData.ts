@@ -90,6 +90,9 @@ interface DataState {
   getContexto: () => ContextoState
   addContextoResposta: (categoriaId: string, resp: Partial<ContextoResposta> & { perguntaId: string }) => void
   removeContextoResposta: (categoriaId: string, perguntaId: string) => void
+  // ── Pergunta do dia / Gatilhos do Haile ──
+  markDailyQuestionShown: (perguntaId: string) => void
+  clearCoachTrigger: (key: string) => void
   // ── Onboarding ──
   getOnboarding: () => OnboardingState
   setOnboardingAnswer: (key: keyof OnboardingAnswers | string, value: unknown) => void
@@ -290,7 +293,17 @@ export const useData = create<DataState>((set, get) => {
     addMeta: (input) => {
       const d = ensure()
       const entry: Meta = { active: true, ...input, id: input.id ?? newId() } as Meta
-      persist({ ...d, metas: [...(d.metas ?? []), entry] })
+      const prevLen = (d.metas ?? []).length
+      const triggers = (d.coachTriggers ?? {}) as Record<string, unknown>
+      const nextTriggers =
+        prevLen === 0 && triggers.firstMetaPending == null
+          ? { ...triggers, firstMetaPending: true }
+          : triggers
+      persist({
+        ...d,
+        metas: [...(d.metas ?? []), entry],
+        coachTriggers: nextTriggers,
+      })
     },
     updateMeta: (id, patch) => {
       const d = ensure()
@@ -665,6 +678,26 @@ export const useData = create<DataState>((set, get) => {
       const d = ensure()
       const next = aplicarResposta(d.contexto, categoriaId, { perguntaId, resposta: '' })
       persist({ ...d, contexto: next })
+    },
+
+    markDailyQuestionShown: (perguntaId) => {
+      const d = ensure()
+      persist({
+        ...d,
+        coachDailyQuestion: {
+          ...(d.coachDailyQuestion ?? {}),
+          lastShownAt: new Date().toISOString(),
+          lastShownId: perguntaId,
+        },
+      })
+    },
+    clearCoachTrigger: (key) => {
+      const d = ensure()
+      const prev = (d.coachTriggers ?? {}) as Record<string, unknown>
+      if (!(key in prev)) return
+      const next = { ...prev }
+      delete next[key]
+      persist({ ...d, coachTriggers: next })
     },
 
     // ── Onboarding (Sprint 6) ────────────────────────────────────

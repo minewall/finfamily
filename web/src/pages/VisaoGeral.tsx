@@ -15,6 +15,7 @@ import {
 } from '@haile/shared'
 import { useData } from '@/store/useData'
 import { StackedBars, type StackedBarsDatum } from '@/components/charts'
+import { PerguntaDoDiaCard } from '@/components/PerguntaDoDiaCard'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
@@ -81,6 +82,8 @@ export default function VisaoGeral() {
         <h1 className="text-2xl font-bold text-ink">Visão Geral</h1>
         <p className="text-sm text-mist capitalize">{MESES[month - 1]} de {year}</p>
       </header>
+
+      <PerguntaDoDiaCard />
 
       {/* ── Hero: Poder de Escolha ────────────────────────────── */}
       <section className="mb-6 rounded-2xl border border-line bg-gradient-to-br from-indigo/15 to-teal/10 p-6">

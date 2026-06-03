@@ -110,5 +110,13 @@ export interface UserData {
   /** ICP / Contexto Pessoal — respostas por categoria. */
   contexto?: ContextoState;
   flags?: Record<string, unknown>;
+  /** Estado da pergunta-do-dia do Haile (cadência adaptativa + last shown). */
+  coachDailyQuestion?: {
+    lastShownAt?: string | null;
+    lastShownId?: string | null;
+    dismissedAt?: string | null;
+  };
+  /** Gatilhos contextuais do Coach (ex.: firstMetaPending). */
+  coachTriggers?: Record<string, unknown>;
   [k: string]: unknown;
 }
