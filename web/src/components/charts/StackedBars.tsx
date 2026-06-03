@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import { currencyBRL } from '@haile/shared'
 import { ChartTooltip, type TooltipPayloadItem } from './ChartTooltip'
+import { useChartColors } from './useChartColors'
 
 export interface StackedBarsDatum {
   label: string
@@ -25,11 +26,6 @@ export interface StackedBarsProps {
   title?: string
 }
 
-const COLORS = {
-  receita: '#1dc97e',
-  despesa: '#ff4a68',
-}
-
 /**
  * Barras empilhadas mostrando receita × despesa por período. Despesa é
  * desenhada negativa (abaixo do eixo) pra leitura "ganhos vs perdas". Saldo
@@ -40,6 +36,7 @@ export function StackedBars({
   height = 240,
   title,
 }: StackedBarsProps) {
+  const colors = useChartColors()
   // Recharts não tem "stack divergente" nativo. Truque: desenhamos despesa
   // como valor NEGATIVO numa stack separada — assim receita sobe e despesa
   // desce, com 0 no meio.
@@ -52,7 +49,7 @@ export function StackedBars({
   }))
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 text-mist">
+    <div className="rounded-2xl border border-line bg-surface p-4">
       {title && (
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate">
           {title}
@@ -60,37 +57,32 @@ export function StackedBars({
       )}
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
+          <CartesianGrid stroke={colors.grid} vertical={false} />
           <XAxis
             dataKey="label"
-            stroke="currentColor"
-            strokeOpacity={0.4}
-            tick={{ fill: 'currentColor', fontSize: 11 }}
+            stroke={colors.axis}
+            tick={{ fill: colors.text, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            stroke="currentColor"
-            strokeOpacity={0.4}
-            tick={{ fill: 'currentColor', fontSize: 11 }}
+            stroke={colors.axis}
+            tick={{ fill: colors.text, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             tickFormatter={(v: number) => formatCompact(v)}
             width={56}
           />
           <Tooltip
-            cursor={{ fill: 'currentColor', fillOpacity: 0.06 }}
+            cursor={{ fill: colors.text, fillOpacity: 0.08 }}
             content={(props) => {
               const payload = (props.payload ?? []) as ReadonlyArray<TooltipPayloadItem>
-              // Filtramos `despesaAbs` (que não é renderizada) e mostramos
-              // os 2 valores reais. `saldo` vai num footer.
               const visible = payload.filter(
                 (p) => p.dataKey === 'receita' || p.dataKey === 'despesa',
               ).map((p) => {
                 const raw = Array.isArray(p.value) ? p.value[p.value.length - 1] : p.value
                 const num = typeof raw === 'number' ? raw : Number(raw) || 0
                 if (p.dataKey === 'despesa') {
-                  // mostra valor absoluto no tooltip (não o negativo)
                   return { ...p, value: Math.abs(num), name: 'Despesa' }
                 }
                 return { ...p, value: num, name: 'Receita' }
@@ -107,11 +99,10 @@ export function StackedBars({
                     saldo != null
                       ? () => (
                           <div className="flex items-center justify-between gap-3 text-[11px]">
-                            <span className="text-mist">Saldo</span>
+                            <span style={{ color: colors.text }}>Saldo</span>
                             <span
-                              className={`font-mono font-bold ${
-                                saldo >= 0 ? 'text-green' : 'text-red'
-                              }`}
+                              className="font-mono font-bold"
+                              style={{ color: saldo >= 0 ? colors.positive : colors.negative }}
                             >
                               {currencyBRL(saldo)}
                             </span>
@@ -129,20 +120,20 @@ export function StackedBars({
             iconType="circle"
             iconSize={8}
             formatter={(value: string) => (
-              <span className="text-[11px] text-mist">{value}</span>
+              <span className="text-[11px]" style={{ color: colors.text }}>{value}</span>
             )}
           />
           <Bar
             dataKey="receita"
             name="Receita"
-            fill={COLORS.receita}
+            fill={colors.positive}
             radius={[4, 4, 0, 0]}
             stackId="receita"
           />
           <Bar
             dataKey="despesa"
             name="Despesa"
-            fill={COLORS.despesa}
+            fill={colors.negative}
             radius={[0, 0, 4, 4]}
             stackId="despesa"
           />

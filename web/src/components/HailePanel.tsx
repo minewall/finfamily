@@ -225,7 +225,7 @@ export function HailePanel() {
 
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-line bg-sidebar transition-transform',
+          'haile-panel fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-line bg-sidebar transition-transform',
           open ? 'translate-x-0' : 'translate-x-full',
         )}
         aria-hidden={!open}

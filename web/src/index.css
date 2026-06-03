@@ -65,3 +65,52 @@ html[data-theme='light'] {
   --color-line: rgba(17, 20, 43, 0.08);
   --color-line-2: rgba(17, 20, 43, 0.14);
 }
+
+/* ── Hero "Poder de Escolha" — identidade indigo preservada em ambos temas ──
+   No dark, o gradient sutil sobre #1b1e31 já funciona via classes utilitárias.
+   No light, precisamos reforçar o gradient pra que o card mantenha a assinatura
+   visual indigo (não suma sobre o fundo claro). O texto vira branco e a sombra
+   ganha presença. */
+.pde-hero {
+  background: linear-gradient(135deg, rgba(107, 94, 245, 0.15), rgba(45, 207, 192, 0.10));
+}
+html[data-theme='light'] .pde-hero {
+  background: linear-gradient(135deg, #6b5ef5 0%, #5a4ee4 55%, #2dcfc0 130%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 12px 36px rgba(90, 78, 228, 0.30);
+}
+html[data-theme='light'] .pde-hero .pde-eyebrow,
+html[data-theme='light'] .pde-hero .pde-value,
+html[data-theme='light'] .pde-hero .pde-hint,
+html[data-theme='light'] .pde-hero .pde-side,
+html[data-theme='light'] .pde-hero .pde-legend {
+  color: #ffffff;
+}
+html[data-theme='light'] .pde-hero .pde-side-strong-green {
+  color: #c2f5dc;
+}
+html[data-theme='light'] .pde-hero .pde-side-strong-amber {
+  color: #ffe6b8;
+}
+html[data-theme='light'] .pde-hero .pde-track {
+  background: rgba(255, 255, 255, 0.22);
+}
+html[data-theme='light'] .pde-hero .pde-track .pde-fill-amber {
+  background: #ffd089;
+}
+html[data-theme='light'] .pde-hero .pde-track .pde-fill-indigo {
+  background: #ffffff;
+}
+html[data-theme='light'] .pde-hero .pde-dot-amber {
+  background: #ffd089;
+}
+html[data-theme='light'] .pde-hero .pde-dot-indigo {
+  background: #ffffff;
+}
+
+/* ── HailePanel — sombra extra no light pra separar do fundo claro.
+   Topbar gradient indigo→teal e bubble do usuário mantêm identidade em ambos. */
+html[data-theme='light'] .haile-panel {
+  box-shadow: -16px 0 40px rgba(17, 20, 43, 0.08);
+}

@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { currencyBRL } from '@haile/shared'
 import { ChartTooltip } from './ChartTooltip'
+import { useChartColors } from './useChartColors'
 
 export interface BarSeriesDatum {
   label: string
@@ -16,12 +17,6 @@ export interface BarSeriesDatum {
 }
 
 export type BarTone = 'income' | 'expense' | 'neutral'
-
-const TONE_COLOR: Record<BarTone, string> = {
-  income: '#1dc97e',   // green
-  expense: '#ff4a68',  // red
-  neutral: '#6b5ef5',  // indigo
-}
 
 export interface BarSeriesProps {
   data: BarSeriesDatum[]
@@ -41,9 +36,11 @@ export function BarSeries({
   height = 200,
   title,
 }: BarSeriesProps) {
-  const color = TONE_COLOR[tone]
+  const colors = useChartColors()
+  const color =
+    tone === 'income' ? colors.positive : tone === 'expense' ? colors.negative : colors.series[0]
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 text-mist">
+    <div className="rounded-2xl border border-line bg-surface p-4">
       {title && (
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate">
           {title}
@@ -51,26 +48,24 @@ export function BarSeries({
       )}
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="currentColor" strokeOpacity={0.08} vertical={false} />
+          <CartesianGrid stroke={colors.grid} vertical={false} />
           <XAxis
             dataKey="label"
-            stroke="currentColor"
-            strokeOpacity={0.4}
-            tick={{ fill: 'currentColor', fontSize: 11 }}
+            stroke={colors.axis}
+            tick={{ fill: colors.text, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
           />
           <YAxis
-            stroke="currentColor"
-            strokeOpacity={0.4}
-            tick={{ fill: 'currentColor', fontSize: 11 }}
+            stroke={colors.axis}
+            tick={{ fill: colors.text, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
             tickFormatter={(v: number) => formatCompact(v)}
             width={56}
           />
           <Tooltip
-            cursor={{ fill: 'currentColor', fillOpacity: 0.06 }}
+            cursor={{ fill: colors.text, fillOpacity: 0.08 }}
             content={(props) => (
               <ChartTooltip
                 {...props}
