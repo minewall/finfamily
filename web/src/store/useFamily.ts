@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   acceptInvite as acceptInviteApi,
   cancelInvite as cancelInviteApi,
+  invalidateDataOwnerCache,
   inviteMember as inviteMemberApi,
   listFamilyMembers,
   listMyPendingInvites,
@@ -72,7 +73,10 @@ export const useFamily = create<FamilyState>((set, get) => ({
 
   remove: async (memberId) => {
     const res = await removeMemberApi(memberId)
-    if (!res.error) await get().loadFamily()
+    if (!res.error) {
+      invalidateDataOwnerCache()
+      await get().loadFamily()
+    }
     return res
   },
 
@@ -90,7 +94,10 @@ export const useFamily = create<FamilyState>((set, get) => ({
 
   accept: async (tokenOrInviteId): Promise<AcceptResult> => {
     const res = await acceptInviteApi(tokenOrInviteId)
-    if ('ok' in res && res.ok) await get().loadFamily()
+    if ('ok' in res && res.ok) {
+      invalidateDataOwnerCache()
+      await get().loadFamily()
+    }
     return res as AcceptResult
   },
 }))
