@@ -42,7 +42,7 @@ export function TiposSection() {
   const [form, setForm] = useState({
     label: '',
     comportamento: 'opcional',
-    color: '#22C55E',
+    color: '#22C55E', // keep: default persistido em tipoCustom.color
   })
   const [error, setError] = useState<string | null>(null)
 

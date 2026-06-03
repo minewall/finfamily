@@ -102,7 +102,7 @@ export default function Contas() {
                 type="button"
                 onClick={() => setDrilldown(c)}
                 className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                style={{ borderTop: `3px solid ${c.cor ?? '#6b5ef5'}` }}
+                style={{ borderTop: `3px solid ${c.cor ?? 'var(--color-indigo)'}` }}
               >
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-slate">
                   {c.banco || ''}
@@ -110,7 +110,7 @@ export default function Contas() {
                 <div className="text-[15px] font-bold text-ink">{c.nome}</div>
                 <div className="mb-3 text-[11px] text-faint">{c.tipo || ''}</div>
                 <div className="text-[11px] text-mist">Saldo</div>
-                <div className="font-mono text-[22px] font-extrabold" style={{ color: c.cor ?? '#6b5ef5' }}>
+                <div className="font-mono text-[22px] font-extrabold" style={{ color: c.cor ?? 'var(--color-indigo)' }}>
                   {currencyBRL(c.saldo)}
                 </div>
               </button>

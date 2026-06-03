@@ -225,7 +225,7 @@ export default function Compromissos() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtrados.map((c) => {
             const perf = getContratoPerformance(c)
-            const cor = c.natureza === 'divida' ? '#ff4a68' : '#1dc97e'
+            const cor = c.natureza === 'divida' ? 'var(--color-red)' : 'var(--color-green)'
             const proxima = perf.proxima
             const proxBadge = proxima ? statusBadge(proxima.status) : null
             return (
@@ -327,10 +327,10 @@ interface KpiProps {
 
 function KpiCard({ label, value, sub, tone }: KpiProps) {
   const TONES: Record<KpiProps['tone'], { color: string; Icon: typeof RefreshCcw }> = {
-    green:  { color: '#1dc97e', Icon: CheckCircle2 },
-    red:    { color: '#ff4a68', Icon: AlertTriangle },
-    indigo: { color: '#6b5ef5', Icon: Repeat },
-    amber:  { color: '#f59e0b', Icon: Clock },
+    green:  { color: 'var(--color-green)', Icon: CheckCircle2 },
+    red:    { color: 'var(--color-red)', Icon: AlertTriangle },
+    indigo: { color: 'var(--color-indigo)', Icon: Repeat },
+    amber:  { color: 'var(--color-amber)', Icon: Clock },
   }
   const t = TONES[tone]
   return (

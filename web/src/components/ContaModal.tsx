@@ -11,6 +11,7 @@ interface Props {
   editing?: Conta | null
 }
 
+// keep: paleta persistida em conta.cor (hex literal, não var)
 const COLORS = ['#6b5ef5', '#2dcfc0', '#1dc97e', '#ffa930', '#ff70b8', '#4aa8ff', '#ff4a68']
 const TIPOS = ['Corrente', 'Poupança', 'Investimento', 'Digital', 'Carteira', 'Outros']
 
