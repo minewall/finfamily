@@ -17,6 +17,7 @@ import type {
   Recado,
   CotacoesAuto,
   CotacaoSymbol,
+  IaKnowledge,
 } from '@haile/shared'
 import type {
   ContextoState,
@@ -24,7 +25,14 @@ import type {
   OnboardingState,
   OnboardingAnswers,
 } from '@haile/shared'
-import { regenAllContratos, markAllPastParcelas, aplicarResposta, mapeiaRespostasParaICP } from '@haile/shared'
+import {
+  regenAllContratos,
+  markAllPastParcelas,
+  aplicarResposta,
+  mapeiaRespostasParaICP,
+  recordCategoryChoice as kbRecordChoice,
+  recordCategoryCorrection as kbRecordCorrection,
+} from '@haile/shared'
 import { fetchCotacoes, fetchCotacaoUnica } from '@/lib/cotacoes'
 import { supabase } from '@/lib/supabase'
 import { resolveDataOwnerId } from '@/lib/family'
@@ -106,6 +114,15 @@ interface DataState {
   // ── Reembolsos ──
   marcarReembolsoPago: (despesaId: string) => void
   marcarReembolsoPendente: (despesaId: string) => void
+  // ── IA knowledgebase pessoal (Track D) ──
+  setIaKnowledge: (kb: IaKnowledge) => void
+  recordCategoryChoice: (desc: string, category: string, sub?: string) => void
+  recordCategoryCorrection: (
+    desc: string,
+    suggestedCategory: string,
+    acceptedCategory: string,
+    acceptedSub?: string,
+  ) => void
   // ── Configurações: Categorias custom + Subcategorias + Tipos custom ──
   addCategoria: (input: { label: string; color?: string; icon?: string; id?: string }) => { id: string; label: string; color: string; icon: string }
   updateCategoria: (id: string, patch: Partial<{ label: string; color: string; icon: string }>) => void
@@ -398,6 +415,24 @@ export const useData = create<DataState>((set, get) => {
         return { ...dd, reembolso: { ...rest, status: 'pendente' as const } }
       })
       persist({ ...d, despesas })
+    },
+
+    // ── IA knowledgebase pessoal (Track D) ────────────────────────
+    setIaKnowledge: (kb) => {
+      const d = ensure()
+      persist({ ...d, iaKnowledge: kb })
+    },
+    recordCategoryChoice: (desc, category, sub) => {
+      const d = ensure()
+      const next = kbRecordChoice(d.iaKnowledge, desc, category, sub)
+      if (next === d.iaKnowledge) return
+      persist({ ...d, iaKnowledge: next })
+    },
+    recordCategoryCorrection: (desc, suggestedCategory, acceptedCategory, acceptedSub) => {
+      const d = ensure()
+      const next = kbRecordCorrection(d.iaKnowledge, desc, suggestedCategory, acceptedCategory, acceptedSub)
+      if (next === d.iaKnowledge) return
+      persist({ ...d, iaKnowledge: next })
     },
 
     addContrato: (input) => {

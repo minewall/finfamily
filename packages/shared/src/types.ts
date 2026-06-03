@@ -109,6 +109,9 @@ export interface UserData {
   onboarding?: OnboardingState;
   /** ICP / Contexto Pessoal — respostas por categoria. */
   contexto?: ContextoState;
+  /** Knowledgebase pessoal da IA de conciliação — mapa descrição→categoria
+   *  aprendido a partir das escolhas/correções do usuário. */
+  iaKnowledge?: IaKnowledge;
   flags?: Record<string, unknown>;
   /** Estado da pergunta-do-dia do Haile (cadência adaptativa + last shown). */
   coachDailyQuestion?: {
@@ -120,3 +123,20 @@ export interface UserData {
   coachTriggers?: Record<string, unknown>;
   [k: string]: unknown;
 }
+
+/** Entrada do knowledgebase pessoal da IA de conciliação. */
+export interface IaKnowledgeEntry {
+  /** id da categoria escolhida (ex: 'alimentacao'). */
+  category: string;
+  /** id/nome da subcategoria (opcional). */
+  sub?: string;
+  /** confiança no mapeamento — 1.0 quando confirmado, decresce em correções. */
+  confidence: number;
+  /** quantas vezes o usuário confirmou este mapeamento. */
+  count: number;
+  /** ISO timestamp da última atualização. */
+  updatedAt: string;
+}
+
+/** Mapa descrição-normalizada → entrada. Persistido em `UserData.iaKnowledge`. */
+export type IaKnowledge = Record<string, IaKnowledgeEntry>;
