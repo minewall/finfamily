@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- SEO -->
-    <meta name="description" content="Conheça os planos do Haile: Trial gratuito de 21 dias, Individual e Premium Family. Comece sem cartão de crédito." />
+    <meta name="description" content="Conheça os planos do Haile: 21 dias grátis com tudo do Premium, sem cartão de crédito. Plano Base R$ 49/mês, Premium R$ 89/mês." />
     <meta name="robots" content="index, follow" />
     <!-- Canonical sem .html depende do rewrite extensionless do host (Vercel/Netlify).
          A URL pública é /precos; o arquivo no repo é precos.html. Não mudar
@@ -20,7 +20,7 @@
     <meta property="og:type"        content="website" />
     <meta property="og:site_name"   content="Haile" />
     <meta property="og:title"       content="Planos e Preços — Haile" />
-    <meta property="og:description" content="Conheça os planos do Haile: Trial gratuito de 21 dias, Individual e Premium Family. Comece sem cartão de crédito." />
+    <meta property="og:description" content="Conheça os planos do Haile: 21 dias grátis com tudo do Premium, sem cartão de crédito. Plano Base R$ 49/mês, Premium R$ 89/mês." />
     <meta property="og:url"         content="https://haile.com.br/precos" />
     <meta property="og:image"       content="https://haile.com.br/assets/social/og-image-1200x630.png" />
     <meta property="og:image:width"  content="1200" />
@@ -31,7 +31,7 @@
     <!-- Twitter / X -->
     <meta name="twitter:card"        content="summary_large_image" />
     <meta name="twitter:title"       content="Planos e Preços — Haile" />
-    <meta name="twitter:description" content="Conheça os planos do Haile: Trial gratuito de 21 dias, Individual e Premium Family. Comece sem cartão de crédito." />
+    <meta name="twitter:description" content="Conheça os planos do Haile: 21 dias grátis com tudo do Premium, sem cartão de crédito. Plano Base R$ 49/mês, Premium R$ 89/mês." />
     <meta name="twitter:image"       content="https://haile.com.br/assets/social/og-image-1200x630.png" />
   <title>Haile — Planos e Preços</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -189,10 +189,10 @@
       margin-top: -28px; /* slightly overlap hero */
     }
     .pricing-grid {
-      max-width: 1040px; margin: 0 auto;
+      max-width: 880px; margin: 0 auto;
       display: grid;
-      grid-template-columns: 1fr 1fr 1.08fr;
-      gap: 16px;
+      grid-template-columns: 1fr 1.08fr;
+      gap: 20px;
       align-items: start;
     }
 
@@ -436,7 +436,7 @@
     .reveal[data-delay="4"] { transition-delay: 0.32s; }
 
     /* ── responsive ──────────────────────────────────────────────── */
-    @media (max-width: 1024px) {
+    @media (max-width: 820px) {
       .pricing-grid { grid-template-columns: 1fr; max-width: 460px; gap: 16px; }
       .plan-card.featured { transform: none; }
       .plan-card.featured:hover { transform: translateY(-4px); }
@@ -466,7 +466,7 @@
     </nav>
     <div class="nav-right">
       <a href="login.html" class="btn-nav-ghost">Entrar</a>
-      <a href="waitlist.html" class="btn-nav-solid">Quero ser avisado</a>
+      <a href="login.html" class="btn-nav-solid">Começar grátis</a>
     </div>
   </header>
 
@@ -476,16 +476,16 @@
     <div class="hero-glow b"></div>
     <p class="eyebrow">Planos e Preços</p>
     <h1>Invista na <em>inteligência</em><br>financeira da sua família.</h1>
-    <p>Estamos finalizando os planos para diferentes momentos da sua família. Avisamos assim que estiver pronto.</p>
+    <p>21 dias grátis com tudo do Premium. Sem cartão de crédito. Depois, escolha o plano que faz sentido pra você.</p>
 
-    <!-- billing toggle (oculto enquanto pricing não é definido) -->
-    <div class="toggle-wrap" style="display:none">
+    <!-- billing toggle -->
+    <div class="toggle-wrap">
       <span class="toggle-label active" id="lbl-monthly">Mensal</span>
       <div class="toggle-switch" id="billing-toggle" role="switch" aria-checked="false" tabindex="0">
         <span class="toggle-knob"></span>
       </div>
       <span class="toggle-label" id="lbl-annual">Anual</span>
-      <span class="annual-badge" id="annual-badge" style="opacity:0.4">Economize 20%</span>
+      <span class="annual-badge" id="annual-badge">2 meses grátis</span>
     </div>
   </section>
 
@@ -493,118 +493,93 @@
   <section class="pricing-section">
     <div class="pricing-grid">
 
-      <!-- trial -->
-      <div class="plan-card trial reveal" data-delay="1">
-        <p class="plan-label">Trial</p>
-        <h3 class="plan-name">Experimente</h3>
-        <p class="plan-tagline">21 dias do Premium Family, grátis. Sem cartão.</p>
+      <!-- base -->
+      <div class="plan-card individual reveal" data-delay="1">
+        <p class="plan-label">Base</p>
+        <h3 class="plan-name">Para começar</h3>
+        <p class="plan-tagline">Organize sua vida financeira com inteligência e importação de extratos.</p>
         <div class="plan-price-row">
-          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
+          <span class="price-currency">R$</span>
+          <span class="price-amount" data-monthly="49" data-annual="49">49</span>
+          <span class="price-period">/mês</span>
         </div>
-        <p class="price-annual-note">Detalhes do trial em definição</p>
+        <p class="price-annual-note" id="note-base">Cobrado mensalmente</p>
         <ul class="plan-features">
           <li class="plan-feature">
             <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Inteligência sem restrições
+            Inteligência conversacional Haile
           </li>
           <li class="plan-feature">
             <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Até 5 membros da família
+            Importação de extratos (OFX, CSV, PDF)
           </li>
           <li class="plan-feature">
             <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Contas bancárias conectadas
+            Painel da Família (até 5 membros)
           </li>
           <li class="plan-feature">
             <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Metas e conquistas
+            Metas, Compromissos e Patrimônio
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Simulador guiado e Contexto Pessoal
+          </li>
+          <li class="plan-feature">
+            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Limite diário de interações com o Haile
           </li>
         </ul>
-        <a href="waitlist.html?plan=trial" class="btn btn-primary plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center">Começar trial</a>
+        <a href="login.html?plan=base" class="btn btn-primary plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center">Começar 21 dias grátis</a>
       </div>
 
-      <!-- individual -->
-      <div class="plan-card individual reveal" data-delay="2">
-        <p class="plan-label">Individual</p>
-        <h3 class="plan-name">Para você</h3>
-        <p class="plan-tagline">Organize sua vida financeira com inteligência.</p>
-        <div class="plan-price-row">
-          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--slate); letter-spacing:0">Em breve</span>
-        </div>
-        <p class="price-annual-note" id="note-individual">Valores em definição</p>
-        <ul class="plan-features">
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            1 usuário
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Contas ilimitadas conectadas
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Inteligência ilimitada
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Metas e conquistas ilimitadas
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Categorização automática por IA
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-violet" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Relatório mensal personalizado
-          </li>
-        </ul>
-        <a href="waitlist.html?plan=individual" class="btn btn-primary plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center">Quero ser avisado</a>
-      </div>
-
-      <!-- premium family — featured -->
-      <div class="plan-card featured reveal" data-delay="3">
+      <!-- premium — featured -->
+      <div class="plan-card featured reveal" data-delay="2">
         <span class="popular-badge">Mais popular</span>
-        <p class="plan-label">Premium Family</p>
-        <h3 class="plan-name">Para a família</h3>
-        <p class="plan-tagline">A inteligência financeira que toda família moderna merece.</p>
+        <p class="plan-label">Premium</p>
+        <h3 class="plan-name">Para a família moderna</h3>
+        <p class="plan-tagline">Tudo do Base, sem limites, com Open Finance e contas conectadas em tempo real.</p>
         <div class="plan-price-row">
-          <span class="price-custom" style="font-size:22px; font-weight:700; color:var(--white); letter-spacing:0">Em breve</span>
+          <span class="price-currency">R$</span>
+          <span class="price-amount" data-monthly="89" data-annual="89">89</span>
+          <span class="price-period">/mês</span>
         </div>
-        <p class="price-annual-note" id="note-family" style="color:rgba(255,255,255,0.6)">Valores em definição</p>
+        <p class="price-annual-note" id="note-premium" style="color:rgba(255,255,255,0.6)">Cobrado mensalmente</p>
         <ul class="plan-features">
           <li class="plan-feature">
             <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Tudo do Individual
+            Tudo do Base
           </li>
           <li class="plan-feature">
             <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Até 5 membros da família
+            Open Finance (contas conectadas em tempo real)
           </li>
           <li class="plan-feature">
             <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Inteligência contextual familiar
+            Inteligência Haile sem limite diário
           </li>
           <li class="plan-feature">
             <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Conquistas e metas compartilhadas
+            Importação de extratos ilimitada
           </li>
           <li class="plan-feature">
             <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Patrimônio familiar consolidado
+            Tributário e Cotações em tempo real
           </li>
           <li class="plan-feature">
             <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Colaboração e responsabilidades
-          </li>
-          <li class="plan-feature">
-            <svg class="check check-white" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Projeções patrimoniais
+            Suporte prioritário
           </li>
         </ul>
-        <a href="waitlist.html?plan=family" class="btn plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center;background:#fff;color:var(--violet)">Quero ser avisado</a>
+        <a href="login.html?plan=premium" class="btn plan-cta btn-full" style="text-decoration:none;display:inline-flex;justify-content:center;background:#fff;color:var(--violet)">Começar 21 dias grátis</a>
       </div>
 
     </div>
+
+    <!-- trial banner -->
+    <p style="max-width:680px;margin:32px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.6">
+      Todo plano começa com <strong style="color:var(--ink)">21 dias grátis no Premium</strong>, sem cartão de crédito. Ao final, escolha Base ou Premium — ou cancele sem custo.
+    </p>
   </section>
 
   <!-- comparison table -->
@@ -617,72 +592,84 @@
       <table class="compare-table reveal">
         <thead>
           <tr>
-            <th style="width:40%">Recurso</th>
-            <th class="center">Trial</th>
-            <th class="center">Individual</th>
-            <th class="center featured-col">Premium Family</th>
+            <th style="width:50%">Recurso</th>
+            <th class="center">Base</th>
+            <th class="center featured-col">Premium</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="cat-row"><td colspan="4">Inteligência Haile</td></tr>
+          <tr class="cat-row"><td colspan="3">Inteligência Haile</td></tr>
           <tr>
-            <td>Orientações da inteligência</td>
-            <td class="center">Ilimitado</td>
-            <td class="center">Ilimitado</td>
-            <td class="center featured-col">Ilimitado</td>
+            <td>Conversa com o Haile</td>
+            <td class="center">Limite diário</td>
+            <td class="center featured-col">Sem limite</td>
           </tr>
           <tr>
-            <td>Contexto familiar</td>
+            <td>Categorização automática por IA</td>
             <td class="center"><span class="tick">✓</span></td>
-            <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
           <tr>
             <td>Análise antes de gastar</td>
             <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Contexto Pessoal (ICP)</td>
             <td class="center"><span class="tick">✓</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
 
-          <tr class="cat-row"><td colspan="4">Família</td></tr>
+          <tr class="cat-row"><td colspan="3">Conexão com bancos</td></tr>
           <tr>
-            <td>Membros da família</td>
-            <td class="center">Até 5</td>
-            <td class="center">1</td>
-            <td class="center featured-col">Até 5</td>
-          </tr>
-          <tr>
-            <td>Conquistas compartilhadas</td>
+            <td>Importação de extratos (OFX, CSV, PDF)</td>
             <td class="center"><span class="tick">✓</span></td>
-            <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
           <tr>
-            <td>Colaboração e responsabilidades</td>
-            <td class="center"><span class="tick">✓</span></td>
+            <td>Open Finance (contas em tempo real)</td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
 
-          <tr class="cat-row"><td colspan="4">Patrimônio</td></tr>
+          <tr class="cat-row"><td colspan="3">Família</td></tr>
           <tr>
-            <td>Contas bancárias conectadas</td>
-            <td class="center">Ilimitado</td>
-            <td class="center">Ilimitado</td>
-            <td class="center featured-col">Ilimitado</td>
+            <td>Painel da Família (até 5 membros)</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
           <tr>
-            <td>Projeções patrimoniais</td>
+            <td>Despesas compartilhadas</td>
             <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+          </tr>
+
+          <tr class="cat-row"><td colspan="3">Ferramentas</td></tr>
+          <tr>
+            <td>Compromissos, Metas e Patrimônio</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Simulador guiado (4 fluxos)</td>
+            <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Tributário e Cotações em tempo real</td>
             <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
 
-          <tr class="cat-row"><td colspan="4">Suporte</td></tr>
+          <tr class="cat-row"><td colspan="3">Suporte</td></tr>
           <tr>
-            <td>Relatório mensal</td>
-            <td class="center"><span class="dash">—</span></td>
+            <td>Suporte por e-mail</td>
             <td class="center"><span class="tick">✓</span></td>
+            <td class="center featured-col"><span class="tick">✓</span></td>
+          </tr>
+          <tr>
+            <td>Suporte prioritário</td>
+            <td class="center"><span class="dash">—</span></td>
             <td class="center featured-col"><span class="tick">✓</span></td>
           </tr>
         </tbody>
@@ -699,24 +686,28 @@
       </div>
       <div class="faq-list reveal">
         <div class="faq-item">
-          <button class="faq-q">O Trial é realmente grátis? <span class="faq-icon">+</span></button>
-          <div class="faq-a">Sim. 21 dias de acesso completo ao Premium Family, sem precisar de cartão de crédito. No final do período, você escolhe o plano que faz sentido para sua família.</div>
+          <button class="faq-q">Os 21 dias grátis são realmente sem cartão? <span class="faq-icon">+</span></button>
+          <div class="faq-a">Sim. 21 dias de acesso completo ao Premium, sem precisar de cartão de crédito. Ao final do período, você escolhe entre Base, Premium ou cancela sem custo nenhum.</div>
         </div>
         <div class="faq-item">
           <button class="faq-q">Posso cancelar a qualquer momento? <span class="faq-icon">+</span></button>
           <div class="faq-a">Sim, sem multa ou burocracia. Se cancelar, você mantém o acesso até o fim do período já pago.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q">O que diferencia a inteligência do Individual para o Premium Family? <span class="faq-icon">+</span></button>
-          <div class="faq-a">No Individual, o Haile entende seu contexto pessoal: renda, gastos e metas. No Premium Family, ele enxerga toda a família: prioridades compartilhadas, patrimônio consolidado e decisões que impactam cada membro.</div>
+          <button class="faq-q">Qual a diferença entre Base e Premium? <span class="faq-icon">+</span></button>
+          <div class="faq-a">O Base tem toda a inteligência do Haile com importação de extratos (OFX, CSV, PDF) e um limite diário confortável de interações. O Premium adiciona Open Finance (contas conectadas em tempo real), conversas sem limite com o Haile e ferramentas avançadas como Tributário e Cotações.</div>
         </div>
         <div class="faq-item">
           <button class="faq-q">Como funciona o desconto anual? <span class="faq-icon">+</span></button>
-          <div class="faq-a">No plano anual você paga 12 meses como 10 — dois meses de desconto (cerca de 17%) — em 10 parcelas mensais, sem precisar pagar tudo de uma vez.</div>
+          <div class="faq-a">No plano anual você paga 10 meses no lugar de 12 — dois meses grátis. No Base, são R$ 490/ano (em vez de R$ 588). No Premium, R$ 890/ano (em vez de R$ 1.068).</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q">Quantos membros posso adicionar no Premium Family? <span class="faq-icon">+</span></button>
-          <div class="faq-a">Até 5 membros. Cabe casais com filhos, mães e pais solo com filhos adultos, famílias recompostas, ou pessoas cuidando dos pais.</div>
+          <button class="faq-q">Quantos membros posso adicionar à família? <span class="faq-icon">+</span></button>
+          <div class="faq-a">Até 5 membros em qualquer plano. Cabe casais com filhos, mães e pais solo com filhos adultos, famílias recompostas, ou pessoas cuidando dos pais.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Quais formas de pagamento são aceitas? <span class="faq-icon">+</span></button>
+          <div class="faq-a">PIX, cartão de crédito e boleto, processados via gateway Asaas. Você pode trocar a forma de pagamento a qualquer momento dentro do app.</div>
         </div>
       </div>
     </div>
@@ -727,10 +718,10 @@
     <div class="hero-glow a"></div>
     <div class="hero-glow b"></div>
     <p class="eyebrow">Haile</p>
-    <h2>Quer ser avisado quando <em>lançarmos</em>?</h2>
-    <p>Estamos definindo os últimos detalhes dos planos. Deixe seu contato e avisamos assim que o Haile estiver disponível.</p>
+    <h2>Comece seus <em>21 dias grátis</em>.</h2>
+    <p>Sem cartão de crédito. Sem compromisso. Ative sua inteligência financeira agora e tome a próxima decisão com clareza.</p>
     <div class="cta-actions">
-      <a href="waitlist.html" class="btn btn-primary">Quero ser avisado</a>
+      <a href="login.html" class="btn btn-primary">Começar 21 dias grátis</a>
       <a href="contato.html" class="btn btn-outline-white">Falar com o time</a>
     </div>
   </section>
@@ -740,21 +731,56 @@
     <nav class="footer-links">
       <a href="como-funciona.html">Como funciona</a>
       <a href="precos.html">Planos</a>
-      <a href="waitlist.html">Acesso antecipado</a>
+      <a href="login.html">Entrar</a>
       <a href="contato.html">Contato</a>
       <a href="privacidade.html">Privacidade</a>
       <a href="termos.html">Termos</a>
     </nav>
-    <p class="footer-copy" style="margin-bottom:10px;font-size:11px;color:rgba(255,255,255,0.4);max-width:680px;line-height:1.5">O Haile é uma plataforma de inteligência financeira. Não realiza transações, não custodia recursos e não substitui consultoria de investimentos regulada.</p>
-    <p class="footer-copy">© 2026 Haile. Todos os direitos reservados.</p>
+    <p class="footer-copy" style="margin-bottom:10px;font-size:11px;color:rgba(15,16,32,0.5);max-width:680px;line-height:1.5">O Haile é uma plataforma de inteligência financeira. Não realiza transações, não custodia recursos e não substitui consultoria de investimentos regulada.</p>
+    <p class="footer-copy">© 2026 Haile. Todos os direitos reservados. <a href="mailto:oi@haile.com.br" style="color:var(--slate);text-decoration:none">oi@haile.com.br</a></p>
   </footer>
 
   <script>
 
-    // NOTE: o billing toggle (Mensal/Anual) e o updatePrices() foram removidos
-    // enquanto os planos estão como "Em breve". Quando os preços reais forem
-    // definidos, reintroduzir junto com os elementos .price-amount[data-monthly][data-annual]
-    // e descomentar o markup do toggle em .toggle-wrap (atualmente display:none).
+    // billing toggle Mensal/Anual
+    // Anual = 10x o mensal (12 meses pagando como 10, 2 grátis)
+    // Base: R$ 49/mês ou R$ 490/ano (~R$ 40,83/mês equivalente)
+    // Premium: R$ 89/mês ou R$ 890/ano (~R$ 74,17/mês equivalente)
+    (function () {
+      var toggle = document.getElementById('billing-toggle');
+      var lblM = document.getElementById('lbl-monthly');
+      var lblA = document.getElementById('lbl-annual');
+      var noteBase = document.getElementById('note-base');
+      var notePremium = document.getElementById('note-premium');
+      var amounts = document.querySelectorAll('.price-amount');
+      if (!toggle) return;
+
+      function setBilling(isAnnual) {
+        toggle.classList.toggle('annual', isAnnual);
+        toggle.setAttribute('aria-checked', isAnnual ? 'true' : 'false');
+        lblM.classList.toggle('active', !isAnnual);
+        lblA.classList.toggle('active', isAnnual);
+        amounts.forEach(function (el) {
+          var m = el.getAttribute('data-monthly');
+          // anual: dividir total por 12 e arredondar
+          var annualTotal = parseInt(m, 10) * 10;
+          var annualMonthly = Math.round(annualTotal / 12);
+          el.textContent = isAnnual ? annualMonthly : m;
+        });
+        if (noteBase)   noteBase.textContent   = isAnnual ? 'R$ 490/ano · cobrado anualmente' : 'Cobrado mensalmente';
+        if (notePremium) notePremium.textContent = isAnnual ? 'R$ 890/ano · cobrado anualmente' : 'Cobrado mensalmente';
+      }
+
+      toggle.addEventListener('click', function () {
+        setBilling(!toggle.classList.contains('annual'));
+      });
+      toggle.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          setBilling(!toggle.classList.contains('annual'));
+        }
+      });
+    }());
 
     // faq accordion
     document.querySelectorAll('.faq-q').forEach(function (btn) {
