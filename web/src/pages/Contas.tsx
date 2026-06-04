@@ -33,7 +33,7 @@ export default function Contas() {
   const now = new Date()
   const month = now.getMonth() + 1
   const year = now.getFullYear()
-  const contas = (data?.contas ?? []) as Conta[]
+  const contas = useMemo(() => (data?.contas ?? []) as Conta[], [data?.contas])
 
   const resumos = useMemo(() => {
     if (!data) return new Map<string, ReturnType<typeof getContaResumo>>()

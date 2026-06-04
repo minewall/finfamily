@@ -87,7 +87,9 @@ export function PrivacidadeSection() {
     }
   }
 
+  // Fetch inicial das solicitações — padrão data-fetching legítimo.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshRequests()
   }, [])
 

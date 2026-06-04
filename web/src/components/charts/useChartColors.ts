@@ -57,7 +57,10 @@ export function useChartColors(): ChartColors {
     | undefined)
   const [domTheme, setDomTheme] = useState<'light' | 'dark'>(() => readDomTheme())
 
+  // MutationObserver legítimo: setState ao receber notificação de mudança
+  // do DOM externa (ThemeApplier troca data-theme). Sem alternativa render-phase.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDomTheme(readDomTheme())
     if (typeof window === 'undefined') return
     const root = document.documentElement

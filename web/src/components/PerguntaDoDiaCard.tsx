@@ -46,8 +46,11 @@ export function PerguntaDoDiaCard() {
   const [modalAberto, setModalAberto] = useState(false)
   const [dismissedNow, setDismissedNow] = useState(false)
 
-  const ctx: ContextoState = data ? getContexto() : {}
-  const triggers = (data?.coachTriggers ?? {}) as Record<string, unknown>
+  const ctx: ContextoState = useMemo(() => (data ? getContexto() : {}), [data, getContexto])
+  const triggers = useMemo(
+    () => (data?.coachTriggers ?? {}) as Record<string, unknown>,
+    [data?.coachTriggers],
+  )
   const daily = data?.coachDailyQuestion ?? {}
   const signupISO =
     data?.onboarding?.startedAt ??

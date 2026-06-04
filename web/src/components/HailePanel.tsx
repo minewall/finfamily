@@ -39,9 +39,11 @@ export function HailePanel() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Quando outra tela chama openWithSeed(prompt), o painel injeta o texto no
-  // input sem enviar — usuário revisa e dispara manualmente.
+  // input sem enviar — usuário revisa e dispara manualmente. Trigger externo
+  // (chamada de outra tela) é legítimo setState-in-effect.
   useEffect(() => {
     if (open && seedPrompt) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInput((cur) => (cur.trim() ? cur : seedPrompt))
       consumeSeed()
     }

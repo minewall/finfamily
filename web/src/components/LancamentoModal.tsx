@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, X, Users, EyeOff, Receipt as ReceiptIcon } from 'lucide-react'
 import {
   CATEGORIES,
@@ -82,7 +82,7 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   const [suggestion, setSuggestion] = useState<CategorySuggestion | null>(null)
   // Rastreia se o user mexeu manualmente no select — só auto-preenchemos
   // categoria com a sugestão se ele ainda não escolheu nada explicitamente.
-  const categoryTouchedRef = useRef<boolean>(isEdit)
+  const [categoryTouched, setCategoryTouched] = useState<boolean>(isEdit)
 
   // Reset ao reabrir (padrão React docs: ajustar state ao mudar prop sem useEffect)
   const [prevOpenKey, setPrevOpenKey] = useState<string>('')
@@ -107,7 +107,7 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
       setError(null)
       setSubmitting(false)
       setSuggestion(null)
-      categoryTouchedRef.current = !!editing
+      setCategoryTouched(!!editing)
     }
   }
 
@@ -121,7 +121,7 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   if (computedSuggestion !== prevSuggestion) {
     setPrevSuggestion(computedSuggestion)
     setSuggestion(computedSuggestion)
-    if (computedSuggestion && !categoryTouchedRef.current) {
+    if (computedSuggestion && !categoryTouched) {
       setCategory(computedSuggestion.category)
     }
   }
@@ -343,7 +343,7 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
             <Select
               value={category}
               onChange={(e) => {
-                categoryTouchedRef.current = true
+                setCategoryTouched(true)
                 setCategory(e.target.value)
               }}
             >

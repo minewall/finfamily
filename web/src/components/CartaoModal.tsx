@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/field'
 import { Button } from '@/components/ui/button'
@@ -34,17 +34,22 @@ export function CartaoModal({ open, onClose, editing }: Props) {
   const [cor, setCor] = useState(COLORS[0])
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setBanco((editing?.banco as string) ?? '')
-    setNome(editing ? cartaoNome(editing) : '')
-    setUltimos((editing?.ultimosDigitos as string) ?? '')
-    setLimite(editing ? String(cartaoLimite(editing)) : '0')
-    setFechamento(editing && cartaoFechamento(editing) != null ? String(cartaoFechamento(editing)) : '25')
-    setVencimento(editing && cartaoVencimento(editing) != null ? String(cartaoVencimento(editing)) : '3')
-    setCor(editing ? cartaoCor(editing) : COLORS[0])
-    setError(null)
-  }, [open, editing])
+  // Reset ao reabrir (padrão render-phase, sem useEffect — React docs).
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? ((editing?.id as string) ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setBanco((editing?.banco as string) ?? '')
+      setNome(editing ? cartaoNome(editing) : '')
+      setUltimos((editing?.ultimosDigitos as string) ?? '')
+      setLimite(editing ? String(cartaoLimite(editing)) : '0')
+      setFechamento(editing && cartaoFechamento(editing) != null ? String(cartaoFechamento(editing)) : '25')
+      setVencimento(editing && cartaoVencimento(editing) != null ? String(cartaoVencimento(editing)) : '3')
+      setCor(editing ? cartaoCor(editing) : COLORS[0])
+      setError(null)
+    }
+  }
 
   function save() {
     if (!banco.trim()) { setError('Informe o banco.'); return }

@@ -109,7 +109,9 @@ export function useSubscription(): AsyncState<Subscription | null> {
     setLoading(false)
   }, [])
 
+  // Fetch ao montar — padrão data-fetching legítimo (setState após Promise).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 
@@ -138,7 +140,9 @@ export function usePlans(): AsyncState<Plan[]> {
     setLoading(false)
   }, [])
 
+  // Fetch ao montar — padrão data-fetching legítimo (setState após Promise).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 
@@ -174,7 +178,9 @@ export function useInvoices(): AsyncState<Invoice[]> {
     setLoading(false)
   }, [])
 
+  // Fetch ao montar — padrão data-fetching legítimo (setState após Promise).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 
