@@ -1,0 +1,53 @@
+# Arquivos NÃO publicados no Cloudflare Worker Static Assets.
+# Mantém só o que serve no browser: HTMLs raiz, /app/, /duo/, /admin/,
+# /landing/, /assets/, _redirects, etc.
+
+# Source code / monorepo
+node_modules/
+web/
+packages/
+supabase/
+.venv/
+
+# Build cache / temp
+*.tsbuildinfo
+.cache/
+tmp/
+dist/
+
+# Docs / dev
+docs/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Config / meta
+package.json
+package-lock.json
+tsconfig*.json
+vite.config.*
+wrangler.toml
+.assetsignore
+.gitignore
+.git/
+.github/
+.claude/
+.cloudflare/
+.editorconfig
+.prettierrc*
+.eslintrc*
+eslint.config.*
+
+# Legacy / não-publicado
+legado/
+pre-production/
+pre_production_no_commit/
+
+# Sistema
+.DS_Store
+.env*
+
+# Excel/temp
+*.xlsx
+gestor-financeiro-familiar.html

@@ -1,0 +1,9 @@
+# Cloudflare Worker config — serve estáticos de haile.com.br
+# Inclui: landing (index.html + precos/como-funciona/etc), Dino em /app/,
+# DUO em /duo/, admin em /admin/, e_redirects pro SPA fallback do DUO.
+name = "haile"
+compatibility_date = "2024-09-19"
+
+[assets]
+directory = "./"
+not_found_handling = "404-page"
