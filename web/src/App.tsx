@@ -8,6 +8,7 @@ import VisaoGeral from '@/pages/VisaoGeral'
 import Comparativo from '@/pages/Comparativo'
 import Lancamentos from '@/pages/Lancamentos'
 import Receitas from '@/pages/Receitas'
+import Despesas from '@/pages/Despesas'
 import Contas from '@/pages/Contas'
 import Metas from '@/pages/Metas'
 import Simulador from '@/pages/Simulador'
@@ -47,7 +48,7 @@ export default function App() {
               <Route path="/comparativo" element={<Comparativo />} />
               <Route path="/lancamentos" element={<Lancamentos />} />
               <Route path="/receitas" element={<Receitas />} />
-              <Route path="/despesas" element={<Lancamentos kindFilter="despesa" />} />
+              <Route path="/despesas" element={<Despesas />} />
               <Route path="/contas" element={<Contas />} />
               <Route path="/metas" element={<Metas />} />
               <Route path="/simulador" element={<Simulador />} />
