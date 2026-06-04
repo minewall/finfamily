@@ -2,8 +2,10 @@
 // Cada handler recebe o input bruto da tool, valida, executa e devolve
 // um string que vira o conteúdo do tool_result (visível ao modelo).
 import type { CoachToolName } from '@haile/shared'
-import { getLancamentos, currencyBRL, getCategoryLabel } from '@haile/shared'
+import { getLancamentos, currencyBRL, getCategoryLabel, cotacoesExpiradas } from '@haile/shared'
 import { useData } from '@/store/useData'
+
+const COTACOES_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6h
 
 type Input = Record<string, unknown>
 
@@ -27,7 +29,7 @@ export interface HandlerResult {
   isError?: boolean
 }
 
-export function runCoachTool(name: CoachToolName, input: Input): HandlerResult {
+export async function runCoachTool(name: CoachToolName, input: Input): Promise<HandlerResult> {
   const store = useData.getState()
 
   switch (name) {
@@ -200,6 +202,107 @@ export function runCoachTool(name: CoachToolName, input: Input): HandlerResult {
       return {
         content: `Encontradas ${xs.length} despesas — total ${currencyBRL(total)}.\n${lines}${more}`,
         summary: `${xs.length} despesas · ${currencyBRL(total)}`,
+      }
+    }
+
+    case 'addMeta': {
+      const label = asString(input.label)?.trim()
+      const target = asNumber(input.target)
+      const prazo = asString(input.prazo)
+      const tipo = asString(input.tipo) ?? 'sonho'
+      const categoria = asString(input.categoria)
+      if (!label || !target || target <= 0) {
+        return { content: 'Erro: campos obrigatórios faltando (label, target>0).', summary: 'erro de input', isError: true }
+      }
+      const meta: Record<string, unknown> = { label, target, type: tipo, active: true }
+      if (prazo) meta.prazo = prazo
+      if (categoria) meta.categoria = categoria
+      store.addMeta(meta as Parameters<typeof store.addMeta>[0])
+      return {
+        content: `Meta criada: "${label}" — alvo ${currencyBRL(target)}${prazo ? ` até ${prazo}` : ''} (${tipo}).`,
+        summary: `${label} · ${currencyBRL(target)}`,
+      }
+    }
+
+    case 'queryReceitas': {
+      const data = useData.getState().data ?? {}
+      const month = asNumber(input.month)
+      const year = asNumber(input.year)
+      const cat = asString(input.categoria)?.toLowerCase()
+      const pess = asString(input.pessoa)?.toLowerCase()
+      const txt = asString(input.texto)?.toLowerCase()
+      let xs = getLancamentos(data, {
+        month: month && year ? month : undefined,
+        year: month && year ? year : undefined,
+      }).filter((x) => x.kind === 'receita')
+      if (cat) xs = xs.filter((x) => (x.category ?? '').toLowerCase() === cat)
+      if (pess) xs = xs.filter((x) => (x.person ?? '').toLowerCase().includes(pess))
+      if (txt) xs = xs.filter((x) => x.desc.toLowerCase().includes(txt))
+      const total = xs.reduce((s, x) => s + x.amount, 0)
+      const top = xs.slice(0, 10)
+      const lines = top.map((x) =>
+        `  - ${x.date} · ${x.desc} · ${currencyBRL(x.amount)}${x.person ? ' · ' + x.person : ''}`,
+      ).join('\n')
+      const more = xs.length > top.length ? `\n  (… +${xs.length - top.length})` : ''
+      return {
+        content: `Encontradas ${xs.length} receitas — total ${currencyBRL(total)}.\n${lines}${more}`,
+        summary: `${xs.length} receitas · ${currencyBRL(total)}`,
+      }
+    }
+
+    case 'updateReceita': {
+      const id = asString(input.id)
+      if (!id) return { content: 'Erro: id da receita obrigatório.', summary: 'erro de input', isError: true }
+      const r = (useData.getState().data?.receitas ?? []).find((x) => x.id === id)
+      if (!r) return { content: `Erro: receita ${id} não encontrada.`, summary: 'não encontrada', isError: true }
+      const patch: Record<string, unknown> = {}
+      if (asString(input.descricao)) patch.desc = (input.descricao as string).trim()
+      const v = asNumber(input.valor); if (v !== undefined) patch.amount = v
+      if (asString(input.data)) patch.date = input.data as string
+      if (asString(input.categoria)) patch.category = input.categoria as string
+      if (asString(input.sub)) patch.sub = input.sub as string
+      if (asString(input.pessoa)) patch.person = input.pessoa as string
+      store.updateReceita(id, patch)
+      return {
+        content: `Receita ${id} atualizada (${Object.keys(patch).join(', ') || 'sem mudanças'}).`,
+        summary: `Atualizada: ${r.desc}`,
+      }
+    }
+
+    case 'deleteReceita': {
+      const id = asString(input.id)
+      if (!id) return { content: 'Erro: id obrigatório.', summary: 'erro de input', isError: true }
+      const r = (useData.getState().data?.receitas ?? []).find((x) => x.id === id)
+      if (!r) return { content: `Erro: receita ${id} não encontrada.`, summary: 'não encontrada', isError: true }
+      store.deleteReceita(id)
+      return {
+        content: `Receita removida: "${r.desc}" de ${currencyBRL(Number(r.amount) || 0)}.`,
+        summary: `Excluída: ${r.desc}`,
+      }
+    }
+
+    case 'getCotacoes': {
+      let cot = useData.getState().data?.cotacoes
+      if (cotacoesExpiradas(cot, COTACOES_MAX_AGE_MS)) {
+        try {
+          const fresh = await store.refreshCotacoes()
+          if (fresh) cot = fresh
+        } catch {
+          // mantém o que tem em cache (se houver)
+        }
+      }
+      if (!cot || Object.keys(cot).length === 0) {
+        return { content: 'Cotações indisponíveis no momento (sem conexão ou API fora do ar).', summary: 'sem cotações', isError: true }
+      }
+      const parts: string[] = []
+      if (cot.USD)  parts.push(`USD ${currencyBRL(cot.USD)}`)
+      if (cot.EUR)  parts.push(`EUR ${currencyBRL(cot.EUR)}`)
+      if (cot.USDT) parts.push(`USDT ${currencyBRL(cot.USDT)}`)
+      if (cot.BTC)  parts.push(`BTC ${currencyBRL(cot.BTC)}`)
+      const updated = cot._updatedAt ? ` (atualizado ${cot._updatedAt})` : ''
+      return {
+        content: `Cotações atuais: ${parts.join(' · ')}${updated}.`,
+        summary: parts.join(' · '),
       }
     }
   }
