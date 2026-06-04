@@ -1,9 +1,12 @@
-# Cloudflare Worker config — serve estáticos de haile.com.br
-# Inclui: landing (index.html + precos/como-funciona/etc), Dino em /app/,
-# DUO em /duo/, admin em /admin/, e_redirects pro SPA fallback do DUO.
+# Cloudflare Worker config — serve estáticos de haile.com.br + SPA fallback
+# pra /app/ (DUO). Worker script em cf-worker.js intercepta 404 dentro de
+# /app/* e devolve /app/index.html (React Router resolve internamente).
+# Doc: https://developers.cloudflare.com/workers/static-assets/binding/
 name = "haile"
+main = "cf-worker.js"
 compatibility_date = "2024-09-19"
 
 [assets]
 directory = "./"
+binding = "ASSETS"
 not_found_handling = "404-page"

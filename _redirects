@@ -1,7 +1,7 @@
-# URLs antigas redirecionadas
+# URLs antigas redirecionadas (Dino → DUO)
 /login.html /app/ 301
 /login /app/ 301
 /duo/* /app/:splat 301
 
-# SPA fallback do DUO em /app/
-/app/* /app/index.html 200
+# SPA fallback do DUO em /app/ é feito via cf-worker.js (não aqui — o
+# detector de loop do Cloudflare bloqueia /app/* → /app/index.html 200).

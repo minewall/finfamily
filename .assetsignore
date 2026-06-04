@@ -28,6 +28,7 @@ package-lock.json
 tsconfig*.json
 vite.config.*
 wrangler.toml
+cf-worker.js
 .assetsignore
 .gitignore
 .git/
