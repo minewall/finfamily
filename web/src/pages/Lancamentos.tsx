@@ -4,14 +4,13 @@ import {
   getLancamentos,
   currencyBRL,
   getCategoryLabel,
-  getCategoryColor,
-  personColor,
-  personInitial,
   type UnifiedLancamento,
 } from '@haile/shared'
 import { useData } from '@/store/useData'
 import { Button } from '@/components/ui/button'
 import { LancamentoModal } from '@/components/LancamentoModal'
+import { LancamentoRow } from '@/components/LancamentoRow'
+import { filterByKind, type KindToggle } from '@/lib/lancamento-utils'
 
 function fmtDayHeader(dateISO: string): string {
   const [y, m, d] = dateISO.split('-').map(Number)
@@ -34,9 +33,14 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<UnifiedLancamento | null>(null)
 
+  // Toggle de tipo (Todos/Receitas/Despesas). Quando kindFilter vem por prop
+  // (telas dedicadas /receitas, /despesas) o toggle fica escondido e o estado
+  // é forçado pra refletir o filtro.
+  const [kindToggle, setKindToggle] = useState<KindToggle>(
+    kindFilter ?? 'todos',
+  )
+
   // Pré-seleciona o tipo no modal quando a tela é filtrada por receitas/despesas.
-  // Truque: cria um "stub" de UnifiedLancamento só com kind, pra o modal
-  // entrar no modo "Novo" mas com a aba certa.
   function openNew() {
     if (kindFilter) {
       setEditing({
@@ -60,7 +64,10 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
   const items = useMemo<UnifiedLancamento[]>(() => {
     if (!data) return []
     let xs = getLancamentos(data, { month, year })
+    // Prop `kindFilter` continua imperativa pras rotas dedicadas. Quando ausente,
+    // aplica o toggle local.
     if (kindFilter) xs = xs.filter((x) => x.kind === kindFilter)
+    else xs = filterByKind(xs, kindToggle)
     if (q.trim()) {
       const needle = q.toLowerCase()
       xs = xs.filter(
@@ -71,7 +78,7 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
       )
     }
     return xs
-  }, [data, month, year, q])
+  }, [data, month, year, q, kindFilter, kindToggle])
 
   const totalRec = items.filter((x) => x.kind === 'receita').reduce((s, x) => s + x.amount, 0)
   const totalDesp = items.filter((x) => x.kind === 'despesa').reduce((s, x) => s + x.amount, 0)
@@ -108,6 +115,14 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
       : 'Receitas e despesas do mês.'
   const newLabel = kindFilter === 'receita' ? 'Nova receita' : kindFilter === 'despesa' ? 'Nova despesa' : 'Novo'
 
+  // Empty-state copy: muda conforme filtro ativo.
+  const activeKind: KindToggle = kindFilter ?? kindToggle
+  const emptyMsg = activeKind === 'receita'
+    ? 'Nenhuma receita neste período. Adicione uma pra começar.'
+    : activeKind === 'despesa'
+      ? 'Nenhuma despesa neste período. Adicione uma pra começar.'
+      : 'Nenhum lançamento neste período. Adicione um pra começar.'
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -121,6 +136,30 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {!kindFilter && (
+            <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1 text-xs">
+              {([
+                { v: 'todos', label: 'Todos' },
+                { v: 'receita', label: 'Receitas' },
+                { v: 'despesa', label: 'Despesas' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setKindToggle(opt.v)}
+                  className={
+                    'rounded-full px-3 py-1 font-medium transition ' +
+                    (kindToggle === opt.v
+                      ? 'bg-indigo text-white'
+                      : 'text-mist hover:text-ink')
+                  }
+                  aria-pressed={kindToggle === opt.v}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
           <Button size="sm" onClick={openNew}>
             <Plus size={14} /> {newLabel}
           </Button>
@@ -160,12 +199,12 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
           />
         </div>
         <div className="flex items-center gap-4 text-xs">
-          {kindFilter !== 'despesa' && (
+          {activeKind !== 'despesa' && (
             <span className="text-mist">
               <span className="font-mono font-bold text-green">+{currencyBRL(totalRec)}</span> receitas
             </span>
           )}
-          {kindFilter !== 'receita' && (
+          {activeKind !== 'receita' && (
             <span className="text-mist">
               <span className="font-mono font-bold text-red">−{currencyBRL(totalDesp)}</span> despesas
             </span>
@@ -180,7 +219,7 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
 
       {!loading && items.length === 0 && (data || !error) && (
         <div className="rounded-2xl border border-line bg-surface p-8 text-center">
-          <p className="text-sm text-mist">Nenhum lançamento neste mês.</p>
+          <p className="text-sm text-mist">{emptyMsg}</p>
         </div>
       )}
 
@@ -192,41 +231,12 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
                 {fmtDayHeader(dateKey)}
               </div>
               {rows.map((it) => (
-                <button
-                  type="button"
+                <LancamentoRow
                   key={it.id}
+                  item={it}
+                  data={data}
                   onClick={() => openEdit(it)}
-                  className="flex w-full items-center gap-3 border-b border-line/70 px-4 py-3 text-left last:border-b-0 hover:bg-elevated/30 focus:outline-none focus:bg-elevated/40"
-                >
-                  <div
-                    className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
-                    style={{ background: personColor(it.person) }}
-                    title={it.person ?? ''}
-                  >
-                    {personInitial(it.person)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-ink">{it.desc || '—'}</div>
-                    <div className="flex items-center gap-2 text-xs text-mist">
-                      <span
-                        className="inline-block h-2 w-2 rounded-full"
-                        style={{ background: getCategoryColor(it.category) }}
-                      />
-                      <span className="truncate">
-                        {getCategoryLabel(it.category)}
-                        {it.sub ? ` · ${it.sub}` : ''}
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    className={
-                      'flex-shrink-0 font-mono text-sm font-bold ' +
-                      (it.amountSigned >= 0 ? 'text-green' : 'text-red')
-                    }
-                  >
-                    {it.amountSigned >= 0 ? '+' : '−'} {currencyBRL(it.amount)}
-                  </div>
-                </button>
+                />
               ))}
             </div>
           ))}
