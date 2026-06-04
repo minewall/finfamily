@@ -109,6 +109,12 @@ export interface UserData {
   onboarding?: OnboardingState;
   /** ICP / Contexto Pessoal — respostas por categoria. */
   contexto?: ContextoState;
+  /** Meu Painel — preferências de widgets customizáveis (Track Q). */
+  meuPainel?: {
+    /** Ordem importa: widgets aparecem na ordem que estão no array.
+     *  Ids válidos no MVP: 'resumo' | 'metas' | 'alertas' | 'vencimentos'. */
+    widgets?: string[];
+  };
   flags?: Record<string, unknown>;
   [k: string]: unknown;
 }
