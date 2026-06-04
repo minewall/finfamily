@@ -1,8 +1,18 @@
 // Cloudflare Worker — serve static assets + SPA fallback para /app/.
 // Lê assets via binding ASSETS (definido em wrangler.toml).
-// Doc: https://developers.cloudflare.com/workers/static-assets/binding/
 export default {
   async fetch(request, env) {
+    // Guard: binding deve existir. Se não, retorna debug claro.
+    if (!env || !env.ASSETS) {
+      const keys = env ? Object.keys(env) : []
+      return new Response(
+        `Worker misconfigured: ASSETS binding ausente.\n` +
+          `env bindings disponíveis: ${JSON.stringify(keys)}\n` +
+          `Fix esperado: wrangler.toml ter [assets] com binding="ASSETS".`,
+        { status: 500, headers: { 'content-type': 'text/plain' } },
+      )
+    }
+
     const url = new URL(request.url)
 
     // 1. Tenta servir o asset estático direto (HTML, CSS, JS, img, etc).
@@ -16,7 +26,7 @@ export default {
       return env.ASSETS.fetch(new Request(indexUrl.toString(), request))
     }
 
-    // 3. 404 fora de /app/ → devolve o 404 default do Workers Assets.
+    // 3. 404 fora de /app/ → devolve o 404 do Workers Assets.
     return direct
   },
 }

@@ -1,12 +1,13 @@
 # Cloudflare Worker config — serve estáticos de haile.com.br + SPA fallback
-# pra /app/ (DUO). Worker script em cf-worker.js intercepta 404 dentro de
-# /app/* e devolve /app/index.html (React Router resolve internamente).
+# pra /app/ (DUO). Worker em cf-worker.js intercepta 404 dentro de /app/*
+# e devolve /app/index.html (React Router resolve internamente).
+#
+# Compat date recente pra garantir suporte completo a Workers Static Assets.
 # Doc: https://developers.cloudflare.com/workers/static-assets/binding/
 name = "haile"
 main = "cf-worker.js"
-compatibility_date = "2024-09-19"
+compatibility_date = "2025-04-01"
 
 [assets]
 directory = "./"
 binding = "ASSETS"
-not_found_handling = "404-page"
