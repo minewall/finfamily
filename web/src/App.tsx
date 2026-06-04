@@ -10,6 +10,7 @@ import Lancamentos from '@/pages/Lancamentos'
 import Receitas from '@/pages/Receitas'
 import Despesas from '@/pages/Despesas'
 import Contas from '@/pages/Contas'
+import Cartoes from '@/pages/Cartoes'
 import Metas from '@/pages/Metas'
 import Simulador from '@/pages/Simulador'
 import Familia from '@/pages/Familia'
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="/receitas" element={<Receitas />} />
               <Route path="/despesas" element={<Despesas />} />
               <Route path="/contas" element={<Contas />} />
+              <Route path="/cartoes" element={<Cartoes />} />
               <Route path="/metas" element={<Metas />} />
               <Route path="/simulador" element={<Simulador />} />
               <Route path="/familia" element={<Familia />} />
