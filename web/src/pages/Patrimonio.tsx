@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Plus,
   Laptop2,
@@ -7,6 +7,10 @@ import {
   Coins,
   AlertTriangle,
   Landmark,
+  Wallet,
+  PieChart,
+  TrendingUp,
+  PiggyBank,
 } from 'lucide-react'
 import {
   currencyBRL,
@@ -45,6 +49,21 @@ import { VeiculoModal } from '@/components/patrimonio/VeiculoModal'
 import { ImovelModal } from '@/components/patrimonio/ImovelModal'
 import { AtivoModal } from '@/components/patrimonio/AtivoModal'
 import { PassivoModal } from '@/components/patrimonio/PassivoModal'
+import { DonutChart, LineSeries, type DonutChartDatum, type LineSeriesDatum } from '@/components/charts'
+import {
+  patrimonioKpis,
+  patrimonioDistribuicao,
+  patrimonioEvolucaoEstimada,
+} from '@/lib/patrimonio-stats'
+
+const DISTRIBUICAO_COLORS: Record<string, string> = {
+  'FIAT BR': '#1dc97e',
+  'Cripto': '#6b5ef5',
+  'FIAT estrangeiro': '#4aa8ff',
+  'Imóveis': '#2dcfc0',
+  'Veículos': '#f59e0b',
+  'Equipamentos': '#ff70b8',
+}
 
 type Tab = 'equipamentos' | 'veiculos' | 'imoveis' | 'ativos' | 'passivos'
 
@@ -122,6 +141,22 @@ export default function Patrimonio() {
   const totReservas = totalReservas(data)
   const totCripto = totalCriptoFiat(data, cotacoes)
 
+  const kpis = useMemo(() => patrimonioKpis(data), [data])
+  const distribuicaoRaw = useMemo(() => patrimonioDistribuicao(data), [data])
+  const evolucaoRaw = useMemo(() => patrimonioEvolucaoEstimada(data), [data])
+
+  const distribuicaoData: DonutChartDatum[] = distribuicaoRaw.map((s) => ({
+    label: s.label,
+    value: s.value,
+    color: DISTRIBUICAO_COLORS[s.label] ?? '#454b6d',
+  }))
+  const evolucaoData: LineSeriesDatum[] = evolucaoRaw.map((p) => ({
+    label: p.periodo,
+    value: p.valor,
+  }))
+
+  const isPatrimonioVazio = kpis.total === 0 && distribuicaoData.length === 0
+
   function openAdd() {
     switch (tab) {
       case 'equipamentos': setEqEditing(null); setEqOpen(true); break
@@ -148,38 +183,116 @@ export default function Patrimonio() {
         </Button>
       </header>
 
-      {/* KPIs */}
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-line bg-surface p-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate">
-            <Landmark size={14} /> Patrimônio Líquido
-          </div>
-          <div className={'mt-2 font-mono text-[26px] font-extrabold ' + (totLiquido >= 0 ? 'text-indigo' : 'text-red')}>
-            {currencyBRL(totLiquido)}
-          </div>
-          <div className="text-[11px] text-faint">Ativos + bens − passivos</div>
+      {/* Resumo do Patrimônio — 4 KPIs */}
+      <section className="mb-6">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate">
+          Resumo do patrimônio
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCard
+            icon={<Landmark size={14} />}
+            label="Patrimônio total"
+            value={currencyBRL(kpis.total)}
+            valueClass={
+              'font-mono text-[26px] font-extrabold ' +
+              (kpis.total >= 0 ? 'text-indigo' : 'text-red')
+            }
+            hint="Líquido (ativos + bens − passivos)"
+          />
+          <KpiCard
+            icon={<PiggyBank size={14} />}
+            label="Total em reservas"
+            value={currencyBRL(kpis.reservas)}
+            valueClass="font-mono text-[22px] font-extrabold text-green"
+            hint="Renda fixa, variável e correlatos"
+          />
+          <KpiCard
+            icon={<TrendingUp size={14} />}
+            label="Rendimento est. / ano"
+            value={kpis.rendimentoAnoEst === 0 ? '—' : currencyBRL(kpis.rendimentoAnoEst)}
+            valueClass={
+              'font-mono text-[22px] font-extrabold ' +
+              (kpis.rendimentoAnoEst > 0
+                ? 'text-green'
+                : kpis.rendimentoAnoEst < 0
+                ? 'text-red'
+                : 'text-mist')
+            }
+            hint="Valor atual − valor investido das reservas"
+          />
+          <KpiCard
+            icon={<Wallet size={14} />}
+            label="Outros ativos"
+            value={currencyBRL(kpis.outros)}
+            valueClass="font-mono text-[22px] font-extrabold text-teal"
+            hint={`Imóveis ${currencyBRL(totImov)} · Veíc. ${currencyBRL(totVeic)} · Equip. ${currencyBRL(totEquip)}`}
+          />
         </div>
+      </section>
+
+      {/* Resumo: Charts */}
+      {isPatrimonioVazio ? (
+        <section className="mb-6 rounded-2xl border border-line bg-surface p-6 text-center">
+          <PieChart size={20} className="mx-auto mb-2 text-mist" />
+          <p className="text-sm text-mist">
+            Comece cadastrando um ativo pra ver a distribuição e a evolução do seu patrimônio.
+          </p>
+          <Button size="sm" className="mt-3" onClick={() => { setTab('ativos'); setAEditing(null); setAOpen(true) }}>
+            <Plus size={14} /> Adicionar ativo
+          </Button>
+        </section>
+      ) : (
+        <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {distribuicaoData.length === 0 ? (
+            <div className="rounded-2xl border border-line bg-surface p-4">
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate">
+                Distribuição do seu portfólio
+              </h3>
+              <p className="text-sm text-mist">
+                Distribuição aparece quando você cadastra ativos.
+              </p>
+            </div>
+          ) : (
+            <DonutChart
+              data={distribuicaoData}
+              title="Distribuição do seu portfólio"
+              totalLabel={currencyBRL(distribuicaoData.reduce((s, d) => s + d.value, 0))}
+              totalHint="Total"
+              height={240}
+            />
+          )}
+          <LineSeries
+            data={evolucaoData}
+            title="Evolução patrimonial (estimada)"
+            height={240}
+            color="#6b5ef5"
+          />
+        </section>
+      )}
+
+      {/* KPIs detalhados (bens × dívidas) */}
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl border border-line bg-surface p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate">Ativos</div>
-          <div className="mt-2 font-mono text-[22px] font-extrabold text-green">{currencyBRL(totAtivos)}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate">Ativos financeiros</div>
+          <div className="mt-2 font-mono text-[20px] font-extrabold text-green">{currencyBRL(totAtivos)}</div>
           <div className="text-[11px] text-faint">
             Reservas {currencyBRL(totReservas)} · Cripto/FIAT {currencyBRL(totCripto)}
           </div>
         </div>
         <div className="rounded-2xl border border-line bg-surface p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate">Equity em imóveis</div>
-          <div className="mt-2 font-mono text-[22px] font-extrabold text-teal">{currencyBRL(totEquityImov)}</div>
+          <div className="mt-2 font-mono text-[20px] font-extrabold text-teal">{currencyBRL(totEquityImov)}</div>
           <div className="text-[11px] text-faint">
             Valor estimado {currencyBRL(totImov)} · {imoveis.length} {imoveis.length === 1 ? 'imóvel' : 'imóveis'}
           </div>
         </div>
         <div className="rounded-2xl border border-line bg-surface p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate">Passivos</div>
-          <div className={'mt-2 font-mono text-[22px] font-extrabold ' + (totPass > 0 ? 'text-red' : 'text-mist')}>
+          <div className={'mt-2 font-mono text-[20px] font-extrabold ' + (totPass > 0 ? 'text-red' : 'text-mist')}>
             {currencyBRL(totPass)}
           </div>
           <div className="text-[11px] text-faint">
-            Veículos {currencyBRL(totVeic)} · Equip. {currencyBRL(totEquip)}
+            {totLiquido >= 0 ? 'Patrimônio líquido positivo' : 'Patrimônio líquido negativo'}
           </div>
         </div>
       </div>
@@ -483,6 +596,26 @@ function EmptyState({ label, onAdd }: { label: string; onAdd: () => void }) {
       <Button onClick={onAdd} className="mt-4" size="sm">
         <Plus size={14} /> Adicionar
       </Button>
+    </div>
+  )
+}
+
+interface KpiCardProps {
+  icon: React.ReactNode
+  label: string
+  value: string
+  valueClass: string
+  hint?: string
+}
+
+function KpiCard({ icon, label, value, valueClass, hint }: KpiCardProps) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate">
+        {icon} {label}
+      </div>
+      <div className={'mt-2 ' + valueClass}>{value}</div>
+      {hint && <div className="text-[11px] text-faint">{hint}</div>}
     </div>
   )
 }
