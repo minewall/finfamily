@@ -33,7 +33,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
+        {/* basename casa com o Vite `base` (web/vite.config.ts) — sem isso o
+            React Router fica perdido em prod servindo de /app/. import.meta.env.BASE_URL
+            já vem com trailing slash; precisamos sem pra basename. */}
+        <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
           <Routes>
             <Route path="/login" element={<Login />} />
             {/* Aceitação de convite: rota lida com "sem sessão" internamente. */}
