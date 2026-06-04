@@ -85,46 +85,46 @@ export default function VisaoGeral() {
 
       <PerguntaDoDiaCard />
 
-      {/* ── Hero: Poder de Escolha ────────────────────────────── */}
-      <section className="mb-6 rounded-2xl border border-line bg-gradient-to-br from-indigo/15 to-teal/10 p-6">
+      {/* ── Hero: Poder de Escolha — identidade indigo preservada nos 2 temas ── */}
+      <section className="pde-hero mb-6 rounded-2xl border border-line p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo">
+            <div className="pde-eyebrow text-[11px] font-semibold uppercase tracking-wide text-indigo">
               Poder de Escolha
             </div>
-            <div className="mt-1 font-mono text-3xl font-extrabold text-ink">
+            <div className="pde-value mt-1 font-mono text-3xl font-extrabold text-ink">
               {currencyBRL(pde.poderDeEscolha)}
             </div>
-            <div className="mt-1 text-xs text-mist">
+            <div className="pde-hint mt-1 text-xs text-mist">
               {rec > 0
                 ? `${Math.round(pdeRatio * 100)}% da sua receita está livre para suas escolhas.`
                 : 'Cadastre suas receitas pra ver seu Poder de Escolha.'}
             </div>
           </div>
-          <div className="text-right text-xs text-mist">
-            <div>Receitas <span className="font-mono font-bold text-green">+{currencyBRL(rec)}</span></div>
-            <div>Essenciais <span className="font-mono font-bold text-amber">−{currencyBRL(pde.pisoSobrevivencia)}</span></div>
+          <div className="pde-side text-right text-xs text-mist">
+            <div>Receitas <span className="pde-side-strong-green font-mono font-bold text-green">+{currencyBRL(rec)}</span></div>
+            <div>Essenciais <span className="pde-side-strong-amber font-mono font-bold text-amber">−{currencyBRL(pde.pisoSobrevivencia)}</span></div>
           </div>
         </div>
 
         {/* Barra: livre × comprometido */}
-        <div className="mt-5 h-3 w-full overflow-hidden rounded-full bg-elevated">
+        <div className="pde-track mt-5 h-3 w-full overflow-hidden rounded-full bg-elevated">
           <div className="flex h-full w-full">
             <div
-              className="h-full bg-amber"
+              className="pde-fill-amber h-full bg-amber"
               style={{ width: `${comprometidoRatio * 100}%` }}
               title="Comprometido em essenciais"
             />
             <div
-              className="h-full bg-indigo"
+              className="pde-fill-indigo h-full bg-indigo"
               style={{ width: `${pdeRatio * 100}%` }}
               title="Poder de Escolha"
             />
           </div>
         </div>
-        <div className="mt-2 flex justify-between text-[11px] text-faint">
-          <span><span className="inline-block h-2 w-2 rounded-full bg-amber align-middle" /> Essenciais</span>
-          <span><span className="inline-block h-2 w-2 rounded-full bg-indigo align-middle" /> Livre</span>
+        <div className="pde-legend mt-2 flex justify-between text-[11px] text-faint">
+          <span><span className="pde-dot-amber inline-block h-2 w-2 rounded-full bg-amber align-middle" /> Essenciais</span>
+          <span><span className="pde-dot-indigo inline-block h-2 w-2 rounded-full bg-indigo align-middle" /> Livre</span>
         </div>
       </section>
 
