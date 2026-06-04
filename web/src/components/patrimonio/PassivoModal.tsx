@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Passivo } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input, Select } from '@/components/ui/field'
@@ -32,7 +32,8 @@ export function PassivoModal({ open, onClose, editing }: Props) {
   const addItem = useData((s) => s.addPatrimonioItem)
   const updateItem = useData((s) => s.updatePatrimonioItem)
   const deleteItem = useData((s) => s.deletePatrimonioItem)
-  const pessoas = useData((s) => s.data?.pessoas) ?? []
+  const pessoasRaw = useData((s) => s.data?.pessoas)
+  const pessoas = useMemo(() => pessoasRaw ?? [], [pessoasRaw])
   const isEdit = !!editing
 
   const [desc, setDesc] = useState('')
@@ -47,20 +48,25 @@ export function PassivoModal({ open, onClose, editing }: Props) {
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setDesc(editing?.desc ?? '')
-    setTipo((editing?.tipo as string) ?? 'banco')
-    setCredor(editing?.credor ?? '')
-    setResponsavel(editing?.responsavel ?? pessoas[0] ?? '')
-    setValorOriginal(editing?.valorOriginal?.toString() ?? '')
-    setValorProposta(editing?.valorProposta?.toString() ?? '')
-    setValorAcordado(editing?.valorAcordado?.toString() ?? '')
-    setStatus(editing?.status ?? 'pendente')
-    setDataRef(editing?.dataRef ?? '')
-    setNotes(editing?.notes ?? '')
-    setError(null)
-  }, [open, editing, pessoas])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setDesc(editing?.desc ?? '')
+      setTipo((editing?.tipo as string) ?? 'banco')
+      setCredor(editing?.credor ?? '')
+      setResponsavel(editing?.responsavel ?? pessoas[0] ?? '')
+      setValorOriginal(editing?.valorOriginal?.toString() ?? '')
+      setValorProposta(editing?.valorProposta?.toString() ?? '')
+      setValorAcordado(editing?.valorAcordado?.toString() ?? '')
+      setStatus(editing?.status ?? 'pendente')
+      setDataRef(editing?.dataRef ?? '')
+      setNotes(editing?.notes ?? '')
+      setError(null)
+    }
+  }
 
   function save() {
     const valOrig = parseFloat(valorOriginal.replace(',', '.'))

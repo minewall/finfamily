@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Tributo, TributoTipo } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input, Select } from '@/components/ui/field'
@@ -51,23 +51,28 @@ export function TributoModal({ open, onClose, editing, defaultTipo }: Props) {
 
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setTipo(editing?.tipo ?? defaultTipo ?? 'iptu')
-    setAno(editing?.ano?.toString() ?? anoAtual.toString())
-    setLabel(editing?.label ?? '')
-    setValor(editing?.valor?.toString() ?? '')
-    setParcelas(editing?.parcelas?.toString() ?? '1')
-    setPagas(editing?.pagas?.toString() ?? '0')
-    setVencimentoMes(editing?.vencimentoMes?.toString() ?? '1')
-    setVencimentoDia(editing?.vencimentoDia?.toString() ?? '10')
-    setPessoa(editing?.pessoa ?? '')
-    setStatus(editing?.status ?? 'rascunho')
-    setAReceber(editing?.aReceber?.toString() ?? '')
-    setAPagar(editing?.aPagar?.toString() ?? '')
-    setPlaca(editing?.placa ?? '')
-    setError(null)
-  }, [open, editing, defaultTipo, anoAtual])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? `new:${defaultTipo ?? 'iptu'}`) : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setTipo(editing?.tipo ?? defaultTipo ?? 'iptu')
+      setAno(editing?.ano?.toString() ?? anoAtual.toString())
+      setLabel(editing?.label ?? '')
+      setValor(editing?.valor?.toString() ?? '')
+      setParcelas(editing?.parcelas?.toString() ?? '1')
+      setPagas(editing?.pagas?.toString() ?? '0')
+      setVencimentoMes(editing?.vencimentoMes?.toString() ?? '1')
+      setVencimentoDia(editing?.vencimentoDia?.toString() ?? '10')
+      setPessoa(editing?.pessoa ?? '')
+      setStatus(editing?.status ?? 'rascunho')
+      setAReceber(editing?.aReceber?.toString() ?? '')
+      setAPagar(editing?.aPagar?.toString() ?? '')
+      setPlaca(editing?.placa ?? '')
+      setError(null)
+    }
+  }
 
   function save() {
     if (!label.trim()) { setError('Informe a descrição.'); return }

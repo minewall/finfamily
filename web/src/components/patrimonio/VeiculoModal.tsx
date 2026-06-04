@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Veiculo } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/field'
@@ -35,24 +35,29 @@ export function VeiculoModal({ open, onClose, editing }: Props) {
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setMarca(editing?.marca ?? '')
-    setModelo(editing?.modelo ?? '')
-    setApelido(editing?.apelido ?? '')
-    setAno((editing?.ano ?? new Date().getFullYear()).toString())
-    setPlaca(editing?.placa ?? '')
-    setCor(editing?.cor ?? '')
-    setValorCompra(editing?.valorCompra?.toString() ?? '')
-    setDataCompra(editing?.dataCompra ?? today())
-    setValorAtual(editing?.valorAtual?.toString() ?? '')
-    setDeprec((editing?.depreciacaoAnualPct ?? 10).toString())
-    setIpva(editing?.ipvaAnual?.toString() ?? '')
-    setSeguro(editing?.seguroAnual?.toString() ?? '')
-    setManut(editing?.manutencaoMensal?.toString() ?? '')
-    setNotes(editing?.notes ?? '')
-    setError(null)
-  }, [open, editing])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setMarca(editing?.marca ?? '')
+      setModelo(editing?.modelo ?? '')
+      setApelido(editing?.apelido ?? '')
+      setAno((editing?.ano ?? new Date().getFullYear()).toString())
+      setPlaca(editing?.placa ?? '')
+      setCor(editing?.cor ?? '')
+      setValorCompra(editing?.valorCompra?.toString() ?? '')
+      setDataCompra(editing?.dataCompra ?? today())
+      setValorAtual(editing?.valorAtual?.toString() ?? '')
+      setDeprec((editing?.depreciacaoAnualPct ?? 10).toString())
+      setIpva(editing?.ipvaAnual?.toString() ?? '')
+      setSeguro(editing?.seguroAnual?.toString() ?? '')
+      setManut(editing?.manutencaoMensal?.toString() ?? '')
+      setNotes(editing?.notes ?? '')
+      setError(null)
+    }
+  }
 
   function save() {
     if (!marca.trim() || !modelo.trim()) { setError('Preencha marca e modelo'); return }

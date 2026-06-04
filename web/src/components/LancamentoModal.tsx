@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, X, Users, EyeOff, Receipt as ReceiptIcon } from 'lucide-react'
 import {
   CATEGORIES,
@@ -42,7 +42,8 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   const updateReceita = useData((s) => s.updateReceita)
   const deleteReceita = useData((s) => s.deleteReceita)
 
-  const pessoas = (data?.pessoas as string[] | undefined) ?? ['Você']
+  const pessoasRaw = data?.pessoas as string[] | undefined
+  const pessoas = useMemo(() => pessoasRaw ?? ['Você'], [pessoasRaw])
   const contas = data?.contas ?? []
   // Lista pra escolher em split/reembolso (inclui "Família" como bucket coletivo)
   const pessoasParaSplit = useMemo(() => [...pessoas, FAMILIA_COLETIVO], [pessoas])
@@ -75,37 +76,41 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Reset ao reabrir
-  useEffect(() => {
-    if (!open) return
-    const ed = (editing?.kind === 'despesa' ? (editing as unknown as Despesa) : null)
-    setKind(editing?.kind ?? defaultKind ?? 'despesa')
-    setDesc(editing?.desc ?? '')
-    setAmount(editing?.amount?.toString() ?? '')
-    setDate(editing?.date ?? todayISO())
-    setPerson(editing?.person ?? pessoas[0] ?? 'Você')
-    setCategory(editing?.category ?? (editing?.kind === 'receita' ? 'receita' : 'alimentacao'))
-    setContaId(editing?.contaId ?? '')
-    setVisibilidade((ed?.visibilidade as 'familiar' | 'particular') ?? 'familiar')
-    setSplitOn(!!ed?.split?.length)
-    setSplits(ed?.split?.map((s) => ({ person: s.person, valor: String(s.valor) })) ?? [])
-    setReembolsoOn(!!ed?.reembolso)
-    setReembDe(ed?.reembolso?.de ?? FAMILIA_COLETIVO)
-    setReembValor(ed?.reembolso?.valor?.toString() ?? '')
-    setError(null)
-    setSubmitting(false)
-  }, [open, editing, defaultKind, pessoas])
+  // Reset ao reabrir (padrão React docs: ajustar state ao mudar prop sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? `new:${defaultKind ?? 'despesa'}`) : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      const ed = (editing?.kind === 'despesa' ? (editing as unknown as Despesa) : null)
+      setKind(editing?.kind ?? defaultKind ?? 'despesa')
+      setDesc(editing?.desc ?? '')
+      setAmount(editing?.amount?.toString() ?? '')
+      setDate(editing?.date ?? todayISO())
+      setPerson(editing?.person ?? pessoas[0] ?? 'Você')
+      setCategory(editing?.category ?? (editing?.kind === 'receita' ? 'receita' : 'alimentacao'))
+      setContaId(editing?.contaId ?? '')
+      setVisibilidade((ed?.visibilidade as 'familiar' | 'particular') ?? 'familiar')
+      setSplitOn(!!ed?.split?.length)
+      setSplits(ed?.split?.map((s) => ({ person: s.person, valor: String(s.valor) })) ?? [])
+      setReembolsoOn(!!ed?.reembolso)
+      setReembDe(ed?.reembolso?.de ?? FAMILIA_COLETIVO)
+      setReembValor(ed?.reembolso?.valor?.toString() ?? '')
+      setError(null)
+      setSubmitting(false)
+    }
+  }
 
-  // Se mudar o tipo num NOVO lançamento, ajusta categoria default
-  useEffect(() => {
-    if (isEdit || !open) return
+  // Se mudar o tipo num NOVO lançamento, ajusta categoria default (padrão derivado de prop sem useEffect)
+  const [prevKindForCategory, setPrevKindForCategory] = useState(kind)
+  if (open && !isEdit && kind !== prevKindForCategory) {
+    setPrevKindForCategory(kind)
     setCategory(kind === 'receita' ? 'receita' : 'alimentacao')
-    // Receita não tem split/reembolso/visibilidade
     if (kind === 'receita') {
       setSplitOn(false)
       setReembolsoOn(false)
     }
-  }, [kind, open, isEdit])
+  }
 
   function addSplitRow() {
     // Sugere primeira pessoa que ainda não está na lista

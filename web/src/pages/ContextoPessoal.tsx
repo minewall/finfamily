@@ -32,7 +32,7 @@ export default function ContextoPessoal() {
     if (!data && !loading) void load()
   }, [data, loading, load])
 
-  const ctx: ContextoState = data ? getContexto() : {}
+  const ctx: ContextoState = useMemo(() => (data ? getContexto() : {}), [data, getContexto])
   const icp = calculateICP(ctx)
   const level = getContextoLevel(icp)
   const next = getContextoNextLevel(icp)

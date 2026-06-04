@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   type Financiamento,
   type SistemaAmortizacao,
@@ -41,22 +41,27 @@ export function FinanciamentoModal({ open, onClose, editing }: Props) {
   const [notes, setNotes] = useState<string>(editing?.notes ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setLabel(editing?.label ?? '')
-    setBanco(editing?.banco ?? '')
-    setTipo(editing?.tipo ?? FINANCIAMENTO_TIPOS[0].id)
-    setSistema(editing?.sistema ?? 'price')
-    setValor(editing?.valorFinanciado?.toString() ?? '')
-    setTaxa(editing?.taxaMensal?.toString() ?? '')
-    setPrazo(editing?.prazo?.toString() ?? '')
-    setPagas(editing?.parcelasPagas?.toString() ?? '0')
-    setDataInicio(editing?.dataInicio ?? new Date().toISOString().slice(0, 10))
-    setContaId(editing?.contaId ?? '')
-    setPerson(editing?.person ?? '')
-    setNotes(editing?.notes ?? '')
-    setError(null)
-  }, [open, editing])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setLabel(editing?.label ?? '')
+      setBanco(editing?.banco ?? '')
+      setTipo(editing?.tipo ?? FINANCIAMENTO_TIPOS[0].id)
+      setSistema(editing?.sistema ?? 'price')
+      setValor(editing?.valorFinanciado?.toString() ?? '')
+      setTaxa(editing?.taxaMensal?.toString() ?? '')
+      setPrazo(editing?.prazo?.toString() ?? '')
+      setPagas(editing?.parcelasPagas?.toString() ?? '0')
+      setDataInicio(editing?.dataInicio ?? new Date().toISOString().slice(0, 10))
+      setContaId(editing?.contaId ?? '')
+      setPerson(editing?.person ?? '')
+      setNotes(editing?.notes ?? '')
+      setError(null)
+    }
+  }
 
   const tipoInfo = FINANCIAMENTO_TIPOS.find((t) => t.id === tipo) ?? FINANCIAMENTO_TIPOS[0]
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Meta } from '@haile/shared'
 import { META_TIPOS, type MetaTipo } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
@@ -25,15 +25,20 @@ export function MetaModal({ open, onClose, editing }: Props) {
   const [deadline, setDeadline] = useState<string>((editing?.deadline as string) ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setLabel(editing?.label ?? '')
-    setType((editing?.type as MetaTipo) ?? 'objetivo')
-    setTarget(editing?.target?.toString() ?? '')
-    setCurrent(editing?.current?.toString() ?? '0')
-    setDeadline((editing?.deadline as string) ?? '')
-    setError(null)
-  }, [open, editing])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setLabel(editing?.label ?? '')
+      setType((editing?.type as MetaTipo) ?? 'objetivo')
+      setTarget(editing?.target?.toString() ?? '')
+      setCurrent(editing?.current?.toString() ?? '0')
+      setDeadline((editing?.deadline as string) ?? '')
+      setError(null)
+    }
+  }
 
   const showCurrent = type === 'objetivo' || type === 'reserva'
   const showDeadline = type === 'objetivo'

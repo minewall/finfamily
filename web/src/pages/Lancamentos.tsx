@@ -71,7 +71,7 @@ export default function Lancamentos({ kindFilter }: LancamentosProps = {}) {
       )
     }
     return xs
-  }, [data, month, year, q])
+  }, [data, month, year, q, kindFilter])
 
   const totalRec = items.filter((x) => x.kind === 'receita').reduce((s, x) => s + x.amount, 0)
   const totalDesp = items.filter((x) => x.kind === 'despesa').reduce((s, x) => s + x.amount, 0)

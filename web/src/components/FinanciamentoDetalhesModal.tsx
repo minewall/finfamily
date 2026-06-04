@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   type Financiamento,
   type EstrategiaAntecipacao,
@@ -29,13 +29,18 @@ export function FinanciamentoDetalhesModal({ open, onClose, financiamento, onEdi
   const [estrategia, setEstrategia] = useState<EstrategiaAntecipacao>('prazo')
   const [confirmandoAplicar, setConfirmandoAplicar] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    setAba('resumo')
-    setValorExtra('')
-    setEstrategia('prazo')
-    setConfirmandoAplicar(false)
-  }, [open, financiamento?.id])
+  // Reset state ao abrir / trocar financiamento (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (financiamento?.id ?? 'none') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setAba('resumo')
+      setValorExtra('')
+      setEstrategia('prazo')
+      setConfirmandoAplicar(false)
+    }
+  }
 
   const resumo = useMemo(
     () => (financiamento ? getFinanciamentoResumo(financiamento) : null),

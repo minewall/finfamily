@@ -84,19 +84,24 @@ export function HaileTakeover() {
   const [typing, setTyping] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Saudação proativa quando abre
-  useEffect(() => {
-    if (!open) return
-    const email = session?.user?.email ?? ''
-    const nome = email.split('@')[0].split('.')[0]
-    const cap = nome ? nome[0].toUpperCase() + nome.slice(1) : ''
-    setBubbles([{
-      kind: 'assistant',
-      text: `Bom te conhecer${cap ? ', ' + cap : ''}. Eu sou o Haile, sua inteligência financeira. Penso junto com você sobre dinheiro — sem julgamento, com foco nas suas escolhas. Por onde quer começar?`,
-    }])
-    setActiveChips(['oque', 'como', 'dados', 'tour'])
-    setTyping(false)
-  }, [open, session])
+  // Saudação proativa quando abre (padrão React docs: ajustar state ao mudar prop, sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const sessionKey = session?.user?.email ?? ''
+  const openKey = open ? `open:${sessionKey}` : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      const email = session?.user?.email ?? ''
+      const nome = email.split('@')[0].split('.')[0]
+      const cap = nome ? nome[0].toUpperCase() + nome.slice(1) : ''
+      setBubbles([{
+        kind: 'assistant',
+        text: `Bom te conhecer${cap ? ', ' + cap : ''}. Eu sou o Haile, sua inteligência financeira. Penso junto com você sobre dinheiro — sem julgamento, com foco nas suas escolhas. Por onde quer começar?`,
+      }])
+      setActiveChips(['oque', 'como', 'dados', 'tour'])
+      setTyping(false)
+    }
+  }
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
