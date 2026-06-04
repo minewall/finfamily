@@ -125,12 +125,82 @@ export const COACH_TOOLS = [
       },
     },
   },
+  {
+    name: 'addMeta',
+    description: 'Cria uma nova meta financeira para o usuário (reserva, sonho, projeto, etc).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        label:     { type: 'string', description: 'Nome da meta. Ex: "Casa própria", "Viagem Europa"' },
+        target:    { type: 'number', description: 'Valor-alvo em BRL' },
+        prazo:     { type: 'string', description: 'Data limite YYYY-MM-DD (opcional)' },
+        tipo:      { type: 'string', enum: ['reserva', 'sonho', 'projeto', 'min_receita', 'limite_desp'], description: 'Tipo da meta. Default: sonho.' },
+        categoria: { type: 'string', description: 'ID da categoria (opcional, pra metas vinculadas a tipo de despesa)' },
+      },
+      required: ['label', 'target'],
+    },
+  },
+  {
+    name: 'queryReceitas',
+    description: 'Consulta receitas do usuário com filtros opcionais. Use pra responder "quanto recebi", "qual foi minha renda no mês" sem inventar números.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        year:      { type: 'number', description: 'Ano (YYYY). Opcional.' },
+        month:     { type: 'number', minimum: 1, maximum: 12, description: 'Mês (1-12). Opcional.' },
+        pessoa:    { type: 'string', description: 'Nome da pessoa. Opcional.' },
+        categoria: { type: 'string', description: 'Categoria. Opcional.' },
+        texto:     { type: 'string', description: 'Busca textual na descrição. Opcional.' },
+      },
+    },
+  },
+  {
+    name: 'updateReceita',
+    description: 'Atualiza campos de uma receita existente. Use o id que aparece no contexto. Só passa os campos que vai mudar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id:        { type: 'string', description: 'ID da receita' },
+        descricao: { type: 'string' },
+        valor:     { type: 'number' },
+        data:      { type: 'string', description: 'YYYY-MM-DD' },
+        categoria: { type: 'string' },
+        sub:       { type: 'string' },
+        pessoa:    { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'deleteReceita',
+    description: 'Remove uma receita permanentemente. Use só quando o usuário confirmar a intenção de excluir.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id:        { type: 'string', description: 'ID da receita a remover' },
+        desc_hint: { type: 'string', description: 'Descrição pra confirmar com o user que é a certa' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'getCotacoes',
+    description: 'Retorna as cotações atuais de USD, EUR, USDT e BTC em BRL. Refresca automaticamente se estiverem desatualizadas.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ] as const
 
 export type CoachToolName = (typeof COACH_TOOLS)[number]['name']
 
 // Conjunto de tools que NÃO exigem confirmação (read-only — não mutam dados).
-export const SKIP_CONFIRM: ReadonlySet<CoachToolName> = new Set(['queryDespesas'])
+export const SKIP_CONFIRM: ReadonlySet<CoachToolName> = new Set([
+  'queryDespesas',
+  'queryReceitas',
+  'getCotacoes',
+])
 
 // Labels legíveis pra o card de confirmação.
 export const TOOL_LABELS: Record<CoachToolName, { titulo: string; verbo: string }> = {
@@ -141,4 +211,9 @@ export const TOOL_LABELS: Record<CoachToolName, { titulo: string; verbo: string 
   bulkAddDespesas: { titulo: 'Importar despesas',    verbo: 'Importar' },
   bulkAddReceitas: { titulo: 'Importar receitas',    verbo: 'Importar' },
   queryDespesas:   { titulo: 'Consulta',             verbo: 'Consultar' },
+  addMeta:         { titulo: 'Nova meta',            verbo: 'Criar meta' },
+  queryReceitas:   { titulo: 'Consulta de receitas', verbo: 'Consultar' },
+  updateReceita:   { titulo: 'Editar receita',       verbo: 'Atualizar receita' },
+  deleteReceita:   { titulo: 'Excluir receita',      verbo: 'Excluir receita' },
+  getCotacoes:     { titulo: 'Cotações',             verbo: 'Consultar' },
 }

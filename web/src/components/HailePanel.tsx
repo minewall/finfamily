@@ -112,7 +112,7 @@ export function HailePanel() {
               content: 'Usuário cancelou esta ação. Não tente repetir sem nova instrução.',
             })
           } else {
-            const result = runCoachTool(name, tu.input)
+            const result = await runCoachTool(name, tu.input)
             resolveToolPending(tu.id, {
               id: newTurnId(), kind: 'tool-done',
               name, input: tu.input, summary: result.summary, isError: result.isError,
