@@ -86,6 +86,8 @@ interface DataState {
   updateTributo: (id: string, patch: Partial<Tributo>) => void
   deleteTributo: (id: string) => void
   marcarParcelaTributoPaga: (id: string) => void
+  // ── Meu Painel — widgets customizáveis (Track Q) ──
+  setPainelWidgets: (widgets: string[]) => void
   // ── Recados do Haile ──
   addRecado: (input: Omit<Recado, 'id' | 'criadoEm'> & Partial<Pick<Recado, 'id' | 'criadoEm'>>) => Recado
   marcarRecadoLido: (id: string) => void
@@ -647,6 +649,17 @@ export const useData = create<DataState>((set, get) => {
         return { ...t, pagas: proximoPagas }
       })
       persist({ ...d, tributos: list })
+    },
+
+    // ── Meu Painel — widgets customizáveis (Track Q) ────────────
+    setPainelWidgets: (widgets) => {
+      const d = ensure()
+      // Filtra IDs conhecidos pra evitar lixo (validação no helper).
+      const valid = (widgets || []).filter((id) =>
+        ['resumo', 'metas', 'alertas', 'vencimentos'].includes(id),
+      )
+      const prev = (d.meuPainel ?? {}) as { widgets?: string[] }
+      persist({ ...d, meuPainel: { ...prev, widgets: valid } })
     },
 
     // ── Recados (Sprint 8) ───────────────────────────────────────

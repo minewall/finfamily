@@ -112,6 +112,12 @@ export interface UserData {
   /** Knowledgebase pessoal da IA de conciliação — mapa descrição→categoria
    *  aprendido a partir das escolhas/correções do usuário. */
   iaKnowledge?: IaKnowledge;
+  /** Meu Painel — preferências de widgets customizáveis (Track Q). */
+  meuPainel?: {
+    /** Ordem importa: widgets aparecem na ordem que estão no array.
+     *  Ids válidos no MVP: 'resumo' | 'metas' | 'alertas' | 'vencimentos'. */
+    widgets?: string[];
+  };
   flags?: Record<string, unknown>;
   /** Estado da pergunta-do-dia do Haile (cadência adaptativa + last shown). */
   coachDailyQuestion?: {
