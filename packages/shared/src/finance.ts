@@ -1,14 +1,24 @@
 // Helpers financeiros puros — portados do Store do Dino. Compartilhados DUO↔Dino.
 import type { UserData, Despesa, Receita } from './types';
 
+// Defensive helpers: blob corrompido pode ter receitas/despesas como
+// number/string em vez de array. `??` só protege null/undefined; precisa
+// validar isArray antes de iterar.
+function safeReceitas(data: UserData): Receita[] {
+  return Array.isArray(data.receitas) ? data.receitas : [];
+}
+function safeDespesas(data: UserData): Despesa[] {
+  return Array.isArray(data.despesas) ? data.despesas : [];
+}
+
 export function sumReceitas(data: UserData, month: number, year: number): number {
-  return (data.receitas ?? [])
+  return safeReceitas(data)
     .filter((r) => r.month === month && r.year === year)
     .reduce((s, r) => s + (Number(r.amount) || 0), 0);
 }
 
 export function sumDespesas(data: UserData, month: number, year: number): number {
-  return (data.despesas ?? [])
+  return safeDespesas(data)
     .filter((d) => d.month === month && d.year === year)
     .reduce((s, d) => s + (Number(d.amount) || 0), 0);
 }
@@ -157,7 +167,7 @@ export function topDespesas(
   year: number,
   n = 5,
 ) {
-  return (data.despesas ?? [])
+  return safeDespesas(data)
     .filter((d) => d.month === month && d.year === year)
     .map((d) => ({
       id: d.id,

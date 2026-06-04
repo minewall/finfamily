@@ -150,7 +150,9 @@ function addMeses(dateISO: string, nMeses: number, diaVencimento?: number): stri
 // ── API pública ──────────────────────────────────────────────────
 
 export function getCompromissos(data: { contratos?: Contrato[] }): Contrato[] {
-  return (data.contratos ?? []) as Contrato[];
+  // Defensive: ?? só protege null/undefined; blob corrompido pode ter
+  // contratos = number/string/objeto → for-of em prod crashava.
+  return (Array.isArray(data.contratos) ? data.contratos : []) as Contrato[];
 }
 
 export function getCompromissosByNatureza(

@@ -189,6 +189,27 @@ function writeLocal(d: UserData) {
   try { localStorage.setItem(LOCAL_KEY, JSON.stringify(d)) } catch { /* quota */ }
 }
 
+// Sanitiza blob: garante que campos esperados como array sejam realmente
+// array. Protege contra blobs corrompidos (bug histórico em coach handlers,
+// parsers, ou edits manuais). Sem isso, `for (const x of data.contratos)`
+// crashava em prod quando contratos virava number/string.
+const ARRAY_FIELDS = [
+  'contratos', 'despesas', 'receitas', 'contas', 'cartoes', 'metas',
+  'recados', 'tributos', 'ativos', 'passivos', 'equipamentos', 'veiculos',
+  'imoveis', 'financiamentos', 'pessoas',
+] as const
+
+function sanitizeBlob(d: UserData): UserData {
+  const out = { ...d } as Record<string, unknown>
+  for (const k of ARRAY_FIELDS) {
+    if (out[k] !== undefined && !Array.isArray(out[k])) {
+      console.warn(`[sanitizeBlob] data.${k} não é array (${typeof out[k]}) — resetado pra []`)
+      out[k] = []
+    }
+  }
+  return out as UserData
+}
+
 export const useData = create<DataState>((set, get) => {
   // Persistência híbrida: localStorage imediato + push debounced pro Supabase.
   // Stamp _syncedAt em cada save (lógica de conflito reusa a do Dino).
@@ -241,8 +262,9 @@ export const useData = create<DataState>((set, get) => {
       const cloudTs = (cloud?._syncedAt as number) || 0
       const localTs = (local?._syncedAt as number) || 0
       const winner = cloud && cloudTs >= localTs ? cloud : (local ?? cloud ?? {})
-      writeLocal(winner)
-      set({ data: winner, loading: false, syncStatus: 'synced' })
+      const sanitized = sanitizeBlob(winner)
+      writeLocal(sanitized)
+      set({ data: sanitized, loading: false, syncStatus: 'synced' })
     },
 
     addDespesa: (input) => {

@@ -74,7 +74,7 @@ export function getRecados(
 }
 
 export function countNaoLidos(data: { recados?: Recado[] }): number {
-  return (data.recados ?? []).filter((r) => !r.lidoEm).length;
+  return (Array.isArray(data.recados) ? data.recados : []).filter((r) => !r.lidoEm).length;
 }
 
 /** Retorna nova lista com o recado marcado como lido. Pura. */
@@ -83,7 +83,7 @@ export function marcarLido(
   id: string,
 ): Recado[] {
   const now = new Date().toISOString();
-  return (data.recados ?? []).map((r) =>
+  return (Array.isArray(data.recados) ? data.recados : []).map((r) =>
     r.id === id ? { ...r, lidoEm: r.lidoEm ?? now } : r,
   );
 }
