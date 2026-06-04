@@ -1,1 +1,7 @@
-/duo/* /duo/index.html 200
+# URLs antigas redirecionadas
+/login.html /app/ 301
+/login /app/ 301
+/duo/* /app/:splat 301
+
+# SPA fallback do DUO em /app/
+/app/* /app/index.html 200

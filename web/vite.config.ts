@@ -6,11 +6,11 @@ import { fileURLToPath, URL } from 'node:url'
 // DUO — Vite + React + Tailwind v4. Consome @haile/shared (workspace) e o
 // mesmo backend Supabase do Dino.
 //
-// Deploy: served at /duo/ on haile.com.br (subpath beta privado). `base` faz
-// Vite emitir paths absolutos como `/duo/assets/...`. Em dev local, mantém
-// `/` pra evitar URLs estranhas (vite ignora `base` quando rodando dev).
+// Deploy: served at /app/ on haile.com.br. Substituiu o Dino (vanilla) que
+// ficou arquivado em /app-dino-backup/. `base` faz Vite emitir paths absolutos
+// como `/app/assets/...`. Em dev local, vite ignora `base` automaticamente.
 export default defineConfig({
-  base: '/duo/',
+  base: '/app/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

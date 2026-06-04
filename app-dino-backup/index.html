@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Haile — redirecionando…</title>
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="refresh" content="0; url=app.html" />
+  <link rel="canonical" href="app.html" />
+  <script>
+    // Preserva hash (#dashboard, #meupainel, etc) e query string ao redirecionar.
+    (function () {
+      var qs = window.location.search || '';
+      var hash = window.location.hash || '';
+      window.location.replace('app.html' + qs + hash);
+    })();
+  </script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d0f1c; color: #edf0ff;
+           display: flex; align-items: center; justify-content: center;
+           min-height: 100vh; margin: 0; }
+    a { color: #8a7ef8; }
+  </style>
+</head>
+<body>
+  <p>Redirecionando… se não acontecer automaticamente, <a href="app.html">clique aqui</a>.</p>
+</body>
+</html>
