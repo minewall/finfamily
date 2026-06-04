@@ -6,8 +6,11 @@ import {
   CheckCircle2,
   Clock,
   RefreshCcw,
-  AlertCircle,
   Repeat,
+  Pause,
+  Receipt,
+  Tag,
+  Calendar,
 } from 'lucide-react'
 import {
   currencyBRL,
@@ -17,26 +20,34 @@ import {
   PERIODICIDADES,
   COMPROMISSO_TIPOS,
   type Contrato,
-  type NaturezaCompromisso,
   type ParcelaStatus,
 } from '@haile/shared'
 import { useData } from '@/store/useData'
 import { Button } from '@/components/ui/button'
 import { ContratoModal } from '@/components/ContratoModal'
+import { LineSeries } from '@/components/charts'
+import {
+  evolucaoComprometimento,
+  compromissoStatus,
+  compromissoTipo,
+  colorFromName,
+  type CompromissoStatus,
+  type CompromissoTipo,
+} from '@/lib/compromisso-stats'
 
-type Tab = 'todos' | NaturezaCompromisso
+type Tab = 'todos' | 'ativos' | 'pausados'
 
 const TAB_LABEL: Record<Tab, string> = {
   todos: 'Todos',
-  recorrente: 'Recorrentes',
-  divida: 'Dívidas',
+  ativos: 'Ativos',
+  pausados: 'Pausados',
 }
 
 function periodicidadeLabel(id: string): string {
   return PERIODICIDADES.find((p) => p.id === id)?.label ?? id
 }
 
-function tipoLabel(id?: string): string {
+function tipoCompromissoLabel(id?: string): string {
   if (!id) return ''
   return COMPROMISSO_TIPOS.find((t) => t.id === id)?.label ?? id
 }
@@ -59,6 +70,37 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y.slice(2)}`
 }
 
+// ── Badges visuais novas ────────────────────────────────────────
+
+const STATUS_BADGE: Record<CompromissoStatus, { label: string; cls: string; Icon: typeof CheckCircle2 }> = {
+  ativo:     { label: 'Ativo',     cls: 'bg-green/12 text-green border-green/25',     Icon: CheckCircle2 },
+  pausado:   { label: 'Pausado',   cls: 'bg-slate/12 text-slate border-slate/25',     Icon: Pause },
+  encerrado: { label: 'Encerrado', cls: 'bg-faint/12 text-faint border-faint/25',     Icon: CheckCircle2 },
+}
+
+const TIPO_BADGE: Record<CompromissoTipo, { label: string; cls: string; Icon: typeof Tag }> = {
+  assinatura: { label: 'Assinatura', cls: 'bg-indigo/12 text-indigo border-indigo/25', Icon: Repeat },
+  servico:    { label: 'Serviço',    cls: 'bg-teal/12 text-teal border-teal/25',       Icon: Receipt },
+  divida:     { label: 'Dívida',     cls: 'bg-red/12 text-red border-red/25',          Icon: AlertTriangle },
+}
+
+function Pill({
+  Icon,
+  label,
+  cls,
+}: { Icon: typeof Tag; label: string; cls: string }) {
+  return (
+    <span
+      className={
+        'inline-flex items-center gap-1 rounded-full border px-2 py-[2px] text-[10.5px] font-semibold ' +
+        cls
+      }
+    >
+      <Icon size={10} /> {label}
+    </span>
+  )
+}
+
 export default function Compromissos() {
   const data = useData((s) => s.data)
   const loading = useData((s) => s.loading)
@@ -76,27 +118,52 @@ export default function Compromissos() {
   }, [data, loading, load])
 
   const contratos = useMemo(() => (data ? getCompromissos(data) : []), [data])
-  const filtrados = useMemo(
-    () => (tab === 'todos' ? contratos : contratos.filter((c) => (c.natureza || 'recorrente') === tab)),
-    [contratos, tab],
-  )
 
-  const nRec = contratos.filter((c) => (c.natureza || 'recorrente') === 'recorrente').length
-  const nDiv = contratos.filter((c) => c.natureza === 'divida').length
+  // Status counts
+  const counts = useMemo(() => {
+    let ativos = 0
+    let pausados = 0
+    for (const c of contratos) {
+      const s = compromissoStatus(c)
+      if (s === 'ativo') ativos++
+      else if (s === 'pausado') pausados++
+    }
+    return { todos: contratos.length, ativos, pausados }
+  }, [contratos])
+
+  const filtrados = useMemo(() => {
+    if (tab === 'todos') return contratos
+    return contratos.filter((c) => {
+      const s = compromissoStatus(c)
+      return tab === 'ativos' ? s === 'ativo' : s === 'pausado'
+    })
+  }, [contratos, tab])
 
   const proximas = useMemo(() => (data ? getProximasParcelas(data, 30) : []), [data])
 
   function openNew() { setEditing(null); setModalOpen(true) }
   function openEdit(c: Contrato) { setEditing(c); setModalOpen(true) }
 
-  // KPI agregados
-  const ativos = contratos.filter((c) => c.active !== false)
-  const atrasadasTotal = ativos.reduce((s, c) => {
+  // KPI agregados (sobre o conjunto ativo, independente da tab)
+  const ativosArr = contratos.filter((c) => compromissoStatus(c) === 'ativo')
+  const atrasadasTotal = ativosArr.reduce((s, c) => {
     return s + ((c.parcelas ?? []).filter((p) => p.status === 'atrasada').length)
   }, 0)
-  const impactoMensal = ativos
+  const impactoMensal = ativosArr
     .filter((c) => (c.natureza || 'recorrente') === 'recorrente')
     .reduce((s, c) => s + (c.valorParcela || 0), 0)
+
+  // Chart — Evolução do Comprometimento do ano corrente
+  const currentYear = new Date().getFullYear()
+  const evolData = useMemo(
+    () => (data ? evolucaoComprometimento(data, currentYear) : []),
+    [data, currentYear],
+  )
+  const evolDataMapped = useMemo(
+    () => evolData.map((p) => ({ label: p.periodo, value: p.valor })),
+    [evolData],
+  )
+  const hasEvolData = evolData.some((p) => p.valor > 0)
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
@@ -104,7 +171,7 @@ export default function Compromissos() {
         <div>
           <h1 className="text-2xl font-bold text-ink">Compromissos</h1>
           <p className="text-sm text-mist">
-            Recorrentes (assinaturas, aluguel, planos) e dívidas parceladas.
+            Assinaturas, serviços e dívidas que ocupam espaço no seu fluxo de caixa.
             {syncStatus === 'syncing' && <span className="ml-2 text-faint">· salvando…</span>}
             {syncStatus === 'synced' && <span className="ml-2 text-green/80">· sincronizado</span>}
           </p>
@@ -114,46 +181,34 @@ export default function Compromissos() {
         </Button>
       </header>
 
-      {/* Tabs natureza */}
-      <div className="mb-5 inline-flex rounded-xl border border-line bg-surface p-1">
-        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
-          const active = tab === t
-          const count = t === 'todos' ? contratos.length : t === 'recorrente' ? nRec : nDiv
-          return (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={
-                'inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors ' +
-                (active ? 'bg-elevated text-ink' : 'text-mist hover:text-ink')
-              }
-            >
-              {t === 'recorrente' && <Repeat size={12} />}
-              {t === 'divida' && <AlertCircle size={12} />}
-              {TAB_LABEL[t]}
-              <span className="text-faint">({count})</span>
-            </button>
-          )
-        })}
-      </div>
-
       {loading && !data && <p className="text-mist">Carregando…</p>}
       {error && !data && <p className="text-red">Erro: {error}</p>}
+
+      {/* Evolução do Comprometimento */}
+      {hasEvolData && (
+        <section className="mb-6">
+          <LineSeries
+            title={`Evolução do Comprometimento — ${currentYear}`}
+            data={evolDataMapped}
+            height={200}
+            color="#6b5ef5"
+          />
+        </section>
+      )}
 
       {/* KPIs */}
       {contratos.length > 0 && (
         <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <KpiCard
             label="Ativos"
-            value={`${ativos.length}`}
+            value={`${ativosArr.length}`}
             sub={`${atrasadasTotal} parcela${atrasadasTotal !== 1 ? 's' : ''} atrasada${atrasadasTotal !== 1 ? 's' : ''}`}
             tone={atrasadasTotal > 0 ? 'red' : 'green'}
           />
           <KpiCard
             label="Recorrentes (mensal)"
             value={currencyBRL(impactoMensal)}
-            sub={`${nRec} compromisso${nRec !== 1 ? 's' : ''}`}
+            sub={`impacto fixo no mês`}
             tone="indigo"
           />
           <KpiCard
@@ -165,11 +220,35 @@ export default function Compromissos() {
         </div>
       )}
 
+      {/* Tabs status */}
+      <div className="mb-5 inline-flex rounded-xl border border-line bg-surface p-1">
+        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => {
+          const active = tab === t
+          const count = counts[t]
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={
+                'inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors ' +
+                (active ? 'bg-elevated text-ink' : 'text-mist hover:text-ink')
+              }
+            >
+              {t === 'ativos' && <CheckCircle2 size={12} />}
+              {t === 'pausados' && <Pause size={12} />}
+              {TAB_LABEL[t]}
+              <span className="text-faint">· {count}</span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Próximas parcelas */}
       {proximas.length > 0 && (
         <section className="mb-6 rounded-2xl border border-line bg-surface p-4">
           <header className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
-            <Clock size={14} className="text-amber" />
+            <Calendar size={14} className="text-amber" />
             Próximas parcelas (30 dias)
           </header>
           <ul className="divide-y divide-line">
@@ -225,7 +304,11 @@ export default function Compromissos() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtrados.map((c) => {
             const perf = getContratoPerformance(c)
-            const cor = c.natureza === 'divida' ? '#ff4a68' : '#1dc97e'
+            const dotColor = colorFromName(c.label)
+            const status = compromissoStatus(c)
+            const tipo = compromissoTipo(c)
+            const sBadge = STATUS_BADGE[status]
+            const tBadge = TIPO_BADGE[tipo]
             const proxima = perf.proxima
             const proxBadge = proxima ? statusBadge(proxima.status) : null
             return (
@@ -233,28 +316,32 @@ export default function Compromissos() {
                 key={c.id}
                 type="button"
                 onClick={() => openEdit(c)}
-                className="rounded-2xl border border-line bg-surface p-4 text-left transition-colors hover:bg-elevated/40"
-                style={{ borderTop: `3px solid ${cor}` }}
+                className="relative rounded-2xl border border-line bg-surface p-4 pl-5 text-left transition-colors hover:bg-elevated/40"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="text-[10.5px] font-semibold uppercase tracking-wide"
-                    style={{ color: cor }}
-                  >
-                    {c.natureza === 'divida' ? 'Dívida' : tipoLabel(c.tipoCompromisso) || 'Recorrente'}
-                  </span>
+                {/* Ponto colorido à esquerda (faixa vertical sutil) */}
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full"
+                  style={{ background: dotColor }}
+                />
+
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Pill Icon={tBadge.Icon} label={tBadge.label} cls={tBadge.cls} />
+                  <Pill Icon={sBadge.Icon} label={sBadge.label} cls={sBadge.cls} />
                   {perf.atrasadas > 0 && (
                     <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-red">
                       <AlertTriangle size={11} /> {perf.atrasadas}
                     </span>
                   )}
-                  {perf.parcelasRestantes === 0 && perf.totalParcelas > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-green">
-                      <CheckCircle2 size={11} /> quitado
-                    </span>
-                  )}
                 </div>
-                <h3 className="mt-1 text-[15px] font-bold text-ink line-clamp-2">{c.label}</h3>
+
+                <h3 className="mt-2 text-[15px] font-bold text-ink line-clamp-2">{c.label}</h3>
+
+                {/* Tipo qualificador (label legível) */}
+                {tipoCompromissoLabel(c.tipoCompromisso) && (
+                  <p className="mt-0.5 text-[11px] text-faint">{tipoCompromissoLabel(c.tipoCompromisso)}</p>
+                )}
 
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="font-mono text-base font-bold text-ink">
@@ -280,7 +367,7 @@ export default function Compromissos() {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${Math.min(100, Math.round(perf.pctParcelas * 100))}%`,
-                        background: cor,
+                        background: dotColor,
                       }}
                     />
                   </div>
@@ -312,7 +399,6 @@ export default function Compromissos() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         editing={editing}
-        defaultNatureza={tab === 'divida' ? 'divida' : tab === 'recorrente' ? 'recorrente' : undefined}
       />
     </div>
   )
