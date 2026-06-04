@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "npm run dev -w web",
     "build": "npm run build -w web",
-    "preview": "npm run preview -w web"
+    "preview": "npm run preview -w web",
+    "deploy:duo": "npm run build -w web && rm -rf duo && mkdir -p duo && cp -R web/dist/. duo/ && echo '[deploy:duo] built and copied to /duo/' "
   }
 }

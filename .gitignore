@@ -16,3 +16,7 @@ dist/
 *.tsbuildinfo
 .env.local
 .env.*.local
+# NOTA: /duo/ (build output produzido por `npm run deploy:duo`) é versionado
+# durante a fase beta privada pra Cloudflare Pages servir estaticamente.
+# Quando configurarmos CI/CD (build no CF Pages), gitignorar /duo/.
+# Ver docs/deploy-duo.md.
