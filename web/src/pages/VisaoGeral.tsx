@@ -15,6 +15,14 @@ import {
 } from '@haile/shared'
 import { useData } from '@/store/useData'
 import { StackedBars, type StackedBarsDatum } from '@/components/charts'
+import {
+  calcularSaudeFinanceira,
+  calcularPrevisaoCaixa,
+  getProximasParcelasInline,
+} from '@/lib/visao-geral-stats'
+import SaudeFinanceiraCard from '@/components/visao-geral/SaudeFinanceiraCard'
+import PrevisaoCaixaCard from '@/components/visao-geral/PrevisaoCaixaCard'
+import ProximasParcelasInline from '@/components/visao-geral/ProximasParcelasInline'
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
@@ -57,6 +65,11 @@ export default function VisaoGeral() {
   const top = topDespesas(d, month, year, 5)
   const contas = d.contas ?? []
   const totalContas = contas.reduce((s, c) => s + (Number(c.saldo) || 0), 0)
+
+  // Track T — Diagnóstico do mês
+  const saude = calcularSaudeFinanceira(d, year, month)
+  const previsao = calcularPrevisaoCaixa(d)
+  const proximasParcelas = getProximasParcelasInline(d, 5)
 
   const pdeRatio = clamp(pde.pct)            // fração da receita "livre"
   const comprometidoRatio = clamp(1 - pdeRatio) // do total comprometido (essenciais)
@@ -122,6 +135,22 @@ export default function VisaoGeral() {
         <div className="mt-2 flex justify-between text-[11px] text-faint">
           <span><span className="inline-block h-2 w-2 rounded-full bg-amber align-middle" /> Essenciais</span>
           <span><span className="inline-block h-2 w-2 rounded-full bg-indigo align-middle" /> Livre</span>
+        </div>
+      </section>
+
+      {/* ── Diagnóstico do mês (Track T) ───────────────────── */}
+      <section className="mb-7">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate">
+            Diagnóstico do mês
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <SaudeFinanceiraCard saude={saude} />
+          <PrevisaoCaixaCard previsao={previsao} />
+          <div className="lg:col-span-2">
+            <ProximasParcelasInline parcelas={proximasParcelas} />
+          </div>
         </div>
       </section>
 
