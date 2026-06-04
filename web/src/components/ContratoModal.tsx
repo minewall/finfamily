@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   CATEGORIES,
   COMPROMISSO_TIPOS,
@@ -68,29 +68,33 @@ export function ContratoModal({ open, onClose, editing, defaultNatureza }: Props
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Reset ao abrir
-  useEffect(() => {
-    if (!open) return
-    setLabel(editing?.label ?? '')
-    setKind(editing?.kind ?? 'despesa')
-    setNatureza(editing?.natureza ?? defaultNatureza ?? 'recorrente')
-    setTipoCompromisso(editing?.tipoCompromisso ?? 'assinatura')
-    setValor(editing?.valorParcela?.toString() ?? '')
-    setEntrada(editing?.entrada?.toString() ?? '')
-    setPeriodicidade(editing?.periodicidade ?? 'mensal')
-    setDataInicio(editing?.dataInicio ?? todayISO())
-    setDataFim(editing?.dataFim ?? '')
-    setParcelasTotal(
-      editing?.parcelasTotal?.toString() ?? (editing?.natureza === 'divida' ? '12' : '360'),
-    )
-    setDiaVencimento(editing?.diaVencimento?.toString() ?? '')
-    setCategory(editing?.category ?? 'assinaturas')
-    setResponsavel(editing?.responsavel ?? pessoas[0] ?? 'Você')
-    setContaId(editing?.contaId ?? '')
-    setNotas(editing?.notas ?? '')
-    setError(null)
-    setSubmitting(false)
-  }, [open, editing, defaultNatureza, pessoas])
+  // Reset ao abrir (padrão React docs: ajustar state ao mudar prop, sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setLabel(editing?.label ?? '')
+      setKind(editing?.kind ?? 'despesa')
+      setNatureza(editing?.natureza ?? defaultNatureza ?? 'recorrente')
+      setTipoCompromisso(editing?.tipoCompromisso ?? 'assinatura')
+      setValor(editing?.valorParcela?.toString() ?? '')
+      setEntrada(editing?.entrada?.toString() ?? '')
+      setPeriodicidade(editing?.periodicidade ?? 'mensal')
+      setDataInicio(editing?.dataInicio ?? todayISO())
+      setDataFim(editing?.dataFim ?? '')
+      setParcelasTotal(
+        editing?.parcelasTotal?.toString() ?? (editing?.natureza === 'divida' ? '12' : '360'),
+      )
+      setDiaVencimento(editing?.diaVencimento?.toString() ?? '')
+      setCategory(editing?.category ?? 'assinaturas')
+      setResponsavel(editing?.responsavel ?? pessoas[0] ?? 'Você')
+      setContaId(editing?.contaId ?? '')
+      setNotas(editing?.notas ?? '')
+      setError(null)
+      setSubmitting(false)
+    }
+  }
 
   function save() {
     const v = parseFloat((valor || '').replace(',', '.'))

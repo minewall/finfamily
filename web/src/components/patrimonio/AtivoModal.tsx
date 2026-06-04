@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Ativo } from '@haile/shared'
 import { ATIVO_CATEGORIAS, ATIVO_SUBCATEGORIAS, MOEDAS, RESERVA_TIPOS, IMPOSTO_OPTS } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
@@ -53,29 +53,34 @@ export function AtivoModal({ open, onClose, editing, defaultKind = 'reserva' }: 
   const [updated, setUpdated] = useState(today())
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    const k = isEdit ? detectKind(editing) : defaultKind
-    setKind(k)
-    // Reserva
-    setNome(editing?.nome ?? '')
-    setTipo(editing?.tipo ?? RESERVA_TIPOS[0])
-    setValorInvestido(editing?.valorInvestido?.toString() ?? '')
-    setValorAtual(editing?.valorAtual?.toString() ?? '')
-    setRendimento(editing?.rendimento?.toString() ?? '')
-    setImposto((editing?.imposto ?? 0).toString())
-    setCarencia(editing?.carencia ?? '')
-    // Crypto/FIAT
-    setPlatform(editing?.platform ?? '')
-    setCategoria(editing?.categoria ?? ATIVO_CATEGORIAS[0].id)
-    setSub(editing?.sub ?? '')
-    setTypeField(editing?.type ?? 'Crypto')
-    setCurrency(editing?.currency ?? 'BRL')
-    setQty((editing?.qty ?? 1).toString())
-    setUnitPrice((editing?.unitPrice ?? 0).toString())
-    setUpdated(editing?.updated ?? today())
-    setError(null)
-  }, [open, editing, defaultKind, isEdit])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? `new:${defaultKind}`) : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      const k = isEdit ? detectKind(editing) : defaultKind
+      setKind(k)
+      // Reserva
+      setNome(editing?.nome ?? '')
+      setTipo(editing?.tipo ?? RESERVA_TIPOS[0])
+      setValorInvestido(editing?.valorInvestido?.toString() ?? '')
+      setValorAtual(editing?.valorAtual?.toString() ?? '')
+      setRendimento(editing?.rendimento?.toString() ?? '')
+      setImposto((editing?.imposto ?? 0).toString())
+      setCarencia(editing?.carencia ?? '')
+      // Crypto/FIAT
+      setPlatform(editing?.platform ?? '')
+      setCategoria(editing?.categoria ?? ATIVO_CATEGORIAS[0].id)
+      setSub(editing?.sub ?? '')
+      setTypeField(editing?.type ?? 'Crypto')
+      setCurrency(editing?.currency ?? 'BRL')
+      setQty((editing?.qty ?? 1).toString())
+      setUnitPrice((editing?.unitPrice ?? 0).toString())
+      setUpdated(editing?.updated ?? today())
+      setError(null)
+    }
+  }
 
   const catInfo = useMemo(() => ATIVO_CATEGORIAS.find((c) => c.id === categoria) ?? null, [categoria])
   const subOptions = ATIVO_SUBCATEGORIAS[categoria] ?? []

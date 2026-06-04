@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Plus, X, Users, EyeOff, Receipt as ReceiptIcon } from 'lucide-react'
 import {
   CATEGORIES,
@@ -46,7 +46,8 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   const recordCategoryChoice = useData((s) => s.recordCategoryChoice)
   const recordCategoryCorrection = useData((s) => s.recordCategoryCorrection)
 
-  const pessoas = (data?.pessoas as string[] | undefined) ?? ['Você']
+  const pessoasRaw = data?.pessoas as string[] | undefined
+  const pessoas = useMemo(() => pessoasRaw ?? ['Você'], [pessoasRaw])
   const contas = data?.contas ?? []
   // Lista pra escolher em split/reembolso (inclui "Família" como bucket coletivo)
   const pessoasParaSplit = useMemo(() => [...pessoas, FAMILIA_COLETIVO], [pessoas])
@@ -83,53 +84,58 @@ export function LancamentoModal({ open, onClose, editing, defaultKind }: Props) 
   // categoria com a sugestão se ele ainda não escolheu nada explicitamente.
   const categoryTouchedRef = useRef<boolean>(isEdit)
 
-  // Reset ao reabrir
-  useEffect(() => {
-    if (!open) return
-    const ed = (editing?.kind === 'despesa' ? (editing as unknown as Despesa) : null)
-    setKind(editing?.kind ?? defaultKind ?? 'despesa')
-    setDesc(editing?.desc ?? '')
-    setAmount(editing?.amount?.toString() ?? '')
-    setDate(editing?.date ?? todayISO())
-    setPerson(editing?.person ?? pessoas[0] ?? 'Você')
-    setCategory(editing?.category ?? (editing?.kind === 'receita' ? 'receita' : 'alimentacao'))
-    setContaId(editing?.contaId ?? '')
-    setVisibilidade((ed?.visibilidade as 'familiar' | 'particular') ?? 'familiar')
-    setSplitOn(!!ed?.split?.length)
-    setSplits(ed?.split?.map((s) => ({ person: s.person, valor: String(s.valor) })) ?? [])
-    setReembolsoOn(!!ed?.reembolso)
-    setReembDe(ed?.reembolso?.de ?? FAMILIA_COLETIVO)
-    setReembValor(ed?.reembolso?.valor?.toString() ?? '')
-    setError(null)
-    setSubmitting(false)
-    setSuggestion(null)
-    categoryTouchedRef.current = !!editing
-  }, [open, editing, defaultKind, pessoas])
-
-  // Sugere categoria a partir da descrição. KB pessoal tem prioridade sobre
-  // keywords genéricas (lógica em @haile/shared/categories-knowledge).
-  useEffect(() => {
-    if (!open || isEdit || kind !== 'despesa') {
+  // Reset ao reabrir (padrão React docs: ajustar state ao mudar prop sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? `new:${defaultKind ?? 'despesa'}`) : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      const ed = (editing?.kind === 'despesa' ? (editing as unknown as Despesa) : null)
+      setKind(editing?.kind ?? defaultKind ?? 'despesa')
+      setDesc(editing?.desc ?? '')
+      setAmount(editing?.amount?.toString() ?? '')
+      setDate(editing?.date ?? todayISO())
+      setPerson(editing?.person ?? pessoas[0] ?? 'Você')
+      setCategory(editing?.category ?? (editing?.kind === 'receita' ? 'receita' : 'alimentacao'))
+      setContaId(editing?.contaId ?? '')
+      setVisibilidade((ed?.visibilidade as 'familiar' | 'particular') ?? 'familiar')
+      setSplitOn(!!ed?.split?.length)
+      setSplits(ed?.split?.map((s) => ({ person: s.person, valor: String(s.valor) })) ?? [])
+      setReembolsoOn(!!ed?.reembolso)
+      setReembDe(ed?.reembolso?.de ?? FAMILIA_COLETIVO)
+      setReembValor(ed?.reembolso?.valor?.toString() ?? '')
+      setError(null)
+      setSubmitting(false)
       setSuggestion(null)
-      return
+      categoryTouchedRef.current = !!editing
     }
-    const s = suggestCategory(desc, data?.iaKnowledge)
-    setSuggestion(s)
-    if (s && !categoryTouchedRef.current) {
-      setCategory(s.category)
-    }
-  }, [desc, open, isEdit, kind, data?.iaKnowledge])
+  }
 
-  // Se mudar o tipo num NOVO lançamento, ajusta categoria default
-  useEffect(() => {
-    if (isEdit || !open) return
+  // Sugere categoria a partir da descrição (render-phase, sem useEffect).
+  // KB pessoal tem prioridade sobre keywords genéricas (@haile/shared/categories-knowledge).
+  const computedSuggestion = useMemo(() => {
+    if (!open || isEdit || kind !== 'despesa') return null
+    return suggestCategory(desc, data?.iaKnowledge) ?? null
+  }, [desc, open, isEdit, kind, data?.iaKnowledge])
+  const [prevSuggestion, setPrevSuggestion] = useState<CategorySuggestion | null>(null)
+  if (computedSuggestion !== prevSuggestion) {
+    setPrevSuggestion(computedSuggestion)
+    setSuggestion(computedSuggestion)
+    if (computedSuggestion && !categoryTouchedRef.current) {
+      setCategory(computedSuggestion.category)
+    }
+  }
+
+  // Se mudar o tipo num NOVO lançamento, ajusta categoria default (padrão derivado de prop sem useEffect)
+  const [prevKindForCategory, setPrevKindForCategory] = useState(kind)
+  if (open && !isEdit && kind !== prevKindForCategory) {
+    setPrevKindForCategory(kind)
     setCategory(kind === 'receita' ? 'receita' : 'alimentacao')
-    // Receita não tem split/reembolso/visibilidade
     if (kind === 'receita') {
       setSplitOn(false)
       setReembolsoOn(false)
     }
-  }, [kind, open, isEdit])
+  }
 
   function addSplitRow() {
     // Sugere primeira pessoa que ainda não está na lista

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Imovel } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input, Select } from '@/components/ui/field'
@@ -45,26 +45,31 @@ export function ImovelModal({ open, onClose, editing }: Props) {
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setTipo((editing?.tipo as string) ?? 'casa')
-    setApelido(editing?.apelido ?? '')
-    setEndereco(editing?.endereco ?? '')
-    setValorCompra(editing?.valorCompra?.toString() ?? '')
-    setDataCompra(editing?.dataCompra ?? today())
-    setValorAtual(editing?.valorAtual?.toString() ?? '')
-    setValoriz((editing?.valorizacaoAnualPct ?? 0).toString())
-    setFinanciado(!!editing?.financiado)
-    setSaldoDevedor(editing?.saldoDevedor?.toString() ?? '')
-    setParcela(editing?.parcelaFinanciamento?.toString() ?? '')
-    setIptu(editing?.iptuAnual?.toString() ?? '')
-    setCondominio(editing?.condominioMensal?.toString() ?? '')
-    setManut(editing?.manutencaoMensal?.toString() ?? '')
-    setAlugado(!!editing?.alugado)
-    setAluguel(editing?.aluguelMensal?.toString() ?? '')
-    setNotes(editing?.notes ?? '')
-    setError(null)
-  }, [open, editing])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setTipo((editing?.tipo as string) ?? 'casa')
+      setApelido(editing?.apelido ?? '')
+      setEndereco(editing?.endereco ?? '')
+      setValorCompra(editing?.valorCompra?.toString() ?? '')
+      setDataCompra(editing?.dataCompra ?? today())
+      setValorAtual(editing?.valorAtual?.toString() ?? '')
+      setValoriz((editing?.valorizacaoAnualPct ?? 0).toString())
+      setFinanciado(!!editing?.financiado)
+      setSaldoDevedor(editing?.saldoDevedor?.toString() ?? '')
+      setParcela(editing?.parcelaFinanciamento?.toString() ?? '')
+      setIptu(editing?.iptuAnual?.toString() ?? '')
+      setCondominio(editing?.condominioMensal?.toString() ?? '')
+      setManut(editing?.manutencaoMensal?.toString() ?? '')
+      setAlugado(!!editing?.alugado)
+      setAluguel(editing?.aluguelMensal?.toString() ?? '')
+      setNotes(editing?.notes ?? '')
+      setError(null)
+    }
+  }
 
   function save() {
     if (!apelido.trim() && !endereco.trim()) { setError('Informe um apelido ou endereço'); return }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Conta } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input, Select } from '@/components/ui/field'
@@ -31,16 +31,21 @@ export function ContaModal({ open, onClose, editing }: Props) {
   const [cor, setCor] = useState(editing?.cor ?? COLORS[0])
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setNome(editing?.nome ?? '')
-    setBanco(editing?.banco ?? '')
-    setTipo(editing?.tipo ?? 'Corrente')
-    setCategoria((editing?.categoria as 'bancaria' | 'digital' | 'cripto') ?? 'bancaria')
-    setSaldo(editing?.saldo?.toString() ?? '0')
-    setCor(editing?.cor ?? COLORS[0])
-    setError(null)
-  }, [open, editing])
+  // Sync form state quando o modal abre ou troca de "editing" (padrão React docs: ajustar state ao mudar prop)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setNome(editing?.nome ?? '')
+      setBanco(editing?.banco ?? '')
+      setTipo(editing?.tipo ?? 'Corrente')
+      setCategoria((editing?.categoria as 'bancaria' | 'digital' | 'cripto') ?? 'bancaria')
+      setSaldo(editing?.saldo?.toString() ?? '0')
+      setCor(editing?.cor ?? COLORS[0])
+      setError(null)
+    }
+  }
 
   function save() {
     const v = parseFloat(saldo.replace(',', '.'))

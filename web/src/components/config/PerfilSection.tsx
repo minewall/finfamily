@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Upload, User } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { useData } from '@/store/useData'
@@ -91,13 +91,16 @@ export function PerfilSection() {
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (!data) return
+  // Resync quando data muda (vindo de outro device, por ex). Padrão React docs: ajustar
+  // state ao mudar prop derivada sem useEffect, comparando referência prev.
+  const [prevData, setPrevData] = useState(data)
+  if (data && data !== prevData) {
+    setPrevData(data)
     const p = getProfile()
     setName(p.name)
     setTimezone(p.timezone)
     setAvatar(p.avatar)
-  }, [data, getProfile])
+  }
 
   function handleSave() {
     setError(null)

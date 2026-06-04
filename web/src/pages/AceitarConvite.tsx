@@ -25,15 +25,7 @@ export default function AceitarConvite() {
   const [phase, setPhase] = useState<'idle' | 'accepting' | 'done' | 'expired' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (authLoading) return
-    if (!session) return // sem login não tenta aceitar — mostra CTA
-    if (phase !== 'idle') return
-    void run()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, session])
-
-  async function run() {
+  const run = async () => {
     if (!token) {
       setPhase('error')
       setMessage('Link inválido — token ausente.')
@@ -56,6 +48,17 @@ export default function AceitarConvite() {
       setMessage('Não foi possível aceitar o convite.')
     }
   }
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!session) return // sem login não tenta aceitar — mostra CTA
+    if (phase !== 'idle') return
+    // run() é trigger de side-effect assíncrono (chamada de rede + redirect),
+    // não derivação de state — disable consciente da regra set-state-in-effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void run()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, session])
 
   return (
     <div className="grid min-h-dvh place-items-center bg-bg px-5 py-10 text-ink">

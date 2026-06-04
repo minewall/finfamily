@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Equipamento } from '@haile/shared'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input, Select } from '@/components/ui/field'
@@ -39,20 +39,25 @@ export function EquipamentoModal({ open, onClose, editing }: Props) {
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!open) return
-    setCategoria((editing?.categoria as string) ?? 'eletronico')
-    setNome(editing?.nome ?? '')
-    setValorCompra(editing?.valorCompra?.toString() ?? '')
-    setDataCompra(editing?.dataCompra ?? today())
-    setValorAtual(editing?.valorAtual?.toString() ?? '')
-    setDepreciacao((editing?.depreciacaoAnualPct ?? 20).toString())
-    setVidaUtil((editing?.vidaUtilAnos ?? 5).toString())
-    setManut(editing?.custoManutencaoMensal?.toString() ?? '')
-    setAnualExtra(editing?.custoAnualExtra?.toString() ?? '')
-    setNotes(editing?.notes ?? '')
-    setError(null)
-  }, [open, editing])
+  // Reset state ao abrir / trocar editing (padrão React docs: ajustar state sem useEffect)
+  const [prevOpenKey, setPrevOpenKey] = useState<string>('')
+  const openKey = open ? (editing?.id ?? 'new') : ''
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    if (open) {
+      setCategoria((editing?.categoria as string) ?? 'eletronico')
+      setNome(editing?.nome ?? '')
+      setValorCompra(editing?.valorCompra?.toString() ?? '')
+      setDataCompra(editing?.dataCompra ?? today())
+      setValorAtual(editing?.valorAtual?.toString() ?? '')
+      setDepreciacao((editing?.depreciacaoAnualPct ?? 20).toString())
+      setVidaUtil((editing?.vidaUtilAnos ?? 5).toString())
+      setManut(editing?.custoManutencaoMensal?.toString() ?? '')
+      setAnualExtra(editing?.custoAnualExtra?.toString() ?? '')
+      setNotes(editing?.notes ?? '')
+      setError(null)
+    }
+  }
 
   function save() {
     if (!nome.trim()) { setError('Informe o nome do equipamento'); return }

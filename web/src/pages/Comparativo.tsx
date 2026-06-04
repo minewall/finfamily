@@ -97,13 +97,11 @@ export default function Comparativo() {
   }))
 
   // Saldo acumulado ao longo do ano
-  const saldoAcumulado: LineSeriesDatum[] = (() => {
-    let acc = 0
-    return atual.monthly.map((m) => {
-      acc += m.saldo
-      return { label: MESES_CURTOS[m.month - 1], value: acc }
-    })
-  })()
+  const saldoAcumulado: LineSeriesDatum[] = atual.monthly.reduce<LineSeriesDatum[]>((rows, m) => {
+    const prev = rows.length > 0 ? rows[rows.length - 1].value : 0
+    rows.push({ label: MESES_CURTOS[m.month - 1], value: prev + m.saldo })
+    return rows
+  }, [])
 
   // Donut: despesas anuais por categoria
   const donutData: DonutChartDatum[] = categorias
