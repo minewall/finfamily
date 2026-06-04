@@ -11,6 +11,8 @@
     "dev": "npm run dev -w web",
     "build": "npm run build -w web",
     "preview": "npm run preview -w web",
-    "deploy:app": "npm run build -w web && rm -rf app && mkdir -p app && cp -R web/dist/. app/ && echo '[deploy:app] built and copied to /app/' "
+    "deploy:app": "npm run build -w web && rm -rf app && mkdir -p app && cp -R web/dist/. app/ && echo '[deploy:app] built and copied to /app/' ",
+    "cf:deploy": "wrangler deploy",
+    "release": "npm run deploy:app && npm run cf:deploy"
   }
 }
